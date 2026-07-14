@@ -37,13 +37,14 @@ private:
     // Layout configuration (The "Dashboard" setup)
     const RelativeRect mapPanel = { 0.05f, 0.10f, 0.30f, 0.30f }; // Left side
     const RelativeRect textPanel = { 0.35f, 0.10f, 0.60f, 0.35f }; // Center
-    SDL_Rect getPixelRect(RelativeRect rel);
-    void drawMapTiles(int panelW, int panelH);
-    SDL_Rect getSquareRect(float sizePercentage);
 
-    void renderMapPanel(SDL_Rect rect);
-    void renderPortraitPanel(SDL_Rect rect);
+    void renderMapPanel(SDL_Rect rect, int padding);
+    void renderTitleBar(SDL_Rect t1, SDL_Rect t2, SDL_Rect t3);
+    void renderPCPanel(SDL_Rect rect);
+    void renderCompanionPanel(SDL_Rect rect);
     void renderTextPanel(SDL_Rect rect);
+    void renderButtons(SDL_Rect rect);
+    void renderRightColumn(SDL_Rect charRect, SDL_Rect itemRect, SDL_Rect logRect);
 };
 
 #endif
