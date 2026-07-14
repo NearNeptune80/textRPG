@@ -50,8 +50,10 @@ FetchContent_MakeAvailable(json)
 # Add source to this project's executable.
 add_executable (textRPG 
     "src/main.cpp" 
-
- "src/game.h")
+    "src/game.h" 
+    "src/game.cpp" 
+    "src/gameMap.cpp"
+)
 
 # Link the libraries to the executable
 target_link_libraries(textRPG PRIVATE 
@@ -59,4 +61,11 @@ target_link_libraries(textRPG PRIVATE
     SDL3_image::SDL3_image
     SDL3_ttf::SDL3_ttf
     nlohmann_json::nlohmann_json
+)
+
+# Copy SDL3.dll to the build directory automatically
+add_custom_command(TARGET textRPG POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "${CMAKE_BINARY_DIR}/_deps/sdl3-build/sdl3.dll" 
+    "$<TARGET_FILE_DIR:textRPG>"
 )
