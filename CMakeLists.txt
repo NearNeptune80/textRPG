@@ -51,8 +51,11 @@ FetchContent_MakeAvailable(json)
 add_executable (textRPG 
     "src/main.cpp" 
     "src/game.h" 
-    "src/game.cpp" 
+    "src/game.cpp"
+    "src/gameMap.h"
     "src/gameMap.cpp"
+    "src/entity.h"
+    "src/entity.cpp"
 )
 
 # Link the libraries to the executable

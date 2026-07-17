@@ -1,8 +1,6 @@
 #include "game.h"
-#include <iostream>
-#include <algorithm>
 
-game::game() : isRunning(false), window(nullptr), renderer(nullptr), map(nullptr), gridX(1), gridY(1) {}
+game::game() : isRunning(false), window(nullptr), renderer(nullptr), map(nullptr), player(nullptr), gridX(1), gridY(1), currentState(GameState::EXPLORATION) {}
 
 game::~game()
 {
@@ -16,11 +14,39 @@ void game::init(const char* title, int width, int height, bool fullscreen)
     window = SDL_CreateWindow(title, width, height, (fullscreen ? SDL_WINDOW_FULLSCREEN : SDL_WINDOW_RESIZABLE));
     renderer = SDL_CreateRenderer(window, NULL);
 
-    // Set initial logical presentation
     SDL_SetRenderLogicalPresentation(renderer, width, height, SDL_LOGICAL_PRESENTATION_STRETCH);
 
     map = new gameMap();
     map->updateDiscovery(gridX, gridY);
+
+    // 1. Declare the object with a capital letter, using the lowercase class
+    entity* Player = new entity("player_1", "Oellanix");
+
+    // 2. Declare part objects with capital letters, using the lowercase struct
+    bodyPart WolfTail;
+    WolfTail.id = "tail_wolf";
+    WolfTail.name = "Fluffy Wolf Tail";
+    WolfTail.race = "wolf";
+    WolfTail.covering = "fur";
+    WolfTail.color = "grey";
+    WolfTail.tags = { "canine", "prehensile_false" };
+
+    bodyPart DemonLegs;
+    DemonLegs.id = "legs_demon";
+    DemonLegs.name = "Demonic Digitigrade Legs";
+    DemonLegs.race = "demon";
+    DemonLegs.covering = "skin";
+    DemonLegs.color = "crimson";
+    DemonLegs.tags = { "bipedal", "digitigrade" };
+
+    // 3. Set them
+    Player->anatomy.setPart(bodySlot::TAIL, WolfTail);
+    Player->anatomy.setPart(bodySlot::LEGS, DemonLegs);
+
+    // 4. Print debug
+    std::cout << "Entity Created: " << Player->name << "\n";
+    Player->anatomy.printDebug();
+
     isRunning = true;
 }
 
@@ -31,7 +57,6 @@ void game::handleEvents()
     {
         if (event.type == SDL_EVENT_QUIT) isRunning = false;
 
-        // Dynamic scaling: Update logical presentation when window is resized
         if (event.type == SDL_EVENT_WINDOW_RESIZED)
         {
             int newWidth = event.window.data1;
@@ -41,19 +66,40 @@ void game::handleEvents()
 
         if (event.type == SDL_EVENT_KEY_DOWN)
         {
-            int nextX = gridX, nextY = gridY;
-            switch (event.key.key)
+            // State Toggles
+            if (event.key.key == SDLK_I)
             {
-                case SDLK_UP:    nextY--; break;
-                case SDLK_DOWN:  nextY++; break;
-                case SDLK_LEFT:  nextX--; break;
-                case SDLK_RIGHT: nextX++; break;
+                if (currentState == GameState::EXPLORATION)
+                {
+                    currentState = GameState::INVENTORY;
+                }
+                else if (currentState == GameState::INVENTORY)
+                {
+                    currentState = GameState::EXPLORATION;
+                }
             }
-            if (map->isWalkable(nextX, nextY))
+            if (event.key.key == SDLK_M)
             {
-                gridX = nextX;
-                gridY = nextY;
-                map->updateDiscovery(gridX, gridY);
+                currentState = (currentState == GameState::MAIN_MENU) ? GameState::EXPLORATION : GameState::MAIN_MENU;
+            }
+
+            // Map Movement (Only process if exploring)
+            if (currentState == GameState::EXPLORATION)
+            {
+                int nextX = gridX, nextY = gridY;
+                switch (event.key.key)
+                {
+                    case SDLK_UP:    nextY--; break;
+                    case SDLK_DOWN:  nextY++; break;
+                    case SDLK_LEFT:  nextX--; break;
+                    case SDLK_RIGHT: nextX++; break;
+                }
+                if (map->isWalkable(nextX, nextY))
+                {
+                    gridX = nextX;
+                    gridY = nextY;
+                    map->updateDiscovery(gridX, gridY);
+                }
             }
         }
     }
@@ -66,27 +112,37 @@ void game::render()
     SDL_SetRenderDrawColor(renderer, 30, 30, 30, 255);
     SDL_RenderClear(renderer);
 
+    if (currentState == GameState::MAIN_MENU)
+    {
+        renderMainMenuLayout();
+    }
+    else
+    {
+        renderDashboardLayout();
+    }
+
+    SDL_SetRenderViewport(renderer, NULL);
+    SDL_RenderPresent(renderer);
+}
+
+// --- LAYOUT MANAGERS ---
+
+void game::renderDashboardLayout()
+{
     int w, h;
     SDL_RendererLogicalPresentation mode;
     float scale;
     SDL_GetRenderLogicalPresentation(renderer, &w, &h, &mode);
 
-    // --- 1. SINGLE SOURCE OF TRUTH ---
+    // 1. Core Layout Math
     int padding = 12;
     int topBarH = (int)(h * 0.08f);
     int mapSize = (int)(h * 0.30f);
 
-    // --- 2. VERTICAL BOUNDARIES ---
-    // The top row
     int topRowY = padding;
-
-    // This adds the missing padding between the top bar and the main columns!
     int colStartY = topRowY + topBarH + padding;
-
-    // The absolute lowest point any box can reach (ensures flush bottoms)
     int colEndY = h - padding;
 
-    // --- 3. HORIZONTAL BOUNDARIES ---
     int leftColW = mapSize;
     int rightColW = mapSize;
     int centerColW = w - (leftColW + rightColW + (4 * padding));
@@ -95,54 +151,70 @@ void game::render()
     int centerX = leftX + leftColW + padding;
     int rightX = centerX + centerColW + padding;
 
-    // --- 4. RECT DEFINITIONS ---
-    // Top Bar
+    // 2. Define Slots
     int titleW = (w - (4 * padding)) / 3;
-    renderTitleBar(
-        { padding, topRowY, titleW, topBarH },
-        { padding + titleW + padding, topRowY, titleW, topBarH },
-        { padding + (titleW + padding) * 2, topRowY, titleW, topBarH }
-    );
+    SDL_Rect slotTitle1 = { padding, topRowY, titleW, topBarH };
+    SDL_Rect slotTitle2 = { padding + titleW + padding, topRowY, titleW, topBarH };
+    SDL_Rect slotTitle3 = { padding + (titleW + padding) * 2, topRowY, titleW, topBarH };
 
-    // -- LEFT COLUMN --
-    // Map is anchored to the absolute bottom
-    renderMapPanel({ leftX, colEndY - mapSize, mapSize, mapSize }, padding);
+    SDL_Rect slotBottomLeft = { leftX, colEndY - mapSize, mapSize, mapSize };
 
-    // PC/Companion fill the space above the map
     int leftAvailableH = (colEndY - mapSize - padding) - colStartY;
     int leftStackH = (leftAvailableH - padding) / 2;
+    SDL_Rect slotTopLeft = { leftX, colStartY, leftColW, leftStackH };
+    SDL_Rect slotMidLeft = { leftX, colStartY + leftStackH + padding, leftColW, leftAvailableH - leftStackH - padding };
 
-    renderPCPanel({ leftX, colStartY, leftColW, leftStackH });
-
-    // Calculate exact remaining height for Companion to avoid 1px rounding gaps
-    int compH = leftAvailableH - leftStackH - padding;
-    renderCompanionPanel({ leftX, colStartY + leftStackH + padding, leftColW, compH });
-
-    // -- CENTER COLUMN --
-    // Buttons anchored to the absolute bottom
     int btnH = (int)(h * 0.15f);
-    renderButtons({ centerX, colEndY - btnH, centerColW, btnH });
+    SDL_Rect slotCenterMain = { centerX, colStartY, centerColW, (colEndY - btnH - padding) - colStartY };
+    SDL_Rect slotCenterBottom = { centerX, colEndY - btnH, centerColW, btnH };
 
-    // Text box stretches to fill everything between the top boundary and the buttons
-    int textH = (colEndY - btnH - padding) - colStartY;
-    renderTextPanel({ centerX, colStartY, centerColW, textH });
-
-    // -- RIGHT COLUMN --
     int rightAvailableH = colEndY - colStartY;
     int rightStackH = (rightAvailableH - (2 * padding)) / 3;
+    SDL_Rect slotTopRight = { rightX, colStartY, rightColW, rightStackH };
+    SDL_Rect slotMidRight = { rightX, colStartY + rightStackH + padding, rightColW, rightStackH };
+    SDL_Rect slotBotRight = { rightX, colStartY + (rightStackH + padding) * 2, rightColW, rightAvailableH - (rightStackH * 2 + padding * 2) };
 
-    renderRightColumn(
-        { rightX, colStartY, rightColW, rightStackH },
-        { rightX, colStartY + rightStackH + padding, rightColW, rightStackH },
-        // Log box takes the exact remaining space to sit perfectly flush at the bottom
-        { rightX, colStartY + (rightStackH + padding) * 2, rightColW, rightAvailableH - (rightStackH * 2 + padding * 2) }
-    );
+    // 3. Inject Widgets based on State
+    // Static widgets (Always show in dashboard)
+    renderTitleBar(slotTitle1, slotTitle2, slotTitle3);
+    renderPCPanel(slotTopLeft);
+    renderCompanionPanel(slotMidLeft);
+    renderButtons(slotCenterBottom);
 
-    SDL_SetRenderViewport(renderer, NULL);
-    SDL_RenderPresent(renderer);
+    // Dynamic widgets (Change based on state)
+    switch (currentState)
+    {
+        case GameState::EXPLORATION:
+            renderMapPanel(slotBottomLeft, padding);
+            renderTextPanel(slotCenterMain);
+            renderRightColumn(slotTopRight, slotMidRight, slotBotRight);
+            break;
+
+        case GameState::INVENTORY:
+            renderEquipmentPanel(slotBottomLeft, padding);
+            renderInventoryPanel(slotCenterMain);
+            renderRightColumn(slotTopRight, slotMidRight, slotBotRight); // Can swap these later if needed
+            break;
+
+        default: break;
+    }
 }
 
-// --- UI MODULAR FUNCTIONS ---
+void game::renderMainMenuLayout()
+{
+    int w, h;
+    SDL_RendererLogicalPresentation mode;
+    float scale;
+    SDL_GetRenderLogicalPresentation(renderer, &w, &h, &mode);
+
+    // Simple placeholder for main menu
+    SDL_Rect menuRect = { w / 4, h / 4, w / 2, h / 2 };
+    SDL_SetRenderViewport(renderer, &menuRect);
+    SDL_SetRenderDrawColor(renderer, 20, 60, 80, 255); // Distinct blueish color
+    SDL_RenderFillRect(renderer, NULL);
+}
+
+// --- UI WIDGETS ---
 
 void game::renderMapPanel(SDL_Rect rect, int padding)
 {
@@ -150,19 +222,11 @@ void game::renderMapPanel(SDL_Rect rect, int padding)
     SDL_SetRenderDrawColor(renderer, 20, 20, 20, 255);
     SDL_RenderFillRect(renderer, NULL);
 
-    // 1. Define internal spacing explicitly
-    int tileGap = 2; // The exact pixel gap between tiles
-
-    // 2. Calculate the exact size of a drawn tile
-    // Take the full width, subtract the padding on both sides, 
-    // and subtract the 4 gaps that exist between the 5 tiles.
+    int tileGap = 2;
     int availableForTiles = rect.w - (2 * padding) - (4 * tileGap);
     int drawnTileSize = availableForTiles / 5;
-
-    // 3. Calculate the exact total width/height of the tile cluster
     int totalGridSize = (drawnTileSize * 5) + (tileGap * 4);
 
-    // 4. Center the entire cluster within the viewport
     int offsetX = (rect.w - totalGridSize) / 2;
     int offsetY = (rect.h - totalGridSize) / 2;
 
@@ -178,11 +242,9 @@ void game::renderMapPanel(SDL_Rect rect, int padding)
                 Tile t = map->getTile(mapX, mapY);
                 if (t.discovery == STATE_HIDDEN) continue;
 
-                // Map -2 to 2 into a 0 to 4 render index
                 int renderX = x + 2;
                 int renderY = y + 2;
 
-                // Draw exactly at the offset, plus the number of tiles/gaps before this one
                 SDL_FRect r = {
                     (float)(offsetX + (renderX * (drawnTileSize + tileGap))),
                     (float)(offsetY + (renderY * (drawnTileSize + tileGap))),
@@ -190,17 +252,14 @@ void game::renderMapPanel(SDL_Rect rect, int padding)
                     (float)drawnTileSize
                 };
 
-                // Color Logic
                 if (t.discovery == STATE_PARTIAL) SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255);
                 else if (t.type == TILE_FLOOR) SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255);
                 else SDL_SetRenderDrawColor(renderer, 200, 50, 50, 255);
-
                 SDL_RenderFillRect(renderer, &r);
             }
         }
     }
 
-    // Player (Always at render index 2,2)
     SDL_FRect p = {
         (float)(offsetX + (2 * (drawnTileSize + tileGap))),
         (float)(offsetY + (2 * (drawnTileSize + tileGap))),
@@ -209,6 +268,126 @@ void game::renderMapPanel(SDL_Rect rect, int padding)
     };
     SDL_SetRenderDrawColor(renderer, 0, 200, 255, 255);
     SDL_RenderFillRect(renderer, &p);
+}
+
+void game::renderEquipmentPanel(SDL_Rect rect, int padding)
+{
+    SDL_SetRenderViewport(renderer, &rect);
+    SDL_SetRenderDrawColor(renderer, 25, 20, 30, 255);
+    SDL_RenderFillRect(renderer, NULL);
+
+    // Purple border
+    SDL_SetRenderDrawColor(renderer, 100, 50, 150, 255);
+    SDL_FRect border = { (float)padding, (float)padding, (float)rect.w - (padding * 2), (float)rect.h - (padding * 2) };
+    SDL_RenderRect(renderer, &border);
+
+    // --- 4x6 Equipment Grid Math ---
+    int cols = 6;
+    int rows = 6;
+    int slotGap = 4;
+
+    // We add extra internal padding so the slots don't touch the purple border
+    int internalPadding = padding + 6;
+
+    int availableW = rect.w - (2 * internalPadding) - ((cols - 1) * slotGap);
+    int availableH = rect.h - (2 * internalPadding) - ((rows - 1) * slotGap);
+
+    // The slot size is constrained by whichever is tighter: width or height
+    int slotSize = std::min(availableW / cols, availableH / rows);
+
+    int gridW = (slotSize * cols) + (slotGap * (cols - 1));
+    int gridH = (slotSize * rows) + (slotGap * (rows - 1));
+
+    int offsetX = (rect.w - gridW) / 2;
+    int offsetY = (rect.h - gridH) / 2;
+
+    // Draw the empty slots
+    SDL_SetRenderDrawColor(renderer, 45, 40, 50, 255); // Darker slot background
+    for (int r = 0; r < rows; r++)
+    {
+        for (int c = 0; c < cols; c++)
+        {
+            SDL_FRect slot = {
+                (float)(offsetX + (c * (slotSize + slotGap))),
+                (float)(offsetY + (r * (slotSize + slotGap))),
+                (float)slotSize,
+                (float)slotSize
+            };
+            SDL_RenderFillRect(renderer, &slot);
+
+            // Optional: Draw a subtle border around each slot
+            SDL_SetRenderDrawColor(renderer, 60, 55, 65, 255);
+            SDL_RenderRect(renderer, &slot);
+            SDL_SetRenderDrawColor(renderer, 45, 40, 50, 255); // Reset for next fill
+        }
+    }
+}
+
+void game::renderInventoryPanel(SDL_Rect rect)
+{
+    SDL_SetRenderViewport(renderer, &rect);
+    SDL_SetRenderDrawColor(renderer, 35, 35, 45, 255);
+    SDL_RenderFillRect(renderer, NULL);
+
+    // Center divider
+    SDL_SetRenderDrawColor(renderer, 60, 60, 70, 255);
+    SDL_RenderLine(renderer, rect.w / 2, 20, rect.w / 2, rect.h - 20);
+
+    // --- 6x4 Inventory Grid Math (Per Side) ---
+    int cols = 6;
+    int rows = 5;
+    int slotGap = 4;
+
+    // We are only working with half the width for each grid
+    int halfWidth = rect.w / 2;
+    int sidePadding = 20; // Distance from the edges and the center divider
+    int topPadding = 60;  // Leave room at the top for "Your Inventory" text later
+
+    int availableW = halfWidth - (2 * sidePadding) - ((cols - 1) * slotGap);
+    int availableH = rect.h - topPadding - sidePadding - ((rows - 1) * slotGap);
+
+    int slotSize = std::min(availableW / cols, availableH / rows);
+
+    int gridW = (slotSize * cols) + (slotGap * (cols - 1));
+    int gridH = (slotSize * rows) + (slotGap * (rows - 1));
+
+    // Offset for Left Grid (Player)
+    int leftOffsetX = (halfWidth - gridW) / 2;
+    int gridOffsetY = topPadding; // Push down for headers
+
+    // Offset for Right Grid (Floor)
+    int rightOffsetX = halfWidth + (halfWidth - gridW) / 2;
+
+    // Draw Player Grid
+    SDL_SetRenderDrawColor(renderer, 50, 50, 60, 255);
+    for (int r = 0; r < rows; r++)
+    {
+        for (int c = 0; c < cols; c++)
+        {
+            SDL_FRect slot = {
+                (float)(leftOffsetX + (c * (slotSize + slotGap))),
+                (float)(gridOffsetY + (r * (slotSize + slotGap))),
+                (float)slotSize,
+                (float)slotSize
+            };
+            SDL_RenderFillRect(renderer, &slot);
+        }
+    }
+
+    // Draw Floor Grid
+    for (int r = 0; r < rows; r++)
+    {
+        for (int c = 0; c < cols; c++)
+        {
+            SDL_FRect slot = {
+                (float)(rightOffsetX + (c * (slotSize + slotGap))),
+                (float)(gridOffsetY + (r * (slotSize + slotGap))),
+                (float)slotSize,
+                (float)slotSize
+            };
+            SDL_RenderFillRect(renderer, &slot);
+        }
+    }
 }
 
 void game::renderTitleBar(SDL_Rect t1, SDL_Rect t2, SDL_Rect t3)
@@ -250,9 +429,9 @@ void game::renderButtons(SDL_Rect rect)
     SDL_RenderFillRect(renderer, NULL);
 }
 
-void game::renderRightColumn(SDL_Rect charRect, SDL_Rect itemRect, SDL_Rect logRect)
+void game::renderRightColumn(SDL_Rect top, SDL_Rect mid, SDL_Rect bot)
 {
-    SDL_Rect boxes[3] = { charRect, itemRect, logRect };
+    SDL_Rect boxes[3] = { top, mid, bot };
     for (int i = 0; i < 3; i++)
     {
         SDL_SetRenderViewport(renderer, &boxes[i]);
