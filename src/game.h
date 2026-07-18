@@ -20,6 +20,7 @@ public:
 
     void init(const char* title, int width, int height, bool fullscreen);
     void handleEvents();
+    void handleMouseClick(float mouseX, float mouseY);
     void update();
     void render();
     void clean();
@@ -30,7 +31,7 @@ private:
     SDL_Window* window;
     SDL_Renderer* renderer;
     gameMap* map;
-    entity* player;
+    entity* Player;
 
     int gridX, gridY;
     GameState currentState;
@@ -41,12 +42,13 @@ private:
 
     // --- UI Widgets ---
     void renderTitleBar(SDL_Rect t1, SDL_Rect t2, SDL_Rect t3);
-    void renderPCPanel(SDL_Rect rect);
     void renderCompanionPanel(SDL_Rect rect);
     void renderMapPanel(SDL_Rect rect, int padding);
     void renderTextPanel(SDL_Rect rect);
-    void renderButtons(SDL_Rect rect);
     void renderRightColumn(SDL_Rect top, SDL_Rect mid, SDL_Rect bot);
+
+    void renderCharacterPanel(SDL_FRect rect, entity* player);
+    void renderActionGrid(SDL_FRect rect);
 
     // New Widgets for Inventory State
     void renderEquipmentPanel(SDL_Rect rect, int padding);

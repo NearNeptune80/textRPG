@@ -35,6 +35,30 @@ bool anatomyComponent::hasTag(bodySlot slot, const std::string& tag) const
     return std::find(tags.begin(), tags.end(), tag) != tags.end();
 }
 
+void anatomyComponent::setTattoo(tattooSlot slot, const tattoo& tat)
+{
+    tattoos[slot] = tat;
+}
+
+void anatomyComponent::removeTattoo(tattooSlot slot)
+{
+    tattoos.erase(slot);
+}
+
+bool anatomyComponent::hasTattoo(tattooSlot slot) const
+{
+    return tattoos.find(slot) != tattoos.end();
+}
+
+tattoo* anatomyComponent::getTattoo(tattooSlot slot)
+{
+    if (hasTattoo(slot))
+    {
+        return &tattoos[slot];
+    }
+    return nullptr;
+}
+
 std::string getSlotName(bodySlot slot)
 {
     switch (slot)
@@ -93,6 +117,45 @@ void anatomyComponent::printDebug() const
         }
     }
     std::cout << "=====================\n\n";
+}
+
+// --- statsComponent Methods ---
+
+void statsComponent::setStat(const std::string& name, float value)
+{
+    values[name] = value;
+}
+
+float statsComponent::getStat(const std::string& name) const
+{
+    if (values.find(name) != values.end())
+    {
+        return values.at(name);
+    }
+    return 0.0f; // Default if stat doesn't exist yet
+}
+
+void statsComponent::modifyStat(const std::string& name, float amount)
+{
+    values[name] += amount;
+}
+
+void statsComponent::printDebug() const
+{
+    std::cout << "\n=== STATS DEBUG ===\n";
+    std::cout << "Level: " << level << " | Experience: " << experience << "\n";
+    if (values.empty())
+    {
+        std::cout << "No specific stats set.\n";
+    }
+    else
+    {
+        for (const auto& pair : values)
+        {
+            std::cout << pair.first << ": " << pair.second << "\n";
+        }
+    }
+    std::cout << "===================\n\n";
 }
 
 // --- entity Constructor ---

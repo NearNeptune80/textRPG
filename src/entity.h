@@ -4,11 +4,11 @@
 #include <vector>
 #include <algorithm>
 
-#include "enums.h"       // <-- Add this!
+#include "enums.h"       
 #include "enchantment.h"
 #include "inventory.h"
 
-// (DELETE ALL THE ENUMS THAT USED TO BE HERE)
+// --- Anatomical Data Structs ---
 
 struct bodyPart
 {
@@ -17,6 +17,7 @@ struct bodyPart
     std::string race;
     std::string covering;
     std::string color;
+
     std::vector<std::string> tags;
 };
 
@@ -31,6 +32,8 @@ struct tattoo
     std::vector<std::string> tags;
 };
 
+// --- Components ---
+
 class anatomyComponent
 {
 private:
@@ -38,12 +41,14 @@ private:
     std::unordered_map<tattooSlot, tattoo> tattoos;
 
 public:
+    // Body Part Methods
     void setPart(bodySlot slot, const bodyPart& part);
     void removePart(bodySlot slot);
     bool hasPart(bodySlot slot) const;
     bodyPart* getPart(bodySlot slot);
     bool hasTag(bodySlot slot, const std::string& tag) const;
 
+    // Tattoo Methods
     void setTattoo(tattooSlot slot, const tattoo& tat);
     void removeTattoo(tattooSlot slot);
     bool hasTattoo(tattooSlot slot) const;
@@ -51,6 +56,24 @@ public:
 
     void printDebug() const;
 };
+
+class statsComponent
+{
+public:
+    int level = 1;
+    int experience = 0;
+
+    // Flexible stats map (e.g., "strength", "lust", "corruption")
+    std::unordered_map<std::string, float> values;
+
+    void setStat(const std::string& name, float value);
+    float getStat(const std::string& name) const;
+    void modifyStat(const std::string& name, float amount);
+
+    void printDebug() const;
+};
+
+// --- Core Entity ---
 
 class entity
 {
@@ -62,6 +85,7 @@ public:
 
     anatomyComponent anatomy;
     inventoryComponent inventory;
+    statsComponent stats;
 
     entity(std::string entityId, std::string entityName);
 };

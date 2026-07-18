@@ -1,10 +1,13 @@
 #include "game.h"
+#include <iostream> // Needed for debug output
 
-game::game() : isRunning(false), window(nullptr), renderer(nullptr), map(nullptr), player(nullptr), gridX(1), gridY(1), currentState(GameState::EXPLORATION) {}
+// Ensure game.h has 'entity* Player;' instead of 'Player'
+game::game() : isRunning(false), window(nullptr), renderer(nullptr), map(nullptr), Player(nullptr), gridX(1), gridY(1), currentState(GameState::EXPLORATION) {}
 
 game::~game()
 {
     delete map;
+    if (Player) delete Player;
 }
 
 void game::init(const char* title, int width, int height, bool fullscreen)
@@ -18,12 +21,12 @@ void game::init(const char* title, int width, int height, bool fullscreen)
 
     map = new gameMap();
     map->updateDiscovery(gridX, gridY);
+
     if (itemDatabase::loadDatabase("data/items.json"))
     {
-        // 1. Declare the object with a capital letter, using the lowercase class
-        entity* Player = new entity("player_1", "Oellanix");
+        // Notice we removed 'entity*' here so it assigns to the class member, not a local variable
+        Player = new entity("Player_1", "Oellanix");
 
-        // 2. Declare part objects with capital letters, using the lowercase struct
         bodyPart WolfTail;
         WolfTail.id = "tail_wolf";
         WolfTail.name = "Fluffy Wolf Tail";
@@ -40,11 +43,9 @@ void game::init(const char* title, int width, int height, bool fullscreen)
         DemonLegs.color = "crimson";
         DemonLegs.tags = { "bipedal", "digitigrade" };
 
-        // 3. Set them
         Player->anatomy.setPart(bodySlot::TAIL, WolfTail);
         Player->anatomy.setPart(bodySlot::LEGS, DemonLegs);
 
-        // 4. Print debug
         std::cout << "Entity Created: " << Player->name << "\n";
         Player->anatomy.printDebug();
 
@@ -58,6 +59,12 @@ void game::init(const char* title, int width, int height, bool fullscreen)
         }
         std::cout << "=========================\n";
 
+        Player->stats.setStat("health", 68.0f);
+        Player->stats.setStat("mana", 91.0f);
+        Player->stats.setStat("lust", 100.0f);
+        Player->stats.setStat("corruption", 0.0f);
+
+        Player->stats.printDebug();
     }
     isRunning = true;
 }
@@ -76,9 +83,18 @@ void game::handleEvents()
             SDL_SetRenderLogicalPresentation(renderer, newWidth, newHeight, SDL_LOGICAL_PRESENTATION_STRETCH);
         }
 
+        // --- NEW: Mouse Interaction ---
+        if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
+        {
+            if (event.button.button == SDL_BUTTON_LEFT)
+            {
+                // SDL3 handles the logical scaling automatically for mouse coordinates!
+                handleMouseClick(event.button.x, event.button.y);
+            }
+        }
+
         if (event.type == SDL_EVENT_KEY_DOWN)
         {
-            // State Toggles
             if (event.key.key == SDLK_I)
             {
                 if (currentState == GameState::EXPLORATION)
@@ -95,7 +111,6 @@ void game::handleEvents()
                 currentState = (currentState == GameState::MAIN_MENU) ? GameState::EXPLORATION : GameState::MAIN_MENU;
             }
 
-            // Map Movement (Only process if exploring)
             if (currentState == GameState::EXPLORATION)
             {
                 int nextX = gridX, nextY = gridY;
@@ -114,6 +129,22 @@ void game::handleEvents()
                 }
             }
         }
+    }
+}
+
+// --- NEW: Mouse Logic Routing ---
+void game::handleMouseClick(float mouseX, float mouseY)
+{
+    // A simple test to verify it works. We will build the bounding box logic here next.
+    std::cout << "Mouse Clicked at X: " << mouseX << " Y: " << mouseY << "\n";
+
+    if (currentState == GameState::INVENTORY)
+    {
+        // Logic to check if an equipment slot or backpack item was clicked
+    }
+    else if (currentState == GameState::EXPLORATION)
+    {
+        // Logic to check if an action button was clicked
     }
 }
 
@@ -137,14 +168,14 @@ void game::render()
     SDL_RenderPresent(renderer);
 }
 
-// --- LAYOUT MANAGERS ---
-
 void game::renderDashboardLayout()
 {
     int w, h;
     SDL_RendererLogicalPresentation mode;
     float scale;
-    SDL_GetRenderLogicalPresentation(renderer, &w, &h, &mode);
+    // Updated signature
+    bool success = SDL_GetRenderLogicalPresentation(renderer, &w, &h, &mode);
+    if (!success) return;
 
     // 1. Core Layout Math
     int padding = 12;
@@ -173,12 +204,18 @@ void game::renderDashboardLayout()
 
     int leftAvailableH = (colEndY - mapSize - padding) - colStartY;
     int leftStackH = (leftAvailableH - padding) / 2;
+
+    // Top Left slot for the character panel
     SDL_Rect slotTopLeft = { leftX, colStartY, leftColW, leftStackH };
+    SDL_FRect fSlotTopLeft = { (float)leftX, (float)colStartY, (float)leftColW, (float)leftStackH };
+
     SDL_Rect slotMidLeft = { leftX, colStartY + leftStackH + padding, leftColW, leftAvailableH - leftStackH - padding };
 
     int btnH = (int)(h * 0.15f);
     SDL_Rect slotCenterMain = { centerX, colStartY, centerColW, (colEndY - btnH - padding) - colStartY };
-    SDL_Rect slotCenterBottom = { centerX, colEndY - btnH, centerColW, btnH };
+
+    // Center bottom slot for the action grid
+    SDL_FRect fSlotCenterBottom = { (float)centerX, (float)(colEndY - btnH), (float)centerColW, (float)btnH };
 
     int rightAvailableH = colEndY - colStartY;
     int rightStackH = (rightAvailableH - (2 * padding)) / 3;
@@ -189,9 +226,14 @@ void game::renderDashboardLayout()
     // 3. Inject Widgets based on State
     // Static widgets (Always show in dashboard)
     renderTitleBar(slotTitle1, slotTitle2, slotTitle3);
-    renderPCPanel(slotTopLeft);
+
+    // Replaced renderPCPanel with the actual Character Panel
+    renderCharacterPanel(fSlotTopLeft, Player);
+
     renderCompanionPanel(slotMidLeft);
-    renderButtons(slotCenterBottom);
+
+    // Replaced renderButtons with the Action Grid
+    renderActionGrid(fSlotCenterBottom);
 
     // Dynamic widgets (Change based on state)
     switch (currentState)
@@ -205,7 +247,7 @@ void game::renderDashboardLayout()
         case GameState::INVENTORY:
             renderEquipmentPanel(slotBottomLeft, padding);
             renderInventoryPanel(slotCenterMain);
-            renderRightColumn(slotTopRight, slotMidRight, slotBotRight); // Can swap these later if needed
+            renderRightColumn(slotTopRight, slotMidRight, slotBotRight);
             break;
 
         default: break;
@@ -217,12 +259,12 @@ void game::renderMainMenuLayout()
     int w, h;
     SDL_RendererLogicalPresentation mode;
     float scale;
-    SDL_GetRenderLogicalPresentation(renderer, &w, &h, &mode);
+    bool success = SDL_GetRenderLogicalPresentation(renderer, &w, &h, &mode);
+    if (!success) return;
 
-    // Simple placeholder for main menu
     SDL_Rect menuRect = { w / 4, h / 4, w / 2, h / 2 };
     SDL_SetRenderViewport(renderer, &menuRect);
-    SDL_SetRenderDrawColor(renderer, 20, 60, 80, 255); // Distinct blueish color
+    SDL_SetRenderDrawColor(renderer, 20, 60, 80, 255);
     SDL_RenderFillRect(renderer, NULL);
 }
 
@@ -288,23 +330,18 @@ void game::renderEquipmentPanel(SDL_Rect rect, int padding)
     SDL_SetRenderDrawColor(renderer, 25, 20, 30, 255);
     SDL_RenderFillRect(renderer, NULL);
 
-    // Purple border
     SDL_SetRenderDrawColor(renderer, 100, 50, 150, 255);
     SDL_FRect border = { (float)padding, (float)padding, (float)rect.w - (padding * 2), (float)rect.h - (padding * 2) };
     SDL_RenderRect(renderer, &border);
 
-    // --- 4x6 Equipment Grid Math ---
     int cols = 6;
     int rows = 6;
     int slotGap = 4;
-
-    // We add extra internal padding so the slots don't touch the purple border
     int internalPadding = padding + 6;
 
     int availableW = rect.w - (2 * internalPadding) - ((cols - 1) * slotGap);
     int availableH = rect.h - (2 * internalPadding) - ((rows - 1) * slotGap);
 
-    // The slot size is constrained by whichever is tighter: width or height
     int slotSize = std::min(availableW / cols, availableH / rows);
 
     int gridW = (slotSize * cols) + (slotGap * (cols - 1));
@@ -313,8 +350,7 @@ void game::renderEquipmentPanel(SDL_Rect rect, int padding)
     int offsetX = (rect.w - gridW) / 2;
     int offsetY = (rect.h - gridH) / 2;
 
-    // Draw the empty slots
-    SDL_SetRenderDrawColor(renderer, 45, 40, 50, 255); // Darker slot background
+    SDL_SetRenderDrawColor(renderer, 45, 40, 50, 255);
     for (int r = 0; r < rows; r++)
     {
         for (int c = 0; c < cols; c++)
@@ -326,11 +362,9 @@ void game::renderEquipmentPanel(SDL_Rect rect, int padding)
                 (float)slotSize
             };
             SDL_RenderFillRect(renderer, &slot);
-
-            // Optional: Draw a subtle border around each slot
             SDL_SetRenderDrawColor(renderer, 60, 55, 65, 255);
             SDL_RenderRect(renderer, &slot);
-            SDL_SetRenderDrawColor(renderer, 45, 40, 50, 255); // Reset for next fill
+            SDL_SetRenderDrawColor(renderer, 45, 40, 50, 255);
         }
     }
 }
@@ -341,19 +375,16 @@ void game::renderInventoryPanel(SDL_Rect rect)
     SDL_SetRenderDrawColor(renderer, 35, 35, 45, 255);
     SDL_RenderFillRect(renderer, NULL);
 
-    // Center divider
     SDL_SetRenderDrawColor(renderer, 60, 60, 70, 255);
     SDL_RenderLine(renderer, rect.w / 2, 20, rect.w / 2, rect.h - 20);
 
-    // --- 6x4 Inventory Grid Math (Per Side) ---
     int cols = 6;
     int rows = 5;
     int slotGap = 4;
 
-    // We are only working with half the width for each grid
     int halfWidth = rect.w / 2;
-    int sidePadding = 20; // Distance from the edges and the center divider
-    int topPadding = 60;  // Leave room at the top for "Your Inventory" text later
+    int sidePadding = 20;
+    int topPadding = 60;
 
     int availableW = halfWidth - (2 * sidePadding) - ((cols - 1) * slotGap);
     int availableH = rect.h - topPadding - sidePadding - ((rows - 1) * slotGap);
@@ -363,14 +394,11 @@ void game::renderInventoryPanel(SDL_Rect rect)
     int gridW = (slotSize * cols) + (slotGap * (cols - 1));
     int gridH = (slotSize * rows) + (slotGap * (rows - 1));
 
-    // Offset for Left Grid (Player)
     int leftOffsetX = (halfWidth - gridW) / 2;
-    int gridOffsetY = topPadding; // Push down for headers
+    int gridOffsetY = topPadding;
 
-    // Offset for Right Grid (Floor)
     int rightOffsetX = halfWidth + (halfWidth - gridW) / 2;
 
-    // Draw Player Grid
     SDL_SetRenderDrawColor(renderer, 50, 50, 60, 255);
     for (int r = 0; r < rows; r++)
     {
@@ -386,7 +414,6 @@ void game::renderInventoryPanel(SDL_Rect rect)
         }
     }
 
-    // Draw Floor Grid
     for (int r = 0; r < rows; r++)
     {
         for (int c = 0; c < cols; c++)
@@ -413,13 +440,6 @@ void game::renderTitleBar(SDL_Rect t1, SDL_Rect t2, SDL_Rect t3)
     }
 }
 
-void game::renderPCPanel(SDL_Rect rect)
-{
-    SDL_SetRenderViewport(renderer, &rect);
-    SDL_SetRenderDrawColor(renderer, 40, 40, 40, 255);
-    SDL_RenderFillRect(renderer, NULL);
-}
-
 void game::renderCompanionPanel(SDL_Rect rect)
 {
     SDL_SetRenderViewport(renderer, &rect);
@@ -434,13 +454,6 @@ void game::renderTextPanel(SDL_Rect rect)
     SDL_RenderFillRect(renderer, NULL);
 }
 
-void game::renderButtons(SDL_Rect rect)
-{
-    SDL_SetRenderViewport(renderer, &rect);
-    SDL_SetRenderDrawColor(renderer, 60, 60, 60, 255);
-    SDL_RenderFillRect(renderer, NULL);
-}
-
 void game::renderRightColumn(SDL_Rect top, SDL_Rect mid, SDL_Rect bot)
 {
     SDL_Rect boxes[3] = { top, mid, bot };
@@ -449,6 +462,88 @@ void game::renderRightColumn(SDL_Rect top, SDL_Rect mid, SDL_Rect bot)
         SDL_SetRenderViewport(renderer, &boxes[i]);
         SDL_SetRenderDrawColor(renderer, 40, 40, 40, 255);
         SDL_RenderFillRect(renderer, NULL);
+    }
+}
+
+// Ensure game.h signature is updated to: void renderCharacterPanel(SDL_FRect rect, entity* Player);
+void game::renderCharacterPanel(SDL_FRect rect, entity* PlayerObj)
+{
+    // Important: Remove any set viewport commands inside this function if it exists, 
+    // because SDL_FRect positioning in our dashboard expects absolute positioning over the whole screen.
+
+    SDL_SetRenderViewport(renderer, NULL); // Reset viewport
+
+    SDL_SetRenderDrawColor(renderer, 30, 28, 35, 255);
+    SDL_RenderFillRect(renderer, &rect);
+
+    SDL_SetRenderDrawColor(renderer, 60, 55, 65, 255);
+    SDL_RenderRect(renderer, &rect);
+
+    if (!PlayerObj) return;
+
+    float padding = 15.0f;
+    float barWidth = rect.w - (padding * 2);
+    float barHeight = 12.0f;
+    float startY = 80.0f;
+    float barSpacing = 25.0f;
+
+    auto drawBar = [&](float y, float current, float max, Uint8 r, Uint8 g, Uint8 b)
+        {
+            SDL_FRect bgRect = { rect.x + padding, rect.y + y, barWidth, barHeight };
+            SDL_SetRenderDrawColor(renderer, 20, 18, 25, 255);
+            SDL_RenderFillRect(renderer, &bgRect);
+
+            float fillPercentage = std::clamp(current / max, 0.0f, 1.0f);
+            SDL_FRect fillRect = { rect.x + padding, rect.y + y, barWidth * fillPercentage, barHeight };
+            SDL_SetRenderDrawColor(renderer, r, g, b, 255);
+            SDL_RenderFillRect(renderer, &fillRect);
+        };
+
+    drawBar(startY, PlayerObj->stats.getStat("health"), 100.0f, 220, 50, 70);
+    drawBar(startY + barSpacing, PlayerObj->stats.getStat("mana"), 100.0f, 150, 80, 220);
+    drawBar(startY + (barSpacing * 2), PlayerObj->stats.getStat("lust"), 100.0f, 255, 50, 150);
+}
+
+// Ensure game.h signature is updated to: void renderActionGrid(SDL_FRect rect);
+void game::renderActionGrid(SDL_FRect rect)
+{
+    SDL_SetRenderViewport(renderer, NULL); // Reset viewport
+
+    SDL_SetRenderDrawColor(renderer, 25, 25, 30, 255);
+    SDL_RenderFillRect(renderer, &rect);
+
+    SDL_SetRenderDrawColor(renderer, 50, 50, 60, 255);
+    SDL_RenderLine(renderer, rect.x, rect.y, rect.x + rect.w, rect.y);
+
+    int cols = 5;
+    int rows = 3;
+    float gap = 8.0f;
+    float verticalPadding = 15.0f;
+    float horizontalPadding = 40.0f;
+
+    float availableW = rect.w - (horizontalPadding * 2) - (gap * (cols - 1));
+    float availableH = rect.h - (verticalPadding * 2) - (gap * (rows - 1));
+
+    float btnWidth = availableW / cols;
+    float btnHeight = availableH / rows;
+
+    for (int r = 0; r < rows; r++)
+    {
+        for (int c = 0; c < cols; c++)
+        {
+            SDL_FRect btn = {
+                rect.x + horizontalPadding + (c * (btnWidth + gap)),
+                rect.y + verticalPadding + (r * (btnHeight + gap)),
+                btnWidth,
+                btnHeight
+            };
+
+            SDL_SetRenderDrawColor(renderer, 40, 40, 45, 255);
+            SDL_RenderFillRect(renderer, &btn);
+
+            SDL_SetRenderDrawColor(renderer, 60, 60, 70, 255);
+            SDL_RenderRect(renderer, &btn);
+        }
     }
 }
 
