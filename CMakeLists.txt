@@ -56,6 +56,13 @@ add_executable (textRPG
     "src/gameMap.cpp"
     "src/entity.h"
     "src/entity.cpp"
+    "src/enchantment.h"
+    "src/item.h"
+    "src/inventory.h"
+    "src/inventory.cpp"
+    "src/enums.h"
+    "src/itemDatabase.h"
+    "src/itemDatabase.cpp"
 )
 
 # Link the libraries to the executable
@@ -71,4 +78,10 @@ add_custom_command(TARGET textRPG POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
     "${CMAKE_BINARY_DIR}/_deps/sdl3-build/sdl3.dll" 
     "$<TARGET_FILE_DIR:textRPG>"
+)
+
+add_custom_command(TARGET textRPG POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_CURRENT_SOURCE_DIR}/data"
+    "$<TARGET_FILE_DIR:textRPG>/data"
 )

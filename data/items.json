@@ -1,0 +1,25 @@
+{
+  "items": [
+    {
+      "id": "item_canis_root",
+      "name": "Canis Root Potion",
+      "isConsumable": true,
+      "targetSlot": "NONE",
+      "baseRace": "wolf"
+    },
+    {
+      "id": "item_leather_collar",
+      "name": "Leather Collar",
+      "isConsumable": false,
+      "targetSlot": "NECKWEAR",
+      "baseRace": "none"
+    },
+    {
+      "id": "item_silk_bra",
+      "name": "Silk Bra",
+      "isConsumable": false,
+      "targetSlot": "TORSO_UNDER",
+      "baseRace": "none"
+    }
+  ]
+}

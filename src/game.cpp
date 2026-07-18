@@ -18,35 +18,47 @@ void game::init(const char* title, int width, int height, bool fullscreen)
 
     map = new gameMap();
     map->updateDiscovery(gridX, gridY);
+    if (itemDatabase::loadDatabase("data/items.json"))
+    {
+        // 1. Declare the object with a capital letter, using the lowercase class
+        entity* Player = new entity("player_1", "Oellanix");
 
-    // 1. Declare the object with a capital letter, using the lowercase class
-    entity* Player = new entity("player_1", "Oellanix");
+        // 2. Declare part objects with capital letters, using the lowercase struct
+        bodyPart WolfTail;
+        WolfTail.id = "tail_wolf";
+        WolfTail.name = "Fluffy Wolf Tail";
+        WolfTail.race = "wolf";
+        WolfTail.covering = "fur";
+        WolfTail.color = "grey";
+        WolfTail.tags = { "canine", "prehensile_false" };
 
-    // 2. Declare part objects with capital letters, using the lowercase struct
-    bodyPart WolfTail;
-    WolfTail.id = "tail_wolf";
-    WolfTail.name = "Fluffy Wolf Tail";
-    WolfTail.race = "wolf";
-    WolfTail.covering = "fur";
-    WolfTail.color = "grey";
-    WolfTail.tags = { "canine", "prehensile_false" };
+        bodyPart DemonLegs;
+        DemonLegs.id = "legs_demon";
+        DemonLegs.name = "Demonic Digitigrade Legs";
+        DemonLegs.race = "demon";
+        DemonLegs.covering = "skin";
+        DemonLegs.color = "crimson";
+        DemonLegs.tags = { "bipedal", "digitigrade" };
 
-    bodyPart DemonLegs;
-    DemonLegs.id = "legs_demon";
-    DemonLegs.name = "Demonic Digitigrade Legs";
-    DemonLegs.race = "demon";
-    DemonLegs.covering = "skin";
-    DemonLegs.color = "crimson";
-    DemonLegs.tags = { "bipedal", "digitigrade" };
+        // 3. Set them
+        Player->anatomy.setPart(bodySlot::TAIL, WolfTail);
+        Player->anatomy.setPart(bodySlot::LEGS, DemonLegs);
 
-    // 3. Set them
-    Player->anatomy.setPart(bodySlot::TAIL, WolfTail);
-    Player->anatomy.setPart(bodySlot::LEGS, DemonLegs);
+        // 4. Print debug
+        std::cout << "Entity Created: " << Player->name << "\n";
+        Player->anatomy.printDebug();
 
-    // 4. Print debug
-    std::cout << "Entity Created: " << Player->name << "\n";
-    Player->anatomy.printDebug();
+        Player->inventory.addItem(itemDatabase::getItem("item_canis_root"));
+        Player->inventory.addItem(itemDatabase::getItem("item_leather_collar"));
 
+        std::cout << "\n=== BACKPACK CONTENTS ===\n";
+        for (const auto& bagItem : Player->inventory.backpack)
+        {
+            std::cout << "- " << bagItem.name << " [ID: " << bagItem.id << "]\n";
+        }
+        std::cout << "=========================\n";
+
+    }
     isRunning = true;
 }
 

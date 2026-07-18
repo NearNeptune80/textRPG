@@ -2,6 +2,7 @@
 #include <SDL3/SDL.h>
 #include "gameMap.h"
 #include "entity.h"
+#include "itemDatabase.h"
 #include <iostream>
 
 enum class GameState
