@@ -67,6 +67,7 @@ void game::init(const char* title, int width, int height, bool fullscreen)
         Player->stats.printDebug();
     }
     isRunning = true;
+    refreshActionGrid();
 }
 
 void game::handleEvents()
@@ -126,17 +127,25 @@ void game::handleEvents()
                     gridX = nextX;
                     gridY = nextY;
                     map->updateDiscovery(gridX, gridY);
+
+                    refreshActionGrid();
                 }
             }
         }
     }
 }
 
-// --- NEW: Mouse Logic Routing ---
 void game::handleMouseClick(float mouseX, float mouseY)
 {
-    // A simple test to verify it works. We will build the bounding box logic here next.
     std::cout << "Mouse Clicked at X: " << mouseX << " Y: " << mouseY << "\n";
+
+    int w, h;
+    float scale;
+    SDL_RendererLogicalPresentation mode;
+    if (!SDL_GetRenderLogicalPresentation(renderer, &w, &h, &mode)) return;
+
+    int padding = 12;
+    int colEndY = h - padding;
 
     if (currentState == GameState::INVENTORY)
     {
@@ -144,11 +153,130 @@ void game::handleMouseClick(float mouseX, float mouseY)
     }
     else if (currentState == GameState::EXPLORATION)
     {
-        // Logic to check if an action button was clicked
+        // --- 1. MAP PANEL CLICK DETECTION ---
+        int mapSize = (int)(h * 0.30f);
+        SDL_Rect mapRect = { padding, colEndY - mapSize, mapSize, mapSize };
+
+        if (mouseX >= mapRect.x && mouseX <= mapRect.x + mapRect.w &&
+            mouseY >= mapRect.y && mouseY <= mapRect.y + mapRect.h)
+        {
+            float localX = mouseX - mapRect.x;
+            float localY = mouseY - mapRect.y;
+
+            int tileGap = 2;
+            int availableForTiles = mapRect.w - (2 * padding) - (4 * tileGap);
+            int drawnTileSize = availableForTiles / 5;
+            int totalGridSize = (drawnTileSize * 5) + (tileGap * 4);
+
+            int offsetX = (mapRect.w - totalGridSize) / 2;
+            int offsetY = (mapRect.h - totalGridSize) / 2;
+
+            if (localX >= offsetX && localY >= offsetY)
+            {
+                int gridCol = (int)((localX - offsetX) / (drawnTileSize + tileGap));
+                int gridRow = (int)((localY - offsetY) / (drawnTileSize + tileGap));
+
+                if (gridCol >= 0 && gridCol < 5 && gridRow >= 0 && gridRow < 5)
+                {
+                    int dx = gridCol - 2;
+                    int dy = gridRow - 2;
+
+                    if (std::abs(dx) + std::abs(dy) == 1)
+                    {
+                        int nextX = gridX + dx;
+                        int nextY = gridY + dy;
+
+                        if (map->isWalkable(nextX, nextY))
+                        {
+                            gridX = nextX;
+                            gridY = nextY;
+                            map->updateDiscovery(gridX, gridY);
+                            refreshActionGrid(); // Update buttons when moving via mouse
+                            std::cout << "Moved to Map Coordinates -> X: " << gridX << " Y: " << gridY << "\n";
+                        }
+                    }
+                }
+            }
+            return; // Handled map click, exit function early
+        }
+
+        // --- 2. ACTION GRID BUTTON CLICK DETECTION ---
+        int leftColW = mapSize;
+        int rightColW = mapSize;
+        int centerColW = w - (leftColW + rightColW + (4 * padding));
+        int centerX = padding + leftColW + padding;
+        int btnH = (int)(h * 0.15f);
+
+        SDL_FRect gridRect = { (float)centerX, (float)(colEndY - btnH), (float)centerColW, (float)btnH };
+
+        if (mouseX >= gridRect.x && mouseX <= gridRect.x + gridRect.w &&
+            mouseY >= gridRect.y && mouseY <= gridRect.y + gridRect.h)
+        {
+            int cols = 5;
+            int rows = 3;
+            float gap = 8.0f;
+            float verticalPadding = 15.0f;
+            float horizontalPadding = 40.0f;
+
+            float availableW = gridRect.w - (horizontalPadding * 2) - (gap * (cols - 1));
+            float availableH = gridRect.h - (verticalPadding * 2) - (gap * (rows - 1));
+
+            float btnWidth = availableW / cols;
+            float btnHeight = availableH / rows;
+
+            float localX = mouseX - gridRect.x - horizontalPadding;
+            float localY = mouseY - gridRect.y - verticalPadding;
+
+            if (localX >= 0 && localY >= 0)
+            {
+                int clickedCol = (int)(localX / (btnWidth + gap));
+                int clickedRow = (int)(localY / (btnHeight + gap));
+
+                if (clickedCol >= 0 && clickedCol < cols && clickedRow >= 0 && clickedRow < rows)
+                {
+                    int index = (clickedRow * cols) + clickedCol;
+
+                    if (index < activeButtons.size())
+                    {
+                        std::cout << "EXECUTED ACTION -> Command: " << activeButtons[index].command
+                            << " | Payload: " << activeButtons[index].payload << "\n";
+                    }
+                }
+            }
+        }
     }
 }
 
 void game::update() {}
+
+void game::refreshActionGrid()
+{
+    activeButtons.clear(); // Wipe the old buttons
+
+    if (currentState == GameState::EXPLORATION)
+    {
+
+        // --- DYNAMIC TEST ---
+        // If the player walks to a specific tile, spawn a quest button!
+        if (gridX == 3 && gridY == 2)
+        {
+            actionButton secretQuest;
+            secretQuest.label = "Inspect Statue";
+            secretQuest.command = "QUEST_EVENT";
+            secretQuest.payload = "statue_puzzle_01";
+
+            activeButtons.push_back(secretQuest);
+        }
+
+        // We can always add a default button that is always there
+        actionButton waitButton;
+        waitButton.label = "Wait 1 Hour";
+        waitButton.command = "TIME_PASS";
+        waitButton.payload = "60";
+
+        activeButtons.push_back(waitButton);
+    }
+}
 
 void game::render()
 {
@@ -507,7 +635,7 @@ void game::renderCharacterPanel(SDL_FRect rect, entity* PlayerObj)
 // Ensure game.h signature is updated to: void renderActionGrid(SDL_FRect rect);
 void game::renderActionGrid(SDL_FRect rect)
 {
-    SDL_SetRenderViewport(renderer, NULL); // Reset viewport
+    SDL_SetRenderViewport(renderer, NULL);
 
     SDL_SetRenderDrawColor(renderer, 25, 25, 30, 255);
     SDL_RenderFillRect(renderer, &rect);
@@ -531,6 +659,8 @@ void game::renderActionGrid(SDL_FRect rect)
     {
         for (int c = 0; c < cols; c++)
         {
+            int index = (r * cols) + c; // Which of the 15 slots is this?
+
             SDL_FRect btn = {
                 rect.x + horizontalPadding + (c * (btnWidth + gap)),
                 rect.y + verticalPadding + (r * (btnHeight + gap)),
@@ -538,7 +668,15 @@ void game::renderActionGrid(SDL_FRect rect)
                 btnHeight
             };
 
-            SDL_SetRenderDrawColor(renderer, 40, 40, 45, 255);
+            // If we have an active button for this slot, draw it in a bright interactable color
+            if (index < activeButtons.size())
+            {
+                SDL_SetRenderDrawColor(renderer, 70, 100, 140, 255); // A nice clickable blue
+            }
+            else
+            {
+                SDL_SetRenderDrawColor(renderer, 40, 40, 45, 255); // Empty dark grey
+            }
             SDL_RenderFillRect(renderer, &btn);
 
             SDL_SetRenderDrawColor(renderer, 60, 60, 70, 255);

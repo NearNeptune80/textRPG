@@ -63,7 +63,7 @@ add_executable (textRPG
     "src/enums.h"
     "src/itemDatabase.h"
     "src/itemDatabase.cpp"
-)
+ "src/actionButton.h")
 
 # Link the libraries to the executable
 target_link_libraries(textRPG PRIVATE 

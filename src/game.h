@@ -3,6 +3,7 @@
 #include "gameMap.h"
 #include "entity.h"
 #include "itemDatabase.h"
+#include "actionButton.h"
 #include <iostream>
 
 enum class GameState
@@ -18,10 +19,13 @@ public:
     game();
     ~game();
 
+    std::vector<actionButton> activeButtons;
+
     void init(const char* title, int width, int height, bool fullscreen);
     void handleEvents();
     void handleMouseClick(float mouseX, float mouseY);
     void update();
+    void refreshActionGrid();
     void render();
     void clean();
     bool running() { return isRunning; }
