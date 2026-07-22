@@ -693,32 +693,42 @@ void game::renderDashboardLayout()
     int centerX = leftX + leftColW + padding;
     int rightX = centerX + centerColW + padding;
 
+    // --- TITLE BAR SLOTS ---
     int titleW = (w - (4 * padding)) / 3;
     SDL_Rect slotTitle1 = { padding, topRowY, titleW, topBarH };
     SDL_Rect slotTitle2 = { padding + titleW + padding, topRowY, titleW, topBarH };
     SDL_Rect slotTitle3 = { padding + (titleW + padding) * 2, topRowY, titleW, topBarH };
 
+    // --- LEFT COLUMN SIZING ---
+    // 1. Map / Equipment Panel at the bottom (Fixed Square)
     SDL_Rect slotBottomLeft = { leftX, colEndY - mapSize, mapSize, mapSize };
 
-    int leftAvailableH = (colEndY - mapSize - padding) - colStartY;
-    int leftStackH = (leftAvailableH - padding) / 2;
+    // 2. Character Panel height is tied directly to mapSize scale (0.85 ratio)
+    // This maintains its proportions identically to the map when window scales!
+    int charH = (int)(mapSize * 0.85f);
+    SDL_FRect fSlotTopLeft = { (float)leftX, (float)colStartY, (float)leftColW, (float)charH };
 
-    SDL_FRect fSlotTopLeft = { (float)leftX, (float)colStartY, (float)leftColW, (float)leftStackH };
-    SDL_Rect slotMidLeft = { leftX, colStartY + leftStackH + padding, leftColW, leftAvailableH - leftStackH - padding };
+    // 3. Middle Slot (Time/Calendar) occupies remaining vertical space
+    int midY = colStartY + charH + padding;
+    int midH = (colEndY - mapSize - padding) - midY;
+    SDL_Rect slotMidLeft = { leftX, midY, leftColW, midH };
 
+    // --- CENTER COLUMN SIZING ---
     int btnH = (int)(h * 0.15f);
     SDL_Rect slotCenterMain = { centerX, colStartY, centerColW, (colEndY - btnH - padding) - colStartY };
     SDL_FRect fSlotCenterBottom = { (float)centerX, (float)(colEndY - btnH), (float)centerColW, (float)btnH };
 
+    // --- RIGHT COLUMN SIZING ---
     int rightAvailableH = colEndY - colStartY;
     int rightStackH = (rightAvailableH - (2 * padding)) / 3;
     SDL_Rect slotTopRight = { rightX, colStartY, rightColW, rightStackH };
     SDL_Rect slotMidRight = { rightX, colStartY + rightStackH + padding, rightColW, rightStackH };
     SDL_Rect slotBotRight = { rightX, colStartY + (rightStackH + padding) * 2, rightColW, rightAvailableH - (rightStackH * 2 + padding * 2) };
 
+    // --- RENDER PANELS ---
     renderTitleBar(slotTitle1, slotTitle2, slotTitle3);
     renderCharacterPanel(fSlotTopLeft, Player);
-    renderCompanionPanel(slotMidLeft);
+    renderCompanionPanel(slotMidLeft); // Renders the Time/Calendar panel in the gap
     renderActionGrid(fSlotCenterBottom);
 
     switch (currentState)
@@ -739,7 +749,6 @@ void game::renderDashboardLayout()
         default: break;
     }
 }
-
 void game::renderMainMenuLayout()
 {
     int w, h;
@@ -1045,8 +1054,16 @@ void game::renderTitleBar(SDL_Rect t1, SDL_Rect t2, SDL_Rect t3)
 void game::renderCompanionPanel(SDL_Rect rect)
 {
     SDL_SetRenderViewport(renderer, &rect);
-    SDL_SetRenderDrawColor(renderer, 40, 40, 40, 255);
-    SDL_RenderFillRect(renderer, NULL);
+
+    SDL_FRect panelRect = { 0.0f, 0.0f, (float)rect.w, (float)rect.h };
+    SDL_SetRenderDrawColor(renderer, 30, 28, 35, 255);
+    SDL_RenderFillRect(renderer, &panelRect);
+
+    SDL_SetRenderDrawColor(renderer, 60, 55, 65, 255);
+    SDL_RenderRect(renderer, &panelRect);
+
+    // Reset Viewport
+    SDL_SetRenderViewport(renderer, NULL);
 }
 
 void game::renderTextPanel(SDL_Rect rect)
@@ -1080,37 +1097,164 @@ void game::renderRightColumn(SDL_Rect top, SDL_Rect mid, SDL_Rect bot)
 
 void game::renderCharacterPanel(SDL_FRect rect, entity* playerObj)
 {
-    SDL_SetRenderViewport(renderer, NULL);
+    // 1. Set Viewport to Character Panel Rect
+    SDL_Rect viewRect = { (int)rect.x, (int)rect.y, (int)rect.w, (int)rect.h };
+    SDL_SetRenderViewport(renderer, &viewRect);
 
+    // 2. Panel Background & Border (Origin 0,0 relative to viewport)
+    SDL_FRect panelRect = { 0.0f, 0.0f, (float)viewRect.w, (float)viewRect.h };
     SDL_SetRenderDrawColor(renderer, 30, 28, 35, 255);
-    SDL_RenderFillRect(renderer, &rect);
+    SDL_RenderFillRect(renderer, &panelRect);
 
     SDL_SetRenderDrawColor(renderer, 60, 55, 65, 255);
-    SDL_RenderRect(renderer, &rect);
+    SDL_RenderRect(renderer, &panelRect);
 
-    if (!playerObj) return;
+    if (playerObj)
+    {
+        float padX = viewRect.w * 0.04f;
+        float padY = viewRect.h * 0.04f;
+        float contentW = viewRect.w - (padX * 2.0f);
+        float currentY = padY;
+        float dividerGap = viewRect.h * 0.025f;
 
-    float padding = 15.0f;
-    float barWidth = rect.w - (padding * 2);
-    float barHeight = 12.0f;
-    float startY = 80.0f;
-    float barSpacing = 25.0f;
+        auto drawHorizontalDivider = [&](float y)
+            {
+                SDL_SetRenderDrawColor(renderer, 50, 46, 55, 255);
+                SDL_RenderLine(renderer, padX, y, viewRect.w - padX, y);
+            };
 
-    auto drawBar = [&](float y, float current, float max, Uint8 r, Uint8 g, Uint8 b)
-        {
-            SDL_FRect bgRect = { rect.x + padding, rect.y + y, barWidth, barHeight };
-            SDL_SetRenderDrawColor(renderer, 20, 18, 25, 255);
-            SDL_RenderFillRect(renderer, &bgRect);
+        auto drawText = [&](const std::string& textStr, SDL_FRect destRect, SDL_Color color)
+            {
+                if (textStr.empty() || fonts.find("button_font") == fonts.end()) return;
 
-            float fillPercentage = std::clamp(current / max, 0.0f, 1.0f);
-            SDL_FRect fillRect = { rect.x + padding, rect.y + y, barWidth * fillPercentage, barHeight };
-            SDL_SetRenderDrawColor(renderer, r, g, b, 255);
-            SDL_RenderFillRect(renderer, &fillRect);
-        };
+                TTF_SetFontWrapAlignment(fonts["button_font"], TTF_HORIZONTAL_ALIGN_LEFT);
+                SDL_Surface* surface = TTF_RenderText_Blended(fonts["button_font"], textStr.c_str(), 0, color);
+                if (surface)
+                {
+                    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+                    if (texture)
+                    {
+                        float scale = (surface->h > destRect.h) ? (destRect.h / surface->h) : 1.0f;
+                        float drawW = surface->w * scale;
+                        float drawH = surface->h * scale;
 
-    drawBar(startY, playerObj->stats.getStat("health"), 100.0f, 220, 50, 70);
-    drawBar(startY + barSpacing, playerObj->stats.getStat("mana"), 100.0f, 150, 80, 220);
-    drawBar(startY + (barSpacing * 2), playerObj->stats.getStat("lust"), 100.0f, 255, 50, 150);
+                        SDL_FRect renderDst = { destRect.x, destRect.y + (destRect.h - drawH) / 2.0f, drawW, drawH };
+                        SDL_RenderTexture(renderer, texture, NULL, &renderDst);
+                        SDL_DestroyTexture(texture);
+                    }
+                    SDL_DestroySurface(surface);
+                }
+            };
+
+        // --- 1. AVATAR & HEADER ---
+        float avatarSize = viewRect.h * 0.16f;
+        SDL_FRect avatarRect = { padX, currentY, avatarSize, avatarSize };
+        SDL_SetRenderDrawColor(renderer, 50, 50, 60, 255);
+        SDL_RenderFillRect(renderer, &avatarRect);
+        SDL_SetRenderDrawColor(renderer, 90, 90, 105, 255);
+        SDL_RenderRect(renderer, &avatarRect);
+
+        float headerTextX = avatarRect.x + avatarSize + (padX * 0.8f);
+        std::string headerStr = playerObj->name + " - Level " + std::to_string((int)playerObj->stats.getStat("level"));
+        float headerTextH = avatarSize * 0.55f;
+        SDL_FRect headerTextRect = { headerTextX, currentY, viewRect.w - headerTextX - padX, headerTextH };
+        drawText(headerStr, headerTextRect, { 160, 200, 255, 255 });
+
+        // XP Bar
+        float xpBarY = currentY + headerTextH + (padY * 0.3f);
+        float xpBarW = viewRect.w - headerTextX - padX;
+        float xpBarH = avatarSize * 0.18f;
+
+        SDL_FRect xpBg = { headerTextX, xpBarY, xpBarW, xpBarH };
+        SDL_SetRenderDrawColor(renderer, 20, 18, 25, 255);
+        SDL_RenderFillRect(renderer, &xpBg);
+
+        float currentXp = playerObj->stats.getStat("xp");
+        float xpFillPct = std::clamp(currentXp / 100.0f, 0.0f, 1.0f);
+        SDL_FRect xpFill = { headerTextX, xpBarY, xpBarW * xpFillPct, xpBarH };
+        SDL_SetRenderDrawColor(renderer, 80, 200, 230, 255);
+        SDL_RenderFillRect(renderer, &xpFill);
+
+        currentY += avatarSize + dividerGap;
+        drawHorizontalDivider(currentY);
+        currentY += dividerGap;
+
+        // --- 2. CURRENCY ---
+        float halfWidth = contentW / 2.0f;
+        float currencyH = viewRect.h * 0.08f;
+        std::string currencyStr = "¤ " + std::to_string((int)playerObj->stats.getStat("currency"));
+        drawText(currencyStr, { padX, currentY, halfWidth, currencyH }, { 255, 215, 0, 255 });
+
+        std::string essenceStr = "★ " + std::to_string((int)playerObj->stats.getStat("gems"));
+        drawText(essenceStr, { padX + halfWidth, currentY, halfWidth, currencyH }, { 255, 100, 220, 255 });
+
+        currentY += currencyH + dividerGap;
+        drawHorizontalDivider(currentY);
+        currentY += dividerGap;
+
+        // --- 3. MINI ATTRIBUTES ---
+        float colWidth = contentW / 3.0f;
+        float miniStatH = viewRect.h * 0.09f;
+
+        auto drawMiniStat = [&](int colIndex, const std::string& statName, SDL_Color textColor)
+            {
+                float colX = padX + (colIndex * colWidth);
+                SDL_FRect iconBox = { colX, currentY, miniStatH, miniStatH };
+                SDL_SetRenderDrawColor(renderer, 45, 42, 50, 255);
+                SDL_RenderFillRect(renderer, &iconBox);
+
+                int val = (int)playerObj->stats.getStat(statName);
+                SDL_FRect valRect = { colX + miniStatH + 4.0f, currentY, colWidth - miniStatH - 4.0f, miniStatH };
+                drawText(std::to_string(val), valRect, textColor);
+            };
+
+        drawMiniStat(0, "physique", { 255, 50, 120, 255 });
+        drawMiniStat(1, "arcane", { 180, 110, 255, 255 });
+        drawMiniStat(2, "corruption", { 100, 200, 255, 255 });
+
+        currentY += miniStatH + dividerGap;
+        drawHorizontalDivider(currentY);
+        currentY += dividerGap;
+
+        // --- 4. MAIN VITAL BARS ---
+        float barHeight = viewRect.h * 0.075f;
+        float iconRadius = barHeight * 1.25f;
+        float valueTextWidth = contentW * 0.18f;
+        float barW = contentW - iconRadius - valueTextWidth - (padX * 0.5f);
+        float barGap = viewRect.h * 0.02f;
+
+        auto drawVitalBar = [&](float y, const std::string& statName, float maxVal, SDL_Color barColor)
+            {
+                SDL_FRect iconRect = { padX, y, iconRadius, iconRadius };
+                SDL_SetRenderDrawColor(renderer, 45, 40, 50, 255);
+                SDL_RenderFillRect(renderer, &iconRect);
+
+                float fillX = padX + iconRadius + (padX * 0.5f);
+                SDL_FRect bgRect = { fillX, y + (iconRadius - barHeight) / 2.0f, barW, barHeight };
+                SDL_SetRenderDrawColor(renderer, 20, 18, 25, 255);
+                SDL_RenderFillRect(renderer, &bgRect);
+
+                float currentVal = playerObj->stats.getStat(statName);
+                float fillPct = std::clamp(currentVal / maxVal, 0.0f, 1.0f);
+                SDL_FRect fillRect = { fillX, y + (iconRadius - barHeight) / 2.0f, barW * fillPct, barHeight };
+                SDL_SetRenderDrawColor(renderer, barColor.r, barColor.g, barColor.b, 255);
+                SDL_RenderFillRect(renderer, &fillRect);
+
+                SDL_FRect textRect = { fillX + barW + (padX * 0.4f), y, valueTextWidth, iconRadius };
+                drawText(std::to_string((int)currentVal), textRect, { 240, 240, 240, 255 });
+            };
+
+        drawVitalBar(currentY, "health", 100.0f, { 255, 60, 90, 255 });
+        currentY += iconRadius + barGap;
+
+        drawVitalBar(currentY, "arcane", 100.0f, { 220, 130, 255, 255 });
+        currentY += iconRadius + barGap;
+
+        drawVitalBar(currentY, "lust", 100.0f, { 230, 50, 150, 255 });
+    }
+
+    // ALWAYS Reset Viewport back to full window at the end!
+    SDL_SetRenderViewport(renderer, NULL);
 }
 
 void game::renderActionGrid(SDL_FRect rect)
