@@ -5,13 +5,8 @@
 
 using json = nlohmann::json;
 
-// Define the static member
 std::unordered_map<std::string, item> itemDatabase::registry;
 
-// --- JSON Conversion Helpers ---
-// nlohmann::json uses these automatically when we call .get<item>()
-
-// Helper to convert string to equipSlot enum
 equipSlot stringToEquipSlot(const std::string& str)
 {
     if (str == "HEADWEAR") return equipSlot::HEADWEAR;
@@ -41,50 +36,56 @@ equipSlot stringToEquipSlot(const std::string& str)
     return equipSlot::NONE;
 }
 
-void from_json(const json& j, item& i)
+void from_json(const json& j, item& itemObj)
 {
-    j.at("id").get_to(i.id);
-    j.at("name").get_to(i.name);
-    j.at("isConsumable").get_to(i.isConsumable);
+    j.at("id").get_to(itemObj.id);
+    j.at("name").get_to(itemObj.name);
 
-    std::string slotStr = j.at("targetSlot").get<std::string>();
-    i.targetSlot = stringToEquipSlot(slotStr);
+    itemObj.isConsumable = j.value("isConsumable", false);
+    itemObj.isEquippable = j.value("isEquippable", false);
+    itemObj.baseRace = j.value("baseRace", "");
 
-    j.at("baseRace").get_to(i.baseRace);
+    if (j.contains("targetSlot"))
+    {
+        std::string slotStr = j.at("targetSlot").get<std::string>();
+        itemObj.targetSlot = stringToEquipSlot(slotStr);
+    }
+    else
+    {
+        itemObj.targetSlot = equipSlot::NONE;
+    }
 
-    // Base templates load with empty enchantments; we modify them ingame!
-    i.enchantments = std::vector<enchantment>();
+    if (j.contains("requiredTags"))
+    {
+        itemObj.requiredTags = j.at("requiredTags").get<std::vector<std::string>>();
+    }
+    if (j.contains("forbiddenTags"))
+    {
+        itemObj.forbiddenTags = j.at("forbiddenTags").get<std::vector<std::string>>();
+    }
 }
-
-// --- Database Logic ---
 
 bool itemDatabase::loadDatabase(const std::string& filePath)
 {
     std::ifstream file(filePath);
-    if (!file.is_open())
-    {
-        std::cerr << "Failed to open item data file: " << filePath << "\n";
-        return false;
-    }
+    if (!file.is_open()) return false;
 
     try
     {
         json data;
         file >> data;
-
         registry.clear();
         for (const auto& itemJson : data.at("items"))
         {
             item newItem = itemJson.get<item>();
             registry[newItem.id] = newItem;
         }
-
         std::cout << "Successfully loaded " << registry.size() << " items from database.\n";
         return true;
     }
     catch (const json::exception& e)
     {
-        std::cerr << "JSON Parsing Error: " << e.what() << "\n";
+        std::cerr << "Item JSON Parsing Error: " << e.what() << "\n";
         return false;
     }
 }
@@ -94,18 +95,11 @@ bool itemDatabase::exists(const std::string& id)
     return registry.find(id) != registry.end();
 }
 
-item itemDatabase::getItem(const std::string& id)
+std::shared_ptr<item> itemDatabase::getItem(const std::string& id)
 {
     if (exists(id))
     {
-        return registry[id]; // Returns a fresh copy
+        return std::make_shared<item>(registry[id]);
     }
-
-    // Return an error/fallback item if not found
-    item fallback;
-    fallback.id = "unknown";
-    fallback.name = "Missing Texture/Item";
-    fallback.isConsumable = false;
-    fallback.targetSlot = equipSlot::NONE;
-    return fallback;
+    return nullptr;
 }

@@ -4,22 +4,37 @@
       "id": "item_canis_root",
       "name": "Canis Root Potion",
       "isConsumable": true,
+      "isEquippable": false,
       "targetSlot": "NONE",
-      "baseRace": "wolf"
+      "requiredTags": [],
+      "forbiddenTags": []
     },
     {
       "id": "item_leather_collar",
       "name": "Leather Collar",
       "isConsumable": false,
+      "isEquippable": true,
       "targetSlot": "NECKWEAR",
-      "baseRace": "none"
+      "requiredTags": [],
+      "forbiddenTags": []
     },
     {
-      "id": "item_silk_bra",
-      "name": "Silk Bra",
+      "id": "item_digitigrade_boots",
+      "name": "Greaves of the Fiend",
       "isConsumable": false,
-      "targetSlot": "TORSO_UNDER",
-      "baseRace": "none"
+      "isEquippable": true,
+      "targetSlot": "LEGS_OUTER",
+      "requiredTags": [ "digitigrade" ],
+      "forbiddenTags": []
+    },
+    {
+      "id": "item_human_shoes",
+      "name": "Standard Shoes",
+      "isConsumable": false,
+      "isEquippable": true,
+      "targetSlot": "FEET",
+      "requiredTags": [],
+      "forbiddenTags": [ "digitigrade" ]
     }
   ]
 }

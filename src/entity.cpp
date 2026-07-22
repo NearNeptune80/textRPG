@@ -164,3 +164,17 @@ entity::entity(std::string entityId, std::string entityName)
     : id(entityId), name(entityName)
 {
 }
+
+void questComponent::setQuestStage(const std::string& questId, int stage)
+{
+    activeQuests[questId] = stage;
+}
+
+int questComponent::getQuestStage(const std::string& questId) const
+{
+    if (activeQuests.find(questId) != activeQuests.end())
+    {
+        return activeQuests.at(questId);
+    }
+    return 0; // 0 means not started
+}

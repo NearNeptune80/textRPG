@@ -1,13 +1,23 @@
 #include "game.h"
-#include <iostream> // Needed for debug output
 
-// Ensure game.h has 'entity* Player;' instead of 'Player'
 game::game() : isRunning(false), window(nullptr), renderer(nullptr), map(nullptr), Player(nullptr), gridX(1), gridY(1), currentState(GameState::EXPLORATION) {}
 
 game::~game()
 {
     delete map;
     if (Player) delete Player;
+}
+
+bool game::loadFont(const std::string& id, const std::string& path, int ptSize)
+{
+    TTF_Font* newFont = TTF_OpenFont(path.c_str(), ptSize);
+    if (!newFont)
+    {
+        std::cout << "Failed to load font " << id << " from " << path << " : " << SDL_GetError() << "\n";
+        return false;
+    }
+    fonts[id] = newFont;
+    return true;
 }
 
 void game::init(const char* title, int width, int height, bool fullscreen)
@@ -22,10 +32,17 @@ void game::init(const char* title, int width, int height, bool fullscreen)
     map = new gameMap();
     map->updateDiscovery(gridX, gridY);
 
+    if (TTF_Init() < 0)
+    {
+        std::cout << "Error initializing SDL_ttf: " << SDL_GetError() << "\n";
+    }
+
+    loadFont("button_font", "data/fonts/Roboto/static/Roboto-Regular.ttf", 18);
+    loadFont("title_font", "data/fonts/Roboto/static/Roboto-Bold.ttf", 24);
+
     if (itemDatabase::loadDatabase("data/items.json"))
     {
-        // Notice we removed 'entity*' here so it assigns to the class member, not a local variable
-        Player = new entity("Player_1", "Oellanix");
+        Player = new entity("player_1", "Oellanix");
 
         bodyPart WolfTail;
         WolfTail.id = "tail_wolf";
@@ -46,28 +63,19 @@ void game::init(const char* title, int width, int height, bool fullscreen)
         Player->anatomy.setPart(bodySlot::TAIL, WolfTail);
         Player->anatomy.setPart(bodySlot::LEGS, DemonLegs);
 
-        std::cout << "Entity Created: " << Player->name << "\n";
-        Player->anatomy.printDebug();
-
         Player->inventory.addItem(itemDatabase::getItem("item_canis_root"));
         Player->inventory.addItem(itemDatabase::getItem("item_leather_collar"));
-
-        std::cout << "\n=== BACKPACK CONTENTS ===\n";
-        for (const auto& bagItem : Player->inventory.backpack)
-        {
-            std::cout << "- " << bagItem.name << " [ID: " << bagItem.id << "]\n";
-        }
-        std::cout << "=========================\n";
 
         Player->stats.setStat("health", 68.0f);
         Player->stats.setStat("mana", 91.0f);
         Player->stats.setStat("lust", 100.0f);
         Player->stats.setStat("corruption", 0.0f);
-
-        Player->stats.printDebug();
     }
-    isRunning = true;
+
+    questDatabase::loadDatabase("data/quests.json");
+
     refreshActionGrid();
+    isRunning = true;
 }
 
 void game::handleEvents()
@@ -84,12 +92,10 @@ void game::handleEvents()
             SDL_SetRenderLogicalPresentation(renderer, newWidth, newHeight, SDL_LOGICAL_PRESENTATION_STRETCH);
         }
 
-        // --- NEW: Mouse Interaction ---
         if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
         {
             if (event.button.button == SDL_BUTTON_LEFT)
             {
-                // SDL3 handles the logical scaling automatically for mouse coordinates!
                 handleMouseClick(event.button.x, event.button.y);
             }
         }
@@ -98,14 +104,11 @@ void game::handleEvents()
         {
             if (event.key.key == SDLK_I)
             {
-                if (currentState == GameState::EXPLORATION)
-                {
-                    currentState = GameState::INVENTORY;
-                }
-                else if (currentState == GameState::INVENTORY)
-                {
-                    currentState = GameState::EXPLORATION;
-                }
+                selectedInventoryIndex = -1; // Reset selection
+                if (currentState == GameState::EXPLORATION) currentState = GameState::INVENTORY;
+                else if (currentState == GameState::INVENTORY) currentState = GameState::EXPLORATION;
+
+                refreshActionGrid();
             }
             if (event.key.key == SDLK_M)
             {
@@ -127,7 +130,6 @@ void game::handleEvents()
                     gridX = nextX;
                     gridY = nextY;
                     map->updateDiscovery(gridX, gridY);
-
                     refreshActionGrid();
                 }
             }
@@ -135,72 +137,74 @@ void game::handleEvents()
     }
 }
 
-void game::handleMouseClick(float mouseX, float mouseY)
+void game::handleMouseClick(float windowX, float windowY)
 {
-    std::cout << "Mouse Clicked at X: " << mouseX << " Y: " << mouseY << "\n";
+    float mouseX, mouseY;
+    SDL_RenderCoordinatesFromWindow(renderer, windowX, windowY, &mouseX, &mouseY);
 
-    int w, h;
-    float scale;
+    int w = 0, h = 0;
     SDL_RendererLogicalPresentation mode;
-    if (!SDL_GetRenderLogicalPresentation(renderer, &w, &h, &mode)) return;
+    float scale;
+    SDL_GetRenderLogicalPresentation(renderer, &w, &h, &mode);
+    if (w == 0 || h == 0) SDL_GetRenderOutputSize(renderer, &w, &h);
 
     int padding = 12;
     int colEndY = h - padding;
 
-    if (currentState == GameState::INVENTORY)
+    // --- EXPLORATION & EVENT MODES ---
+    if (currentState == GameState::EXPLORATION || currentState == GameState::EVENT)
     {
-        // Logic to check if an equipment slot or backpack item was clicked
-    }
-    else if (currentState == GameState::EXPLORATION)
-    {
-        // --- 1. MAP PANEL CLICK DETECTION ---
-        int mapSize = (int)(h * 0.30f);
-        SDL_Rect mapRect = { padding, colEndY - mapSize, mapSize, mapSize };
-
-        if (mouseX >= mapRect.x && mouseX <= mapRect.x + mapRect.w &&
-            mouseY >= mapRect.y && mouseY <= mapRect.y + mapRect.h)
+        // 1. MAP CLICK DETECTION (Exploration only)
+        if (currentState == GameState::EXPLORATION)
         {
-            float localX = mouseX - mapRect.x;
-            float localY = mouseY - mapRect.y;
+            int mapSize = (int)(h * 0.30f);
+            SDL_Rect mapRect = { padding, colEndY - mapSize, mapSize, mapSize };
 
-            int tileGap = 2;
-            int availableForTiles = mapRect.w - (2 * padding) - (4 * tileGap);
-            int drawnTileSize = availableForTiles / 5;
-            int totalGridSize = (drawnTileSize * 5) + (tileGap * 4);
-
-            int offsetX = (mapRect.w - totalGridSize) / 2;
-            int offsetY = (mapRect.h - totalGridSize) / 2;
-
-            if (localX >= offsetX && localY >= offsetY)
+            if (mouseX >= mapRect.x && mouseX <= mapRect.x + mapRect.w &&
+                mouseY >= mapRect.y && mouseY <= mapRect.y + mapRect.h)
             {
-                int gridCol = (int)((localX - offsetX) / (drawnTileSize + tileGap));
-                int gridRow = (int)((localY - offsetY) / (drawnTileSize + tileGap));
+                float localX = mouseX - mapRect.x;
+                float localY = mouseY - mapRect.y;
 
-                if (gridCol >= 0 && gridCol < 5 && gridRow >= 0 && gridRow < 5)
+                int tileGap = 2;
+                int availableForTiles = mapRect.w - (2 * padding) - (4 * tileGap);
+                int drawnTileSize = availableForTiles / 5;
+                int totalGridSize = (drawnTileSize * 5) + (tileGap * 4);
+
+                int offsetX = (mapRect.w - totalGridSize) / 2;
+                int offsetY = (mapRect.h - totalGridSize) / 2;
+
+                if (localX >= offsetX && localY >= offsetY)
                 {
-                    int dx = gridCol - 2;
-                    int dy = gridRow - 2;
+                    int gridCol = (int)((localX - offsetX) / (drawnTileSize + tileGap));
+                    int gridRow = (int)((localY - offsetY) / (drawnTileSize + tileGap));
 
-                    if (std::abs(dx) + std::abs(dy) == 1)
+                    if (gridCol >= 0 && gridCol < 5 && gridRow >= 0 && gridRow < 5)
                     {
-                        int nextX = gridX + dx;
-                        int nextY = gridY + dy;
+                        int dx = gridCol - 2;
+                        int dy = gridRow - 2;
 
-                        if (map->isWalkable(nextX, nextY))
+                        if (std::abs(dx) + std::abs(dy) == 1)
                         {
-                            gridX = nextX;
-                            gridY = nextY;
-                            map->updateDiscovery(gridX, gridY);
-                            refreshActionGrid(); // Update buttons when moving via mouse
-                            std::cout << "Moved to Map Coordinates -> X: " << gridX << " Y: " << gridY << "\n";
+                            int nextX = gridX + dx;
+                            int nextY = gridY + dy;
+
+                            if (map->isWalkable(nextX, nextY))
+                            {
+                                gridX = nextX;
+                                gridY = nextY;
+                                map->updateDiscovery(gridX, gridY);
+                                refreshActionGrid();
+                            }
                         }
                     }
                 }
+                return;
             }
-            return; // Handled map click, exit function early
         }
 
-        // --- 2. ACTION GRID BUTTON CLICK DETECTION ---
+        // 2. ACTION GRID CLICK DETECTION (Exploration & Event)
+        int mapSize = (int)(h * 0.30f);
         int leftColW = mapSize;
         int rightColW = mapSize;
         int centerColW = w - (leftColW + rightColW + (4 * padding));
@@ -212,17 +216,11 @@ void game::handleMouseClick(float mouseX, float mouseY)
         if (mouseX >= gridRect.x && mouseX <= gridRect.x + gridRect.w &&
             mouseY >= gridRect.y && mouseY <= gridRect.y + gridRect.h)
         {
-            int cols = 5;
-            int rows = 3;
-            float gap = 8.0f;
-            float verticalPadding = 15.0f;
-            float horizontalPadding = 40.0f;
-
+            int cols = 5, rows = 3;
+            float gap = 8.0f, verticalPadding = 15.0f, horizontalPadding = 40.0f;
             float availableW = gridRect.w - (horizontalPadding * 2) - (gap * (cols - 1));
             float availableH = gridRect.h - (verticalPadding * 2) - (gap * (rows - 1));
-
-            float btnWidth = availableW / cols;
-            float btnHeight = availableH / rows;
+            float btnWidth = availableW / cols, btnHeight = availableH / rows;
 
             float localX = mouseX - gridRect.x - horizontalPadding;
             float localY = mouseY - gridRect.y - verticalPadding;
@@ -238,8 +236,176 @@ void game::handleMouseClick(float mouseX, float mouseY)
 
                     if (index < activeButtons.size())
                     {
-                        std::cout << "EXECUTED ACTION -> Command: " << activeButtons[index].command
-                            << " | Payload: " << activeButtons[index].payload << "\n";
+                        if (activeButtons[index].command == "SCENE_CHOICE")
+                        {
+                            int choiceIdx = std::stoi(activeButtons[index].payload);
+                            processChoice(currentScene.choices[choiceIdx]);
+                        }
+                        else if (activeButtons[index].command == "START_SCENE")
+                        {
+                            loadScene(activeButtons[index].payload);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    // --- INVENTORY MODE ---
+    else if (currentState == GameState::INVENTORY)
+    {
+        int mapSize = (int)(h * 0.30f);
+        int leftColW = mapSize;
+        int rightColW = mapSize;
+        int centerColW = w - (leftColW + rightColW + (4 * padding));
+        int centerX = padding + leftColW + padding;
+        int colStartY = padding + (int)(h * 0.08f) + padding;
+
+        SDL_Rect equipRect = { padding, colEndY - mapSize, mapSize, mapSize };
+        SDL_Rect invRect = { centerX, colStartY, centerColW, (colEndY - (int)(h * 0.15f) - padding) - colStartY };
+
+        // 1. CLICKING 6x6 EQUIPMENT PANEL SLOTS
+        if (mouseX >= equipRect.x && mouseX <= equipRect.x + equipRect.w &&
+            mouseY >= equipRect.y && mouseY <= equipRect.y + equipRect.h)
+        {
+            int cols = 6, rows = 6, slotGap = 4;
+            int internalPadding = padding + 6;
+
+            int availableW = equipRect.w - (2 * internalPadding) - ((cols - 1) * slotGap);
+            int availableH = equipRect.h - (2 * internalPadding) - ((rows - 1) * slotGap);
+            int slotSize = std::min(availableW / cols, availableH / rows);
+
+            int gridW = (slotSize * cols) + (slotGap * (cols - 1));
+            int gridH = (slotSize * rows) + (slotGap * (rows - 1));
+
+            int offsetX = equipRect.x + (equipRect.w - gridW) / 2;
+            int offsetY = equipRect.y + (equipRect.h - gridH) / 2;
+
+            for (int r = 0; r < rows; r++)
+            {
+                for (int c = 0; c < cols; c++)
+                {
+                    int slotIdx = (r * cols) + c;
+
+                    SDL_FRect slot = {
+                        (float)(offsetX + (c * (slotSize + slotGap))),
+                        (float)(offsetY + (r * (slotSize + slotGap))),
+                        (float)slotSize,
+                        (float)slotSize
+                    };
+
+                    if (mouseX >= slot.x && mouseX <= slot.x + slot.w &&
+                        mouseY >= slot.y && mouseY <= slot.y + slot.h)
+                    {
+                        selectedEquipmentSlot = equipSlot::NONE;
+                        selectedInventoryIndex = -1; // Deselect backpack item
+
+                        if (Player)
+                        {
+                            for (const auto& [eSlot, eqItem] : Player->inventory.equipped)
+                            {
+                                if (getEquipmentGridIndex(eSlot) == slotIdx && !eqItem->id.empty())
+                                {
+                                    selectedEquipmentSlot = eSlot;
+                                    std::cout << "Selected Equipped Item: " << eqItem->name << "\n";
+                                    break;
+                                }
+                            }
+                        }
+                        refreshActionGrid();
+                        return;
+                    }
+                }
+            }
+        }
+
+        // 2. CLICKING BACKPACK INVENTORY SLOTS
+        if (mouseX >= invRect.x && mouseX <= invRect.x + invRect.w &&
+            mouseY >= invRect.y && mouseY <= invRect.y + invRect.h)
+        {
+            int cols = 6, rows = 5, slotGap = 4;
+            int halfWidth = invRect.w / 2;
+            int sidePadding = 20, topPadding = 60;
+
+            int availableW = halfWidth - (2 * sidePadding) - ((cols - 1) * slotGap);
+            int availableH = invRect.h - topPadding - sidePadding - ((rows - 1) * slotGap);
+            int slotSize = std::min(availableW / cols, availableH / rows);
+
+            int gridW = (slotSize * cols) + (slotGap * (cols - 1));
+            int leftOffsetX = invRect.x + (halfWidth - gridW) / 2;
+            int rightOffsetX = invRect.x + halfWidth + (halfWidth - gridW) / 2;
+            int gridOffsetY = invRect.y + topPadding;
+            int maxSlotsPerSide = cols * rows;
+
+            for (int i = 0; i < maxSlotsPerSide * 2; i++)
+            {
+                int side = i / maxSlotsPerSide;
+                int localIndex = i % maxSlotsPerSide;
+                int r = localIndex / cols;
+                int c = localIndex % cols;
+                float originX = (side == 0) ? (float)leftOffsetX : (float)rightOffsetX;
+
+                SDL_FRect slot = {
+                    originX + (c * (slotSize + slotGap)),
+                    (float)(gridOffsetY + (r * (slotSize + slotGap))),
+                    (float)slotSize,
+                    (float)slotSize
+                };
+
+                if (mouseX >= slot.x && mouseX <= slot.x + slot.w &&
+                    mouseY >= slot.y && mouseY <= slot.y + slot.h)
+                {
+                    selectedEquipmentSlot = equipSlot::NONE; // Deselect equipment item
+                    if (Player && i < Player->inventory.backpack.size())
+                    {
+                        selectedInventoryIndex = i;
+                        std::cout << "Selected Backpack Item: " << Player->inventory.backpack[i]->name << "\n";
+                    }
+                    else
+                    {
+                        selectedInventoryIndex = -1; // Clicked empty slot
+                    }
+                    refreshActionGrid();
+                    return;
+                }
+            }
+        }
+
+        // 3. CLICKING ACTION GRID BUTTONS IN INVENTORY MODE
+        int btnH = (int)(h * 0.15f);
+        SDL_FRect gridRect = { (float)centerX, (float)(colEndY - btnH), (float)centerColW, (float)btnH };
+
+        if (mouseX >= gridRect.x && mouseX <= gridRect.x + gridRect.w &&
+            mouseY >= gridRect.y && mouseY <= gridRect.y + gridRect.h)
+        {
+            int cols = 5, rows = 3;
+            float gap = 8.0f, verticalPadding = 15.0f, horizontalPadding = 40.0f;
+            float availableW = gridRect.w - (horizontalPadding * 2) - (gap * (cols - 1));
+            float availableH = gridRect.h - (verticalPadding * 2) - (gap * (rows - 1));
+            float btnWidth = availableW / cols, btnHeight = availableH / rows;
+
+            float localX = mouseX - gridRect.x - horizontalPadding;
+            float localY = mouseY - gridRect.y - verticalPadding;
+
+            if (localX >= 0 && localY >= 0)
+            {
+                int clickedCol = (int)(localX / (btnWidth + gap));
+                int clickedRow = (int)(localY / (btnHeight + gap));
+
+                if (clickedCol >= 0 && clickedCol < cols && clickedRow >= 0 && clickedRow < rows)
+                {
+                    int index = (clickedRow * cols) + clickedCol;
+
+                    if (index < activeButtons.size())
+                    {
+                        if (activeButtons[index].command == "EQUIP_ITEM")
+                        {
+                            handleEquipAction(std::stoi(activeButtons[index].payload));
+                        }
+                        else if (activeButtons[index].command == "UNEQUIP_ITEM")
+                        {
+                            equipSlot slotToUnequip = (equipSlot)std::stoi(activeButtons[index].payload);
+                            handleUnequipAction(slotToUnequip);
+                        }
                     }
                 }
             }
@@ -247,50 +413,258 @@ void game::handleMouseClick(float mouseX, float mouseY)
     }
 }
 
-void game::update() {}
+int game::getEquipmentGridIndex(equipSlot slot)
+{
+    switch (slot)
+    {
+        // Row 0: Head / Face
+        case equipSlot::HEADWEAR:        return 1;
+        case equipSlot::EYEWEAR:         return 2;
+        case equipSlot::HORNS_SLOT:      return 3;
+        case equipSlot::PIERCING_EAR:    return 4;
+
+            // Row 1: Neck & Upper Body
+        case equipSlot::NECKWEAR:        return 7;
+        case equipSlot::SHOULDERS:       return 8;
+        case equipSlot::CHEST_WEAR:      return 9;
+        case equipSlot::TORSO_OVER:      return 10;
+
+            // Row 2: Arms & Weapons
+        case equipSlot::WEAPON_MAIN:     return 12;
+        case equipSlot::HANDS:           return 13;
+        case equipSlot::TORSO_UNDER:     return 14;
+        case equipSlot::WEAPON_OFF:      return 15;
+
+            // Row 3: Midsection & Waist
+        case equipSlot::STOMACH_WEAR:    return 19;
+        case equipSlot::HIPS_WEAR:       return 20;
+        case equipSlot::TAIL_SLOT:       return 21;
+
+            // Row 4: Lower Body & Legs
+        case equipSlot::GROIN_OVER:      return 25;
+        case equipSlot::LEGS_INNER:      return 26;
+        case equipSlot::LEGS_OUTER:      return 27;
+
+            // Row 5: Feet & Accessories
+        case equipSlot::FEET:            return 32;
+        case equipSlot::WINGS_SLOT:      return 33;
+
+        default:                         return -1;
+    }
+}
+
+void game::handleEquipAction(int backpackIndex)
+{
+    if (!Player || backpackIndex < 0 || (size_t)backpackIndex >= Player->inventory.backpack.size()) return;
+
+    std::shared_ptr<item> targetItem = Player->inventory.backpack[backpackIndex];
+
+    if (!targetItem->isEquippable)
+    {
+        std::cout << targetItem->name << " is not equippable.\n";
+        return;
+    }
+
+    // Pass targetSlot and tags directly to your inventory component
+    std::vector<std::string> bodyTags;
+    bool success = Player->inventory.equipItem((size_t)backpackIndex, targetItem->targetSlot, bodyTags);
+
+    if (success)
+    {
+        selectedInventoryIndex = -1; // Reset selection
+        refreshActionGrid();         // Clear the equip button
+    }
+}
+
+void game::handleUnequipAction(equipSlot slot)
+{
+    if (!Player || slot == equipSlot::NONE) return;
+
+    bool success = Player->inventory.unequipItem(slot);
+
+    if (success)
+    {
+        std::cout << "Successfully unequipped item from slot " << (int)slot << "\n";
+        selectedEquipmentSlot = equipSlot::NONE;
+        selectedInventoryIndex = -1;
+        refreshActionGrid();
+    }
+}
 
 void game::refreshActionGrid()
 {
-    activeButtons.clear(); // Wipe the old buttons
+    activeButtons.clear();
 
     if (currentState == GameState::EXPLORATION)
     {
-
-        // --- DYNAMIC TEST ---
-        // If the player walks to a specific tile, spawn a quest button!
-        if (gridX == 3 && gridY == 2)
+        if (gridX == 2 && gridY == 2)
         {
-            actionButton secretQuest;
-            secretQuest.label = "Inspect Statue";
-            secretQuest.command = "QUEST_EVENT";
-            secretQuest.payload = "statue_puzzle_01";
-
-            activeButtons.push_back(secretQuest);
+            actionButton triggerQuest;
+            triggerQuest.label = "Talk to Stranger";
+            triggerQuest.command = "START_SCENE";
+            triggerQuest.payload = "quest_intro_01";
+            activeButtons.push_back(triggerQuest);
         }
-
-        // We can always add a default button that is always there
-        actionButton waitButton;
-        waitButton.label = "Wait 1 Hour";
-        waitButton.command = "TIME_PASS";
-        waitButton.payload = "60";
-
-        activeButtons.push_back(waitButton);
+    }
+    else if (currentState == GameState::INVENTORY)
+    {
+        // 1. If an item in the backpack is selected -> Show "Equip"
+        if (selectedInventoryIndex >= 0 && Player && (size_t)selectedInventoryIndex < Player->inventory.backpack.size())
+        {
+            const std::shared_ptr<item> selItem = Player->inventory.backpack[selectedInventoryIndex];
+            if (selItem->isEquippable)
+            {
+                actionButton equipBtn;
+                equipBtn.label = "Equip " + selItem->name;
+                equipBtn.command = "EQUIP_ITEM";
+                equipBtn.payload = std::to_string(selectedInventoryIndex);
+                activeButtons.push_back(equipBtn);
+            }
+        }
+        // 2. If an equipped item is selected -> Show "Unequip"
+        else if (selectedEquipmentSlot != equipSlot::NONE && Player && Player->inventory.isEquipped(selectedEquipmentSlot))
+        {
+            std::shared_ptr<item> eqItem = Player->inventory.getEquippedItem(selectedEquipmentSlot);
+            if (eqItem)
+            {
+                actionButton unequipBtn;
+                unequipBtn.label = "Unequip " + eqItem->name;
+                unequipBtn.command = "UNEQUIP_ITEM";
+                unequipBtn.payload = std::to_string((int)selectedEquipmentSlot);
+                activeButtons.push_back(unequipBtn);
+            }
+        }
     }
 }
+
+bool game::checkConditions(const std::vector<gameCondition>& conditions)
+{
+    for (const auto& cond : conditions)
+    {
+        if (cond.type == "HAS_ITEM")
+        {
+            bool found = false;
+            for (const auto& item : Player->inventory.backpack)
+            {
+                if (item->id == cond.target) found = true;
+            }
+            if (!found && cond.requiredValue > 0) return false;
+        }
+        else if (cond.type == "QUEST_STAGE")
+        {
+            if (Player->quests.getQuestStage(cond.target) != cond.requiredValue) return false;
+        }
+    }
+    return true;
+}
+
+void game::processChoice(const dialogueChoice& choice)
+{
+    for (const auto& effect : choice.results)
+    {
+        if (effect.action == "GIVE_ITEM")
+        {
+            Player->inventory.addItem(itemDatabase::getItem(effect.target));
+        }
+        else if (effect.action == "REMOVE_ITEM")
+        {
+            Player->inventory.removeItem(effect.target);
+        }
+        else if (effect.action == "ADD_STAT")
+        {
+            Player->stats.modifyStat(effect.target, (float)effect.amount);
+        }
+        else if (effect.action == "TELEPORT")
+        {
+            int newX, newY;
+            sscanf(effect.target.c_str(), "x_%d_y_%d", &newX, &newY);
+            gridX = newX;
+            gridY = newY;
+            map->updateDiscovery(gridX, gridY);
+        }
+        else if (effect.action == "SET_QUEST")
+        {
+            Player->quests.setQuestStage(effect.target, effect.amount);
+        }
+    }
+
+    if (choice.nextSceneId == "EXIT" || choice.nextSceneId.empty())
+    {
+        currentState = GameState::EXPLORATION;
+        refreshActionGrid();
+    }
+    else
+    {
+        loadScene(choice.nextSceneId);
+    }
+}
+
+void game::loadScene(const std::string& sceneId)
+{
+    currentState = GameState::EVENT;
+    currentScene = questDatabase::getScene(sceneId);
+
+    activeButtons.clear();
+    for (size_t i = 0; i < currentScene.choices.size(); i++)
+    {
+        if (checkConditions(currentScene.choices[i].requirements))
+        {
+            actionButton btn;
+            btn.label = currentScene.choices[i].label;
+            btn.command = "SCENE_CHOICE";
+            btn.payload = std::to_string(i);
+            activeButtons.push_back(btn);
+        }
+    }
+}
+
+void game::renderTextCentered(const std::string& text, SDL_FRect targetRect, const std::string& fontId, SDL_Color color)
+{
+    if (text.empty() || fonts.find(fontId) == fonts.end()) return;
+
+    TTF_Font* targetFont = fonts[fontId];
+    SDL_Surface* surface = TTF_RenderText_Blended(targetFont, text.c_str(), 0, color);
+    if (!surface) return;
+
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+    if (texture)
+    {
+        float textX = targetRect.x + (targetRect.w - surface->w) / 2.0f;
+        float textY = targetRect.y + (targetRect.h - surface->h) / 2.0f;
+        SDL_FRect destRect = { textX, textY, (float)surface->w, (float)surface->h };
+        SDL_RenderTexture(renderer, texture, NULL, &destRect);
+        SDL_DestroyTexture(texture);
+    }
+    SDL_DestroySurface(surface);
+}
+
+void game::renderTextWrapped(const std::string& text, SDL_FRect targetRect, const std::string& fontId, SDL_Color color)
+{
+    if (text.empty() || fonts.find(fontId) == fonts.end()) return;
+
+    TTF_Font* targetFont = fonts[fontId];
+    SDL_Surface* surface = TTF_RenderText_Blended_Wrapped(targetFont, text.c_str(), 0, color, (int)targetRect.w - 40);
+    if (!surface) return;
+
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+    if (texture)
+    {
+        SDL_FRect destRect = { targetRect.x + 20.0f, targetRect.y + 20.0f, (float)surface->w, (float)surface->h };
+        SDL_RenderTexture(renderer, texture, NULL, &destRect);
+        SDL_DestroyTexture(texture);
+    }
+    SDL_DestroySurface(surface);
+}
+
+void game::update() {}
 
 void game::render()
 {
     SDL_SetRenderDrawColor(renderer, 30, 30, 30, 255);
     SDL_RenderClear(renderer);
 
-    if (currentState == GameState::MAIN_MENU)
-    {
-        renderMainMenuLayout();
-    }
-    else
-    {
-        renderDashboardLayout();
-    }
+    if (currentState == GameState::MAIN_MENU) renderMainMenuLayout();
+    else renderDashboardLayout();
 
     SDL_SetRenderViewport(renderer, NULL);
     SDL_RenderPresent(renderer);
@@ -301,11 +675,8 @@ void game::renderDashboardLayout()
     int w, h;
     SDL_RendererLogicalPresentation mode;
     float scale;
-    // Updated signature
-    bool success = SDL_GetRenderLogicalPresentation(renderer, &w, &h, &mode);
-    if (!success) return;
+    if (!SDL_GetRenderLogicalPresentation(renderer, &w, &h, &mode)) return;
 
-    // 1. Core Layout Math
     int padding = 12;
     int topBarH = (int)(h * 0.08f);
     int mapSize = (int)(h * 0.30f);
@@ -322,7 +693,6 @@ void game::renderDashboardLayout()
     int centerX = leftX + leftColW + padding;
     int rightX = centerX + centerColW + padding;
 
-    // 2. Define Slots
     int titleW = (w - (4 * padding)) / 3;
     SDL_Rect slotTitle1 = { padding, topRowY, titleW, topBarH };
     SDL_Rect slotTitle2 = { padding + titleW + padding, topRowY, titleW, topBarH };
@@ -333,16 +703,11 @@ void game::renderDashboardLayout()
     int leftAvailableH = (colEndY - mapSize - padding) - colStartY;
     int leftStackH = (leftAvailableH - padding) / 2;
 
-    // Top Left slot for the character panel
-    SDL_Rect slotTopLeft = { leftX, colStartY, leftColW, leftStackH };
     SDL_FRect fSlotTopLeft = { (float)leftX, (float)colStartY, (float)leftColW, (float)leftStackH };
-
     SDL_Rect slotMidLeft = { leftX, colStartY + leftStackH + padding, leftColW, leftAvailableH - leftStackH - padding };
 
     int btnH = (int)(h * 0.15f);
     SDL_Rect slotCenterMain = { centerX, colStartY, centerColW, (colEndY - btnH - padding) - colStartY };
-
-    // Center bottom slot for the action grid
     SDL_FRect fSlotCenterBottom = { (float)centerX, (float)(colEndY - btnH), (float)centerColW, (float)btnH };
 
     int rightAvailableH = colEndY - colStartY;
@@ -351,21 +716,14 @@ void game::renderDashboardLayout()
     SDL_Rect slotMidRight = { rightX, colStartY + rightStackH + padding, rightColW, rightStackH };
     SDL_Rect slotBotRight = { rightX, colStartY + (rightStackH + padding) * 2, rightColW, rightAvailableH - (rightStackH * 2 + padding * 2) };
 
-    // 3. Inject Widgets based on State
-    // Static widgets (Always show in dashboard)
     renderTitleBar(slotTitle1, slotTitle2, slotTitle3);
-
-    // Replaced renderPCPanel with the actual Character Panel
     renderCharacterPanel(fSlotTopLeft, Player);
-
     renderCompanionPanel(slotMidLeft);
-
-    // Replaced renderButtons with the Action Grid
     renderActionGrid(fSlotCenterBottom);
 
-    // Dynamic widgets (Change based on state)
     switch (currentState)
     {
+        case GameState::EVENT:
         case GameState::EXPLORATION:
             renderMapPanel(slotBottomLeft, padding);
             renderTextPanel(slotCenterMain);
@@ -387,16 +745,13 @@ void game::renderMainMenuLayout()
     int w, h;
     SDL_RendererLogicalPresentation mode;
     float scale;
-    bool success = SDL_GetRenderLogicalPresentation(renderer, &w, &h, &mode);
-    if (!success) return;
+    if (!SDL_GetRenderLogicalPresentation(renderer, &w, &h, &mode)) return;
 
     SDL_Rect menuRect = { w / 4, h / 4, w / 2, h / 2 };
     SDL_SetRenderViewport(renderer, &menuRect);
     SDL_SetRenderDrawColor(renderer, 20, 60, 80, 255);
     SDL_RenderFillRect(renderer, NULL);
 }
-
-// --- UI WIDGETS ---
 
 void game::renderMapPanel(SDL_Rect rect, int padding)
 {
@@ -454,13 +809,16 @@ void game::renderMapPanel(SDL_Rect rect, int padding)
 
 void game::renderEquipmentPanel(SDL_Rect rect, int padding)
 {
+    // 1. Set Viewport to the Equipment Panel Bounds
     SDL_SetRenderViewport(renderer, &rect);
+
+    // 2. Draw Panel Background (Relative to viewport origin 0,0)
+    SDL_FRect panelRect = { 0.0f, 0.0f, (float)rect.w, (float)rect.h };
     SDL_SetRenderDrawColor(renderer, 25, 20, 30, 255);
-    SDL_RenderFillRect(renderer, NULL);
+    SDL_RenderFillRect(renderer, &panelRect);
 
     SDL_SetRenderDrawColor(renderer, 100, 50, 150, 255);
-    SDL_FRect border = { (float)padding, (float)padding, (float)rect.w - (padding * 2), (float)rect.h - (padding * 2) };
-    SDL_RenderRect(renderer, &border);
+    SDL_RenderRect(renderer, &panelRect);
 
     int cols = 6;
     int rows = 6;
@@ -478,33 +836,114 @@ void game::renderEquipmentPanel(SDL_Rect rect, int padding)
     int offsetX = (rect.w - gridW) / 2;
     int offsetY = (rect.h - gridH) / 2;
 
-    SDL_SetRenderDrawColor(renderer, 45, 40, 50, 255);
     for (int r = 0; r < rows; r++)
     {
         for (int c = 0; c < cols; c++)
         {
+            int slotIdx = (r * cols) + c;
+
             SDL_FRect slot = {
                 (float)(offsetX + (c * (slotSize + slotGap))),
                 (float)(offsetY + (r * (slotSize + slotGap))),
                 (float)slotSize,
                 (float)slotSize
             };
+
+            // Check if gear is equipped in this slot
+            bool isOccupied = false;
+            std::string equippedName = "";
+            bool isSelectedEquip = false;
+
+            if (Player)
+            {
+                for (const auto& [eSlot, eqItem] : Player->inventory.equipped)
+                {
+                    if (getEquipmentGridIndex(eSlot) == slotIdx && !eqItem->id.empty())
+                    {
+                        isOccupied = true;
+                        equippedName = eqItem->name;
+                        if (eSlot == selectedEquipmentSlot)
+                        {
+                            isSelectedEquip = true;
+                        }
+                        break;
+                    }
+                }
+            }
+
+            // Draw Slot Background
+            if (isOccupied)
+            {
+                SDL_SetRenderDrawColor(renderer, 100, 60, 160, 255); // Purple tint for occupied equipment slots
+            }
+            else
+            {
+                SDL_SetRenderDrawColor(renderer, 45, 40, 50, 255);   // Dark empty slot
+            }
             SDL_RenderFillRect(renderer, &slot);
-            SDL_SetRenderDrawColor(renderer, 60, 55, 65, 255);
-            SDL_RenderRect(renderer, &slot);
-            SDL_SetRenderDrawColor(renderer, 45, 40, 50, 255);
+
+            // Draw Slot Border (Gold outline if selected)
+            if (isSelectedEquip)
+            {
+                SDL_SetRenderDrawColor(renderer, 255, 215, 0, 255); // Gold
+                SDL_RenderRect(renderer, &slot);
+                SDL_FRect inset = { slot.x + 1.0f, slot.y + 1.0f, slot.w - 2.0f, slot.h - 2.0f };
+                SDL_RenderRect(renderer, &inset);
+            }
+            else
+            {
+                SDL_SetRenderDrawColor(renderer, 80, 75, 95, 255); // Normal border
+                SDL_RenderRect(renderer, &slot);
+            }
+
+            // Render Text Label with Auto-Scaling inside Viewport
+            if (isOccupied && !equippedName.empty() && fonts.find("button_font") != fonts.end())
+            {
+                SDL_Color goldColor = { 255, 215, 0, 255 };
+                SDL_Surface* surface = TTF_RenderText_Blended(fonts["button_font"], equippedName.c_str(), 0, goldColor);
+
+                if (surface)
+                {
+                    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+                    if (texture)
+                    {
+                        float maxTextW = slot.w - 4.0f;
+                        float maxTextH = slot.h - 4.0f;
+
+                        float scaleW = (surface->w > maxTextW) ? (maxTextW / surface->w) : 1.0f;
+                        float scaleH = (surface->h > maxTextH) ? (maxTextH / surface->h) : 1.0f;
+                        float finalScale = std::min(scaleW, scaleH);
+
+                        float drawW = surface->w * finalScale;
+                        float drawH = surface->h * finalScale;
+
+                        float drawX = slot.x + (slot.w - drawW) / 2.0f;
+                        float drawY = slot.y + (slot.h - drawH) / 2.0f;
+
+                        SDL_FRect destRect = { drawX, drawY, drawW, drawH };
+                        SDL_RenderTexture(renderer, texture, NULL, &destRect);
+
+                        SDL_DestroyTexture(texture);
+                    }
+                    SDL_DestroySurface(surface);
+                }
+            }
         }
     }
 }
 
 void game::renderInventoryPanel(SDL_Rect rect)
 {
-    SDL_SetRenderViewport(renderer, &rect);
-    SDL_SetRenderDrawColor(renderer, 35, 35, 45, 255);
-    SDL_RenderFillRect(renderer, NULL);
+    SDL_SetRenderViewport(renderer, NULL);
 
+    // Panel Background
+    SDL_FRect panelRect = { (float)rect.x, (float)rect.y, (float)rect.w, (float)rect.h };
+    SDL_SetRenderDrawColor(renderer, 35, 35, 45, 255);
+    SDL_RenderFillRect(renderer, &panelRect);
+
+    // Center Divider Line
     SDL_SetRenderDrawColor(renderer, 60, 60, 70, 255);
-    SDL_RenderLine(renderer, rect.w / 2, 20, rect.w / 2, rect.h - 20);
+    SDL_RenderLine(renderer, rect.x + rect.w / 2.0f, rect.y + 20.0f, rect.x + rect.w / 2.0f, rect.y + rect.h - 20.0f);
 
     int cols = 6;
     int rows = 5;
@@ -522,39 +961,74 @@ void game::renderInventoryPanel(SDL_Rect rect)
     int gridW = (slotSize * cols) + (slotGap * (cols - 1));
     int gridH = (slotSize * rows) + (slotGap * (rows - 1));
 
-    int leftOffsetX = (halfWidth - gridW) / 2;
-    int gridOffsetY = topPadding;
+    int leftOffsetX = rect.x + (halfWidth - gridW) / 2;
+    int gridOffsetY = rect.y + topPadding;
+    int rightOffsetX = rect.x + halfWidth + (halfWidth - gridW) / 2;
 
-    int rightOffsetX = halfWidth + (halfWidth - gridW) / 2;
+    int maxSlotsPerSide = cols * rows; // 30 slots per side (60 total)
 
-    SDL_SetRenderDrawColor(renderer, 50, 50, 60, 255);
-    for (int r = 0; r < rows; r++)
+    const auto& backpack = Player->inventory.backpack;
+
+    // Loop through all 60 potential slots (0 to 29 on left, 30 to 59 on right)
+    // Loop through all 60 potential slots (0 to 29 on left, 30 to 59 on right)
+    for (int i = 0; i < maxSlotsPerSide * 2; i++)
     {
-        for (int c = 0; c < cols; c++)
+        int side = i / maxSlotsPerSide; // 0 = Left side, 1 = Right side
+        int localIndex = i % maxSlotsPerSide;
+        int r = localIndex / cols;
+        int c = localIndex % cols;
+
+        float originX = (side == 0) ? (float)leftOffsetX : (float)rightOffsetX;
+
+        SDL_FRect slot = {
+            originX + (c * (slotSize + slotGap)),
+            (float)(gridOffsetY + (r * (slotSize + slotGap))),
+            (float)slotSize,
+            (float)slotSize
+        };
+
+        // Check if an item exists at this index safely
+        bool hasItem = (Player != nullptr) && (i < Player->inventory.backpack.size());
+
+        // 1. Fill Slot Background
+        if (hasItem)
         {
-            SDL_FRect slot = {
-                (float)(leftOffsetX + (c * (slotSize + slotGap))),
-                (float)(gridOffsetY + (r * (slotSize + slotGap))),
-                (float)slotSize,
-                (float)slotSize
-            };
-            SDL_RenderFillRect(renderer, &slot);
+            SDL_SetRenderDrawColor(renderer, 60, 70, 90, 255);
+        }
+        else
+        {
+            SDL_SetRenderDrawColor(renderer, 50, 50, 60, 255);
+        }
+        SDL_RenderFillRect(renderer, &slot);
+
+        // 2. Draw Slot Border (Gold outline + inset border if selected!)
+        if (i == selectedInventoryIndex)
+        {
+            SDL_SetRenderDrawColor(renderer, 255, 215, 0, 255); // Gold
+            SDL_RenderRect(renderer, &slot);
+
+            // Draw a 1px inset rectangle to make the gold selection outline thicker & visible
+            SDL_FRect insetSlot = { slot.x + 1.0f, slot.y + 1.0f, slot.w - 2.0f, slot.h - 2.0f };
+            SDL_RenderRect(renderer, &insetSlot);
+        }
+        else
+        {
+            SDL_SetRenderDrawColor(renderer, 70, 70, 85, 255); // Normal border
+            SDL_RenderRect(renderer, &slot);
+        }
+
+        // Render Item Label if present
+        if (hasItem)
+        {
+            std::string displayName = Player->inventory.backpack[i]->name;
+            if (displayName.length() > 8)
+            {
+                displayName = displayName.substr(0, 7) + ".";
+            }
+            renderTextCentered(displayName, slot, "button_font");
         }
     }
-
-    for (int r = 0; r < rows; r++)
-    {
-        for (int c = 0; c < cols; c++)
-        {
-            SDL_FRect slot = {
-                (float)(rightOffsetX + (c * (slotSize + slotGap))),
-                (float)(gridOffsetY + (r * (slotSize + slotGap))),
-                (float)slotSize,
-                (float)slotSize
-            };
-            SDL_RenderFillRect(renderer, &slot);
-        }
-    }
+    if (!Player) return;
 }
 
 void game::renderTitleBar(SDL_Rect t1, SDL_Rect t2, SDL_Rect t3)
@@ -577,9 +1051,20 @@ void game::renderCompanionPanel(SDL_Rect rect)
 
 void game::renderTextPanel(SDL_Rect rect)
 {
-    SDL_SetRenderViewport(renderer, &rect);
+    SDL_SetRenderViewport(renderer, NULL);
+    SDL_FRect fRect = { (float)rect.x, (float)rect.y, (float)rect.w, (float)rect.h };
+
     SDL_SetRenderDrawColor(renderer, 40, 40, 40, 255);
-    SDL_RenderFillRect(renderer, NULL);
+    SDL_RenderFillRect(renderer, &fRect);
+
+    if (currentState == GameState::EVENT)
+    {
+        SDL_FRect nameRect = { fRect.x, fRect.y, fRect.w, 40.0f };
+        renderTextCentered(currentScene.speakerName, nameRect, "title_font", { 255, 200, 100, 255 });
+
+        SDL_FRect bodyRect = { fRect.x, fRect.y + 40.0f, fRect.w, fRect.h - 40.0f };
+        renderTextWrapped(currentScene.bodyText, bodyRect, "button_font", { 220, 220, 220, 255 });
+    }
 }
 
 void game::renderRightColumn(SDL_Rect top, SDL_Rect mid, SDL_Rect bot)
@@ -593,13 +1078,9 @@ void game::renderRightColumn(SDL_Rect top, SDL_Rect mid, SDL_Rect bot)
     }
 }
 
-// Ensure game.h signature is updated to: void renderCharacterPanel(SDL_FRect rect, entity* Player);
-void game::renderCharacterPanel(SDL_FRect rect, entity* PlayerObj)
+void game::renderCharacterPanel(SDL_FRect rect, entity* playerObj)
 {
-    // Important: Remove any set viewport commands inside this function if it exists, 
-    // because SDL_FRect positioning in our dashboard expects absolute positioning over the whole screen.
-
-    SDL_SetRenderViewport(renderer, NULL); // Reset viewport
+    SDL_SetRenderViewport(renderer, NULL);
 
     SDL_SetRenderDrawColor(renderer, 30, 28, 35, 255);
     SDL_RenderFillRect(renderer, &rect);
@@ -607,7 +1088,7 @@ void game::renderCharacterPanel(SDL_FRect rect, entity* PlayerObj)
     SDL_SetRenderDrawColor(renderer, 60, 55, 65, 255);
     SDL_RenderRect(renderer, &rect);
 
-    if (!PlayerObj) return;
+    if (!playerObj) return;
 
     float padding = 15.0f;
     float barWidth = rect.w - (padding * 2);
@@ -627,12 +1108,11 @@ void game::renderCharacterPanel(SDL_FRect rect, entity* PlayerObj)
             SDL_RenderFillRect(renderer, &fillRect);
         };
 
-    drawBar(startY, PlayerObj->stats.getStat("health"), 100.0f, 220, 50, 70);
-    drawBar(startY + barSpacing, PlayerObj->stats.getStat("mana"), 100.0f, 150, 80, 220);
-    drawBar(startY + (barSpacing * 2), PlayerObj->stats.getStat("lust"), 100.0f, 255, 50, 150);
+    drawBar(startY, playerObj->stats.getStat("health"), 100.0f, 220, 50, 70);
+    drawBar(startY + barSpacing, playerObj->stats.getStat("mana"), 100.0f, 150, 80, 220);
+    drawBar(startY + (barSpacing * 2), playerObj->stats.getStat("lust"), 100.0f, 255, 50, 150);
 }
 
-// Ensure game.h signature is updated to: void renderActionGrid(SDL_FRect rect);
 void game::renderActionGrid(SDL_FRect rect)
 {
     SDL_SetRenderViewport(renderer, NULL);
@@ -659,7 +1139,7 @@ void game::renderActionGrid(SDL_FRect rect)
     {
         for (int c = 0; c < cols; c++)
         {
-            int index = (r * cols) + c; // Which of the 15 slots is this?
+            int index = (r * cols) + c;
 
             SDL_FRect btn = {
                 rect.x + horizontalPadding + (c * (btnWidth + gap)),
@@ -668,16 +1148,17 @@ void game::renderActionGrid(SDL_FRect rect)
                 btnHeight
             };
 
-            // If we have an active button for this slot, draw it in a bright interactable color
             if (index < activeButtons.size())
             {
-                SDL_SetRenderDrawColor(renderer, 70, 100, 140, 255); // A nice clickable blue
+                SDL_SetRenderDrawColor(renderer, 70, 100, 140, 255);
+                SDL_RenderFillRect(renderer, &btn);
+                renderTextCentered(activeButtons[index].label, btn, "button_font");
             }
             else
             {
-                SDL_SetRenderDrawColor(renderer, 40, 40, 45, 255); // Empty dark grey
+                SDL_SetRenderDrawColor(renderer, 40, 40, 45, 255);
+                SDL_RenderFillRect(renderer, &btn);
             }
-            SDL_RenderFillRect(renderer, &btn);
 
             SDL_SetRenderDrawColor(renderer, 60, 60, 70, 255);
             SDL_RenderRect(renderer, &btn);
@@ -687,6 +1168,13 @@ void game::renderActionGrid(SDL_FRect rect)
 
 void game::clean()
 {
+    for (auto const& [id, f] : fonts)
+    {
+        TTF_CloseFont(f);
+    }
+    fonts.clear();
+    TTF_Quit();
+
     SDL_DestroyWindow(window);
     SDL_DestroyRenderer(renderer);
     SDL_Quit();

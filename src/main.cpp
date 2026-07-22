@@ -6,7 +6,7 @@ int main(int argc, char* argv[])
 
     Game->init("My Game Engine", 1280, 720, false);
 
-    while (Game->running())
+    while (Game->isRunning)
     {
         Game->handleEvents();
         Game->update();

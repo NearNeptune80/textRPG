@@ -63,7 +63,11 @@ add_executable (textRPG
     "src/enums.h"
     "src/itemDatabase.h"
     "src/itemDatabase.cpp"
- "src/actionButton.h")
+    "src/actionButton.h" 
+    "src/quest.h"
+    "src/questDatabase.h"
+    "src/questDatabase.cpp"
+)
 
 # Link the libraries to the executable
 target_link_libraries(textRPG PRIVATE 
@@ -77,6 +81,13 @@ target_link_libraries(textRPG PRIVATE
 add_custom_command(TARGET textRPG POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
     "${CMAKE_BINARY_DIR}/_deps/sdl3-build/sdl3.dll" 
+    "$<TARGET_FILE_DIR:textRPG>"
+)
+
+# Copy SDL3_ttf.dll to the build directory automatically
+add_custom_command(TARGET textRPG POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "${CMAKE_BINARY_DIR}/_deps/sdl3_ttf-build/SDL3_ttf.dll"
     "$<TARGET_FILE_DIR:textRPG>"
 )
 

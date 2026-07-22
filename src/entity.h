@@ -73,6 +73,15 @@ public:
     void printDebug() const;
 };
 
+class questComponent
+{
+public:
+    std::unordered_map<std::string, int> activeQuests;
+
+    void setQuestStage(const std::string& questId, int stage);
+    int getQuestStage(const std::string& questId) const;
+};
+
 // --- Core Entity ---
 
 class entity
@@ -80,6 +89,7 @@ class entity
 public:
     std::string id;
     std::string name;
+    questComponent quests;
 
     std::unordered_map<std::string, int> essences;
 

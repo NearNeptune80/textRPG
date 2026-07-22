@@ -2,21 +2,22 @@
 #include <vector>
 #include <unordered_map>
 #include <string>
+#include <memory> // Fixes 'shared_ptr' undeclared errors
 #include "enums.h"
 #include "item.h"
 
 class inventoryComponent
 {
 public:
-    std::vector<item> backpack;
-    std::unordered_map<equipSlot, item> equipped;
+    std::vector<std::shared_ptr<item>> backpack;
+    std::unordered_map<equipSlot, std::shared_ptr<item>> equipped;
 
-    void addItem(const item& newItem);
+    void addItem(std::shared_ptr<item> newItem);
     bool removeItem(const std::string& itemId);
 
-    bool equipItem(size_t backpackIndex, equipSlot slot);
+    bool equipItem(size_t backpackIndex, equipSlot slot, const std::vector<std::string>& bodyPartTags = {});
     bool unequipItem(equipSlot slot);
 
     bool isEquipped(equipSlot slot) const;
-    item* getEquippedItem(equipSlot slot);
+    std::shared_ptr<item> getEquippedItem(equipSlot slot);
 };
