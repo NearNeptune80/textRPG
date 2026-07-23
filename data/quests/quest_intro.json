@@ -1,0 +1,94 @@
+{
+  "id": "root_delivery",
+  "name": "Canis Root Delivery",
+  "description": "Deliver the Canis Root to the stranger in the town district.",
+  "triggers": [
+    {
+      "id": "trig_stranger_start",
+      "mapId": "overworld",
+      "x": 1,
+      "y": 1,
+      "label": "Talk to Stranger",
+      "sceneId": "quest_intro_01",
+      "conditions": [
+        {
+          "type": "QUEST_STAGE",
+          "target": "root_delivery",
+          "requiredValue": 0
+        },
+        {
+          "type": "TIME_PHASE",
+          "target": "DAY",
+          "requiredValue": 0
+        }
+      ]
+    }
+  ],
+  "stages": {
+    "0": "Find the stranger in the town district at dawn.",
+    "1": "Hand over the Canis Root.",
+    "2": "Quest completed!"
+  },
+  "scenes": [
+    {
+      "id": "quest_intro_01",
+      "speakerName": "Hooded Stranger",
+      "bodyText": "Ah, you made it. Did you bring the Canis Root I requested?",
+      "choices": [
+        {
+          "label": "Hand over Canis Root",
+          "requirements": [
+            {
+              "type": "HAS_ITEM",
+              "target": "item_canis_root",
+              "requiredValue": 1
+            }
+          ],
+          "results": [
+            {
+              "action": "REMOVE_ITEM",
+              "target": "item_canis_root",
+              "amount": 1
+            },
+            {
+              "action": "SET_QUEST",
+              "target": "root_delivery",
+              "amount": 1
+            },
+            {
+              "action": "ADD_STAT",
+              "target": "currency",
+              "amount": 50
+            }
+          ],
+          "nextSceneId": "quest_intro_02"
+        },
+        {
+          "label": "Not yet.",
+          "requirements": [],
+          "results": [],
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "quest_intro_02",
+      "speakerName": "Hooded Stranger",
+      "bodyText": "Excellent. Here is 50¤ for your trouble. Take care in the alleyways at night.",
+      "choices": [
+        {
+          "label": "Thank you.",
+          "requirements": [],
+          "results": [
+            {
+              "action": "SET_QUEST",
+              "target": "root_delivery",
+              "amount": 2
+            }
+          ],
+          "nextSceneId": "EXIT"
+        }
+      ]
+    }
+  ]
+}

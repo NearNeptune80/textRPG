@@ -7,6 +7,8 @@
 #include <memory>
 #include <algorithm>
 
+#include "quest.h" // Includes MapTrigger, gameCondition, and gameEffect definitions
+
 class entity; // Forward declaration
 
 enum TileType
@@ -41,16 +43,16 @@ struct MapWarp
 
 struct TemporarySafetyModifier
 {
-    std::string sourceId; // e.g. "quest_curfew" or "status_repellent"
-    int dangerDelta;      // +1 (more dangerous), -1 (safer)
-    int durationTurns;    // Remaining duration (-1 for infinite)
+    std::string sourceId;
+    int dangerDelta;
+    int durationTurns;
 };
 
 struct TileRuntimeData
 {
-    std::shared_ptr<entity> persistentNPC = nullptr; // Persistent enemy on this tile
-    std::string iconId = "";                         // Navigation icon (e.g. "icon_stairs")
-    int baseDangerLevel = 0;                         // 0 = Safe, 1+ = Unsafe
+    std::shared_ptr<entity> persistentNPC = nullptr;
+    std::string iconId = "";
+    int baseDangerLevel = 0;
 
     std::vector<TemporarySafetyModifier> safetyModifiers;
 
@@ -77,9 +79,10 @@ public:
     Tile getTile(int x, int y) const;
     bool checkWarp(int x, int y, MapWarp& outWarp) const;
 
-    // --- Dynamic Tile Data Helpers ---
+    // --- Dynamic Tile Data & Trigger Helpers ---
     TileRuntimeData& getRuntimeData(int x, int y);
     std::string getTileKey(int x, int y) const;
+    const std::vector<MapTrigger>& getTriggers() const { return triggers; }
 
     int getWidth() const { return width; }
     int getHeight() const { return height; }
@@ -94,6 +97,7 @@ private:
 
     std::vector<std::vector<Tile>> grid;
     std::vector<MapWarp> warps;
+    std::vector<MapTrigger> triggers;
     std::unordered_map<std::string, TileRuntimeData> runtimeData;
 };
 

@@ -51,7 +51,7 @@ bool gameMap::loadFromFile(const std::string& filePath)
             }
         }
 
-        // Parse optional danger levels per tile from JSON
+        // Parse optional danger levels
         if (data.contains("dangerLevels"))
         {
             auto dangerJson = data.at("dangerLevels");
@@ -79,8 +79,35 @@ bool gameMap::loadFromFile(const std::string& filePath)
                 w.targetY = wJson.at("targetY").get<int>();
                 warps.push_back(w);
 
-                // Automatically mark door tile in runtime data
                 getRuntimeData(w.x, w.y).iconId = "icon_door";
+            }
+        }
+
+        // Parse Dynamic Map Triggers
+        triggers.clear();
+        if (data.contains("triggers"))
+        {
+            for (const auto& tJson : data.at("triggers"))
+            {
+                MapTrigger trig;
+                trig.id = tJson.value("id", "");
+                trig.label = tJson.value("label", "Interact");
+                trig.x = tJson.at("x").get<int>();
+                trig.y = tJson.at("y").get<int>();
+                trig.sceneId = tJson.at("sceneId").get<std::string>();
+
+                if (tJson.contains("conditions"))
+                {
+                    for (const auto& cJson : tJson.at("conditions"))
+                    {
+                        gameCondition cond;
+                        cond.type = cJson.at("type").get<std::string>();
+                        cond.target = cJson.at("target").get<std::string>();
+                        cond.requiredValue = cJson.value("requiredValue", 0);
+                        trig.conditions.push_back(cond);
+                    }
+                }
+                triggers.push_back(trig);
             }
         }
 
