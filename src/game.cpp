@@ -37,8 +37,36 @@ void game::movePlayer(int nextX, int nextY)
 
     gridX = nextX;
     gridY = nextY;
+
+    // Advance time by 2 minutes for taking a step
+    gameTime.advanceTime(2);
+
     map->updateDiscovery(gridX, gridY);
-    refreshActionGrid(); // Will check for warp tiles and generate the button!
+
+    TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
+
+    // Nighttime makes dangerous tiles even more hostile (+1 danger level)
+    int bonusDanger = (gameTime.getPhase() == TimePhase::NIGHT) ? 1 : 0;
+    int dangerLevel = tileData.getEffectiveDangerLevel() + bonusDanger;
+
+    if (dangerLevel > 0)
+    {
+        int chance = std::min(100, dangerLevel * 20);
+        int roll = rand() % 100;
+
+        if (roll < chance)
+        {
+            if (!tileData.persistentNPC)
+            {
+                tileData.persistentNPC = generateEncounterNPC();
+            }
+
+            triggerEncounter(tileData.persistentNPC);
+            return;
+        }
+    }
+
+    refreshActionGrid();
 }
 
 bool game::loadFont(const std::string& id, const std::string& path, int ptSize)
@@ -609,6 +637,29 @@ bool game::checkConditions(const std::vector<gameCondition>& conditions)
 
 void game::processChoice(const dialogueChoice& choice)
 {
+    TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
+
+    if (choice.nextSceneId == "ENCOUNTER_FIGHT")
+    {
+        std::cout << "[Encounter] Picked option: FIGHT vs " << (tileData.persistentNPC ? tileData.persistentNPC->name : "Enemy") << "\n";
+        currentState = GameState::EXPLORATION;
+        refreshActionGrid();
+        return;
+    }
+    else if (choice.nextSceneId == "ENCOUNTER_PAY")
+    {
+        std::cout << "[Encounter] Picked option: BRIBE / PAY!\n";
+        currentState = GameState::EXPLORATION;
+        refreshActionGrid();
+        return;
+    }
+    else if (choice.nextSceneId == "ENCOUNTER_SURRENDER")
+    {
+        std::cout << "[Encounter] Picked option: SURRENDER!\n";
+        currentState = GameState::EXPLORATION;
+        refreshActionGrid();
+        return;
+    }
     for (const auto& effect : choice.results)
     {
         if (effect.action == "GIVE_ITEM")
@@ -749,17 +800,21 @@ void game::renderDashboardLayout()
     SDL_Rect slotTitle3 = { padding + (titleW + padding) * 2, topRowY, titleW, topBarH };
 
     // --- LEFT COLUMN SIZING ---
-    // 1. Map / Equipment Panel at the bottom (Fixed Square)
+   // 1. Map Panel at the bottom (Fixed Square)
     SDL_Rect slotBottomLeft = { leftX, colEndY - mapSize, mapSize, mapSize };
 
-    // 2. Character Panel height is tied directly to mapSize scale (0.85 ratio)
-    // This maintains its proportions identically to the map when window scales!
+    // 2. Sleek, Compact Time Card (Sits directly above map)
+    int timeH = (int)(mapSize * 0.20f); // Reduced height for tight layout
+    int timeY = colEndY - mapSize - padding - timeH;
+    SDL_Rect slotTimeLeft = { leftX, timeY, leftColW, timeH };
+
+    // 3. Character Panel
     int charH = (int)(mapSize * 0.85f);
     SDL_FRect fSlotTopLeft = { (float)leftX, (float)colStartY, (float)leftColW, (float)charH };
 
-    // 3. Middle Slot (Time/Calendar) occupies remaining vertical space
+    // 4. Companion Panel fills the remaining gap above Time Card
     int midY = colStartY + charH + padding;
-    int midH = (colEndY - mapSize - padding) - midY;
+    int midH = timeY - padding - midY;
     SDL_Rect slotMidLeft = { leftX, midY, leftColW, midH };
 
     // --- CENTER COLUMN SIZING ---
@@ -777,7 +832,8 @@ void game::renderDashboardLayout()
     // --- RENDER PANELS ---
     renderTitleBar(slotTitle1, slotTitle2, slotTitle3);
     renderCharacterPanel(fSlotTopLeft, Player);
-    renderCompanionPanel(slotMidLeft); // Renders the Time/Calendar panel in the gap
+    renderCompanionPanel(slotMidLeft); // Companion slot
+    renderTimePanel(slotTimeLeft);     // Compact Time & Calendar Card
     renderActionGrid(fSlotCenterBottom);
 
     switch (currentState)
@@ -798,6 +854,7 @@ void game::renderDashboardLayout()
         default: break;
     }
 }
+
 void game::renderMainMenuLayout()
 {
     int w, h;
@@ -846,8 +903,6 @@ void game::renderMapPanel(SDL_Rect rect, int padding)
             if (mapX < 0 || mapX >= mapW || mapY < 0 || mapY >= mapH) continue;
 
             Tile t = map->getTile(mapX, mapY);
-
-            // IGNORE VOID, WALLS, AND HIDDEN TILES ENTIRELY
             if (t.type == TILE_VOID || t.type == TILE_WALL || t.discovery == STATE_HIDDEN) continue;
 
             int renderX = x + 2;
@@ -860,21 +915,30 @@ void game::renderMapPanel(SDL_Rect rect, int padding)
                 (float)drawnTileSize
             };
 
+            int danger = map->getRuntimeData(mapX, mapY).getEffectiveDangerLevel();
+
             if (t.discovery == STATE_PARTIAL)
             {
-                // Dim gray for partially discovered paths
-                SDL_SetRenderDrawColor(renderer, 70, 70, 80, 255);
+                if (danger > 0) SDL_SetRenderDrawColor(renderer, 45, 40, 50, 255); // Darker dim partial
+                else SDL_SetRenderDrawColor(renderer, 70, 70, 80, 255);            // Safe partial
                 SDL_RenderFillRect(renderer, &r);
             }
             else if (t.type == TILE_FLOOR || t.type == TILE_DOOR)
             {
-                // Fully revealed path tile
-                SDL_SetRenderDrawColor(renderer, 210, 210, 215, 255);
+                if (danger > 0)
+                {
+                    // Darker alleyway / dangerous tile
+                    SDL_SetRenderDrawColor(renderer, 100, 95, 110, 255);
+                }
+                else
+                {
+                    // Bright safe floor tile
+                    SDL_SetRenderDrawColor(renderer, 210, 210, 215, 255);
+                }
                 SDL_RenderFillRect(renderer, &r);
 
                 if (t.type == TILE_DOOR)
                 {
-                    // Door / Warp Tile Highlight
                     SDL_SetRenderDrawColor(renderer, 240, 180, 50, 255);
                     SDL_RenderRect(renderer, &r);
                 }
@@ -1141,7 +1205,6 @@ void game::renderCompanionPanel(SDL_Rect rect)
     SDL_SetRenderDrawColor(renderer, 60, 55, 65, 255);
     SDL_RenderRect(renderer, &panelRect);
 
-    // Reset Viewport
     SDL_SetRenderViewport(renderer, NULL);
 }
 
@@ -1382,6 +1445,156 @@ void game::renderActionGrid(SDL_FRect rect)
     }
 }
 
+void game::renderTimePanel(SDL_Rect rect)
+{
+    SDL_SetRenderViewport(renderer, &rect);
+
+    // 1. Card Background & Border
+    SDL_FRect panelRect = { 0.0f, 0.0f, (float)rect.w, (float)rect.h };
+    SDL_SetRenderDrawColor(renderer, 30, 28, 35, 255);
+    SDL_RenderFillRect(renderer, &panelRect);
+
+    SDL_SetRenderDrawColor(renderer, 60, 55, 65, 255);
+    SDL_RenderRect(renderer, &panelRect);
+
+    // Layout Columns (Left: Date/Calendar | Right: Time/Daylight Bar)
+    float leftColX = rect.w * 0.04f;
+    float leftColW = rect.w * 0.46f;
+
+    float rightColX = rect.w * 0.52f;
+    float rightColW = rect.w * 0.44f;
+
+    float topY = rect.h * 0.14f;
+    float headerH = rect.h * 0.32f;
+
+    auto drawTextCentered = [&](const std::string& textStr, SDL_FRect destRect, SDL_Color color)
+        {
+            float srcW = 0.0f, srcH = 0.0f;
+            SDL_Texture* texture = getOrRenderText(textStr, "button_font", color, srcW, srcH);
+
+            if (texture && srcH > 0.0f)
+            {
+                float scale = (srcH > destRect.h) ? (destRect.h / srcH) : 1.0f;
+                float drawW = srcW * scale;
+                float drawH = srcH * scale;
+
+                float drawX = destRect.x + (destRect.w - drawW) / 2.0f;
+                float drawY = destRect.y + (destRect.h - drawH) / 2.0f;
+
+                SDL_FRect renderDst = { drawX, drawY, drawW, drawH };
+                SDL_RenderTexture(renderer, texture, NULL, &renderDst);
+            }
+        };
+
+    // ==========================================
+    // 1. LEFT SIDE: DATE & SEGMENTED DAY TRACKER
+    // ==========================================
+
+    // Date Header ("30th June")
+    SDL_FRect dateBox = { leftColX, topY, leftColW, headerH };
+    drawTextCentered(gameTime.getFormattedDate(), dateBox, { 220, 225, 240, 255 });
+
+    float dowY = topY + headerH + (rect.h * 0.06f);
+    float dowH = rect.h * 0.32f;
+    const char* days[7] = { "M", "T", "W", "T", "F", "S", "S" };
+    float daySlotW = leftColW / 7.0f;
+
+    // A. Track Background Box
+    SDL_FRect trackBg = { leftColX, dowY, leftColW, dowH };
+    SDL_SetRenderDrawColor(renderer, 20, 18, 24, 255); // Dark recessed background
+    SDL_RenderFillRect(renderer, &trackBg);
+
+    SDL_SetRenderDrawColor(renderer, 48, 44, 56, 255); // Track border
+    SDL_RenderRect(renderer, &trackBg);
+
+    // B. Faint Vertical Divider Lines between day slots
+    SDL_SetRenderDrawColor(renderer, 38, 35, 46, 255);
+    for (int i = 1; i < 7; i++)
+    {
+        float lineX = leftColX + (i * daySlotW);
+        SDL_RenderLine(renderer, lineX, dowY + 2.0f, lineX, dowY + dowH - 2.0f);
+    }
+
+    // C. Active Day Pill & Day Letters
+    for (int i = 0; i < 7; i++)
+    {
+        float slotX = leftColX + (i * daySlotW);
+        SDL_FRect daySlotRect = { slotX, dowY, daySlotW, dowH };
+
+        if (i == gameTime.dayOfWeek)
+        {
+            // Slider pill highlighting active day
+            float pillMargin = 2.0f;
+            SDL_FRect pillRect = {
+                slotX + pillMargin,
+                dowY + pillMargin,
+                daySlotW - (pillMargin * 2.0f),
+                dowH - (pillMargin * 2.0f)
+            };
+
+            SDL_SetRenderDrawColor(renderer, 70, 60, 95, 255); // Active tab fill
+            SDL_RenderFillRect(renderer, &pillRect);
+
+            SDL_SetRenderDrawColor(renderer, 160, 140, 210, 255); // Active tab highlight outline
+            SDL_RenderRect(renderer, &pillRect);
+
+            drawTextCentered(days[i], daySlotRect, { 255, 255, 255, 255 });
+        }
+        else
+        {
+            drawTextCentered(days[i], daySlotRect, { 110, 110, 125, 255 });
+        }
+    }
+
+    // ==========================================
+    // 2. RIGHT SIDE: TIME & DYNAMIC DAYLIGHT BAR
+    // ==========================================
+
+    // Time Header ("07:56")
+    SDL_FRect timeBox = { rightColX, topY, rightColW, headerH };
+    drawTextCentered(gameTime.getFormattedTime(), timeBox, { 255, 220, 130, 255 });
+
+    // Dynamic Daylight Bar (Height scales proportionally with rect.h)
+    float barW = rightColW * 0.88f;
+    float barX = rightColX + (rightColW - barW) / 2.0f;
+    float barH = std::clamp(rect.h * 0.14f, 4.0f, 10.0f); // Scales smoothly in fullscreen!
+    float barY = dowY + (dowH - barH) / 2.0f;              // Aligns with the day tracker
+
+    float sunrisePct = gameTime.getSunriseHour() / 24.0f;
+    float sunsetPct = gameTime.getSunsetHour() / 24.0f;
+
+    // Segment 1: Morning Night (00:00 -> Sunrise)
+    SDL_FRect nightPre = { barX, barY, barW * sunrisePct, barH };
+    SDL_SetRenderDrawColor(renderer, 55, 55, 85, 255);
+    SDL_RenderFillRect(renderer, &nightPre);
+
+    // Segment 2: Daylight (Sunrise -> Sunset)
+    SDL_FRect dayLight = { barX + (barW * sunrisePct), barY, barW * (sunsetPct - sunrisePct), barH };
+    SDL_SetRenderDrawColor(renderer, 140, 185, 225, 255);
+    SDL_RenderFillRect(renderer, &dayLight);
+
+    // Segment 3: Evening Night (Sunset -> 24:00)
+    SDL_FRect nightPost = { barX + (barW * sunsetPct), barY, barW * (1.0f - sunsetPct), barH };
+    SDL_SetRenderDrawColor(renderer, 55, 55, 85, 255);
+    SDL_RenderFillRect(renderer, &nightPost);
+
+    // Bar Outline
+    SDL_FRect barOutline = { barX, barY, barW, barH };
+    SDL_SetRenderDrawColor(renderer, 20, 18, 25, 255);
+    SDL_RenderRect(renderer, &barOutline);
+
+    // Proportional Time Tick / Needle
+    float currentTimePct = gameTime.getDayProgress();
+    float needleX = barX + (barW * currentTimePct);
+    float needleW = std::max(2.0f, rect.w * 0.005f); // Scales tick width slightly in high resolutions
+
+    SDL_FRect needle = { needleX - (needleW / 2.0f), barY - 2.0f, needleW, barH + 4.0f };
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderFillRect(renderer, &needle);
+
+    SDL_SetRenderViewport(renderer, NULL);
+}
+
 SDL_Texture* game::getOrRenderText(const std::string& text, const std::string& fontId, SDL_Color color, float& outW, float& outH)
 {
     if (text.empty() || fonts.find(fontId) == fonts.end()) return nullptr;
@@ -1436,6 +1649,61 @@ void game::clearTextCache()
         }
     }
     textCache.clear();
+}
+
+std::shared_ptr<entity> game::generateEncounterNPC()
+{
+    static int npcCounter = 1;
+    auto npc = std::make_shared<entity>("npc_bandit_" + std::to_string(npcCounter++), "Alleyway Bandit");
+
+    // Give NPC stats & anatomical features
+    npc->stats.setStat("health", 50.0f);
+    npc->stats.setStat("level", 2.0f);
+
+    return npc;
+}
+
+void game::triggerEncounter(std::shared_ptr<entity> npc)
+{
+    currentState = GameState::EVENT;
+
+    currentScene.id = "encounter_event";
+    currentScene.speakerName = npc->name;
+    currentScene.bodyText = "A " + npc->name + " steps out of the shadows and demands your attention! What will you do?";
+    currentScene.choices.clear();
+
+    // 1. Fight Option
+    dialogueChoice fightChoice;
+    fightChoice.label = "Fight";
+    fightChoice.nextSceneId = "ENCOUNTER_FIGHT";
+    currentScene.choices.push_back(fightChoice);
+
+    // 2. Bribe Option
+    dialogueChoice payChoice;
+    payChoice.label = "Bribe (25¤)";
+    payChoice.nextSceneId = "ENCOUNTER_PAY";
+    currentScene.choices.push_back(payChoice);
+
+    // 3. Surrender Option
+    dialogueChoice surrenderChoice;
+    surrenderChoice.label = "Surrender";
+    surrenderChoice.nextSceneId = "ENCOUNTER_SURRENDER";
+    currentScene.choices.push_back(surrenderChoice);
+
+    // Populate active buttons so they appear in the action grid!
+    activeButtons.clear();
+    for (size_t i = 0; i < currentScene.choices.size(); i++)
+    {
+        actionButton btn;
+        btn.label = currentScene.choices[i].label;
+        btn.command = "SCENE_CHOICE";
+        btn.payload = std::to_string(i);
+        activeButtons.push_back(btn);
+    }
+}
+
+void game::handleEncounterAction(const std::string& actionType)
+{
 }
 
 void game::clean()

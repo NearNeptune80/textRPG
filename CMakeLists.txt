@@ -47,27 +47,14 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(json)
 
-# Add source to this project's executable.
-add_executable (textRPG 
-    "src/main.cpp" 
-    "src/game.h" 
-    "src/game.cpp"
-    "src/gameMap.h"
-    "src/gameMap.cpp"
-    "src/entity.h"
-    "src/entity.cpp"
-    "src/enchantment.h"
-    "src/item.h"
-    "src/inventory.h"
-    "src/inventory.cpp"
-    "src/enums.h"
-    "src/itemDatabase.h"
-    "src/itemDatabase.cpp"
-    "src/actionButton.h" 
-    "src/quest.h"
-    "src/questDatabase.h"
-    "src/questDatabase.cpp"
- "src/viewportGuard.h")
+# 1. Automatically collect all source and header files in src/
+file(GLOB_RECURSE PROJECT_SOURCES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
+)
+
+# 2. Add executable using the collected sources
+add_executable (textRPG ${PROJECT_SOURCES})
 
 # Link the libraries to the executable
 target_link_libraries(textRPG PRIVATE 

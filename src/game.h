@@ -12,6 +12,7 @@
 #include "itemDatabase.h"
 #include "actionButton.h"
 #include "questDatabase.h"
+#include "timeManager.h"
 
 enum class GameState
 {
@@ -40,6 +41,7 @@ public:
     void render();
     void clean();
 
+    timeManager gameTime;
     bool isRunning;
     SDL_Window* window;
     SDL_Renderer* renderer;
@@ -88,9 +90,14 @@ public:
     void renderRightColumn(SDL_Rect top, SDL_Rect mid, SDL_Rect bot);
     void renderCharacterPanel(SDL_FRect rect, entity* playerObj);
     void renderActionGrid(SDL_FRect rect);
+    void renderTimePanel(SDL_Rect rect);
 
     SDL_Texture* getOrRenderText(const std::string& text, const std::string& fontId, SDL_Color color, float& outW, float& outH);
     void clearTextCache(); // Call when changing scenes or fonts
+
+    std::shared_ptr<entity> generateEncounterNPC();
+    void triggerEncounter(std::shared_ptr<entity> npc);
+    void handleEncounterAction(const std::string& actionType);
 
 private:
     std::unordered_map<std::string, CachedTextTexture> textCache;

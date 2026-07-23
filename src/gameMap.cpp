@@ -1,4 +1,5 @@
 #include "gameMap.h"
+#include "entity.h"
 #include <fstream>
 #include <iostream>
 #include <nlohmann/json.hpp>
@@ -8,14 +9,21 @@ using json = nlohmann::json;
 gameMap::gameMap() {}
 gameMap::~gameMap() {}
 
+std::string gameMap::getTileKey(int x, int y) const
+{
+    return std::to_string(x) + "_" + std::to_string(y);
+}
+
+TileRuntimeData& gameMap::getRuntimeData(int x, int y)
+{
+    std::string key = getTileKey(x, y);
+    return runtimeData[key];
+}
+
 bool gameMap::loadFromFile(const std::string& filePath)
 {
     std::ifstream file(filePath);
-    if (!file.is_open())
-    {
-        std::cerr << "Failed to open map file: " << filePath << "\n";
-        return false;
-    }
+    if (!file.is_open()) return false;
 
     try
     {
@@ -29,6 +37,7 @@ bool gameMap::loadFromFile(const std::string& filePath)
 
         grid.clear();
         grid.resize(height, std::vector<Tile>(width, { TILE_VOID, STATE_HIDDEN }));
+        runtimeData.clear();
 
         auto tilesJson = data.at("tiles");
         for (size_t y = 0; y < (size_t)height && y < tilesJson.size(); ++y)
@@ -42,6 +51,21 @@ bool gameMap::loadFromFile(const std::string& filePath)
             }
         }
 
+        // Parse optional danger levels per tile from JSON
+        if (data.contains("dangerLevels"))
+        {
+            auto dangerJson = data.at("dangerLevels");
+            for (size_t y = 0; y < (size_t)height && y < dangerJson.size(); ++y)
+            {
+                auto rowJson = dangerJson[y];
+                for (size_t x = 0; x < (size_t)width && x < rowJson.size(); ++x)
+                {
+                    getRuntimeData((int)x, (int)y).baseDangerLevel = rowJson[x].get<int>();
+                }
+            }
+        }
+
+        // Parse Warps
         warps.clear();
         if (data.contains("warps"))
         {
@@ -54,15 +78,17 @@ bool gameMap::loadFromFile(const std::string& filePath)
                 w.targetX = wJson.at("targetX").get<int>();
                 w.targetY = wJson.at("targetY").get<int>();
                 warps.push_back(w);
+
+                // Automatically mark door tile in runtime data
+                getRuntimeData(w.x, w.y).iconId = "icon_door";
             }
         }
 
-        std::cout << "Successfully loaded map '" << mapName << "' (" << width << "x" << height << ").\n";
         return true;
     }
     catch (const json::exception& e)
     {
-        std::cerr << "Map JSON Parsing Error (" << filePath << "): " << e.what() << "\n";
+        std::cerr << "Map JSON Error (" << filePath << "): " << e.what() << "\n";
         return false;
     }
 }
@@ -93,8 +119,6 @@ void gameMap::updateDiscovery(int playerX, int playerY)
             if (nx >= 0 && nx < width && ny >= 0 && ny < height)
             {
                 TileType type = grid[ny][nx].type;
-
-                // Ignore both VOID and WALL tiles completely
                 if (type != TILE_VOID && type != TILE_WALL && grid[ny][nx].discovery == STATE_HIDDEN)
                 {
                     grid[ny][nx].discovery = STATE_PARTIAL;
@@ -106,10 +130,7 @@ void gameMap::updateDiscovery(int playerX, int playerY)
 
 Tile gameMap::getTile(int x, int y) const
 {
-    if (x < 0 || x >= width || y < 0 || y >= height)
-    {
-        return { TILE_VOID, STATE_HIDDEN };
-    }
+    if (x < 0 || x >= width || y < 0 || y >= height) return { TILE_VOID, STATE_HIDDEN };
     return grid[y][x];
 }
 
