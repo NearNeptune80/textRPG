@@ -67,7 +67,7 @@ add_executable (textRPG
     "src/quest.h"
     "src/questDatabase.h"
     "src/questDatabase.cpp"
-)
+ "src/viewportGuard.h")
 
 # Link the libraries to the executable
 target_link_libraries(textRPG PRIVATE 

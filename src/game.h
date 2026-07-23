@@ -21,6 +21,13 @@ enum class GameState
     EVENT
 };
 
+struct CachedTextTexture
+{
+    SDL_Texture* texture = nullptr;
+    float w = 0.0f;
+    float h = 0.0f;
+};
+
 class game
 {
 public:
@@ -79,4 +86,10 @@ public:
     void renderRightColumn(SDL_Rect top, SDL_Rect mid, SDL_Rect bot);
     void renderCharacterPanel(SDL_FRect rect, entity* playerObj);
     void renderActionGrid(SDL_FRect rect);
+
+    SDL_Texture* getOrRenderText(const std::string& text, const std::string& fontId, SDL_Color color, float& outW, float& outH);
+    void clearTextCache(); // Call when changing scenes or fonts
+
+private:
+    std::unordered_map<std::string, CachedTextTexture> textCache;
 };

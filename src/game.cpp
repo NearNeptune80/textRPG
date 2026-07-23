@@ -1125,24 +1125,17 @@ void game::renderCharacterPanel(SDL_FRect rect, entity* playerObj)
 
         auto drawText = [&](const std::string& textStr, SDL_FRect destRect, SDL_Color color)
             {
-                if (textStr.empty() || fonts.find("button_font") == fonts.end()) return;
+                float srcW = 0.0f, srcH = 0.0f;
+                SDL_Texture* texture = getOrRenderText(textStr, "button_font", color, srcW, srcH);
 
-                TTF_SetFontWrapAlignment(fonts["button_font"], TTF_HORIZONTAL_ALIGN_LEFT);
-                SDL_Surface* surface = TTF_RenderText_Blended(fonts["button_font"], textStr.c_str(), 0, color);
-                if (surface)
+                if (texture && srcH > 0.0f)
                 {
-                    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
-                    if (texture)
-                    {
-                        float scale = (surface->h > destRect.h) ? (destRect.h / surface->h) : 1.0f;
-                        float drawW = surface->w * scale;
-                        float drawH = surface->h * scale;
+                    float scale = (srcH > destRect.h) ? (destRect.h / srcH) : 1.0f;
+                    float drawW = srcW * scale;
+                    float drawH = srcH * scale;
 
-                        SDL_FRect renderDst = { destRect.x, destRect.y + (destRect.h - drawH) / 2.0f, drawW, drawH };
-                        SDL_RenderTexture(renderer, texture, NULL, &renderDst);
-                        SDL_DestroyTexture(texture);
-                    }
-                    SDL_DestroySurface(surface);
+                    SDL_FRect renderDst = { destRect.x, destRect.y + (destRect.h - drawH) / 2.0f, drawW, drawH };
+                    SDL_RenderTexture(renderer, texture, NULL, &renderDst);
                 }
             };
 
@@ -1308,6 +1301,62 @@ void game::renderActionGrid(SDL_FRect rect)
             SDL_RenderRect(renderer, &btn);
         }
     }
+}
+
+SDL_Texture* game::getOrRenderText(const std::string& text, const std::string& fontId, SDL_Color color, float& outW, float& outH)
+{
+    if (text.empty() || fonts.find(fontId) == fonts.end()) return nullptr;
+
+    // Create a unique key combining text, font, and color
+    std::string key = fontId + "|" + text + "|" +
+        std::to_string(color.r) + "," +
+        std::to_string(color.g) + "," +
+        std::to_string(color.b) + "," +
+        std::to_string(color.a);
+
+    auto it = textCache.find(key);
+    if (it != textCache.end())
+    {
+        outW = it->second.w;
+        outH = it->second.h;
+        return it->second.texture;
+    }
+
+    // Cache Miss: Render new text surface & upload texture
+    TTF_Font* font = fonts[fontId];
+    TTF_SetFontWrapAlignment(font, TTF_HORIZONTAL_ALIGN_LEFT);
+    SDL_Surface* surface = TTF_RenderText_Blended(font, text.c_str(), 0, color);
+
+    if (!surface) return nullptr;
+
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+    if (texture)
+    {
+        CachedTextTexture cached;
+        cached.texture = texture;
+        cached.w = (float)surface->w;
+        cached.h = (float)surface->h;
+
+        textCache[key] = cached;
+
+        outW = cached.w;
+        outH = cached.h;
+    }
+
+    SDL_DestroySurface(surface);
+    return texture;
+}
+
+void game::clearTextCache()
+{
+    for (auto& [key, cached] : textCache)
+    {
+        if (cached.texture)
+        {
+            SDL_DestroyTexture(cached.texture);
+        }
+    }
+    textCache.clear();
 }
 
 void game::clean()
