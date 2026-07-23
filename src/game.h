@@ -58,6 +58,8 @@ public:
     questScene currentScene;
 
     // Engine Core Helpers
+    bool loadMap(const std::string& mapId, int startX, int startY);
+    void movePlayer(int nextX, int nextY);
     bool loadFont(const std::string& id, const std::string& path, int ptSize);
     void renderTextCentered(const std::string& text, SDL_FRect targetRect, const std::string& fontId, SDL_Color color = { 255, 255, 255, 255 });
     void renderTextWrapped(const std::string& text, SDL_FRect targetRect, const std::string& fontId, SDL_Color color = { 255, 255, 255, 255 });
@@ -92,4 +94,5 @@ public:
 
 private:
     std::unordered_map<std::string, CachedTextTexture> textCache;
+    std::unordered_map<std::string, gameMap> mapCache;
 };

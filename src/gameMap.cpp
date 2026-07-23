@@ -1,40 +1,88 @@
 #include "gameMap.h"
+#include <fstream>
+#include <iostream>
+#include <nlohmann/json.hpp>
 
-gameMap::gameMap()
+using json = nlohmann::json;
+
+gameMap::gameMap() {}
+gameMap::~gameMap() {}
+
+bool gameMap::loadFromFile(const std::string& filePath)
 {
-    // Initialize everything as VOID
-    for (int y = 0; y < HEIGHT; ++y)
+    std::ifstream file(filePath);
+    if (!file.is_open())
     {
-        for (int x = 0; x < WIDTH; ++x)
-        {
-            grid[y][x] = { TILE_VOID, STATE_HIDDEN };
-        }
+        std::cerr << "Failed to open map file: " << filePath << "\n";
+        return false;
     }
 
-    // Set up a simple room
-    for (int y = 1; y < 8; ++y)
+    try
     {
-        for (int x = 1; x < 8; ++x)
+        json data;
+        file >> data;
+
+        mapId = data.value("id", "");
+        mapName = data.value("name", "Unknown Map");
+        width = data.at("width").get<int>();
+        height = data.at("height").get<int>();
+
+        grid.clear();
+        grid.resize(height, std::vector<Tile>(width, { TILE_VOID, STATE_HIDDEN }));
+
+        auto tilesJson = data.at("tiles");
+        for (size_t y = 0; y < (size_t)height && y < tilesJson.size(); ++y)
         {
-            grid[y][x] = { TILE_FLOOR, STATE_HIDDEN };
+            auto rowJson = tilesJson[y];
+            for (size_t x = 0; x < (size_t)width && x < rowJson.size(); ++x)
+            {
+                int typeInt = rowJson[x].get<int>();
+                TileType tType = static_cast<TileType>(typeInt);
+                grid[y][x] = { tType, STATE_HIDDEN };
+            }
         }
+
+        warps.clear();
+        if (data.contains("warps"))
+        {
+            for (const auto& wJson : data.at("warps"))
+            {
+                MapWarp w;
+                w.x = wJson.at("x").get<int>();
+                w.y = wJson.at("y").get<int>();
+                w.targetMap = wJson.at("targetMap").get<std::string>();
+                w.targetX = wJson.at("targetX").get<int>();
+                w.targetY = wJson.at("targetY").get<int>();
+                warps.push_back(w);
+            }
+        }
+
+        std::cout << "Successfully loaded map '" << mapName << "' (" << width << "x" << height << ").\n";
+        return true;
+    }
+    catch (const json::exception& e)
+    {
+        std::cerr << "Map JSON Parsing Error (" << filePath << "): " << e.what() << "\n";
+        return false;
     }
 }
 
-gameMap::~gameMap() {}
-
-bool gameMap::isWalkable(int x, int y)
+bool gameMap::isWalkable(int x, int y) const
 {
-    if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return false;
-    return (grid[y][x].type == TILE_FLOOR);
+    if (x < 0 || x >= width || y < 0 || y >= height) return false;
+    TileType t = grid[y][x].type;
+    return (t == TILE_FLOOR || t == TILE_DOOR);
 }
 
 void gameMap::updateDiscovery(int playerX, int playerY)
 {
-    // Reveal current tile regardless of type (assumes player is on a valid tile)
-    grid[playerY][playerX].discovery = STATE_REVEALED;
+    if (playerX < 0 || playerX >= width || playerY < 0 || playerY >= height) return;
 
-    // Partial reveal neighbors
+    if (grid[playerY][playerX].type != TILE_VOID && grid[playerY][playerX].type != TILE_WALL)
+    {
+        grid[playerY][playerX].discovery = STATE_REVEALED;
+    }
+
     for (int dy = -1; dy <= 1; ++dy)
     {
         for (int dx = -1; dx <= 1; ++dx)
@@ -42,14 +90,38 @@ void gameMap::updateDiscovery(int playerX, int playerY)
             int nx = playerX + dx;
             int ny = playerY + dy;
 
-            if (nx >= 0 && nx < WIDTH && ny >= 0 && ny < HEIGHT)
+            if (nx >= 0 && nx < width && ny >= 0 && ny < height)
             {
-                // ADDED CHECK: Only mark as PARTIAL if it is NOT VOID
-                if (grid[ny][nx].type != TILE_VOID && grid[ny][nx].discovery == STATE_HIDDEN)
+                TileType type = grid[ny][nx].type;
+
+                // Ignore both VOID and WALL tiles completely
+                if (type != TILE_VOID && type != TILE_WALL && grid[ny][nx].discovery == STATE_HIDDEN)
                 {
                     grid[ny][nx].discovery = STATE_PARTIAL;
                 }
             }
         }
     }
+}
+
+Tile gameMap::getTile(int x, int y) const
+{
+    if (x < 0 || x >= width || y < 0 || y >= height)
+    {
+        return { TILE_VOID, STATE_HIDDEN };
+    }
+    return grid[y][x];
+}
+
+bool gameMap::checkWarp(int x, int y, MapWarp& outWarp) const
+{
+    for (const auto& w : warps)
+    {
+        if (w.x == x && w.y == y)
+        {
+            outWarp = w;
+            return true;
+        }
+    }
+    return false;
 }

@@ -4,8 +4,41 @@ game::game() : isRunning(false), window(nullptr), renderer(nullptr), map(nullptr
 
 game::~game()
 {
-    delete map;
+    map = nullptr; // Map memory is owned and cleaned up automatically by mapCache!
     if (Player) delete Player;
+}
+
+bool game::loadMap(const std::string& mapId, int startX, int startY)
+{
+    // Load and cache map if not already in memory
+    if (mapCache.find(mapId) == mapCache.end())
+    {
+        gameMap newMap;
+        if (!newMap.loadFromFile("data/maps/" + mapId + ".json"))
+        {
+            return false;
+        }
+        mapCache[mapId] = newMap;
+    }
+
+    // Set active map pointer to the cached instance
+    map = &mapCache[mapId];
+    gridX = startX;
+    gridY = startY;
+
+    map->updateDiscovery(gridX, gridY);
+    refreshActionGrid();
+    return true;
+}
+
+void game::movePlayer(int nextX, int nextY)
+{
+    if (!map || !map->isWalkable(nextX, nextY)) return;
+
+    gridX = nextX;
+    gridY = nextY;
+    map->updateDiscovery(gridX, gridY);
+    refreshActionGrid(); // Will check for warp tiles and generate the button!
 }
 
 bool game::loadFont(const std::string& id, const std::string& path, int ptSize)
@@ -29,9 +62,6 @@ void game::init(const char* title, int width, int height, bool fullscreen)
 
     SDL_SetRenderLogicalPresentation(renderer, width, height, SDL_LOGICAL_PRESENTATION_STRETCH);
 
-    map = new gameMap();
-    map->updateDiscovery(gridX, gridY);
-
     if (TTF_Init() < 0)
     {
         std::cout << "Error initializing SDL_ttf: " << SDL_GetError() << "\n";
@@ -40,6 +70,7 @@ void game::init(const char* title, int width, int height, bool fullscreen)
     loadFont("button_font", "data/fonts/Roboto/static/Roboto-Regular.ttf", 18);
     loadFont("title_font", "data/fonts/Roboto/static/Roboto-Bold.ttf", 24);
 
+    // 1. Load Item Database & Initialize Player
     if (itemDatabase::loadDatabase("data/items.json"))
     {
         Player = new entity("player_1", "Oellanix");
@@ -72,9 +103,12 @@ void game::init(const char* title, int width, int height, bool fullscreen)
         Player->stats.setStat("corruption", 0.0f);
     }
 
+    // 2. Load Quest Database
     questDatabase::loadDatabase("data/quests.json");
 
-    refreshActionGrid();
+    // 3. Load Starting Map & Set Player Spawn Position
+    loadMap("overworld", 1, 1);
+
     isRunning = true;
 }
 
@@ -125,13 +159,7 @@ void game::handleEvents()
                     case SDLK_LEFT:  nextX--; break;
                     case SDLK_RIGHT: nextX++; break;
                 }
-                if (map->isWalkable(nextX, nextY))
-                {
-                    gridX = nextX;
-                    gridY = nextY;
-                    map->updateDiscovery(gridX, gridY);
-                    refreshActionGrid();
-                }
+                movePlayer(nextX, nextY);
             }
         }
     }
@@ -184,18 +212,11 @@ void game::handleMouseClick(float windowX, float windowY)
                         int dx = gridCol - 2;
                         int dy = gridRow - 2;
 
+                        // Cardinal steps only (Up, Down, Left, Right)
                         if (std::abs(dx) + std::abs(dy) == 1)
                         {
-                            int nextX = gridX + dx;
-                            int nextY = gridY + dy;
-
-                            if (map->isWalkable(nextX, nextY))
-                            {
-                                gridX = nextX;
-                                gridY = nextY;
-                                map->updateDiscovery(gridX, gridY);
-                                refreshActionGrid();
-                            }
+                            // Calls checkWalkable, updates grid, handles warps & refreshes grid buttons!
+                            movePlayer(gridX + dx, gridY + dy);
                         }
                     }
                 }
@@ -244,6 +265,22 @@ void game::handleMouseClick(float windowX, float windowY)
                         else if (activeButtons[index].command == "START_SCENE")
                         {
                             loadScene(activeButtons[index].payload);
+                        }
+                        else if (activeButtons[index].command == "MAP_WARP")
+                        {
+                            // Parse "targetMap,targetX,targetY"
+                            std::string payload = activeButtons[index].payload;
+                            size_t c1 = payload.find(',');
+                            size_t c2 = payload.find(',', c1 + 1);
+
+                            if (c1 != std::string::npos && c2 != std::string::npos)
+                            {
+                                std::string targetMap = payload.substr(0, c1);
+                                int targetX = std::stoi(payload.substr(c1 + 1, c2 - c1 - 1));
+                                int targetY = std::stoi(payload.substr(c2 + 1));
+
+                                loadMap(targetMap, targetX, targetY);
+                            }
                         }
                     }
                 }
@@ -497,6 +534,18 @@ void game::refreshActionGrid()
 
     if (currentState == GameState::EXPLORATION)
     {
+        // 1. Check if player is standing on a warp / door tile
+        MapWarp warp;
+        if (map && map->checkWarp(gridX, gridY, warp))
+        {
+            actionButton warpBtn;
+            warpBtn.label = "Enter Door"; // Or use custom labels per warp
+            warpBtn.command = "MAP_WARP";
+            warpBtn.payload = warp.targetMap + "," + std::to_string(warp.targetX) + "," + std::to_string(warp.targetY);
+            activeButtons.push_back(warpBtn);
+        }
+
+        // 2. Existing quest trigger check
         if (gridX == 2 && gridY == 2)
         {
             actionButton triggerQuest;
@@ -765,8 +814,16 @@ void game::renderMainMenuLayout()
 void game::renderMapPanel(SDL_Rect rect, int padding)
 {
     SDL_SetRenderViewport(renderer, &rect);
-    SDL_SetRenderDrawColor(renderer, 20, 20, 20, 255);
-    SDL_RenderFillRect(renderer, NULL);
+
+    // Panel Background & Border
+    SDL_FRect panelRect = { 0.0f, 0.0f, (float)rect.w, (float)rect.h };
+    SDL_SetRenderDrawColor(renderer, 25, 25, 28, 255);
+    SDL_RenderFillRect(renderer, &panelRect);
+
+    SDL_SetRenderDrawColor(renderer, 55, 55, 65, 255);
+    SDL_RenderRect(renderer, &panelRect);
+
+    if (!map) return;
 
     int tileGap = 2;
     int availableForTiles = rect.w - (2 * padding) - (4 * tileGap);
@@ -776,6 +833,9 @@ void game::renderMapPanel(SDL_Rect rect, int padding)
     int offsetX = (rect.w - totalGridSize) / 2;
     int offsetY = (rect.h - totalGridSize) / 2;
 
+    int mapW = map->getWidth();
+    int mapH = map->getHeight();
+
     for (int y = -2; y <= 2; y++)
     {
         for (int x = -2; x <= 2; x++)
@@ -783,29 +843,46 @@ void game::renderMapPanel(SDL_Rect rect, int padding)
             int mapX = gridX + x;
             int mapY = gridY + y;
 
-            if (mapX >= 0 && mapX < gameMap::WIDTH && mapY >= 0 && mapY < gameMap::HEIGHT)
+            if (mapX < 0 || mapX >= mapW || mapY < 0 || mapY >= mapH) continue;
+
+            Tile t = map->getTile(mapX, mapY);
+
+            // IGNORE VOID, WALLS, AND HIDDEN TILES ENTIRELY
+            if (t.type == TILE_VOID || t.type == TILE_WALL || t.discovery == STATE_HIDDEN) continue;
+
+            int renderX = x + 2;
+            int renderY = y + 2;
+
+            SDL_FRect r = {
+                (float)(offsetX + (renderX * (drawnTileSize + tileGap))),
+                (float)(offsetY + (renderY * (drawnTileSize + tileGap))),
+                (float)drawnTileSize,
+                (float)drawnTileSize
+            };
+
+            if (t.discovery == STATE_PARTIAL)
             {
-                Tile t = map->getTile(mapX, mapY);
-                if (t.discovery == STATE_HIDDEN) continue;
-
-                int renderX = x + 2;
-                int renderY = y + 2;
-
-                SDL_FRect r = {
-                    (float)(offsetX + (renderX * (drawnTileSize + tileGap))),
-                    (float)(offsetY + (renderY * (drawnTileSize + tileGap))),
-                    (float)drawnTileSize,
-                    (float)drawnTileSize
-                };
-
-                if (t.discovery == STATE_PARTIAL) SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255);
-                else if (t.type == TILE_FLOOR) SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255);
-                else SDL_SetRenderDrawColor(renderer, 200, 50, 50, 255);
+                // Dim gray for partially discovered paths
+                SDL_SetRenderDrawColor(renderer, 70, 70, 80, 255);
                 SDL_RenderFillRect(renderer, &r);
+            }
+            else if (t.type == TILE_FLOOR || t.type == TILE_DOOR)
+            {
+                // Fully revealed path tile
+                SDL_SetRenderDrawColor(renderer, 210, 210, 215, 255);
+                SDL_RenderFillRect(renderer, &r);
+
+                if (t.type == TILE_DOOR)
+                {
+                    // Door / Warp Tile Highlight
+                    SDL_SetRenderDrawColor(renderer, 240, 180, 50, 255);
+                    SDL_RenderRect(renderer, &r);
+                }
             }
         }
     }
 
+    // Player Indicator
     SDL_FRect p = {
         (float)(offsetX + (2 * (drawnTileSize + tileGap))),
         (float)(offsetY + (2 * (drawnTileSize + tileGap))),
@@ -814,6 +891,8 @@ void game::renderMapPanel(SDL_Rect rect, int padding)
     };
     SDL_SetRenderDrawColor(renderer, 0, 200, 255, 255);
     SDL_RenderFillRect(renderer, &p);
+
+    SDL_SetRenderViewport(renderer, NULL);
 }
 
 void game::renderEquipmentPanel(SDL_Rect rect, int padding)
@@ -1361,6 +1440,8 @@ void game::clearTextCache()
 
 void game::clean()
 {
+    clearTextCache(); // Destroy cached text textures before destroying renderer
+
     for (auto const& [id, f] : fonts)
     {
         TTF_CloseFont(f);
