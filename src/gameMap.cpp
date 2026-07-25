@@ -46,12 +46,10 @@ bool gameMap::loadFromFile(const std::string& filePath)
             for (size_t x = 0; x < (size_t)width && x < rowJson.size(); ++x)
             {
                 int typeInt = rowJson[x].get<int>();
-                TileType tType = static_cast<TileType>(typeInt);
-                grid[y][x] = { tType, STATE_HIDDEN };
+                grid[y][x] = { static_cast<TileType>(typeInt), STATE_HIDDEN };
             }
         }
 
-        // Parse optional danger levels
         if (data.contains("dangerLevels"))
         {
             auto dangerJson = data.at("dangerLevels");
@@ -65,7 +63,6 @@ bool gameMap::loadFromFile(const std::string& filePath)
             }
         }
 
-        // Parse Warps
         warps.clear();
         if (data.contains("warps"))
         {
@@ -83,7 +80,6 @@ bool gameMap::loadFromFile(const std::string& filePath)
             }
         }
 
-        // Parse Dynamic Map Triggers
         triggers.clear();
         if (data.contains("triggers"))
         {
@@ -110,7 +106,6 @@ bool gameMap::loadFromFile(const std::string& filePath)
                 triggers.push_back(trig);
             }
         }
-
         return true;
     }
     catch (const json::exception& e)
@@ -174,14 +169,11 @@ bool gameMap::checkWarp(int x, int y, MapWarp& outWarp) const
     return false;
 }
 
-using json = nlohmann::json;
-
 json gameMap::saveStateToJson() const
 {
     json j;
     j["mapId"] = mapId;
 
-    // 1. Save Discovery Grid
     json discoveryGrid = json::array();
     for (int y = 0; y < height; ++y)
     {
@@ -194,7 +186,6 @@ json gameMap::saveStateToJson() const
     }
     j["discovery"] = discoveryGrid;
 
-    // 2. Save Persistent Tile NPCs
     json tileNpcMap = json::object();
     for (const auto& [key, runtime] : runtimeData)
     {
@@ -210,7 +201,6 @@ json gameMap::saveStateToJson() const
 
 void gameMap::loadStateFromJson(const json& j)
 {
-    // 1. Restore Discovery Grid
     if (j.contains("discovery"))
     {
         const auto& dGrid = j["discovery"];
@@ -224,7 +214,6 @@ void gameMap::loadStateFromJson(const json& j)
         }
     }
 
-    // 2. Restore Persistent Tile NPCs
     if (j.contains("tileNPCs"))
     {
         for (auto& [key, npcJson] : j["tileNPCs"].items())

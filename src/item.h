@@ -4,6 +4,9 @@
 #include "enums.h"
 #include "enchantment.h"
 
+/**
+ * Primary item structure for equippable, consumable, or inventory objects.
+ */
 struct item
 {
     std::string id;
@@ -17,7 +20,7 @@ struct item
     std::string baseRace;
     std::vector<enchantment> enchantments;
 
-    // Anatomy Tag Restrictions
+    // Anatomy tag constraints
     std::vector<std::string> requiredTags;
     std::vector<std::string> forbiddenTags;
 };

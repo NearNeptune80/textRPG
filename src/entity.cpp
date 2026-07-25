@@ -2,22 +2,11 @@
 #include <iostream>
 #include <cmath>
 
-// --- anatomyComponent Methods ---
+// --- anatomyComponent Implementation ---
 
-void anatomyComponent::setPart(bodySlot slot, const bodyPart& part)
-{
-    parts[slot] = part;
-}
-
-void anatomyComponent::removePart(bodySlot slot)
-{
-    parts.erase(slot);
-}
-
-bool anatomyComponent::hasPart(bodySlot slot) const
-{
-    return parts.find(slot) != parts.end();
-}
+void anatomyComponent::setPart(bodySlot slot, const bodyPart& part) { parts[slot] = part; }
+void anatomyComponent::removePart(bodySlot slot) { parts.erase(slot); }
+bool anatomyComponent::hasPart(bodySlot slot) const { return parts.find(slot) != parts.end(); }
 
 bodyPart* anatomyComponent::getPart(bodySlot slot)
 {
@@ -42,10 +31,7 @@ bool anatomyComponent::hasGlobalTag(const std::string& tag) const
 {
     for (const auto& [slot, part] : parts)
     {
-        if (std::find(part.tags.begin(), part.tags.end(), tag) != part.tags.end())
-        {
-            return true;
-        }
+        if (std::find(part.tags.begin(), part.tags.end(), tag) != part.tags.end()) return true;
     }
     return false;
 }
@@ -57,29 +43,15 @@ std::vector<std::string> anatomyComponent::getAllTags() const
     {
         for (const auto& t : part.tags)
         {
-            if (std::find(allTags.begin(), allTags.end(), t) == allTags.end())
-            {
-                allTags.push_back(t);
-            }
+            if (std::find(allTags.begin(), allTags.end(), t) == allTags.end()) allTags.push_back(t);
         }
     }
     return allTags;
 }
 
-void anatomyComponent::setTattoo(tattooSlot slot, const tattoo& tat)
-{
-    tattoos[slot] = tat;
-}
-
-void anatomyComponent::removeTattoo(tattooSlot slot)
-{
-    tattoos.erase(slot);
-}
-
-bool anatomyComponent::hasTattoo(tattooSlot slot) const
-{
-    return tattoos.find(slot) != tattoos.end();
-}
+void anatomyComponent::setTattoo(tattooSlot slot, const tattoo& tat) { tattoos[slot] = tat; }
+void anatomyComponent::removeTattoo(tattooSlot slot) { tattoos.erase(slot); }
+bool anatomyComponent::hasTattoo(tattooSlot slot) const { return tattoos.find(slot) != tattoos.end(); }
 
 tattoo* anatomyComponent::getTattoo(tattooSlot slot)
 {
@@ -122,67 +94,37 @@ std::string getSlotName(bodySlot slot)
 void anatomyComponent::printDebug() const
 {
     std::cout << "\n=== ANATOMY DEBUG ===\n";
-    if (parts.empty())
+    for (const auto& pair : parts)
     {
-        std::cout << "No body parts attached.\n";
-    }
-    else
-    {
-        for (const auto& pair : parts)
-        {
-            std::cout << "[" << getSlotName(pair.first) << "] "
-                << pair.second.name
-                << "\n  Race: " << pair.second.race
-                //<< " | Covering: " << pair.second.covering
-                << " | Color: " << pair.second.primaryColor << "\n";
-
-            std::cout << "  Tags: ";
-            for (const auto& tag : pair.second.tags)
-            {
-                std::cout << tag << " ";
-            }
-            std::cout << "\n\n";
-        }
+        std::cout << "[" << getSlotName(pair.first) << "] " << pair.second.name << "\n";
     }
     std::cout << "=====================\n\n";
 }
 
-// --- statsComponent Methods ---
+// --- statsComponent Implementation ---
 
 bool statsComponent::addXp(float amount)
 {
     currentXp += amount;
     bool leveledUp = false;
-
     while (currentXp >= getRequiredXp())
     {
         currentXp -= getRequiredXp();
         level++;
         leveledUp = true;
-        std::cout << "[Level Up] Entity reached level " << level << "!\n";
     }
-
     return leveledUp;
 }
 
-void statsComponent::setBaseStat(const std::string& name, float value)
-{
-    baseValues[name] = value;
-}
+void statsComponent::setBaseStat(const std::string& name, float value) { baseValues[name] = value; }
 
 float statsComponent::getBaseStat(const std::string& name) const
 {
-    if (baseValues.find(name) != baseValues.end())
-    {
-        return baseValues.at(name);
-    }
+    if (baseValues.find(name) != baseValues.end()) return baseValues.at(name);
     return 0.0f;
 }
 
-void statsComponent::modifyBaseStat(const std::string& name, float amount)
-{
-    baseValues[name] += amount;
-}
+void statsComponent::modifyBaseStat(const std::string& name, float amount) { baseValues[name] += amount; }
 
 float statsComponent::getEffectiveStat(const std::string& name, const std::vector<StatusEffect>& activeEffects) const
 {
@@ -201,44 +143,27 @@ float statsComponent::getEffectiveStat(const std::string& name, const std::vecto
             }
         }
     }
-
-    float result = (base + flatMod) * (1.0f + percentMod);
-    return std::max(0.0f, result);
+    return std::max(0.0f, (base + flatMod) * (1.0f + percentMod));
 }
 
 void statsComponent::printDebug() const
 {
-    std::cout << "\n=== STATS DEBUG ===\n";
-    std::cout << "Level: " << level << " | XP: " << currentXp << "/" << getRequiredXp() << "\n";
-    for (const auto& pair : baseValues)
-    {
-        std::cout << pair.first << ": " << pair.second << "\n";
-    }
-    std::cout << "===================\n\n";
+    std::cout << "\n=== STATS DEBUG ===\nLevel: " << level << " | XP: " << currentXp << "\n===================\n\n";
 }
 
-// --- questComponent Methods ---
+// --- questComponent Implementation ---
 
-void questComponent::setQuestStage(const std::string& questId, int stage)
-{
-    activeQuests[questId] = stage;
-}
+void questComponent::setQuestStage(const std::string& questId, int stage) { activeQuests[questId] = stage; }
 
 int questComponent::getQuestStage(const std::string& questId) const
 {
-    if (activeQuests.find(questId) != activeQuests.end())
-    {
-        return activeQuests.at(questId);
-    }
+    if (activeQuests.find(questId) != activeQuests.end()) return activeQuests.at(questId);
     return 0;
 }
 
-// --- entity Core Methods ---
+// --- entity Core Implementation ---
 
-entity::entity(std::string entityId, std::string entityName)
-    : id(entityId), name(entityName)
-{
-}
+entity::entity(std::string entityId, std::string entityName) : id(entityId), name(entityName) {}
 
 void entity::addStatusEffect(const StatusEffect& effect)
 {
@@ -246,7 +171,7 @@ void entity::addStatusEffect(const StatusEffect& effect)
     {
         if (fx.id == effect.id)
         {
-            fx.durationTurns = effect.durationTurns; // Refresh duration
+            fx.durationTurns = effect.durationTurns;
             return;
         }
     }
@@ -275,20 +200,9 @@ void entity::updateStatusEffectsOnTurn()
 {
     for (auto it = statusEffects.begin(); it != statusEffects.end(); )
     {
-        if (it->durationTurns > 0)
-        {
-            it->durationTurns--;
-        }
-
-        if (it->durationTurns == 0)
-        {
-            std::cout << "[" << name << "] Status effect expired: " << it->name << "\n";
-            it = statusEffects.erase(it);
-        }
-        else
-        {
-            ++it;
-        }
+        if (it->durationTurns > 0) it->durationTurns--;
+        if (it->durationTurns == 0) it = statusEffects.erase(it);
+        else ++it;
     }
 }
 
@@ -300,7 +214,6 @@ json entity::toJson() const
     j["id"] = id;
     j["name"] = name;
 
-    // 1. Stats
     json statsJson;
     statsJson["level"] = stats.level;
     statsJson["currentXp"] = stats.currentXp;
@@ -317,7 +230,6 @@ json entity::toJson() const
     statsJson["baseValues"] = baseStats;
     j["stats"] = statsJson;
 
-    // 2. Status Effects
     json fxArray = json::array();
     for (const auto& fx : statusEffects)
     {
@@ -342,11 +254,8 @@ json entity::toJson() const
         fxArray.push_back(fxJson);
     }
     j["statusEffects"] = fxArray;
-
-    // 3. Quests
     j["quests"] = quests.activeQuests;
 
-    // 4. Anatomy
     json anatomyJson = json::object();
     anatomyJson["heightMeters"] = anatomy.heightMeters;
     for (const auto& [slot, part] : anatomy.getAllParts())
@@ -368,7 +277,6 @@ json entity::toJson() const
     }
     j["anatomy"] = anatomyJson;
 
-    // 5. Inventory Backpack
     json backpackJson = json::array();
     for (const auto& itemPtr : inventory.backpack)
     {
@@ -376,14 +284,10 @@ json entity::toJson() const
     }
     j["backpack"] = backpackJson;
 
-    // 6. Inventory Equipped
     json equippedJson = json::object();
     for (const auto& [slot, itemPtr] : inventory.equipped)
     {
-        if (itemPtr)
-        {
-            equippedJson[std::to_string(static_cast<int>(slot))] = itemPtr->id;
-        }
+        if (itemPtr) equippedJson[std::to_string(static_cast<int>(slot))] = itemPtr->id;
     }
     j["equipped"] = equippedJson;
 
@@ -395,11 +299,10 @@ void entity::fromJson(const json& j)
     id = j.value("id", "entity_unknown");
     name = j.value("name", "Unknown");
 
-    // 1. Stats
     if (j.contains("stats"))
     {
         const auto& s = j["stats"];
-        stats.level = s.value("level", 1); // Sets member variable level
+        stats.level = s.value("level", 1);
         stats.currentXp = s.value("currentXp", 0.0f);
 
         if (s.contains("baseValues"))
@@ -411,7 +314,6 @@ void entity::fromJson(const json& j)
         }
     }
 
-    // 2. Status Effects
     statusEffects.clear();
     if (j.contains("statusEffects"))
     {
@@ -440,24 +342,18 @@ void entity::fromJson(const json& j)
         }
     }
 
-    // 3. Quests
     if (j.contains("quests"))
     {
         quests.activeQuests = j["quests"].get<std::unordered_map<std::string, int>>();
     }
 
-    // 4. Anatomy
     if (j.contains("anatomy"))
     {
         const auto& aJson = j["anatomy"];
-
-        // 1. Extract overall height (with 1.75f default fallback)
         anatomy.heightMeters = aJson.value("heightMeters", 1.75f);
 
-        // 2. Loop through body part slots
         for (auto& [slotStr, pJson] : aJson.items())
         {
-            // Skip the metadata key so std::stoi doesn't throw an exception!
             if (slotStr == "heightMeters") continue;
 
             bodySlot slot = static_cast<bodySlot>(std::stoi(slotStr));
@@ -478,7 +374,6 @@ void entity::fromJson(const json& j)
         }
     }
 
-    // 5. Inventory Backpack
     inventory.backpack.clear();
     if (j.contains("backpack"))
     {
@@ -489,7 +384,6 @@ void entity::fromJson(const json& j)
         }
     }
 
-    // 6. Inventory Equipped
     inventory.equipped.clear();
     if (j.contains("equipped"))
     {

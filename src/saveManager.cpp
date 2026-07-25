@@ -13,7 +13,6 @@ bool saveManager::saveGame(game* g, const std::string& filePath)
 
     nlohmann::json saveJson;
 
-    // 1. Time State
     nlohmann::json timeJson;
     timeJson["minute"] = g->gameTime.minute;
     timeJson["hour"] = g->gameTime.hour;
@@ -23,15 +22,11 @@ bool saveManager::saveGame(game* g, const std::string& filePath)
     timeJson["dayOfWeek"] = g->gameTime.dayOfWeek;
     saveJson["time"] = timeJson;
 
-    // 2. Player Location & Position
     saveJson["currentMap"] = g->map->getId();
     saveJson["playerX"] = g->gridX;
     saveJson["playerY"] = g->gridY;
-
-    // 3. Full Player Entity State (Stats, Status Effects, Inventory, Anatomy, Quests)
     saveJson["player"] = g->Player->toJson();
 
-    // 4. Save Explored Map States & Persistent Tile NPCs for all cached maps
     nlohmann::json mapsJson = json::object();
     for (const auto& [mId, gMap] : g->mapCache)
     {
@@ -39,7 +34,6 @@ bool saveManager::saveGame(game* g, const std::string& filePath)
     }
     saveJson["maps"] = mapsJson;
 
-    // Ensure target folder exists
     fs::path p(filePath);
     if (p.has_parent_path() && !fs::exists(p.parent_path()))
     {
@@ -50,7 +44,6 @@ bool saveManager::saveGame(game* g, const std::string& filePath)
     if (!file.is_open()) return false;
 
     file << saveJson.dump(4);
-    std::cout << "[Save System] Game state saved cleanly to " << filePath << "\n";
     return true;
 }
 
@@ -66,7 +59,6 @@ bool saveManager::loadGame(game* g, const std::string& filePath)
         nlohmann::json saveJson;
         file >> saveJson;
 
-        // 1. Time State
         if (saveJson.contains("time"))
         {
             const auto& t = saveJson["time"];
@@ -78,21 +70,18 @@ bool saveManager::loadGame(game* g, const std::string& filePath)
             g->gameTime.dayOfWeek = t.value("dayOfWeek", 0);
         }
 
-        // 2. Player State
         if (!g->Player) g->Player = new entity("player_1", "Oellanix");
         if (saveJson.contains("player"))
         {
             g->Player->fromJson(saveJson["player"]);
         }
 
-        // 3. Map Location & Position
         std::string activeMap = saveJson.value("currentMap", "overworld");
         int targetX = saveJson.value("playerX", 1);
         int targetY = saveJson.value("playerY", 1);
 
         g->loadMap(activeMap, targetX, targetY);
 
-        // 4. Restore Map Exploration Fog & Tile NPCs
         if (saveJson.contains("maps"))
         {
             for (auto& [mId, mJson] : saveJson["maps"].items())
@@ -108,7 +97,6 @@ bool saveManager::loadGame(game* g, const std::string& filePath)
         }
 
         g->refreshActionGrid();
-        std::cout << "[Save System] Game state loaded cleanly from " << filePath << "\n";
         return true;
     }
     catch (const nlohmann::json::exception& e)
@@ -124,7 +112,6 @@ void saveManager::createInitialSave(game* g, const std::string& filePath)
 
     g->Player = new entity("player_1", "Oellanix");
 
-    // Base Attributes & Vitals
     g->Player->stats.setBaseStat("level", 1.0f);
     g->Player->stats.setBaseStat("xp", 0.0f);
     g->Player->stats.setBaseStat("physique", 12.0f);
@@ -137,7 +124,6 @@ void saveManager::createInitialSave(game* g, const std::string& filePath)
     g->Player->stats.setBaseStat("currency", 0.0f);
     g->Player->stats.setBaseStat("gems", 0.0f);
 
-    // Initial Human Anatomy
     auto createHumanPart = [](const std::string& id, const std::string& name, CoveringType covering, const std::string& color, int count = 1, const std::string& style = "", const std::vector<std::string>& tags = {})
         {
             bodyPart part;
@@ -161,7 +147,7 @@ void saveManager::createInitialSave(game* g, const std::string& filePath)
     g->Player->anatomy.setPart(bodySlot::TORSO, createHumanPart("part_torso_human", "Torso", CoveringType::SKIN, "Fair"));
 
     bodyPart breasts = createHumanPart("part_breasts_human", "Nipples", CoveringType::SKIN, "Fair");
-    breasts.cupSize = 0; // Flat / A-cup
+    breasts.cupSize = 0;
     g->Player->anatomy.setPart(bodySlot::BREASTS, breasts);
 
     g->Player->anatomy.setPart(bodySlot::STOMACH, createHumanPart("part_stomach_human", "Stomach", CoveringType::SKIN, "Fair"));
@@ -173,8 +159,8 @@ void saveManager::createInitialSave(game* g, const std::string& filePath)
     g->Player->anatomy.setPart(bodySlot::GROIN, createHumanPart("part_groin_human", "Groin", CoveringType::SKIN, "Fair"));
 
     bodyPart penis = createHumanPart("part_penis_human", "Penis", CoveringType::SKIN, "Fair");
-    penis.length = 14.0f;   // 14cm
-    penis.diameter = 3.5f;  // 3.5cm
+    penis.length = 14.0f;
+    penis.diameter = 3.5f;
     g->Player->anatomy.setPart(bodySlot::GROIN, penis);
 
     bodyPart anus = createHumanPart("part_anus_human", "Anus", CoveringType::SKIN, "Fair");

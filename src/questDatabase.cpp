@@ -25,7 +25,6 @@ bool questDatabase::loadDatabase(const std::string& pathStr)
                 json data;
                 file >> data;
 
-                // 1. Parse Scenes
                 if (data.contains("scenes"))
                 {
                     for (const auto& sJson : data.at("scenes"))
@@ -66,16 +65,13 @@ bool questDatabase::loadDatabase(const std::string& pathStr)
                                         choice.results.push_back(eff);
                                     }
                                 }
-
                                 scene.choices.push_back(choice);
                             }
                         }
-
                         registry[scene.id] = scene;
                     }
                 }
 
-                // 2. Parse Quest Map Triggers
                 if (data.contains("triggers"))
                 {
                     for (const auto& tJson : data.at("triggers"))
@@ -113,25 +109,17 @@ bool questDatabase::loadDatabase(const std::string& pathStr)
     {
         for (const auto& entry : fs::directory_iterator(p))
         {
-            if (entry.path().extension() == ".json")
-            {
-                loadSingleFile(entry.path());
-            }
+            if (entry.path().extension() == ".json") loadSingleFile(entry.path());
         }
     }
     else if (fs::exists(p))
     {
         loadSingleFile(p);
     }
-
-    std::cout << "Loaded " << registry.size() << " scenes and " << globalTriggers.size() << " triggers from quests.\n";
     return true;
 }
 
-bool questDatabase::exists(const std::string& id)
-{
-    return registry.find(id) != registry.end();
-}
+bool questDatabase::exists(const std::string& id) { return registry.find(id) != registry.end(); }
 
 questScene questDatabase::getScene(const std::string& id)
 {
@@ -149,10 +137,7 @@ std::vector<MapTrigger> questDatabase::getTriggersForLocation(const std::string&
     std::vector<MapTrigger> matches;
     for (const auto& trig : globalTriggers)
     {
-        if (trig.mapId == mapId && trig.x == x && trig.y == y)
-        {
-            matches.push_back(trig);
-        }
+        if (trig.mapId == mapId && trig.x == x && trig.y == y) matches.push_back(trig);
     }
     return matches;
 }

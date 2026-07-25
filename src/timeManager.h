@@ -48,7 +48,6 @@ public:
         }
     }
 
-    // Dynamic Seasonal Sunrise/Sunset Hours (0.0f - 24.0f)
     float getSunriseHour() const
     {
         static const float sunrises[13] = { 0.0f, 7.5f, 7.0f, 6.0f, 5.5f, 5.0f, 4.7f, 5.2f, 5.8f, 6.5f, 7.2f, 7.8f, 8.0f };

@@ -1,6 +1,10 @@
 #pragma once
 #include <SDL3/SDL.h>
 
+/**
+ * RAII helper to establish a scoped SDL renderer viewport.
+ * Resets the viewport back to NULL (full screen) upon destruction.
+ */
 struct ViewportGuard
 {
     SDL_Renderer* renderer;
@@ -21,6 +25,6 @@ struct ViewportGuard
 
     ~ViewportGuard()
     {
-        SDL_SetRenderViewport(renderer, NULL); // Automatically resets viewport on exit!
+        SDL_SetRenderViewport(renderer, NULL);
     }
 };

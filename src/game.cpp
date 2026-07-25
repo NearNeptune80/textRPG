@@ -1,4 +1,5 @@
 #include "game.h"
+#include "uiWidget.h"
 
 game::game() : isRunning(false), window(nullptr), renderer(nullptr), map(nullptr), Player(nullptr), gridX(1), gridY(1), currentState(GameState::EXPLORATION) {}
 
@@ -13,10 +14,7 @@ bool game::loadMap(const std::string& mapId, int startX, int startY)
     if (mapCache.find(mapId) == mapCache.end())
     {
         gameMap newMap;
-        if (!newMap.loadFromFile("data/maps/" + mapId + ".json"))
-        {
-            return false;
-        }
+        if (!newMap.loadFromFile("data/maps/" + mapId + ".json")) return false;
         mapCache[mapId] = newMap;
     }
 
@@ -54,7 +52,6 @@ void game::movePlayer(int nextX, int nextY)
             {
                 tileData.persistentNPC = generateEncounterNPC();
             }
-
             triggerEncounter(tileData.persistentNPC);
             return;
         }
@@ -82,7 +79,6 @@ void game::init(const char* title, int width, int height, bool fullscreen)
     window = SDL_CreateWindow(title, width, height, (fullscreen ? SDL_WINDOW_FULLSCREEN : SDL_WINDOW_RESIZABLE));
     renderer = SDL_CreateRenderer(window, NULL);
     SDL_SetRenderVSync(renderer, 1);
-
     SDL_SetRenderLogicalPresentation(renderer, width, height, SDL_LOGICAL_PRESENTATION_STRETCH);
 
     if (TTF_Init() < 0)
@@ -119,9 +115,7 @@ void game::handleEvents()
 
         if (event.type == SDL_EVENT_WINDOW_RESIZED)
         {
-            int newWidth = event.window.data1;
-            int newHeight = event.window.data2;
-            SDL_SetRenderLogicalPresentation(renderer, newWidth, newHeight, SDL_LOGICAL_PRESENTATION_STRETCH);
+            SDL_SetRenderLogicalPresentation(renderer, event.window.data1, event.window.data2, SDL_LOGICAL_PRESENTATION_STRETCH);
         }
 
         if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
@@ -134,7 +128,6 @@ void game::handleEvents()
 
         if (event.type == SDL_EVENT_KEY_DOWN)
         {
-            // 1. Hotkeys & Menus
             if (event.key.key == SDLK_I)
             {
                 selectedInventoryIndex = -1;
@@ -162,7 +155,6 @@ void game::handleEvents()
                 return;
             }
 
-            // 2. Exploration Movement (ONLY move if arrow keys are actually pressed!)
             if (currentState == GameState::EXPLORATION)
             {
                 int nextX = gridX, nextY = gridY;
@@ -176,10 +168,7 @@ void game::handleEvents()
                     case SDLK_RIGHT: nextX++; isMoveKey = true; break;
                 }
 
-                if (isMoveKey)
-                {
-                    movePlayer(nextX, nextY);
-                }
+                if (isMoveKey) movePlayer(nextX, nextY);
             }
         }
     }
@@ -192,97 +181,70 @@ void game::handleMouseClick(float windowX, float windowY)
 
     int w = 0, h = 0;
     SDL_RendererLogicalPresentation mode;
-    SDL_GetRenderLogicalPresentation(renderer, &w, &h, &mode);
-    if (w == 0 || h == 0) SDL_GetRenderOutputSize(renderer, &w, &h);
+    if (!SDL_GetRenderLogicalPresentation(renderer, &w, &h, &mode)) SDL_GetRenderOutputSize(renderer, &w, &h);
 
     updateLayoutBounds(w, h);
     int padding = 12;
 
     if (currentState == GameState::EXPLORATION || currentState == GameState::EVENT)
     {
-        if (currentState == GameState::EXPLORATION)
+        if (currentState == GameState::EXPLORATION && UIGridHelper::contains(layout.mapRect, mouseX, mouseY))
         {
-            if (mouseX >= layout.mapRect.x && mouseX <= layout.mapRect.x + layout.mapRect.w &&
-                mouseY >= layout.mapRect.y && mouseY <= layout.mapRect.y + layout.mapRect.h)
+            for (int r = 0; r < 5; r++)
             {
-                float localX = mouseX - layout.mapRect.x;
-                float localY = mouseY - layout.mapRect.y;
-
-                int tileGap = 2;
-                int availableForTiles = layout.mapRect.w - (2 * padding) - (4 * tileGap);
-                int drawnTileSize = availableForTiles / 5;
-                int totalGridSize = (drawnTileSize * 5) + (tileGap * 4);
-
-                int offsetX = (layout.mapRect.w - totalGridSize) / 2;
-                int offsetY = (layout.mapRect.h - totalGridSize) / 2;
-
-                if (localX >= offsetX && localY >= offsetY)
+                for (int c = 0; c < 5; c++)
                 {
-                    int gridCol = (int)((localX - offsetX) / (drawnTileSize + tileGap));
-                    int gridRow = (int)((localY - offsetY) / (drawnTileSize + tileGap));
-
-                    if (gridCol >= 0 && gridCol < 5 && gridRow >= 0 && gridRow < 5)
+                    SDL_FRect tileSlot = UIGridHelper::getMapTileRect(layout.mapRect, c, r, padding);
+                    if (UIGridHelper::contains(tileSlot, mouseX, mouseY))
                     {
-                        int dx = gridCol - 2;
-                        int dy = gridRow - 2;
-
-                        if (std::abs(dx) + std::abs(dy) == 1)
-                        {
-                            movePlayer(gridX + dx, gridY + dy);
-                        }
+                        int dx = c - 2;
+                        int dy = r - 2;
+                        if (std::abs(dx) + std::abs(dy) == 1) movePlayer(gridX + dx, gridY + dy);
+                        return;
                     }
                 }
-                return;
             }
+            return;
         }
 
-        if (mouseX >= layout.actionGridRect.x && mouseX <= layout.actionGridRect.x + layout.actionGridRect.w &&
-            mouseY >= layout.actionGridRect.y && mouseY <= layout.actionGridRect.y + layout.actionGridRect.h)
+        if (UIGridHelper::contains(layout.actionGridRect, mouseX, mouseY))
         {
             int cols = 5, rows = 3;
-            float gap = 8.0f, verticalPadding = 15.0f, horizontalPadding = 40.0f;
-            float availableW = layout.actionGridRect.w - (horizontalPadding * 2) - (gap * (cols - 1));
-            float availableH = layout.actionGridRect.h - (verticalPadding * 2) - (gap * (rows - 1));
-            float btnWidth = availableW / cols, btnHeight = availableH / rows;
-
-            float localX = mouseX - layout.actionGridRect.x - horizontalPadding;
-            float localY = mouseY - layout.actionGridRect.y - verticalPadding;
-
-            if (localX >= 0 && localY >= 0)
+            for (int r = 0; r < rows; r++)
             {
-                int clickedCol = (int)(localX / (btnWidth + gap));
-                int clickedRow = (int)(localY / (btnHeight + gap));
-
-                if (clickedCol >= 0 && clickedCol < cols && clickedRow >= 0 && clickedRow < rows)
+                for (int c = 0; c < cols; c++)
                 {
-                    int index = (clickedRow * cols) + clickedCol;
-
-                    if (index < activeButtons.size())
+                    SDL_FRect btn = UIGridHelper::getActionButtonRect(layout.actionGridRect, c, r, cols, rows);
+                    if (UIGridHelper::contains(btn, mouseX, mouseY))
                     {
-                        if (activeButtons[index].command == "SCENE_CHOICE")
+                        int index = (r * cols) + c;
+                        if (index < (int)activeButtons.size())
                         {
-                            int choiceIdx = std::stoi(activeButtons[index].payload);
-                            processChoice(currentScene.choices[choiceIdx]);
-                        }
-                        else if (activeButtons[index].command == "START_SCENE")
-                        {
-                            loadScene(activeButtons[index].payload);
-                        }
-                        else if (activeButtons[index].command == "MAP_WARP")
-                        {
-                            std::string payload = activeButtons[index].payload;
-                            size_t c1 = payload.find(',');
-                            size_t c2 = payload.find(',', c1 + 1);
-
-                            if (c1 != std::string::npos && c2 != std::string::npos)
+                            if (activeButtons[index].command == "SCENE_CHOICE")
                             {
-                                std::string targetMap = payload.substr(0, c1);
-                                int targetX = std::stoi(payload.substr(c1 + 1, c2 - c1 - 1));
-                                int targetY = std::stoi(payload.substr(c2 + 1));
+                                int choiceIdx = std::stoi(activeButtons[index].payload);
+                                processChoice(currentScene.choices[choiceIdx]);
+                            }
+                            else if (activeButtons[index].command == "START_SCENE")
+                            {
+                                loadScene(activeButtons[index].payload);
+                            }
+                            else if (activeButtons[index].command == "MAP_WARP")
+                            {
+                                std::string payload = activeButtons[index].payload;
+                                size_t c1 = payload.find(',');
+                                size_t c2 = payload.find(',', c1 + 1);
 
-                                loadMap(targetMap, targetX, targetY);
+                                if (c1 != std::string::npos && c2 != std::string::npos)
+                                {
+                                    std::string targetMap = payload.substr(0, c1);
+                                    int targetX = std::stoi(payload.substr(c1 + 1, c2 - c1 - 1));
+                                    int targetY = std::stoi(payload.substr(c2 + 1));
+                                    loadMap(targetMap, targetX, targetY);
+                                }
                             }
                         }
+                        return;
                     }
                 }
             }
@@ -290,32 +252,17 @@ void game::handleMouseClick(float windowX, float windowY)
     }
     else if (currentState == GameState::INVENTORY)
     {
-        if (mouseX >= layout.equipRect.x && mouseX <= layout.equipRect.x + layout.equipRect.w &&
-            mouseY >= layout.equipRect.y && mouseY <= layout.equipRect.y + layout.equipRect.h)
+        if (UIGridHelper::contains(layout.equipRect, mouseX, mouseY))
         {
-            int cols = 6, rows = 6, slotGap = 4;
-            int internalPadding = padding + 6;
-
-            int availableW = layout.equipRect.w - (2 * internalPadding) - ((cols - 1) * slotGap);
-            int availableH = layout.equipRect.h - (2 * internalPadding) - ((rows - 1) * slotGap);
-            int slotSize = std::min(availableW / cols, availableH / rows);
-
-            int gridW = (slotSize * cols) + (slotGap * (cols - 1));
-            int gridH = (slotSize * rows) + (slotGap * (rows - 1));
-
-            int offsetX = layout.equipRect.x + (layout.equipRect.w - gridW) / 2;
-            int offsetY = layout.equipRect.y + (layout.equipRect.h - gridH) / 2;
-
+            int cols = 6, rows = 6;
             for (int r = 0; r < rows; r++)
             {
                 for (int c = 0; c < cols; c++)
                 {
-                    int slotIdx = (r * cols) + c;
-                    SDL_FRect slot = { (float)(offsetX + (c * (slotSize + slotGap))), (float)(offsetY + (r * (slotSize + slotGap))), (float)slotSize, (float)slotSize };
-
-                    if (mouseX >= slot.x && mouseX <= slot.x + slot.w &&
-                        mouseY >= slot.y && mouseY <= slot.y + slot.h)
+                    SDL_FRect slot = UIGridHelper::getEquipmentSlotRect(layout.equipRect, c, r, cols, rows, 4, padding);
+                    if (UIGridHelper::contains(slot, mouseX, mouseY))
                     {
+                        int slotIdx = (r * cols) + c;
                         selectedEquipmentSlot = equipSlot::NONE;
                         selectedInventoryIndex = -1;
 
@@ -337,83 +284,49 @@ void game::handleMouseClick(float windowX, float windowY)
             }
         }
 
-        if (mouseX >= layout.inventoryRect.x && mouseX <= layout.inventoryRect.x + layout.inventoryRect.w &&
-            mouseY >= layout.inventoryRect.y && mouseY <= layout.inventoryRect.y + layout.inventoryRect.h)
+        if (UIGridHelper::contains(layout.inventoryRect, mouseX, mouseY))
         {
-            int cols = 6, rows = 5, slotGap = 4;
-            int halfWidth = layout.inventoryRect.w / 2;
-            int sidePadding = 20, topPadding = 60;
+            int cols = 6, rows = 5;
+            int maxSlots = cols * rows * 2;
 
-            int availableW = halfWidth - (2 * sidePadding) - ((cols - 1) * slotGap);
-            int availableH = layout.inventoryRect.h - topPadding - sidePadding - ((rows - 1) * slotGap);
-            int slotSize = std::min(availableW / cols, availableH / rows);
-
-            int gridW = (slotSize * cols) + (slotGap * (cols - 1));
-            int leftOffsetX = layout.inventoryRect.x + (halfWidth - gridW) / 2;
-            int rightOffsetX = layout.inventoryRect.x + halfWidth + (halfWidth - gridW) / 2;
-            int gridOffsetY = layout.inventoryRect.y + topPadding;
-            int maxSlotsPerSide = cols * rows;
-
-            for (int i = 0; i < maxSlotsPerSide * 2; i++)
+            for (int i = 0; i < maxSlots; i++)
             {
-                int side = i / maxSlotsPerSide;
-                int localIndex = i % maxSlotsPerSide;
-                int r = localIndex / cols;
-                int c = localIndex % cols;
-                float originX = (side == 0) ? (float)leftOffsetX : (float)rightOffsetX;
-
-                SDL_FRect slot = { originX + (c * (slotSize + slotGap)), (float)(gridOffsetY + (r * (slotSize + slotGap))), (float)slotSize, (float)slotSize };
-
-                if (mouseX >= slot.x && mouseX <= slot.x + slot.w &&
-                    mouseY >= slot.y && mouseY <= slot.y + slot.h)
+                SDL_FRect slot = UIGridHelper::getInventorySlotRect(layout.inventoryRect, i, cols, rows);
+                if (UIGridHelper::contains(slot, mouseX, mouseY))
                 {
                     selectedEquipmentSlot = equipSlot::NONE;
-                    if (Player && i < Player->inventory.backpack.size())
-                    {
-                        selectedInventoryIndex = i;
-                    }
-                    else
-                    {
-                        selectedInventoryIndex = -1;
-                    }
+                    if (Player && i < (int)Player->inventory.backpack.size()) selectedInventoryIndex = i;
+                    else selectedInventoryIndex = -1;
+
                     refreshActionGrid();
                     return;
                 }
             }
         }
 
-        if (mouseX >= layout.actionGridRect.x && mouseX <= layout.actionGridRect.x + layout.actionGridRect.w &&
-            mouseY >= layout.actionGridRect.y && mouseY <= layout.actionGridRect.y + layout.actionGridRect.h)
+        if (UIGridHelper::contains(layout.actionGridRect, mouseX, mouseY))
         {
             int cols = 5, rows = 3;
-            float gap = 8.0f, verticalPadding = 15.0f, horizontalPadding = 40.0f;
-            float availableW = layout.actionGridRect.w - (horizontalPadding * 2) - (gap * (cols - 1));
-            float availableH = layout.actionGridRect.h - (verticalPadding * 2) - (gap * (rows - 1));
-            float btnWidth = availableW / cols, btnHeight = availableH / rows;
-
-            float localX = mouseX - layout.actionGridRect.x - horizontalPadding;
-            float localY = mouseY - layout.actionGridRect.y - verticalPadding;
-
-            if (localX >= 0 && localY >= 0)
+            for (int r = 0; r < rows; r++)
             {
-                int clickedCol = (int)(localX / (btnWidth + gap));
-                int clickedRow = (int)(localY / (btnHeight + gap));
-
-                if (clickedCol >= 0 && clickedCol < cols && clickedRow >= 0 && clickedRow < rows)
+                for (int c = 0; c < cols; c++)
                 {
-                    int index = (clickedRow * cols) + clickedCol;
-
-                    if (index < activeButtons.size())
+                    SDL_FRect btn = UIGridHelper::getActionButtonRect(layout.actionGridRect, c, r, cols, rows);
+                    if (UIGridHelper::contains(btn, mouseX, mouseY))
                     {
-                        if (activeButtons[index].command == "EQUIP_ITEM")
+                        int index = (r * cols) + c;
+                        if (index < (int)activeButtons.size())
                         {
-                            handleEquipAction(std::stoi(activeButtons[index].payload));
+                            if (activeButtons[index].command == "EQUIP_ITEM")
+                            {
+                                handleEquipAction(std::stoi(activeButtons[index].payload));
+                            }
+                            else if (activeButtons[index].command == "UNEQUIP_ITEM")
+                            {
+                                handleUnequipAction((equipSlot)std::stoi(activeButtons[index].payload));
+                            }
                         }
-                        else if (activeButtons[index].command == "UNEQUIP_ITEM")
-                        {
-                            equipSlot slotToUnequip = (equipSlot)std::stoi(activeButtons[index].payload);
-                            handleUnequipAction(slotToUnequip);
-                        }
+                        return;
                     }
                 }
             }
@@ -463,9 +376,7 @@ void game::handleEquipAction(int backpackIndex)
     if (!targetItem->isEquippable) return;
 
     std::vector<std::string> bodyTags;
-    bool success = Player->inventory.equipItem((size_t)backpackIndex, targetItem->targetSlot, bodyTags);
-
-    if (success)
+    if (Player->inventory.equipItem((size_t)backpackIndex, targetItem->targetSlot, bodyTags))
     {
         selectedInventoryIndex = -1;
         refreshActionGrid();
@@ -476,8 +387,7 @@ void game::handleUnequipAction(equipSlot slot)
 {
     if (!Player || slot == equipSlot::NONE) return;
 
-    bool success = Player->inventory.unequipItem(slot);
-    if (success)
+    if (Player->inventory.unequipItem(slot))
     {
         selectedEquipmentSlot = equipSlot::NONE;
         selectedInventoryIndex = -1;
@@ -491,7 +401,6 @@ void game::refreshActionGrid()
 
     if (currentState == GameState::EXPLORATION)
     {
-        // 1. Check tile door warps
         MapWarp warp;
         if (map && map->checkWarp(gridX, gridY, warp))
         {
@@ -502,13 +411,11 @@ void game::refreshActionGrid()
             activeButtons.push_back(warpBtn);
         }
 
-        // 2. Fetch active dynamic triggers from the Quest Database for the current map & tile
         if (map)
         {
             auto triggers = questDatabase::getTriggersForLocation(map->getId(), gridX, gridY);
             for (const auto& trig : triggers)
             {
-                // Evaluates quest stage, time phase, player stats, traits, and required items
                 if (checkConditions(trig.conditions))
                 {
                     actionButton triggerBtn;
@@ -522,7 +429,6 @@ void game::refreshActionGrid()
     }
     else if (currentState == GameState::INVENTORY)
     {
-        // 1. If an item in the backpack is selected -> Show "Equip"
         if (selectedInventoryIndex >= 0 && Player && (size_t)selectedInventoryIndex < Player->inventory.backpack.size())
         {
             const std::shared_ptr<item> selItem = Player->inventory.backpack[selectedInventoryIndex];
@@ -535,7 +441,6 @@ void game::refreshActionGrid()
                 activeButtons.push_back(equipBtn);
             }
         }
-        // 2. If an equipped item is selected -> Show "Unequip"
         else if (selectedEquipmentSlot != equipSlot::NONE && Player && Player->inventory.isEquipped(selectedEquipmentSlot))
         {
             std::shared_ptr<item> eqItem = Player->inventory.getEquippedItem(selectedEquipmentSlot);
@@ -570,7 +475,6 @@ bool game::checkConditions(const std::vector<gameCondition>& conditions)
         }
         else if (cond.type == "TIME_PHASE")
         {
-            // Checks if current time phase matches target e.g. "NIGHT", "DAY", "DAWN", "DUSK"
             TimePhase currentPhase = gameTime.getPhase();
             std::string phaseStr = "DAY";
             if (currentPhase == TimePhase::NIGHT) phaseStr = "NIGHT";
@@ -593,18 +497,14 @@ bool game::checkConditions(const std::vector<gameCondition>& conditions)
 
 void game::processChoice(const dialogueChoice& choice)
 {
-    // Handle Special Encounter Exit States
     if (choice.nextSceneId == "ENCOUNTER_FIGHT")
     {
-        std::cout << "[Encounter] Combat Initiated!\n";
-        // TODO: Transition to combat state/loop here
         currentState = GameState::EXPLORATION;
         refreshActionGrid();
         return;
     }
     else if (choice.nextSceneId == "ENCOUNTER_PAY")
     {
-        std::cout << "[Encounter] Paid / Bribed Enemy!\n";
         Player->stats.modifyBaseStat("currency", -25.0f);
         currentState = GameState::EXPLORATION;
         refreshActionGrid();
@@ -612,13 +512,11 @@ void game::processChoice(const dialogueChoice& choice)
     }
     else if (choice.nextSceneId == "ENCOUNTER_SURRENDER")
     {
-        std::cout << "[Encounter] Surrendered!\n";
         currentState = GameState::EXPLORATION;
         refreshActionGrid();
         return;
     }
 
-    // Process Regular Quest Effects
     for (const auto& effect : choice.results)
     {
         if (effect.action == "GIVE_ITEM")
@@ -647,7 +545,6 @@ void game::processChoice(const dialogueChoice& choice)
                 std::string targetMap = effect.target.substr(0, c1);
                 int targetX = std::stoi(effect.target.substr(c1 + 1, c2 - c1 - 1));
                 int targetY = std::stoi(effect.target.substr(c2 + 1));
-
                 loadMap(targetMap, targetX, targetY);
             }
         }
@@ -657,7 +554,6 @@ void game::processChoice(const dialogueChoice& choice)
     {
         activeTargetNPC = nullptr;
         activeTargetMode = TargetMode::NONE;
-
         currentState = GameState::EXPLORATION;
         refreshActionGrid();
     }
@@ -693,19 +589,12 @@ void game::drawTextFit(const std::string& textStr, SDL_FRect destRect, SDL_Color
 
     if (texture && srcH > 0.0f)
     {
-        // Scale to fit target height while preserving aspect ratio
         float scale = destRect.h / srcH;
-
-        // If scaled width exceeds bounding box, constrain by width instead
-        if ((srcW * scale) > destRect.w)
-        {
-            scale = destRect.w / srcW;
-        }
+        if ((srcW * scale) > destRect.w) scale = destRect.w / srcW;
 
         float drawW = srcW * scale;
         float drawH = srcH * scale;
 
-        // Center horizontally & vertically inside destRect
         float drawX = destRect.x + (destRect.w - drawW) / 2.0f;
         float drawY = destRect.y + (destRect.h - drawH) / 2.0f;
 
@@ -784,14 +673,9 @@ SDL_Texture* game::getOrRenderText(const std::string& textStr, const std::string
         return it->second.texture;
     }
 
-    // Safety check: Prevent unbounded growth by clearing cache if it exceeds 300 unique text styles
     if (textCache.size() > 300)
     {
-        for (auto& pair : textCache)
-        {
-            if (pair.second.texture) SDL_DestroyTexture(pair.second.texture);
-        }
-        textCache.clear();
+        clearTextCache();
     }
 
     TTF_Font* font = fonts[fontId];
@@ -803,16 +687,9 @@ SDL_Texture* game::getOrRenderText(const std::string& textStr, const std::string
     SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
     outW = static_cast<float>(surface->w);
     outH = static_cast<float>(surface->h);
-
-    float surfW = static_cast<float>(surface->w);
-    float surfH = static_cast<float>(surface->h);
     SDL_DestroySurface(surface);
 
-    if (texture)
-    {
-        textCache[cacheKey] = { texture, surfW, surfH };
-    }
-
+    if (texture) textCache[cacheKey] = { texture, outW, outH };
     return texture;
 }
 
@@ -820,10 +697,7 @@ void game::clearTextCache()
 {
     for (auto& [key, cached] : textCache)
     {
-        if (cached.texture)
-        {
-            SDL_DestroyTexture(cached.texture);
-        }
+        if (cached.texture) SDL_DestroyTexture(cached.texture);
     }
     textCache.clear();
 }
@@ -845,7 +719,6 @@ void game::triggerEncounter(std::shared_ptr<entity> npc)
 {
     activeTargetNPC = npc.get();
     activeTargetMode = TargetMode::COMBAT_ENEMY;
-
     currentState = GameState::EVENT;
 
     currentScene.id = "encounter_event";
@@ -879,236 +752,11 @@ void game::triggerEncounter(std::shared_ptr<entity> npc)
     }
 }
 
-void game::renderNPCTargetPanel(float x, float y, float w, float h)
-{
-    if (!activeTargetNPC) return;
-
-    // 1. Establish Local Viewport (0, 0 is now top-left of the target panel)
-    SDL_Rect panelBox = { (int)x, (int)y, (int)w, (int)h };
-    ViewportGuard vpGuard(renderer, &panelBox);
-
-    // 2. Local Outer Card Bounds
-    SDL_FRect cardRect = { 0.0f, 0.0f, w, h };
-    renderFillRoundedRect(renderer, cardRect, GLOBAL_CORNER_RADIUS, { 30, 28, 35, 255 });
-    renderDrawRoundedRect(renderer, cardRect, GLOBAL_CORNER_RADIUS, { 60, 55, 65, 255 });
-
-    float padX = w * 0.04f;
-    float padY = h * 0.04f;
-    float contentW = w - (padX * 2.0f);
-    float currentY = padY;
-    float dividerGap = h * 0.025f;
-
-    // 3. Avatar & Header Text (Local Coordinates)
-    float avatarSize = h * 0.16f;
-    SDL_FRect avatarRect = { padX, currentY, avatarSize, avatarSize };
-    renderFillRoundedRect(renderer, avatarRect, 4.0f, { 50, 50, 60, 255 });
-    renderDrawRoundedRect(renderer, avatarRect, 4.0f, { 255, 120, 170, 255 });
-
-    float headerTextX = avatarRect.x + avatarSize + (padX * 0.8f);
-    std::string nameLevelStr = activeTargetNPC->name + " - Level " + std::to_string(activeTargetNPC->stats.level);
-    float headerTextH = avatarSize * 0.55f;
-
-    SDL_FRect nameRect = { headerTextX, currentY, w - headerTextX - padX, headerTextH };
-    drawTextFit(nameLevelStr, nameRect, { 255, 120, 170, 255 }, "title_font");
-
-    currentY += avatarSize + dividerGap;
-
-    // 4. Vital Bars (Health, Mana, Lust - Local Coordinates)
-    float barHeight = h * 0.065f;
-    float iconRadius = barHeight * 1.20f;
-    float valueTextWidth = contentW * 0.18f;
-    float barW = contentW - iconRadius - valueTextWidth - (padX * 0.5f);
-    float barGap = h * 0.02f;
-
-    auto drawVitalBar = [&](float barYPos, const std::string& statName, float maxVal, SDL_Color barColor)
-        {
-            SDL_FRect iconRect = { padX, barYPos, iconRadius, iconRadius };
-            renderFillRoundedRect(renderer, iconRect, 3.0f, { 45, 40, 50, 255 });
-
-            float fillX = padX + iconRadius + (padX * 0.5f);
-            float fillY = barYPos + (iconRadius - barHeight) / 2.0f;
-
-            SDL_FRect bgRect = { fillX, fillY, barW, barHeight };
-            renderFillRoundedRect(renderer, bgRect, 3.0f, { 20, 18, 25, 255 });
-
-            float currentVal = activeTargetNPC->getStat(statName);
-            float fillPct = std::clamp(currentVal / maxVal, 0.0f, 1.0f);
-            if (fillPct > 0.0f)
-            {
-                SDL_FRect fillRect = { fillX, fillY, barW * fillPct, barHeight };
-                renderFillRoundedRect(renderer, fillRect, 3.0f, barColor);
-            }
-
-            SDL_FRect textRect = { fillX + barW + (padX * 0.4f), barYPos, valueTextWidth, iconRadius };
-            drawTextFit(std::to_string((int)currentVal), textRect, { 240, 240, 240, 255 });
-        };
-
-    drawVitalBar(currentY, "health", 100.0f, { 255, 60, 90, 255 });
-    currentY += iconRadius + barGap;
-
-    drawVitalBar(currentY, "mana", 100.0f, { 220, 130, 255, 255 });
-    currentY += iconRadius + barGap;
-
-    drawVitalBar(currentY, "lust", 100.0f, { 230, 50, 150, 255 });
-}
-
-void game::renderNPCAnatomyTooltip(float mouseX, float mouseY)
-{
-    if (!activeTargetNPC) return;
-
-    int screenW = 1280, screenH = 720;
-    SDL_GetRenderOutputSize(renderer, &screenW, &screenH);
-
-    static const std::vector<bodySlot> anatomicalOrder = {
-        bodySlot::HAIR, bodySlot::HEAD, bodySlot::EYES, bodySlot::EARS, bodySlot::HORNS,
-        bodySlot::MOUTH, bodySlot::NECK, bodySlot::TORSO, bodySlot::BREASTS, bodySlot::STOMACH,
-        bodySlot::BACK, bodySlot::ARMS, bodySlot::HANDS, bodySlot::FINGERS, bodySlot::HIPS,
-        bodySlot::GROIN, bodySlot::ASS, bodySlot::TAIL, bodySlot::LEGS, bodySlot::FEET,
-        bodySlot::WINGS, bodySlot::TENTACLES, bodySlot::ANTENNAE
-    };
-
-    float headerH = screenH * 0.032f;
-    float subHeaderH = screenH * 0.024f;
-    float lineH = screenH * 0.025f;
-    float fontH = lineH * 0.80f;
-    float padding = screenW * 0.008f;
-    float bulletSize = fontH * 0.45f;
-
-    struct RenderRowData
-    {
-        bool isOccupied = false;
-        SDL_Color bulletColor = { 100, 100, 110, 255 };
-        std::vector<ColorToken> tokens;
-    };
-
-    std::vector<RenderRowData> rows;
-    float maxContentW = screenW * 0.18f;
-
-    for (bodySlot slot : anatomicalOrder)
-    {
-        RenderRowData row;
-        const bodyPart* part = activeTargetNPC->anatomy.getPart(slot);
-
-        if (part != nullptr)
-        {
-            row.isOccupied = true;
-            row.bulletColor = getColorFromName(part->primaryColor);
-
-            std::string prefixStr = "";
-            if (slot == bodySlot::GROIN && part->length > 0.0f)
-            {
-                char buf[64];
-                snprintf(buf, sizeof(buf), "%s (%gcm long, %gcm diameter)", part->name.c_str(), part->length, part->diameter);
-                prefixStr = std::string(buf);
-            }
-            else if (slot == bodySlot::BREASTS && part->cupSize > 0)
-            {
-                prefixStr = part->name + " (" + bodyPart::getCupSizeName(part->cupSize) + "-cup)";
-            }
-            else
-            {
-                if (part->count == 2) prefixStr = "Two ";
-                else if (part->count > 2) prefixStr = std::to_string(part->count) + " ";
-
-                if (!part->style.empty()) prefixStr += part->style + " ";
-                prefixStr += part->name;
-            }
-
-            std::string coveringNoun = getCoveringNoun(part->covering);
-
-            row.tokens.push_back({ prefixStr + ": ", { 220, 220, 230, 255 } });
-            row.tokens.push_back({ part->race + " - ", { 180, 100, 255, 255 } });
-
-            if (!part->secondaryColor.empty())
-            {
-                row.tokens.push_back({ part->secondaryColor, getColorFromName(part->secondaryColor) });
-                row.tokens.push_back({ "-rimmed, ", { 220, 220, 230, 255 } });
-            }
-
-            row.tokens.push_back({ part->primaryColor + " ", row.bulletColor });
-            row.tokens.push_back({ coveringNoun, { 200, 200, 210, 255 } });
-        }
-        else
-        {
-            row.isOccupied = false;
-            row.bulletColor = { 65, 65, 75, 255 };
-
-            std::string slotLabel = getSlotName(slot);
-            row.tokens.push_back({ slotLabel + ": ", { 110, 110, 125, 255 } });
-            row.tokens.push_back({ "None", { 140, 140, 150, 255 } });
-        }
-
-        float rowW = 0.0f;
-        for (const auto& tok : row.tokens)
-        {
-            float srcW = 0.0f, srcH = 0.0f;
-            getOrRenderText(tok.text, "button_font", tok.color, srcW, srcH);
-            if (srcH > 0.0f) rowW += srcW * (fontH / srcH);
-        }
-
-        if (rowW > maxContentW) maxContentW = rowW;
-        rows.push_back(row);
-    }
-
-    float textStartXOffset = bulletSize + (padding * 0.8f);
-    float boxWidth = maxContentW + textStartXOffset + (padding * 2.5f);
-
-    int itemLines = (int)rows.size();
-    float boxHeight = headerH + subHeaderH + padding + (itemLines * lineH) + padding;
-
-    // Position card to the LEFT of the mouse cursor
-    float boxX = mouseX - boxWidth - 12.0f;
-    float boxY = mouseY;
-
-    if (boxX < 10.0f) boxX = mouseX + 12.0f; // Edge flip guard
-    if (boxY + boxHeight > screenH) boxY = screenH - boxHeight - 10.0f;
-
-    SDL_FRect tooltipRect = { boxX, boxY, boxWidth, boxHeight };
-
-    // Card Frame
-    renderFillRoundedRect(renderer, tooltipRect, 6.0f, { 25, 23, 30, 250 });
-    renderDrawRoundedRect(renderer, tooltipRect, 6.0f, { 255, 120, 170, 255 });
-
-    // Headers
-    SDL_FRect titleRect = { boxX + padding, boxY + padding, boxWidth - (padding * 2.0f), headerH };
-    drawTextFit(activeTargetNPC->name, titleRect, { 255, 120, 170, 255 }, "title_font");
-
-    char subTitleBuffer[128];
-    snprintf(subTitleBuffer, sizeof(subTitleBuffer), "Masculine | Fit body | %.2fm tall", activeTargetNPC->anatomy.heightMeters);
-
-    SDL_FRect subTitleRect = { boxX + padding, boxY + padding + headerH, boxWidth - (padding * 2.0f), subHeaderH };
-    drawTextFit(subTitleBuffer, subTitleRect, { 100, 200, 255, 255 }, "button_font");
-
-    float dividerY = boxY + padding + headerH + subHeaderH + (padding * 0.4f);
-    SDL_SetRenderDrawColor(renderer, 60, 50, 75, 255);
-    SDL_RenderLine(renderer, boxX + padding, dividerY, boxX + boxWidth - padding, dividerY);
-
-    float currentY = dividerY + (padding * 0.4f);
-
-    // Body Part Rows
-    for (const auto& row : rows)
-    {
-        float textY = currentY + (lineH - fontH) * 0.5f;
-        float bulletY = textY + (fontH - bulletSize) * 0.5f;
-
-        SDL_FRect colorBullet = { boxX + padding, bulletY, bulletSize, bulletSize };
-        renderFillRoundedRect(renderer, colorBullet, 2.0f, row.bulletColor);
-
-        float textX = boxX + padding + textStartXOffset;
-        renderTextLeftSegment(row.tokens, textX, textY, fontH, "button_font");
-
-        currentY += lineH;
-    }
-}
-
 void game::clean()
 {
     clearTextCache();
 
-    for (auto const& [id, f] : fonts)
-    {
-        TTF_CloseFont(f);
-    }
+    for (auto const& [id, f] : fonts) TTF_CloseFont(f);
     fonts.clear();
     TTF_Quit();
 

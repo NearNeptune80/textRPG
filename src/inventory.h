@@ -2,7 +2,7 @@
 #include <vector>
 #include <unordered_map>
 #include <string>
-#include <memory> // Fixes 'shared_ptr' undeclared errors
+#include <memory>
 #include "enums.h"
 #include "item.h"
 

@@ -80,7 +80,6 @@ bool itemDatabase::loadDatabase(const std::string& filePath)
             item newItem = itemJson.get<item>();
             registry[newItem.id] = newItem;
         }
-        std::cout << "Successfully loaded " << registry.size() << " items from database.\n";
         return true;
     }
     catch (const json::exception& e)
@@ -90,16 +89,10 @@ bool itemDatabase::loadDatabase(const std::string& filePath)
     }
 }
 
-bool itemDatabase::exists(const std::string& id)
-{
-    return registry.find(id) != registry.end();
-}
+bool itemDatabase::exists(const std::string& id) { return registry.find(id) != registry.end(); }
 
 std::shared_ptr<item> itemDatabase::getItem(const std::string& id)
 {
-    if (exists(id))
-    {
-        return std::make_shared<item>(registry[id]);
-    }
+    if (exists(id)) return std::make_shared<item>(registry[id]);
     return nullptr;
 }

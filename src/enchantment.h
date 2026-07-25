@@ -3,26 +3,30 @@
 #include <vector>
 #include "enums.h"
 
-// The discrete instruction
+/**
+ * Discrete magical effect instruction applied to stats or body parts.
+ */
 struct enchantmentEffect
 {
-    effectType type;
+    effectType type = effectType::STAT_MODIFIER;
 
     std::string targetStat;
-    bodySlot targetSlot;
+    bodySlot targetSlot = bodySlot::TORSO;
 
-    int intValue;
+    int intValue = 0;
     std::string stringValue;
 };
 
-// The overarching enchantment
+/**
+ * Overarching enchantment object containing essence requirements and effects.
+ */
 struct enchantment
 {
     std::string id;
     std::string name;
 
     std::string essenceType;
-    int essenceCost;
+    int essenceCost = 0;
 
     std::vector<enchantmentEffect> effects;
 };

@@ -1,4 +1,3 @@
-// In src/game.h
 #pragma once
 #include <SDL3/SDL.h>
 #include <SDL3_ttf/SDL_ttf.h>
@@ -14,7 +13,7 @@
 #include "actionButton.h"
 #include "questDatabase.h"
 #include "timeManager.h"
-#include "viewportGuard.h" // Adopt ViewportGuard everywhere!
+#include "viewportGuard.h"
 #include "uiRenderer.h"
 #include "saveManager.h"
 
@@ -39,7 +38,6 @@ struct CachedTextTexture
     float h = 0.0f;
 };
 
-// Cached layout bounds to eliminate duplicated coordinate math in clicks
 struct DashboardLayout
 {
     SDL_Rect mapRect;
@@ -84,20 +82,17 @@ public:
     int gridX, gridY;
 
     GameState currentState;
-    DashboardLayout layout; // Holds calculated screen panel bounds
+    DashboardLayout layout;
     std::unordered_map<std::string, gameMap> mapCache;
 
-    // UI & Text
     std::unordered_map<std::string, TTF_Font*> fonts;
     std::vector<actionButton> activeButtons;
     questScene currentScene;
 
-    // Engine Core Helpers
     bool loadMap(const std::string& mapId, int startX, int startY);
     void movePlayer(int nextX, int nextY);
     bool loadFont(const std::string& id, const std::string& path, int ptSize);
 
-    // Shared Text Renderers
     void drawTextFit(const std::string& textStr, SDL_FRect destRect, SDL_Color color, const std::string& fontId = "button_font");
     void renderTextCentered(const std::string& text, SDL_FRect targetRect, const std::string& fontId, SDL_Color color = { 255, 255, 255, 255 });
     void renderTextWrapped(const std::string& text, SDL_FRect targetRect, const std::string& fontId, SDL_Color color = { 255, 255, 255, 255 });
@@ -108,12 +103,10 @@ public:
     void handleEquipAction(int backpackIndex);
     void handleUnequipAction(equipSlot slot);
 
-    // Event & Quest Processing
     void loadScene(const std::string& sceneId);
     void processChoice(const dialogueChoice& choice);
     bool checkConditions(const std::vector<gameCondition>& conditions);
 
-    // Layout Managers & UI Widgets
     void updateLayoutBounds(int w, int h);
     void renderDashboardLayout();
     void renderMainMenuLayout();
@@ -138,11 +131,9 @@ public:
     std::shared_ptr<entity> generateEncounterNPC();
     void triggerEncounter(std::shared_ptr<entity> npc);
 
-    // Active NPC Target Tracking
     entity* activeTargetNPC = nullptr;
     TargetMode activeTargetMode = TargetMode::NONE;
 
-    // UI Rendering Helper
     void renderNPCTargetPanel(float x, float y, float w, float h);
     void renderNPCAnatomyTooltip(float mouseX, float mouseY);
 

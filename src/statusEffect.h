@@ -3,22 +3,28 @@
 #include <vector>
 #include "enums.h"
 
+/**
+ * Individual modifier applied to a base stat.
+ */
 struct StatModifier
 {
-    std::string statName; // e.g., "physique", "health", "lust"
+    std::string statName;
     float flatValue = 0.0f;
-    float percentValue = 0.0f; // e.g., 0.15f for +15%
+    float percentValue = 0.0f; // e.g., 0.15 for +15%
 };
 
+/**
+ * Temporary or permanent status condition affecting an entity.
+ */
 struct StatusEffect
 {
-    std::string id;          // e.g., "buff_canis_potency", "debuff_poison"
-    std::string name;        // Display Name
-    std::string description; // Tooltip / Log description
+    std::string id;
+    std::string name;
+    std::string description;
 
-    int durationTurns = -1;  // Remaining turns (-1 for permanent/infinite)
+    int durationTurns = -1; // -1 for infinite/permanent
     bool isDebuff = false;
 
     std::vector<StatModifier> statModifiers;
-    std::vector<std::string> grantedTags; // e.g., "paralyzed", "glowing"
+    std::vector<std::string> grantedTags;
 };

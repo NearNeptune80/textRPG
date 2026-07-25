@@ -2,7 +2,7 @@
 #include <string>
 #include <nlohmann/json.hpp>
 
-class game; // Forward declaration
+class game;
 
 class saveManager
 {

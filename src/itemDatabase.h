@@ -12,5 +12,5 @@ private:
 public:
     static bool loadDatabase(const std::string& filePath);
     static bool exists(const std::string& id);
-    static std::shared_ptr<item> getItem(const std::string& id); // Static function
+    static std::shared_ptr<item> getItem(const std::string& id);
 };

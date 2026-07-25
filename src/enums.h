@@ -1,6 +1,8 @@
 #pragma once
 
-// 1. Anatomical Sockets
+/**
+ * 1. Anatomical Sockets for Body Parts
+ */
 enum class bodySlot
 {
     HAIR, HEAD, EYES, EARS, MOUTH, NECK,
@@ -12,7 +14,9 @@ enum class bodySlot
     WINGS, TENTACLES
 };
 
-// 2. Main UI Equipment Grid
+/**
+ * 2. Main UI Equipment Grid Slots (6x6 Grid Mapping)
+ */
 enum class equipSlot
 {
     HEADWEAR, EYEWEAR, MOUTHWEAR, NECKWEAR,
@@ -28,7 +32,9 @@ enum class equipSlot
     NONE
 };
 
-// 3. Alternate UI Grid (Tattoos)
+/**
+ * 3. Alternate UI Grid Sockets for Body Tattoos
+ */
 enum class tattooSlot
 {
     FACE, NECK,
@@ -39,7 +45,9 @@ enum class tattooSlot
     NONE
 };
 
-// 4. Magic Effect Types
+/**
+ * 4. Magic Effect Categories
+ */
 enum class effectType
 {
     STAT_MODIFIER,

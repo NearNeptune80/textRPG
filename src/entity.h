@@ -6,13 +6,11 @@
 #include <memory>
 #include <nlohmann/json.hpp>
 
-#include "enums.h"       
+#include "enums.h"
 #include "enchantment.h"
 #include "inventory.h"
 #include "statusEffect.h"
 #include "itemDatabase.h"
-
-// --- Anatomical Data Structs ---
 
 enum class CoveringType
 {
@@ -75,20 +73,18 @@ struct bodyPart
     std::string name;
     std::string race = "Human";
 
-    int count = 1;                           // e.g., 2 for eyes, arms, legs, horns
+    int count = 1;
     CoveringType covering = CoveringType::SKIN;
     std::string primaryColor = "Fair";
-    std::string secondaryColor = "";         // e.g., rim color, interior color, iris highlight
+    std::string secondaryColor = "";
 
-    // Physical Dimensions & Modifiers
-    float length = 0.0f;                     // Length/Height in cm or meters (e.g. penis length, hair length)
-    float diameter = 0.0f;                   // Diameter/Width in cm
-    int cupSize = 0;                         // 0 = Flat/A, 1 = B, 2 = C, 5 = F-cup, etc.
-    std::string style = "";                  // e.g., "plantigrade", "loose", "braided"
+    float length = 0.0f;
+    float diameter = 0.0f;
+    int cupSize = 0;
+    std::string style = "";
 
     std::vector<std::string> tags;
 
-    // Helper to format breast cup sizes (0=A, 1=B, 2=C, 3=D, 4=DD, 5=F, etc.)
     static std::string getCupSizeName(int size)
     {
         static const std::vector<std::string> cups = { "A", "B", "C", "D", "DD", "F", "FF", "G", "H" };
@@ -108,7 +104,6 @@ struct tattoo
     std::vector<std::string> tags;
 };
 
-// --- Components ---
 std::string getSlotName(bodySlot slot);
 
 class anatomyComponent
@@ -118,23 +113,20 @@ private:
     std::unordered_map<tattooSlot, tattoo> tattoos;
 
 public:
-    float heightMeters = 1.75f; // Base height in meters (e.g., 1.75m)
-    
-    // Body Part Methods
+    float heightMeters = 1.75f;
+
     void setPart(bodySlot slot, const bodyPart& part);
     void removePart(bodySlot slot);
     bool hasPart(bodySlot slot) const;
     bodyPart* getPart(bodySlot slot);
     const bodyPart* getPart(bodySlot slot) const;
 
-    // Anatomy Tag Queries
     bool hasTag(bodySlot slot, const std::string& tag) const;
     bool hasGlobalTag(const std::string& tag) const;
     std::vector<std::string> getAllTags() const;
 
     const std::unordered_map<bodySlot, bodyPart>& getAllParts() const { return parts; }
 
-    // Tattoo Methods
     void setTattoo(tattooSlot slot, const tattoo& tat);
     void removeTattoo(tattooSlot slot);
     bool hasTattoo(tattooSlot slot) const;
@@ -152,18 +144,14 @@ public:
     int level = 1;
     float currentXp = 0.0f;
 
-    // Leveling Math
     float getRequiredXp() const { return level * 100.0f; }
-    bool addXp(float amount); // Returns true on level up
+    bool addXp(float amount);
 
-    // Base Stat Helpers
     void setBaseStat(const std::string& name, float value);
     float getBaseStat(const std::string& name) const;
     void modifyBaseStat(const std::string& name, float amount);
 
-    // Calculates Final Stat value incorporating active status effects
     float getEffectiveStat(const std::string& name, const std::vector<StatusEffect>& activeEffects = {}) const;
-
     void printDebug() const;
 };
 
@@ -175,8 +163,6 @@ public:
     void setQuestStage(const std::string& questId, int stage);
     int getQuestStage(const std::string& questId) const;
 };
-
-// --- Core Entity ---
 
 class entity
 {
@@ -194,13 +180,11 @@ public:
 
     entity(std::string entityId, std::string entityName);
 
-    // Status Effect Management
     void addStatusEffect(const StatusEffect& effect);
     void removeStatusEffect(const std::string& effectId);
     bool hasStatusEffect(const std::string& effectId) const;
     void updateStatusEffectsOnTurn();
 
-    // Primary Stat Evaluation
     float getStat(const std::string& statName) const
     {
         return stats.getEffectiveStat(statName, statusEffects);

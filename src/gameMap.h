@@ -1,6 +1,4 @@
-#ifndef GAMEMAP_H
-#define GAMEMAP_H
-
+#pragma once
 #include <vector>
 #include <string>
 #include <unordered_map>
@@ -8,9 +6,9 @@
 #include <algorithm>
 #include <nlohmann/json.hpp>
 
-#include "quest.h" // Includes MapTrigger, gameCondition, and gameEffect definitions
+#include "quest.h"
 
-class entity; // Forward declaration
+class entity;
 
 enum TileType
 {
@@ -80,11 +78,9 @@ public:
     Tile getTile(int x, int y) const;
     bool checkWarp(int x, int y, MapWarp& outWarp) const;
 
-    // --- Add Save/Load Declarations Right Here ---
     nlohmann::json saveStateToJson() const;
     void loadStateFromJson(const nlohmann::json& j);
 
-    // --- Dynamic Tile Data & Trigger Helpers ---
     TileRuntimeData& getRuntimeData(int x, int y);
     std::string getTileKey(int x, int y) const;
     const std::vector<MapTrigger>& getTriggers() const { return triggers; }
@@ -105,5 +101,3 @@ private:
     std::vector<MapTrigger> triggers;
     std::unordered_map<std::string, TileRuntimeData> runtimeData;
 };
-
-#endif

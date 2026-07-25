@@ -2,8 +2,8 @@
 #include <SDL3/SDL.h>
 #include <algorithm>
 #include <cmath>
+#include <string>
 
-// Global UI Radius Constant for perfect consistency across every panel
 constexpr float GLOBAL_CORNER_RADIUS = 8.0f;
 
 inline SDL_Color getColorFromName(const std::string& colorName)
@@ -22,7 +22,7 @@ inline SDL_Color getColorFromName(const std::string& colorName)
     if (lower == "black" || lower == "dark") return { 100, 100, 110, 255 };
     if (lower == "white") return { 240, 240, 240, 255 };
 
-    return { 220, 220, 230, 255 }; // Default fallback
+    return { 220, 220, 230, 255 };
 }
 
 inline void renderFillRoundedRect(SDL_Renderer* renderer, SDL_FRect rect, float radius, SDL_Color color)
@@ -36,13 +36,11 @@ inline void renderFillRoundedRect(SDL_Renderer* renderer, SDL_FRect rect, float 
         return;
     }
 
-    // 1. Fill Inner Cross (Horizontal + Vertical)
     SDL_FRect innerH = { rect.x + radius, rect.y, rect.w - (2.0f * radius), rect.h };
     SDL_FRect innerV = { rect.x, rect.y + radius, rect.w, rect.h - (2.0f * radius) };
     SDL_RenderFillRect(renderer, &innerH);
     SDL_RenderFillRect(renderer, &innerV);
 
-    // 2. Fill Corners Cleanly without edge overshoot
     float r2 = radius * radius;
     auto fillCorner = [&](float cx, float cy, float startX, float endX, float startY, float endY)
         {
@@ -60,10 +58,10 @@ inline void renderFillRoundedRect(SDL_Renderer* renderer, SDL_FRect rect, float 
             }
         };
 
-    fillCorner(rect.x + radius, rect.y + radius, rect.x, rect.x + radius, rect.y, rect.y + radius); // Top-Left
-    fillCorner(rect.x + rect.w - radius, rect.y + radius, rect.x + rect.w - radius, rect.x + rect.w, rect.y, rect.y + radius); // Top-Right
-    fillCorner(rect.x + radius, rect.y + rect.h - radius, rect.x, rect.x + radius, rect.y + rect.h - radius, rect.y + rect.h); // Bottom-Left
-    fillCorner(rect.x + rect.w - radius, rect.y + rect.h - radius, rect.x + rect.w - radius, rect.x + rect.w, rect.y + rect.h - radius, rect.y + rect.h); // Bottom-Right
+    fillCorner(rect.x + radius, rect.y + radius, rect.x, rect.x + radius, rect.y, rect.y + radius);
+    fillCorner(rect.x + rect.w - radius, rect.y + radius, rect.x + rect.w - radius, rect.x + rect.w, rect.y, rect.y + radius);
+    fillCorner(rect.x + radius, rect.y + rect.h - radius, rect.x, rect.x + radius, rect.y + rect.h - radius, rect.y + rect.h);
+    fillCorner(rect.x + rect.w - radius, rect.y + rect.h - radius, rect.x + rect.w - radius, rect.x + rect.w, rect.y + rect.h - radius, rect.y + rect.h);
 }
 
 inline void renderDrawRoundedRect(SDL_Renderer* renderer, SDL_FRect rect, float radius, SDL_Color color)
@@ -80,13 +78,11 @@ inline void renderDrawRoundedRect(SDL_Renderer* renderer, SDL_FRect rect, float 
     float x2 = rect.x + rect.w - 1.0f;
     float y2 = rect.y + rect.h - 1.0f;
 
-    // 1. Straight Outer Border Edges
     SDL_RenderLine(renderer, rect.x + radius, rect.y, x2 - radius, rect.y);
     SDL_RenderLine(renderer, rect.x + radius, y2, x2 - radius, y2);
     SDL_RenderLine(renderer, rect.x, rect.y + radius, rect.x, y2 - radius);
     SDL_RenderLine(renderer, x2, rect.y + radius, x2, y2 - radius);
 
-    // 2. Corner Arcs
     auto drawArc = [&](float cx, float cy, float quadX, float quadY)
         {
             float prevX = cx + quadX * radius;
