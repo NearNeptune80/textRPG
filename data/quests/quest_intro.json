@@ -15,17 +15,12 @@
           "type": "QUEST_STAGE",
           "target": "root_delivery",
           "requiredValue": 0
-        },
-        {
-          "type": "TIME_PHASE",
-          "target": "DAY",
-          "requiredValue": 0
         }
       ]
     }
   ],
   "stages": {
-    "0": "Find the stranger in the town district at dawn.",
+    "0": "Find the stranger in the town district.",
     "1": "Hand over the Canis Root.",
     "2": "Quest completed!"
   },

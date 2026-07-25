@@ -173,8 +173,8 @@ void UI::DrawInventoryGrid(SDL_Renderer* renderer, game* g, SDL_FRect bounds, en
             SDL_Color bgCol = hasItem ? SDL_Color{ 50, 55, 75, 255 } : SDL_Color{ 40, 38, 48, 255 };
             renderFillRoundedRect(renderer, slot, 4.0f, bgCol);
 
-            // Highlight selection
-            bool isSelected = (side == 0) && (absoluteItemIdx == selectedIndex);
+            // Highlight selection on either side
+            bool isSelected = (side == g->selectedInventorySide) && (absoluteItemIdx == selectedIndex);
             SDL_Color borderCol = isSelected ? SDL_Color{ 255, 215, 0, 255 } : SDL_Color{ 65, 60, 75, 255 };
             renderDrawRoundedRect(renderer, slot, 4.0f, borderCol);
 
@@ -200,16 +200,22 @@ void UI::DrawItemDetailPanel(SDL_Renderer* renderer, game* g, SDL_FRect bounds, 
     float pad = bounds.h * 0.04f;
 
     std::shared_ptr<item> selectedItem = nullptr;
-    if (targetEntity)
+    TileRuntimeData& tileData = g->map->getRuntimeData(g->gridX, g->gridY);
+
+    if (g->selectedInventoryIndex >= 0)
     {
-        if (selectedIndex >= 0 && static_cast<size_t>(selectedIndex) < targetEntity->inventory.backpack.size())
+        if (g->selectedInventorySide == 0 && targetEntity && static_cast<size_t>(g->selectedInventoryIndex) < targetEntity->inventory.backpack.size())
         {
-            selectedItem = targetEntity->inventory.backpack[selectedIndex];
+            selectedItem = targetEntity->inventory.backpack[g->selectedInventoryIndex];
         }
-        else if (g->selectedEquipmentSlot != equipSlot::NONE && targetEntity->inventory.isEquipped(g->selectedEquipmentSlot))
+        else if (g->selectedInventorySide == 1 && static_cast<size_t>(g->selectedInventoryIndex) < tileData.droppedItems.size())
         {
-            selectedItem = targetEntity->inventory.getEquippedItem(g->selectedEquipmentSlot);
+            selectedItem = tileData.droppedItems[g->selectedInventoryIndex];
         }
+    }
+    else if (g->selectedEquipmentSlot != equipSlot::NONE && targetEntity && targetEntity->inventory.isEquipped(g->selectedEquipmentSlot))
+    {
+        selectedItem = targetEntity->inventory.getEquippedItem(g->selectedEquipmentSlot);
     }
 
     if (!selectedItem)
@@ -257,11 +263,9 @@ void UI::DrawItemDetailPanel(SDL_Renderer* renderer, game* g, SDL_FRect bounds, 
         currentY += reqH + (pad * 0.2f);
     }
 
-    // 4. Scrollable Description Viewport with Height Clamping
-    // Scrollable Description Viewport
+    // 4. Scrollable Description Viewport
     float descH = bounds.h - currentY - pad;
 
-    // Construct viewport guard in absolute coordinates for clipping bounds
     SDL_Rect descClip = {
         static_cast<int>(bounds.x + pad),
         static_cast<int>(bounds.y + currentY),
@@ -272,7 +276,6 @@ void UI::DrawItemDetailPanel(SDL_Renderer* renderer, game* g, SDL_FRect bounds, 
     {
         ViewportGuard descGuard(renderer, &descClip);
 
-        // Pass 0.0f for X and -descriptionScrollY for Y relative to the clipped guard
         SDL_FRect descContentRect = { 0.0f, -g->descriptionScrollY, textW, descH };
         std::string descText = selectedItem->description.empty() ? "No description available." : selectedItem->description;
 

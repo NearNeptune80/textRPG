@@ -447,15 +447,17 @@ void game::handleMouseClick(float windowX, float windowY)
                         else currentRightInventoryPage = t;
 
                         selectedInventoryIndex = -1;
+                        descriptionScrollY = 0.0f;
                         refreshActionGrid();
                         return;
                     }
                 }
             }
 
-            // B. Test Inventory Item Slots
+            // B. Test Inventory Item Slots (Left = Player Backpack, Right = Tile Ground)
             int cols = 6, rows = 5;
             int itemsPerPage = cols * rows;
+            TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
 
             for (int side = 0; side < 2; side++)
             {
@@ -470,10 +472,11 @@ void game::handleMouseClick(float windowX, float windowY)
                     if (UIGridHelper::contains(slot, localMouseX, localMouseY))
                     {
                         selectedEquipmentSlot = equipSlot::NONE;
+                        int absoluteItemIdx = pageOffset + i;
 
                         if (side == 0 && Player)
                         {
-                            int absoluteItemIdx = pageOffset + i;
+                            selectedInventorySide = 0;
                             if (absoluteItemIdx < static_cast<int>(Player->inventory.backpack.size()))
                             {
                                 selectedInventoryIndex = absoluteItemIdx;
@@ -482,9 +485,21 @@ void game::handleMouseClick(float windowX, float windowY)
                             {
                                 selectedInventoryIndex = -1;
                             }
-                            descriptionScrollY = 0.0f; // Reset scroll on item change
+                        }
+                        else if (side == 1)
+                        {
+                            selectedInventorySide = 1;
+                            if (absoluteItemIdx < static_cast<int>(tileData.droppedItems.size()))
+                            {
+                                selectedInventoryIndex = absoluteItemIdx;
+                            }
+                            else
+                            {
+                                selectedInventoryIndex = -1;
+                            }
                         }
 
+                        descriptionScrollY = 0.0f; // Reset scroll on item change
                         refreshActionGrid();
                         return;
                     }
@@ -591,6 +606,37 @@ void game::handleUnequipAction(equipSlot slot)
 void game::refreshActionGrid()
 {
     activeButtons.clear();
+
+    if (currentState == GameState::EXPLORATION)
+    {
+        activeButtons.clear();
+
+        // 1. Map Triggers on Current Tile (Flows naturally from left-to-right)
+        auto triggers = questDatabase::getTriggersForLocation(map->getId(), gridX, gridY);
+        for (const auto& trig : triggers)
+        {
+            if (checkConditions(trig.conditions))
+            {
+                actionButton trigBtn;
+                trigBtn.label = trig.label;
+                // Leave slotIndex = -1 to auto-flow left-to-right
+                std::string sId = trig.sceneId;
+                trigBtn.onClick = [this, sId]() { loadScene(sId); };
+                activeButtons.push_back(trigBtn);
+            }
+        }
+
+        // 2. Map Warps on Current Tile (Flows into next available slot)
+        MapWarp w;
+        if (map->checkWarp(gridX, gridY, w))
+        {
+            actionButton warpBtn;
+            warpBtn.label = "Enter Door";
+            // Leave slotIndex = -1 to auto-flow left-to-right
+            warpBtn.onClick = [this, w]() { loadMap(w.targetMap, w.targetX, w.targetY); };
+            activeButtons.push_back(warpBtn);
+        }
+    }
 
     if (currentState == GameState::INVENTORY)
     {

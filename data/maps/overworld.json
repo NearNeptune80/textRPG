@@ -35,5 +35,22 @@
       "targetX": 2,
       "targetY": 3
     }
+  ],
+  "triggers": [
+    {
+      "id": "trig_stranger_start",
+      "mapId": "overworld",
+      "x": 1,
+      "y": 1,
+      "label": "Talk to Stranger",
+      "sceneId": "quest_intro_01",
+      "conditions": [
+        {
+          "type": "QUEST_STAGE",
+          "target": "root_delivery",
+          "requiredValue": 0
+        }
+      ]
+    }
   ]
 }

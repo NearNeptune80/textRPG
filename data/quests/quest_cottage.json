@@ -1,0 +1,71 @@
+{
+  "id": "cottage_investigation",
+  "name": "The Mysterious Bookshelf",
+  "description": "Investigate the strange ancient bookshelf inside the Cozy Cottage.",
+  "triggers": [
+    {
+      "id": "trig_bookshelf",
+      "mapId": "house_01",
+      "x": 2,
+      "y": 1,
+      "label": "Inspect Bookshelf",
+      "sceneId": "cottage_bookshelf_01",
+      "conditions": []
+    }
+  ],
+  "stages": {
+    "0": "Examine the bookshelf in the cozy cottage.",
+    "1": "You extracted the Arcane Codex!"
+  },
+  "scenes": [
+    {
+      "id": "cottage_bookshelf_01",
+      "speakerName": "Old Bookshelf",
+      "bodyText": "A heavy wooden bookshelf lined with dusty ancient volumes. One peculiar spine glows with faint golden light.",
+      "choices": [
+        {
+          "label": "Pull glowing book (Arcane >= 10)",
+          "requirements": [
+            {
+              "type": "STAT_MIN",
+              "target": "arcane",
+              "requiredValue": 10
+            }
+          ],
+          "results": [
+            {
+              "action": "GIVE_ITEM",
+              "target": "item_ancient_tome",
+              "amount": 1
+            },
+            {
+              "action": "SET_QUEST",
+              "target": "cottage_investigation",
+              "amount": 1
+            }
+          ],
+          "nextSceneId": "cottage_bookshelf_02"
+        },
+        {
+          "label": "Leave it alone.",
+          "requirements": [],
+          "results": [],
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "cottage_bookshelf_02",
+      "speakerName": "System",
+      "bodyText": "You channel your arcane energy to safely extract the Arcane Codex of the Forgotten Sun from the bookshelf mechanism!",
+      "choices": [
+        {
+          "label": "Continue",
+          "requirements": [],
+          "results": [],
+          "nextSceneId": "EXIT"
+        }
+      ]
+    }
+  ]
+}
