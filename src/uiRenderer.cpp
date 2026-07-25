@@ -2,387 +2,389 @@
 #include "uiRenderer.h"
 #include "uiWidget.h"
 
-void game::updateLayoutBounds(int w, int h)
+// --- Atomic Primitive Implementations ---
+
+void UI::DrawProgressBar(SDL_Renderer* renderer, game* g, SDL_FRect bounds, float currentVal, float maxVal, SDL_Color fillColor, SDL_Color bgColor)
 {
-    int padding = 12;
-    int topBarH = (int)(h * 0.05f);
-    int mapSize = (int)(h * 0.30f);
-
-    int colStartY = padding + topBarH + padding;
-    int colEndY = h - padding;
-
-    int leftColW = mapSize;
-    int rightColW = mapSize;
-    int centerColW = w - (leftColW + rightColW + (4 * padding));
-
-    int leftX = padding;
-    int centerX = leftX + leftColW + padding;
-
-    layout.mapRect = { leftX, colEndY - mapSize, mapSize, mapSize };
-
-    int timeH = (int)(mapSize * 0.28f);
-    int timeY = colEndY - mapSize - padding - timeH;
-    layout.timeRect = { leftX, timeY, leftColW, timeH };
-
-    int charH = (int)(mapSize * 0.82f);
-    layout.charRect = { leftX, colStartY, leftColW, charH };
-
-    int midY = colStartY + charH + padding;
-    int midH = timeY - padding - midY;
-    layout.companionRect = { leftX, midY, leftColW, midH };
-
-    int btnH = (int)(h * 0.15f);
-    layout.textMainRect = { centerX, colStartY, centerColW, (colEndY - btnH - padding) - colStartY };
-    layout.actionGridRect = { (float)centerX, (float)(colEndY - btnH), (float)centerColW, (float)btnH };
-
-    layout.equipRect = layout.mapRect;
-    layout.inventoryRect = layout.textMainRect;
-}
-
-void game::renderDashboardLayout()
-{
-    int w, h;
-    SDL_RendererLogicalPresentation mode;
-    if (!SDL_GetRenderLogicalPresentation(renderer, &w, &h, &mode)) return;
-
-    updateLayoutBounds(w, h);
-
-    int padding = 12;
-    int topBarH = (int)(h * 0.05f);
-
-    int leftX = layout.charRect.x;
-    int leftW = layout.charRect.w;
-    int centerX = layout.textMainRect.x;
-    int centerW = layout.textMainRect.w;
-    int rightX = layout.textMainRect.x + layout.textMainRect.w + padding;
-    int rightW = leftW;
-
-    SDL_Rect slotTitle1 = { leftX, padding, leftW, topBarH };
-    SDL_Rect slotTitle2 = { centerX, padding, centerW, topBarH };
-    SDL_Rect slotTitle3 = { rightX, padding, rightW, topBarH };
-
-    int rightColW = layout.mapRect.w;
-    int colStartY = layout.charRect.y;
-    int colEndY = h - padding;
-    int rightAvailableH = colEndY - colStartY;
-    int rightStackH = (rightAvailableH - (2 * padding)) / 3;
-
-    SDL_Rect slotTopRight = { rightX, colStartY, rightColW, rightStackH };
-    SDL_Rect slotMidRight = { rightX, colStartY + rightStackH + padding, rightColW, rightStackH };
-    SDL_Rect slotBotRight = { rightX, colStartY + (rightStackH + padding) * 2, rightColW, rightAvailableH - (rightStackH * 2 + padding * 2) };
-
-    renderTitleBar(slotTitle1, slotTitle2, slotTitle3);
-    renderCharacterPanel({ (float)layout.charRect.x, (float)layout.charRect.y, (float)layout.charRect.w, (float)layout.charRect.h }, Player);
-    renderCompanionPanel(layout.companionRect);
-    renderTimePanel(layout.timeRect);
-    renderActionGrid(layout.actionGridRect);
-
-    switch (currentState)
+    renderFillRoundedRect(renderer, bounds, 3.0f, bgColor);
+    float pct = std::clamp(currentVal / maxVal, 0.0f, 1.0f);
+    if (pct > 0.0f)
     {
-        case GameState::EVENT:
-        case GameState::EXPLORATION:
-            renderMapPanel(layout.mapRect, padding);
-            renderTextPanel(layout.textMainRect);
-            renderRightColumn(slotTopRight, slotMidRight, slotBotRight);
-            break;
-
-        case GameState::INVENTORY:
-            renderEquipmentPanel(layout.equipRect, padding);
-            renderInventoryPanel(layout.inventoryRect);
-            renderRightColumn(slotTopRight, slotMidRight, slotBotRight);
-            break;
-
-        default: break;
-    }
-
-    float charPadX = layout.charRect.w * 0.04f;
-    float charPadY = layout.charRect.h * 0.04f;
-    float avatarSize = layout.charRect.h * 0.16f;
-
-    SDL_FRect avatarScreenRect = {
-        (float)layout.charRect.x + charPadX,
-        (float)layout.charRect.y + charPadY,
-        avatarSize,
-        avatarSize
-    };
-
-    float winX, winY, mouseX, mouseY;
-    SDL_GetMouseState(&winX, &winY);
-    SDL_RenderCoordinatesFromWindow(renderer, winX, winY, &mouseX, &mouseY);
-
-    if (UIGridHelper::contains(avatarScreenRect, mouseX, mouseY))
-    {
-        renderAnatomyTooltip(mouseX + 15.0f, mouseY + 15.0f);
+        SDL_FRect fillRect = { bounds.x, bounds.y, bounds.w * pct, bounds.h };
+        renderFillRoundedRect(renderer, fillRect, 3.0f, fillColor);
     }
 }
 
-void game::renderMainMenuLayout()
+void UI::DrawVitalRow(SDL_Renderer* renderer, game* g, SDL_FRect bounds, float currentVal, float maxVal, SDL_Color barColor)
 {
-    int w, h;
-    SDL_RendererLogicalPresentation mode;
-    if (!SDL_GetRenderLogicalPresentation(renderer, &w, &h, &mode)) return;
+    float iconRadius = bounds.h;
+    float barHeight = bounds.h * 0.80f;
+    float padX = bounds.w * 0.02f;
 
-    SDL_Rect menuRect = { w / 4, h / 4, w / 2, h / 2 };
-    ViewportGuard vpGuard(renderer, &menuRect);
+    SDL_FRect iconRect = { bounds.x, bounds.y, iconRadius, iconRadius };
+    renderFillRoundedRect(renderer, iconRect, 3.0f, { 45, 40, 50, 255 });
 
-    SDL_FRect panelRect = { 0.0f, 0.0f, (float)menuRect.w, (float)menuRect.h };
-    renderFillRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 20, 60, 80, 255 });
-    renderDrawRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 60, 120, 160, 255 });
+    float valueTextWidth = bounds.w * 0.18f;
+    float barW = bounds.w - iconRadius - valueTextWidth - padX;
+    float fillX = bounds.x + iconRadius + padX;
+    float barY = bounds.y + (iconRadius - barHeight) / 2.0f;
+
+    SDL_FRect bgRect = { fillX, barY, barW, barHeight };
+    DrawProgressBar(renderer, g, bgRect, currentVal, maxVal, barColor);
+
+    SDL_FRect textRect = { fillX + barW + padX, bounds.y, valueTextWidth, iconRadius };
+    g->drawTextFit(std::to_string(static_cast<int>(currentVal)), textRect, { 240, 240, 240, 255 });
 }
 
-void game::renderTitleBar(SDL_Rect t1, SDL_Rect t2, SDL_Rect t3)
+void UI::DrawEquipmentGrid(SDL_Renderer* renderer, game* g, SDL_FRect bounds, entity* targetEntity, equipSlot selectedSlot, int padding)
 {
-    SDL_Rect boxes[3] = { t1, t2, t3 };
-    for (int i = 0; i < 3; i++)
-    {
-        ViewportGuard vpGuard(renderer, &boxes[i]);
-        SDL_FRect r = { 0.0f, 0.0f, (float)boxes[i].w, (float)boxes[i].h };
-        renderFillRoundedRect(renderer, r, GLOBAL_CORNER_RADIUS, { 45, 45, 52, 255 });
-        renderDrawRoundedRect(renderer, r, GLOBAL_CORNER_RADIUS, { 65, 65, 75, 255 });
-    }
+    SDL_Rect viewRect = { static_cast<int>(bounds.x), static_cast<int>(bounds.y), static_cast<int>(bounds.w), static_cast<int>(bounds.h) };
+    ViewportGuard vpGuard(renderer, &viewRect);
 
-    if (activeTargetNPC && activeTargetMode != TargetMode::NONE)
-    {
-        ViewportGuard vpGuard(renderer, &t3);
-        SDL_Color headerColor = { 255, 100, 150, 255 };
-        std::string headerTitle = "Enemy";
+    SDL_FRect panelRect = { 0.0f, 0.0f, bounds.w, bounds.h };
+    renderFillRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 25, 20, 30, 255 });
+    renderDrawRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 100, 50, 150, 255 });
 
-        if (activeTargetMode == TargetMode::DIALOGUE)
+    int cols = 6, rows = 6;
+    for (int r = 0; r < rows; r++)
+    {
+        for (int c = 0; c < cols; c++)
         {
-            headerColor = { 100, 210, 255, 255 };
-            headerTitle = "Interacting With";
-        }
-        else if (activeTargetMode == TargetMode::COMPANION)
-        {
-            headerColor = { 120, 240, 150, 255 };
-            headerTitle = "Ally";
-        }
+            int slotIdx = (r * cols) + c;
+            SDL_FRect slot = UIGridHelper::getEquipmentSlotRect(viewRect, c, r, cols, rows, 4, padding);
 
-        SDL_FRect titleRect = { 0.0f, 0.0f, (float)t3.w, (float)t3.h };
-        drawTextFit(headerTitle, titleRect, headerColor, "title_font");
+            // Adjust to viewport local coords
+            slot.x -= bounds.x;
+            slot.y -= bounds.y;
+
+            bool isOccupied = false;
+            std::string equippedName = "";
+            bool isSelectedEquip = false;
+
+            if (targetEntity)
+            {
+                for (const auto& [eSlot, eqItem] : targetEntity->inventory.equipped)
+                {
+                    if (g->getEquipmentGridIndex(eSlot) == slotIdx && eqItem && !eqItem->id.empty())
+                    {
+                        isOccupied = true;
+                        equippedName = eqItem->name;
+                        if (eSlot == selectedSlot) isSelectedEquip = true;
+                        break;
+                    }
+                }
+            }
+
+            SDL_Color fillCol = isOccupied ? SDL_Color{ 100, 60, 160, 255 } : SDL_Color{ 45, 40, 50, 255 };
+            renderFillRoundedRect(renderer, slot, GLOBAL_CORNER_RADIUS, fillCol);
+
+            SDL_Color borderCol = isSelectedEquip ? SDL_Color{ 255, 215, 0, 255 } : SDL_Color{ 80, 75, 95, 255 };
+            renderDrawRoundedRect(renderer, slot, GLOBAL_CORNER_RADIUS, borderCol);
+
+            if (isOccupied && !equippedName.empty())
+            {
+                g->drawTextFit(equippedName, slot, { 255, 215, 0, 255 });
+            }
+        }
     }
 }
 
-void game::renderCompanionPanel(SDL_Rect rect)
+void UI::DrawInventoryGrid(SDL_Renderer* renderer, game* g, SDL_FRect bounds, entity* targetEntity, int selectedIndex)
 {
-    ViewportGuard vpGuard(renderer, &rect);
+    SDL_Rect viewRect = { static_cast<int>(bounds.x), static_cast<int>(bounds.y), static_cast<int>(bounds.w), static_cast<int>(bounds.h) };
+    ViewportGuard vpGuard(renderer, &viewRect);
 
-    SDL_FRect panelRect = { 0.0f, 0.0f, (float)rect.w, (float)rect.h };
-    renderFillRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 30, 28, 35, 255 });
-    renderDrawRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 60, 55, 65, 255 });
+    SDL_FRect panelRect = { 0.0f, 0.0f, bounds.w, bounds.h };
+    renderFillRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 35, 35, 45, 255 });
+    renderDrawRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 60, 60, 75, 255 });
+
+    SDL_SetRenderDrawColor(renderer, 60, 60, 70, 255);
+    SDL_RenderLine(renderer, bounds.w / 2.0f, 20.0f, bounds.w / 2.0f, bounds.h - 20.0f);
+
+    int cols = 6, rows = 5;
+    int maxSlots = cols * rows * 2;
+
+    for (int i = 0; i < maxSlots; i++)
+    {
+        SDL_FRect slot = UIGridHelper::getInventorySlotRect(viewRect, i, cols, rows);
+        slot.x -= bounds.x;
+        slot.y -= bounds.y;
+
+        bool hasItem = (targetEntity != nullptr) && (i < static_cast<int>(targetEntity->inventory.backpack.size()));
+
+        SDL_Color bgCol = hasItem ? SDL_Color{ 60, 70, 90, 255 } : SDL_Color{ 50, 50, 60, 255 };
+        renderFillRoundedRect(renderer, slot, GLOBAL_CORNER_RADIUS, bgCol);
+
+        SDL_Color borderCol = (i == selectedIndex) ? SDL_Color{ 255, 215, 0, 255 } : SDL_Color{ 70, 70, 85, 255 };
+        renderDrawRoundedRect(renderer, slot, GLOBAL_CORNER_RADIUS, borderCol);
+
+        if (hasItem)
+        {
+            std::string displayName = targetEntity->inventory.backpack[i]->name;
+            if (displayName.length() > 8) displayName = displayName.substr(0, 7) + ".";
+
+            SDL_FRect textSlot = { slot.x + 2.0f, slot.y + 2.0f, slot.w - 4.0f, slot.h - 4.0f };
+            g->drawTextFit(displayName, textSlot, { 255, 255, 255, 255 });
+        }
+    }
 }
 
-void game::renderCharacterPanel(SDL_FRect rect, entity* playerObj)
+void UI::DrawEntitySummaryCard(SDL_Renderer* renderer, game* g, SDL_FRect bounds, entity* targetEntity, bool isEnemy)
 {
-    ViewportGuard vpGuard(renderer, &rect);
+    SDL_Rect viewRect = { static_cast<int>(bounds.x), static_cast<int>(bounds.y), static_cast<int>(bounds.w), static_cast<int>(bounds.h) };
+    ViewportGuard vpGuard(renderer, &viewRect);
 
-    SDL_FRect panelRect = { 0.0f, 0.0f, rect.w, rect.h };
-    renderFillRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 30, 28, 35, 255 });
-    renderDrawRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 60, 55, 65, 255 });
+    SDL_FRect cardRect = { 0.0f, 0.0f, bounds.w, bounds.h };
+    renderFillRoundedRect(renderer, cardRect, GLOBAL_CORNER_RADIUS, { 30, 28, 35, 255 });
+    renderDrawRoundedRect(renderer, cardRect, GLOBAL_CORNER_RADIUS, { 60, 55, 65, 255 });
 
-    if (!playerObj) return;
+    if (!targetEntity) return;
 
-    float padX = rect.w * 0.04f;
-    float padY = rect.h * 0.04f;
-    float contentW = rect.w - (padX * 2.0f);
+    float padX = bounds.w * 0.04f;
+    float padY = bounds.h * 0.04f;
+    float contentW = bounds.w - (padX * 2.0f);
     float currentY = padY;
-    float dividerGap = rect.h * 0.025f;
+    float dividerGap = bounds.h * 0.025f;
 
     auto drawHorizontalDivider = [&](float y)
         {
             SDL_SetRenderDrawColor(renderer, 50, 46, 55, 255);
-            SDL_RenderLine(renderer, padX, y, rect.w - padX, y);
+            SDL_RenderLine(renderer, padX, y, bounds.w - padX, y);
         };
 
-    float avatarSize = rect.h * 0.16f;
+    float avatarSize = bounds.h * 0.16f;
     SDL_FRect avatarRect = { padX, currentY, avatarSize, avatarSize };
     renderFillRoundedRect(renderer, avatarRect, 4.0f, { 50, 50, 60, 255 });
-    renderDrawRoundedRect(renderer, avatarRect, 4.0f, { 90, 90, 105, 255 });
+
+    SDL_Color avatarBorder = isEnemy ? SDL_Color{ 255, 120, 170, 255 } : SDL_Color{ 90, 90, 105, 255 };
+    renderDrawRoundedRect(renderer, avatarRect, 4.0f, avatarBorder);
 
     float headerTextX = avatarRect.x + avatarSize + (padX * 0.8f);
-    std::string headerStr = playerObj->name + " - Level " + std::to_string(playerObj->stats.level);
+    std::string headerStr = targetEntity->name + " - Level " + std::to_string(targetEntity->stats.level);
     float headerTextH = avatarSize * 0.55f;
-    SDL_FRect headerTextRect = { headerTextX, currentY, rect.w - headerTextX - padX, headerTextH };
-    drawTextFit(headerStr, headerTextRect, { 160, 200, 255, 255 });
+    SDL_FRect headerTextRect = { headerTextX, currentY, bounds.w - headerTextX - padX, headerTextH };
 
-    float xpBarY = currentY + headerTextH + (padY * 0.3f);
-    float xpBarW = rect.w - headerTextX - padX;
-    float xpBarH = avatarSize * 0.18f;
+    SDL_Color nameColor = isEnemy ? SDL_Color{ 255, 120, 170, 255 } : SDL_Color{ 160, 200, 255, 255 };
+    g->drawTextFit(headerStr, headerTextRect, nameColor, "title_font");
 
-    SDL_FRect xpBg = { headerTextX, xpBarY, xpBarW, xpBarH };
-    renderFillRoundedRect(renderer, xpBg, 3.0f, { 20, 18, 25, 255 });
-
-    float currentXp = playerObj->stats.getBaseStat("xp");
-    float xpFillPct = std::clamp(currentXp / 100.0f, 0.0f, 1.0f);
-    SDL_FRect xpFill = { headerTextX, xpBarY, xpBarW * xpFillPct, xpBarH };
-    renderFillRoundedRect(renderer, xpFill, 3.0f, { 80, 200, 230, 255 });
-
-    currentY += avatarSize + dividerGap;
-    drawHorizontalDivider(currentY);
-    currentY += dividerGap;
-
-    float halfWidth = contentW / 2.0f;
-    float currencyH = rect.h * 0.08f;
-    drawTextFit("¤ " + std::to_string((int)playerObj->stats.getBaseStat("currency")), { padX, currentY, halfWidth, currencyH }, { 255, 215, 0, 255 });
-    drawTextFit("★ " + std::to_string((int)playerObj->stats.getBaseStat("gems")), { padX + halfWidth, currentY, halfWidth, currencyH }, { 255, 100, 220, 255 });
-
-    currentY += currencyH + dividerGap;
-    drawHorizontalDivider(currentY);
-    currentY += dividerGap;
-
-    float colWidth = contentW / 3.0f;
-    float miniStatH = rect.h * 0.09f;
-
-    auto drawMiniStat = [&](int colIndex, const std::string& statName, SDL_Color textColor)
-        {
-            float colX = padX + (colIndex * colWidth);
-            SDL_FRect iconBox = { colX, currentY, miniStatH, miniStatH };
-            renderFillRoundedRect(renderer, iconBox, 3.0f, { 45, 42, 50, 255 });
-
-            int val = (int)playerObj->stats.getBaseStat(statName);
-            SDL_FRect valRect = { colX + miniStatH + 4.0f, currentY, colWidth - miniStatH - 4.0f, miniStatH };
-            drawTextFit(std::to_string(val), valRect, textColor);
-        };
-
-    drawMiniStat(0, "physique", { 255, 50, 120, 255 });
-    drawMiniStat(1, "arcane", { 180, 110, 255, 255 });
-    drawMiniStat(2, "corruption", { 100, 200, 255, 255 });
-
-    currentY += miniStatH + dividerGap;
-    drawHorizontalDivider(currentY);
-    currentY += dividerGap;
-
-    float barHeight = rect.h * 0.065f;
-    float iconRadius = barHeight * 1.20f;
-    float valueTextWidth = contentW * 0.18f;
-    float barW = contentW - iconRadius - valueTextWidth - (padX * 0.5f);
-    float barGap = rect.h * 0.02f;
-
-    auto drawVitalBar = [&](float y, const std::string& statName, float maxVal, SDL_Color barColor)
-        {
-            SDL_FRect iconRect = { padX, y, iconRadius, iconRadius };
-            renderFillRoundedRect(renderer, iconRect, 3.0f, { 45, 40, 50, 255 });
-
-            float fillX = padX + iconRadius + (padX * 0.5f);
-            float barY = y + (iconRadius - barHeight) / 2.0f;
-
-            SDL_FRect bgRect = { fillX, barY, barW, barHeight };
-            renderFillRoundedRect(renderer, bgRect, 3.0f, { 20, 18, 25, 255 });
-
-            float currentVal = playerObj->stats.getBaseStat(statName);
-            float fillPct = std::clamp(currentVal / maxVal, 0.0f, 1.0f);
-            if (fillPct > 0.0f)
-            {
-                SDL_FRect fillRect = { fillX, barY, barW * fillPct, barHeight };
-                renderFillRoundedRect(renderer, fillRect, 3.0f, barColor);
-            }
-
-            SDL_FRect textRect = { fillX + barW + (padX * 0.4f), y, valueTextWidth, iconRadius };
-            drawTextFit(std::to_string((int)currentVal), textRect, { 240, 240, 240, 255 });
-        };
-
-    drawVitalBar(currentY, "health", 100.0f, { 255, 60, 90, 255 });
-    currentY += iconRadius + barGap;
-
-    drawVitalBar(currentY, "mana", 100.0f, { 220, 130, 255, 255 });
-    currentY += iconRadius + barGap;
-
-    drawVitalBar(currentY, "lust", 100.0f, { 230, 50, 150, 255 });
-}
-
-void game::renderTimePanel(SDL_Rect rect)
-{
-    ViewportGuard vpGuard(renderer, &rect);
-
-    SDL_FRect panelRect = { 0.0f, 0.0f, (float)rect.w, (float)rect.h };
-    renderFillRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 30, 28, 35, 255 });
-    renderDrawRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 60, 55, 65, 255 });
-
-    float padX = rect.w * 0.04f;
-    float gapX = rect.w * 0.05f;
-
-    float leftColX = padX;
-    float leftColW = (rect.w - (2.0f * padX) - gapX) * 0.54f;
-    float rightColX = leftColX + leftColW + gapX;
-    float rightColW = rect.w - rightColX - padX;
-
-    float topHeaderY = rect.h * 0.10f;
-    float headerH = rect.h * 0.32f;
-    float bottomWidgetY = topHeaderY + headerH + (rect.h * 0.06f);
-    float bottomWidgetH = rect.h * 0.44f;
-
-    SDL_FRect dateBox = { leftColX, topHeaderY, leftColW, headerH };
-    drawTextFit(gameTime.getFormattedDate(), dateBox, { 220, 225, 240, 255 });
-
-    const char* days[7] = { "M", "T", "W", "T", "F", "S", "S" };
-    float daySlotW = leftColW / 7.0f;
-
-    SDL_FRect trackBg = { leftColX, bottomWidgetY, leftColW, bottomWidgetH };
-    renderFillRoundedRect(renderer, trackBg, 4.0f, { 20, 18, 24, 255 });
-    renderDrawRoundedRect(renderer, trackBg, 4.0f, { 48, 44, 56, 255 });
-
-    SDL_SetRenderDrawColor(renderer, 38, 35, 46, 255);
-    for (int i = 1; i < 7; i++)
+    if (!isEnemy)
     {
-        float lineX = leftColX + (i * daySlotW);
-        SDL_RenderLine(renderer, lineX, bottomWidgetY + 2.0f, lineX, bottomWidgetY + bottomWidgetH - 2.0f);
+        float xpBarY = currentY + headerTextH + (padY * 0.3f);
+        float xpBarW = bounds.w - headerTextX - padX;
+        float xpBarH = avatarSize * 0.18f;
+
+        SDL_FRect xpBg = { headerTextX, xpBarY, xpBarW, xpBarH };
+        float currentXp = targetEntity->stats.getBaseStat("xp");
+        DrawProgressBar(renderer, g, xpBg, currentXp, 100.0f, { 80, 200, 230, 255 });
+
+        currentY += avatarSize + dividerGap;
+        drawHorizontalDivider(currentY);
+        currentY += dividerGap;
+
+        float halfWidth = contentW / 2.0f;
+        float currencyH = bounds.h * 0.08f;
+        g->drawTextFit("¤ " + std::to_string(static_cast<int>(targetEntity->stats.getBaseStat("currency"))), { padX, currentY, halfWidth, currencyH }, { 255, 215, 0, 255 });
+        g->drawTextFit("★ " + std::to_string(static_cast<int>(targetEntity->stats.getBaseStat("gems"))), { padX + halfWidth, currentY, halfWidth, currencyH }, { 255, 100, 220, 255 });
+
+        currentY += currencyH + dividerGap;
+        drawHorizontalDivider(currentY);
+        currentY += dividerGap;
+
+        float colWidth = contentW / 3.0f;
+        float miniStatH = bounds.h * 0.09f;
+
+        auto drawMiniStat = [&](int colIndex, const std::string& statName, SDL_Color textColor)
+            {
+                float colX = padX + (colIndex * colWidth);
+                SDL_FRect iconBox = { colX, currentY, miniStatH, miniStatH };
+                renderFillRoundedRect(renderer, iconBox, 3.0f, { 45, 42, 50, 255 });
+
+                int val = static_cast<int>(targetEntity->stats.getBaseStat(statName));
+                SDL_FRect valRect = { colX + miniStatH + 4.0f, currentY, colWidth - miniStatH - 4.0f, miniStatH };
+                g->drawTextFit(std::to_string(val), valRect, textColor);
+            };
+
+        drawMiniStat(0, "physique", { 255, 50, 120, 255 });
+        drawMiniStat(1, "arcane", { 180, 110, 255, 255 });
+        drawMiniStat(2, "corruption", { 100, 200, 255, 255 });
+
+        currentY += miniStatH + dividerGap;
+        drawHorizontalDivider(currentY);
+        currentY += dividerGap;
+    }
+    else
+    {
+        currentY += avatarSize + dividerGap;
     }
 
-    for (int i = 0; i < 7; i++)
-    {
-        float slotX = leftColX + (i * daySlotW);
-        SDL_FRect textFitRect = { slotX + 1.0f, bottomWidgetY + (bottomWidgetH * 0.15f), daySlotW - 2.0f, bottomWidgetH * 0.70f };
+    float barHeight = bounds.h * 0.065f;
+    float iconRadius = barHeight * 1.20f;
+    float barGap = bounds.h * 0.02f;
 
-        if (i == gameTime.dayOfWeek)
+    SDL_FRect healthRow = { padX, currentY, contentW, iconRadius };
+    DrawVitalRow(renderer, g, healthRow, targetEntity->getStat("health"), 100.0f, { 255, 60, 90, 255 });
+    currentY += iconRadius + barGap;
+
+    SDL_FRect manaRow = { padX, currentY, contentW, iconRadius };
+    DrawVitalRow(renderer, g, manaRow, targetEntity->getStat("mana"), 100.0f, { 220, 130, 255, 255 });
+    currentY += iconRadius + barGap;
+
+    SDL_FRect lustRow = { padX, currentY, contentW, iconRadius };
+    DrawVitalRow(renderer, g, lustRow, targetEntity->getStat("lust"), 100.0f, { 230, 50, 150, 255 });
+}
+
+void UI::DrawAnatomyTooltip(SDL_Renderer* renderer, game* g, entity* targetEntity, float mouseX, float mouseY)
+{
+    if (!targetEntity) return;
+
+    int screenW = 1280, screenH = 720;
+    SDL_GetRenderOutputSize(renderer, &screenW, &screenH);
+
+    static const std::vector<bodySlot> anatomicalOrder = {
+        bodySlot::HAIR, bodySlot::HEAD, bodySlot::EYES, bodySlot::EARS, bodySlot::HORNS,
+        bodySlot::MOUTH, bodySlot::NECK, bodySlot::TORSO, bodySlot::BREASTS, bodySlot::STOMACH,
+        bodySlot::BACK, bodySlot::ARMS, bodySlot::HANDS, bodySlot::FINGERS, bodySlot::HIPS,
+        bodySlot::GROIN, bodySlot::ASS, bodySlot::TAIL, bodySlot::LEGS, bodySlot::FEET,
+        bodySlot::WINGS, bodySlot::TENTACLES, bodySlot::ANTENNAE
+    };
+
+    float headerH = screenH * 0.032f;
+    float subHeaderH = screenH * 0.024f;
+    float lineH = screenH * 0.025f;
+    float fontH = lineH * 0.80f;
+    float padding = screenW * 0.008f;
+    float bulletSize = fontH * 0.45f;
+
+    struct RenderRowData
+    {
+        bool isOccupied = false;
+        SDL_Color bulletColor = { 100, 100, 110, 255 };
+        std::vector<ColorToken> tokens;
+    };
+
+    std::vector<RenderRowData> rows;
+    float maxContentW = screenW * 0.18f;
+
+    for (bodySlot slot : anatomicalOrder)
+    {
+        RenderRowData row;
+        const bodyPart* part = targetEntity->anatomy.getPart(slot);
+
+        if (part != nullptr)
         {
-            float pillMargin = 2.0f;
-            SDL_FRect pillRect = { slotX + pillMargin, bottomWidgetY + pillMargin, daySlotW - (pillMargin * 2.0f), bottomWidgetH - (pillMargin * 2.0f) };
-            renderFillRoundedRect(renderer, pillRect, 3.0f, { 70, 60, 95, 255 });
-            renderDrawRoundedRect(renderer, pillRect, 3.0f, { 160, 140, 210, 255 });
-            drawTextFit(days[i], textFitRect, { 255, 255, 255, 255 });
+            row.isOccupied = true;
+            row.bulletColor = getColorFromName(part->primaryColor);
+
+            std::string prefixStr = "";
+            if (slot == bodySlot::GROIN && part->length > 0.0f)
+            {
+                char buf[64];
+                snprintf(buf, sizeof(buf), "%s (%gcm long, %gcm diameter)", part->name.c_str(), part->length, part->diameter);
+                prefixStr = std::string(buf);
+            }
+            else if (slot == bodySlot::BREASTS && part->cupSize > 0)
+            {
+                prefixStr = part->name + " (" + bodyPart::getCupSizeName(part->cupSize) + "-cup)";
+            }
+            else
+            {
+                if (part->count == 2) prefixStr = "Two ";
+                else if (part->count > 2) prefixStr = std::to_string(part->count) + " ";
+
+                if (!part->style.empty()) prefixStr += part->style + " ";
+                prefixStr += part->name;
+            }
+
+            std::string coveringNoun = getCoveringNoun(part->covering);
+
+            row.tokens.push_back({ prefixStr + ": ", { 220, 220, 230, 255 } });
+            row.tokens.push_back({ part->race + " - ", { 180, 100, 255, 255 } });
+
+            if (!part->secondaryColor.empty())
+            {
+                row.tokens.push_back({ part->secondaryColor, getColorFromName(part->secondaryColor) });
+                row.tokens.push_back({ "-rimmed, ", { 220, 220, 230, 255 } });
+            }
+
+            row.tokens.push_back({ part->primaryColor + " ", row.bulletColor });
+            row.tokens.push_back({ coveringNoun, { 200, 200, 210, 255 } });
         }
         else
         {
-            drawTextFit(days[i], textFitRect, { 110, 110, 125, 255 });
+            row.isOccupied = false;
+            row.bulletColor = { 65, 65, 75, 255 };
+
+            std::string slotLabel = getSlotName(slot);
+            row.tokens.push_back({ slotLabel + ": ", { 110, 110, 125, 255 } });
+            row.tokens.push_back({ "None", { 140, 140, 150, 255 } });
         }
+
+        float rowW = 0.0f;
+        for (const auto& tok : row.tokens)
+        {
+            float srcW = 0.0f, srcH = 0.0f;
+            g->getOrRenderText(tok.text, "button_font", tok.color, srcW, srcH);
+            if (srcH > 0.0f) rowW += srcW * (fontH / srcH);
+        }
+
+        if (rowW > maxContentW) maxContentW = rowW;
+        rows.push_back(row);
     }
 
-    SDL_FRect timeBox = { rightColX, topHeaderY, rightColW, headerH };
-    drawTextFit(gameTime.getFormattedTime(), timeBox, { 255, 220, 130, 255 });
+    float textStartXOffset = bulletSize + (padding * 0.8f);
+    float boxWidth = maxContentW + textStartXOffset + (padding * 2.5f);
 
-    float barW = rightColW;
-    float barX = rightColX;
-    float barH = std::clamp((float)rect.h * 0.18f, 6.0f, 12.0f);
-    float barY = bottomWidgetY + (bottomWidgetH - barH) * 0.5f;
+    int itemLines = static_cast<int>(rows.size());
+    float boxHeight = headerH + subHeaderH + padding + (itemLines * lineH) + padding;
 
-    float sunrisePct = gameTime.getSunriseHour() / 24.0f;
-    float sunsetPct = gameTime.getSunsetHour() / 24.0f;
+    float boxX = mouseX + 15.0f;
+    float boxY = mouseY;
 
-    SDL_FRect nightPre = { barX, barY, barW * sunrisePct, barH };
-    renderFillRoundedRect(renderer, nightPre, 2.0f, { 55, 55, 85, 255 });
+    if (boxX + boxWidth > screenW) boxX = mouseX - boxWidth - 12.0f;
+    if (boxY + boxHeight > screenH) boxY = screenH - boxHeight - 10.0f;
 
-    SDL_FRect dayLight = { barX + (barW * sunrisePct), barY, barW * (sunsetPct - sunrisePct), barH };
-    renderFillRoundedRect(renderer, dayLight, 2.0f, { 140, 185, 225, 255 });
+    SDL_FRect tooltipRect = { boxX, boxY, boxWidth, boxHeight };
 
-    SDL_FRect nightPost = { barX + (barW * sunsetPct), barY, barW * (1.0f - sunsetPct), barH };
-    renderFillRoundedRect(renderer, nightPost, 2.0f, { 55, 55, 85, 255 });
+    SDL_Color borderColor = (targetEntity == g->Player) ? SDL_Color{ 140, 110, 200, 255 } : SDL_Color{ 255, 120, 170, 255 };
+    renderFillRoundedRect(renderer, tooltipRect, GLOBAL_CORNER_RADIUS, { 25, 23, 30, 250 });
+    renderDrawRoundedRect(renderer, tooltipRect, GLOBAL_CORNER_RADIUS, borderColor);
 
-    SDL_FRect barOutline = { barX, barY, barW, barH };
-    renderDrawRoundedRect(renderer, barOutline, 2.0f, { 20, 18, 25, 255 });
+    SDL_FRect titleRect = { boxX + padding, boxY + padding, boxWidth - (padding * 2.0f), headerH };
+    g->drawTextFit(targetEntity->name, titleRect, borderColor, "title_font");
 
-    float currentTimePct = gameTime.getDayProgress();
-    float needleX = barX + (barW * currentTimePct);
-    float needleW = std::max(2.0f, (float)rect.w * 0.006f);
+    char subTitleBuffer[128];
+    snprintf(subTitleBuffer, sizeof(subTitleBuffer), "Masculine | Fit body | %.2fm tall", targetEntity->anatomy.heightMeters);
 
-    SDL_FRect needle = { needleX - (needleW / 2.0f), barY - 2.0f, needleW, barH + 4.0f };
-    renderFillRoundedRect(renderer, needle, 1.0f, { 255, 255, 255, 255 });
+    SDL_FRect subTitleRect = { boxX + padding, boxY + padding + headerH, boxWidth - (padding * 2.0f), subHeaderH };
+    g->drawTextFit(subTitleBuffer, subTitleRect, { 100, 200, 255, 255 }, "button_font");
+
+    float dividerY = boxY + padding + headerH + subHeaderH + (padding * 0.4f);
+    SDL_SetRenderDrawColor(renderer, 60, 50, 75, 255);
+    SDL_RenderLine(renderer, boxX + padding, dividerY, boxX + boxWidth - padding, dividerY);
+
+    float currentY = dividerY + (padding * 0.4f);
+
+    for (const auto& row : rows)
+    {
+        float textY = currentY + (lineH - fontH) * 0.5f;
+        float bulletY = textY + (fontH - bulletSize) * 0.5f;
+
+        SDL_FRect colorBullet = { boxX + padding, bulletY, bulletSize, bulletSize };
+        renderFillRoundedRect(renderer, colorBullet, 2.0f, row.bulletColor);
+
+        float textX = boxX + padding + textStartXOffset;
+        g->renderTextLeftSegment(row.tokens, textX, textY, fontH, "button_font");
+
+        currentY += lineH;
+    }
 }
 
-void game::renderMapPanel(SDL_Rect rect, int padding)
+void UI::DrawMapGrid(SDL_Renderer* renderer, game* g, SDL_FRect bounds, gameMap* map, int playerX, int playerY, int padding)
 {
-    ViewportGuard vpGuard(renderer, &rect);
+    SDL_Rect viewRect = { static_cast<int>(bounds.x), static_cast<int>(bounds.y), static_cast<int>(bounds.w), static_cast<int>(bounds.h) };
+    ViewportGuard vpGuard(renderer, &viewRect);
 
-    SDL_FRect panelRect = { 0.0f, 0.0f, (float)rect.w, (float)rect.h };
+    SDL_FRect panelRect = { 0.0f, 0.0f, bounds.w, bounds.h };
     renderFillRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 25, 25, 28, 255 });
     renderDrawRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 55, 55, 65, 255 });
 
@@ -395,8 +397,8 @@ void game::renderMapPanel(SDL_Rect rect, int padding)
     {
         for (int x = -2; x <= 2; x++)
         {
-            int mapX = gridX + x;
-            int mapY = gridY + y;
+            int mapX = playerX + x;
+            int mapY = playerY + y;
 
             if (mapX < 0 || mapX >= mapW || mapY < 0 || mapY >= mapH) continue;
 
@@ -406,7 +408,11 @@ void game::renderMapPanel(SDL_Rect rect, int padding)
             int renderX = x + 2;
             int renderY = y + 2;
 
-            SDL_FRect r = UIGridHelper::getMapTileRect({ 0, 0, rect.w, rect.h }, renderX, renderY, padding);
+            // Line 411: Passes SDL_FRect bounds directly
+            SDL_FRect r = UIGridHelper::getMapTileRect(bounds, renderX, renderY, static_cast<float>(padding));
+            r.x -= bounds.x;
+            r.y -= bounds.y;
+
             int danger = map->getRuntimeData(mapX, mapY).getEffectiveDangerLevel();
 
             if (t.discovery == STATE_PARTIAL)
@@ -427,179 +433,42 @@ void game::renderMapPanel(SDL_Rect rect, int padding)
         }
     }
 
-    SDL_FRect p = UIGridHelper::getMapTileRect({ 0, 0, rect.w, rect.h }, 2, 2, padding);
+    // Line 435: Passes SDL_FRect bounds directly
+    SDL_FRect p = UIGridHelper::getMapTileRect(bounds, 2, 2, static_cast<float>(padding));
+    p.x -= bounds.x;
+    p.y -= bounds.y;
     renderFillRoundedRect(renderer, p, 3.0f, { 0, 200, 255, 255 });
 }
 
-void game::renderEquipmentPanel(SDL_Rect rect, int padding, entity* targetEntity)
+void UI::DrawActionGrid(SDL_Renderer* renderer, game* g, SDL_FRect bounds, const std::vector<actionButton>& buttons)
 {
-    if (!targetEntity) targetEntity = Player;
+    SDL_Rect viewRect = { static_cast<int>(bounds.x), static_cast<int>(bounds.y), static_cast<int>(bounds.w), static_cast<int>(bounds.h) };
+    ViewportGuard vpGuard(renderer, &viewRect);
 
-    ViewportGuard vpGuard(renderer, &rect);
-
-    SDL_FRect panelRect = { 0.0f, 0.0f, (float)rect.w, (float)rect.h };
-    renderFillRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 25, 20, 30, 255 });
-    renderDrawRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 100, 50, 150, 255 });
-
-    int cols = 6, rows = 6;
-    for (int r = 0; r < rows; r++)
-    {
-        for (int c = 0; c < cols; c++)
-        {
-            int slotIdx = (r * cols) + c;
-            SDL_FRect slot = UIGridHelper::getEquipmentSlotRect({ 0, 0, rect.w, rect.h }, c, r, cols, rows, 4, padding);
-
-            bool isOccupied = false;
-            std::string equippedName = "";
-            bool isSelectedEquip = false;
-
-            if (targetEntity)
-            {
-                for (const auto& [eSlot, eqItem] : targetEntity->inventory.equipped)
-                {
-                    if (getEquipmentGridIndex(eSlot) == slotIdx && !eqItem->id.empty())
-                    {
-                        isOccupied = true;
-                        equippedName = eqItem->name;
-                        if (targetEntity == Player && eSlot == selectedEquipmentSlot) isSelectedEquip = true;
-                        break;
-                    }
-                }
-            }
-
-            SDL_Color fillCol = isOccupied ? SDL_Color{ 100, 60, 160, 255 } : SDL_Color{ 45, 40, 50, 255 };
-            renderFillRoundedRect(renderer, slot, 4.0f, fillCol);
-
-            if (isSelectedEquip)
-            {
-                renderDrawRoundedRect(renderer, slot, 4.0f, { 255, 215, 0, 255 });
-            }
-            else
-            {
-                renderDrawRoundedRect(renderer, slot, 4.0f, { 80, 75, 95, 255 });
-            }
-
-            if (isOccupied && !equippedName.empty())
-            {
-                drawTextFit(equippedName, slot, { 255, 215, 0, 255 });
-            }
-        }
-    }
-}
-
-void game::renderInventoryPanel(SDL_Rect rect)
-{
-    ViewportGuard vpGuard(renderer, &rect);
-
-    SDL_FRect panelRect = { 0.0f, 0.0f, (float)rect.w, (float)rect.h };
-    renderFillRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 35, 35, 45, 255 });
-    renderDrawRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 60, 60, 75, 255 });
-
-    SDL_SetRenderDrawColor(renderer, 60, 60, 70, 255);
-    SDL_RenderLine(renderer, rect.w / 2.0f, 20.0f, rect.w / 2.0f, rect.h - 20.0f);
-
-    int cols = 6, rows = 5;
-    int maxSlots = cols * rows * 2;
-
-    for (int i = 0; i < maxSlots; i++)
-    {
-        SDL_FRect slot = UIGridHelper::getInventorySlotRect({ 0, 0, rect.w, rect.h }, i, cols, rows);
-        bool hasItem = (Player != nullptr) && (i < (int)Player->inventory.backpack.size());
-
-        SDL_Color bgCol = hasItem ? SDL_Color{ 60, 70, 90, 255 } : SDL_Color{ 50, 50, 60, 255 };
-        renderFillRoundedRect(renderer, slot, 4.0f, bgCol);
-
-        if (i == selectedInventoryIndex)
-        {
-            renderDrawRoundedRect(renderer, slot, 4.0f, { 255, 215, 0, 255 });
-        }
-        else
-        {
-            renderDrawRoundedRect(renderer, slot, 4.0f, { 70, 70, 85, 255 });
-        }
-
-        if (hasItem)
-        {
-            std::string displayName = Player->inventory.backpack[i]->name;
-            if (displayName.length() > 8) displayName = displayName.substr(0, 7) + ".";
-
-            SDL_FRect textSlot = { slot.x + 2.0f, slot.y + 2.0f, slot.w - 4.0f, slot.h - 4.0f };
-            drawTextFit(displayName, textSlot, { 255, 255, 255, 255 });
-        }
-    }
-}
-
-void game::renderTextPanel(SDL_Rect rect)
-{
-    ViewportGuard vpGuard(renderer, &rect);
-
-    SDL_FRect panelRect = { 0.0f, 0.0f, (float)rect.w, (float)rect.h };
-    renderFillRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 40, 40, 40, 255 });
-    renderDrawRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 65, 65, 65, 255 });
-
-    if (currentState == GameState::EVENT)
-    {
-        SDL_FRect nameRect = { 0.0f, 0.0f, (float)rect.w, 40.0f };
-        renderTextCentered(currentScene.speakerName, nameRect, "title_font", { 255, 200, 100, 255 });
-
-        SDL_FRect bodyRect = { 0.0f, 40.0f, (float)rect.w, (float)rect.h - 40.0f };
-        renderTextWrapped(currentScene.bodyText, bodyRect, "button_font", { 220, 220, 220, 255 });
-    }
-}
-
-void game::renderRightColumn(SDL_Rect top, SDL_Rect mid, SDL_Rect bot)
-{
-    if (activeTargetNPC && activeTargetMode != TargetMode::NONE)
-    {
-        float rightX = (float)top.x;
-        float rightY = (float)layout.charRect.y;
-        float rightW = (float)top.w;
-
-        float cardH = (float)layout.charRect.h;
-        renderNPCTargetPanel(rightX, rightY, rightW, cardH);
-
-        SDL_Rect equipBox = { (int)rightX, layout.mapRect.y, (int)rightW, layout.mapRect.h };
-        renderEquipmentPanel(equipBox, 12, activeTargetNPC);
-
-        float avatarSize = cardH * 0.16f;
-        float charPadX = rightW * 0.04f;
-        float charPadY = cardH * 0.04f;
-
-        SDL_FRect avatarRect = {
-            rightX + charPadX,
-            rightY + charPadY,
-            avatarSize,
-            avatarSize
-        };
-
-        float winX, winY, mouseX, mouseY;
-        SDL_GetMouseState(&winX, &winY);
-        SDL_RenderCoordinatesFromWindow(renderer, winX, winY, &mouseX, &mouseY);
-
-        if (UIGridHelper::contains(avatarRect, mouseX, mouseY))
-        {
-            renderNPCAnatomyTooltip(mouseX, mouseY);
-        }
-        return;
-    }
-
-    SDL_Rect boxes[3] = { top, mid, bot };
-    for (int i = 0; i < 3; i++)
-    {
-        ViewportGuard vpGuard(renderer, &boxes[i]);
-        SDL_FRect r = { 0.0f, 0.0f, (float)boxes[i].w, (float)boxes[i].h };
-        renderFillRoundedRect(renderer, r, GLOBAL_CORNER_RADIUS, { 40, 40, 40, 255 });
-        renderDrawRoundedRect(renderer, r, GLOBAL_CORNER_RADIUS, { 65, 65, 65, 255 });
-    }
-}
-
-void game::renderActionGrid(SDL_FRect rect)
-{
-    ViewportGuard vpGuard(renderer, &rect);
-
-    SDL_FRect panelRect = { 0.0f, 0.0f, rect.w, rect.h };
+    // 1. Draw action panel background card
+    SDL_FRect panelRect = { 0.0f, 0.0f, bounds.w, bounds.h };
     renderFillRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 25, 25, 30, 255 });
     renderDrawRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 50, 50, 60, 255 });
+
+    float padding = 8.0f; // Larger overall padding
+    float arrowW = bounds.w * 0.03f; // Side arrow width
+
+    // 2. Render Left (<) and Right (>) Navigation Arrows
+    SDL_FRect leftArrowRect = { padding, padding, arrowW, bounds.h - (2.0f * padding) };
+    SDL_FRect rightArrowRect = { bounds.w - arrowW - padding, padding, arrowW, bounds.h - (2.0f * padding) };
+
+    renderFillRoundedRect(renderer, leftArrowRect, GLOBAL_CORNER_RADIUS, { 35, 35, 42, 255 });
+    renderDrawRoundedRect(renderer, leftArrowRect, GLOBAL_CORNER_RADIUS, { 50, 50, 60, 255 });
+    g->renderTextCentered("<", leftArrowRect, "button_font", { 120, 120, 140, 255 });
+
+    renderFillRoundedRect(renderer, rightArrowRect, GLOBAL_CORNER_RADIUS, { 35, 35, 42, 255 });
+    renderDrawRoundedRect(renderer, rightArrowRect, GLOBAL_CORNER_RADIUS, { 50, 50, 60, 255 });
+    g->renderTextCentered(">", rightArrowRect, "button_font", { 120, 120, 140, 255 });
+
+    // 3. Grid area inset between arrows
+    float gridX = padding + arrowW + (padding * 0.5f);
+    float gridW = bounds.w - (2.0f * (padding + arrowW + (padding * 0.5f)));
+    SDL_FRect gridBounds = { gridX, 0.0f, gridW, bounds.h };
 
     int cols = 5, rows = 3;
     for (int r = 0; r < rows; r++)
@@ -607,404 +476,206 @@ void game::renderActionGrid(SDL_FRect rect)
         for (int c = 0; c < cols; c++)
         {
             int index = (r * cols) + c;
-            SDL_FRect btn = UIGridHelper::getActionButtonRect({ 0.0f, 0.0f, rect.w, rect.h }, c, r, cols, rows);
+            SDL_FRect btn = UIGridHelper::getActionButtonRect(gridBounds, c, r, cols, rows, padding);
 
-            if (index < (int)activeButtons.size())
+            if (index < static_cast<int>(buttons.size()))
             {
                 renderFillRoundedRect(renderer, btn, 4.0f, { 70, 100, 140, 255 });
-                renderTextCentered(activeButtons[index].label, btn, "button_font");
+                renderDrawRoundedRect(renderer, btn, 4.0f, { 100, 140, 190, 255 });
+                g->renderTextCentered(buttons[index].label, btn, "button_font");
             }
             else
             {
-                renderFillRoundedRect(renderer, btn, 4.0f, { 40, 40, 45, 255 });
+                renderFillRoundedRect(renderer, btn, 4.0f, { 35, 35, 42, 255 });
+                renderDrawRoundedRect(renderer, btn, 4.0f, { 50, 50, 60, 255 });
             }
-            renderDrawRoundedRect(renderer, btn, 4.0f, { 60, 60, 70, 255 });
         }
     }
 }
 
-void game::renderNPCTargetPanel(float x, float y, float w, float h)
+void UI::DrawTimePanel(SDL_Renderer* renderer, game* g, SDL_FRect bounds, const timeManager& gameTime)
 {
-    if (!activeTargetNPC) return;
+    SDL_Rect viewRect = { static_cast<int>(bounds.x), static_cast<int>(bounds.y), static_cast<int>(bounds.w), static_cast<int>(bounds.h) };
+    ViewportGuard vpGuard(renderer, &viewRect);
 
-    SDL_Rect panelBox = { (int)x, (int)y, (int)w, (int)h };
-    ViewportGuard vpGuard(renderer, &panelBox);
+    // 1. Panel Background
+    SDL_FRect panelRect = { 0.0f, 0.0f, bounds.w, bounds.h };
+    renderFillRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 30, 28, 35, 255 });
+    renderDrawRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 60, 55, 65, 255 });
 
-    SDL_FRect cardRect = { 0.0f, 0.0f, w, h };
-    renderFillRoundedRect(renderer, cardRect, GLOBAL_CORNER_RADIUS, { 30, 28, 35, 255 });
-    renderDrawRoundedRect(renderer, cardRect, GLOBAL_CORNER_RADIUS, { 60, 55, 65, 255 });
+    float padX = bounds.w * 0.04f;
+    float gapX = bounds.w * 0.05f;
 
-    float padX = w * 0.04f;
-    float padY = h * 0.04f;
-    float contentW = w - (padX * 2.0f);
-    float currentY = padY;
-    float dividerGap = h * 0.025f;
+    float leftColX = padX;
+    float leftColW = (bounds.w - (2.0f * padX) - gapX) * 0.52f;
+    float rightColX = leftColX + leftColW + gapX;
+    float rightColW = bounds.w - rightColX - padX;
 
-    float avatarSize = h * 0.16f;
-    SDL_FRect avatarRect = { padX, currentY, avatarSize, avatarSize };
-    renderFillRoundedRect(renderer, avatarRect, 4.0f, { 50, 50, 60, 255 });
-    renderDrawRoundedRect(renderer, avatarRect, 4.0f, { 255, 120, 170, 255 });
+    // Compact Vertical Row Positions
+    float row1Y = bounds.h * 0.08f;
+    float row1H = bounds.h * 0.44f;
+    float row2Y = bounds.h * 0.56f;
+    float row2H = bounds.h * 0.36f;
 
-    float headerTextX = avatarRect.x + avatarSize + (padX * 0.8f);
-    std::string nameLevelStr = activeTargetNPC->name + " - Level " + std::to_string(activeTargetNPC->stats.level);
-    float headerTextH = avatarSize * 0.55f;
+    // Left Side: Date Text
+    SDL_FRect dateBox = { leftColX, row1Y, leftColW, row1H };
+    g->drawTextFit(gameTime.getFormattedDate(), dateBox, { 220, 225, 240, 255 });
 
-    SDL_FRect nameRect = { headerTextX, currentY, w - headerTextX - padX, headerTextH };
-    drawTextFit(nameLevelStr, nameRect, { 255, 120, 170, 255 }, "title_font");
+    // Left Side: Days Row (No outer track box)
+    const char* days[7] = { "M", "T", "W", "T", "F", "S", "S" };
+    float daySlotW = leftColW / 7.0f;
 
-    currentY += avatarSize + dividerGap;
-
-    float barHeight = h * 0.065f;
-    float iconRadius = barHeight * 1.20f;
-    float valueTextWidth = contentW * 0.18f;
-    float barW = contentW - iconRadius - valueTextWidth - (padX * 0.5f);
-    float barGap = h * 0.02f;
-
-    auto drawVitalBar = [&](float barYPos, const std::string& statName, float maxVal, SDL_Color barColor)
-        {
-            SDL_FRect iconRect = { padX, barYPos, iconRadius, iconRadius };
-            renderFillRoundedRect(renderer, iconRect, 3.0f, { 45, 40, 50, 255 });
-
-            float fillX = padX + iconRadius + (padX * 0.5f);
-            float fillY = barYPos + (iconRadius - barHeight) / 2.0f;
-
-            SDL_FRect bgRect = { fillX, fillY, barW, barHeight };
-            renderFillRoundedRect(renderer, bgRect, 3.0f, { 20, 18, 25, 255 });
-
-            float currentVal = activeTargetNPC->getStat(statName);
-            float fillPct = std::clamp(currentVal / maxVal, 0.0f, 1.0f);
-            if (fillPct > 0.0f)
-            {
-                SDL_FRect fillRect = { fillX, fillY, barW * fillPct, barHeight };
-                renderFillRoundedRect(renderer, fillRect, 3.0f, barColor);
-            }
-
-            SDL_FRect textRect = { fillX + barW + (padX * 0.4f), barYPos, valueTextWidth, iconRadius };
-            drawTextFit(std::to_string((int)currentVal), textRect, { 240, 240, 240, 255 });
-        };
-
-    drawVitalBar(currentY, "health", 100.0f, { 255, 60, 90, 255 });
-    currentY += iconRadius + barGap;
-
-    drawVitalBar(currentY, "mana", 100.0f, { 220, 130, 255, 255 });
-    currentY += iconRadius + barGap;
-
-    drawVitalBar(currentY, "lust", 100.0f, { 230, 50, 150, 255 });
-}
-
-void game::renderNPCAnatomyTooltip(float mouseX, float mouseY)
-{
-    if (!activeTargetNPC) return;
-
-    int screenW = 1280, screenH = 720;
-    SDL_GetRenderOutputSize(renderer, &screenW, &screenH);
-
-    static const std::vector<bodySlot> anatomicalOrder = {
-        bodySlot::HAIR, bodySlot::HEAD, bodySlot::EYES, bodySlot::EARS, bodySlot::HORNS,
-        bodySlot::MOUTH, bodySlot::NECK, bodySlot::TORSO, bodySlot::BREASTS, bodySlot::STOMACH,
-        bodySlot::BACK, bodySlot::ARMS, bodySlot::HANDS, bodySlot::FINGERS, bodySlot::HIPS,
-        bodySlot::GROIN, bodySlot::ASS, bodySlot::TAIL, bodySlot::LEGS, bodySlot::FEET,
-        bodySlot::WINGS, bodySlot::TENTACLES, bodySlot::ANTENNAE
-    };
-
-    float headerH = screenH * 0.032f;
-    float subHeaderH = screenH * 0.024f;
-    float lineH = screenH * 0.025f;
-    float fontH = lineH * 0.80f;
-    float padding = screenW * 0.008f;
-    float bulletSize = fontH * 0.45f;
-
-    struct RenderRowData
+    for (int i = 0; i < 7; i++)
     {
-        bool isOccupied = false;
-        SDL_Color bulletColor = { 100, 100, 110, 255 };
-        std::vector<ColorToken> tokens;
-    };
+        float slotX = leftColX + (i * daySlotW);
+        SDL_FRect textFitRect = { slotX, row2Y, daySlotW, row2H };
 
-    std::vector<RenderRowData> rows;
-    float maxContentW = screenW * 0.18f;
-
-    for (bodySlot slot : anatomicalOrder)
-    {
-        RenderRowData row;
-        const bodyPart* part = activeTargetNPC->anatomy.getPart(slot);
-
-        if (part != nullptr)
+        if (i == gameTime.dayOfWeek)
         {
-            row.isOccupied = true;
-            row.bulletColor = getColorFromName(part->primaryColor);
-
-            std::string prefixStr = "";
-            if (slot == bodySlot::GROIN && part->length > 0.0f)
-            {
-                char buf[64];
-                snprintf(buf, sizeof(buf), "%s (%gcm long, %gcm diameter)", part->name.c_str(), part->length, part->diameter);
-                prefixStr = std::string(buf);
-            }
-            else if (slot == bodySlot::BREASTS && part->cupSize > 0)
-            {
-                prefixStr = part->name + " (" + bodyPart::getCupSizeName(part->cupSize) + "-cup)";
-            }
-            else
-            {
-                if (part->count == 2) prefixStr = "Two ";
-                else if (part->count > 2) prefixStr = std::to_string(part->count) + " ";
-
-                if (!part->style.empty()) prefixStr += part->style + " ";
-                prefixStr += part->name;
-            }
-
-            std::string coveringNoun = getCoveringNoun(part->covering);
-
-            row.tokens.push_back({ prefixStr + ": ", { 220, 220, 230, 255 } });
-            row.tokens.push_back({ part->race + " - ", { 180, 100, 255, 255 } });
-
-            if (!part->secondaryColor.empty())
-            {
-                row.tokens.push_back({ part->secondaryColor, getColorFromName(part->secondaryColor) });
-                row.tokens.push_back({ "-rimmed, ", { 220, 220, 230, 255 } });
-            }
-
-            row.tokens.push_back({ part->primaryColor + " ", row.bulletColor });
-            row.tokens.push_back({ coveringNoun, { 200, 200, 210, 255 } });
+            float pillMargin = 1.0f;
+            SDL_FRect pillRect = { slotX + pillMargin, row2Y, daySlotW - (pillMargin * 2.0f), row2H };
+            renderFillRoundedRect(renderer, pillRect, 3.0f, { 55, 50, 75, 255 });
+            renderDrawRoundedRect(renderer, pillRect, 3.0f, { 140, 130, 180, 255 });
+            g->drawTextFit(days[i], textFitRect, { 255, 255, 255, 255 });
         }
         else
         {
-            row.isOccupied = false;
-            row.bulletColor = { 65, 65, 75, 255 };
-
-            std::string slotLabel = getSlotName(slot);
-            row.tokens.push_back({ slotLabel + ": ", { 110, 110, 125, 255 } });
-            row.tokens.push_back({ "None", { 140, 140, 150, 255 } });
+            g->drawTextFit(days[i], textFitRect, { 100, 100, 115, 255 });
         }
-
-        float rowW = 0.0f;
-        for (const auto& tok : row.tokens)
-        {
-            float srcW = 0.0f, srcH = 0.0f;
-            getOrRenderText(tok.text, "button_font", tok.color, srcW, srcH);
-            if (srcH > 0.0f) rowW += srcW * (fontH / srcH);
-        }
-
-        if (rowW > maxContentW) maxContentW = rowW;
-        rows.push_back(row);
     }
 
-    float textStartXOffset = bulletSize + (padding * 0.8f);
-    float boxWidth = maxContentW + textStartXOffset + (padding * 2.5f);
+    // Right Side: Time Text
+    SDL_FRect timeBox = { rightColX, row1Y, rightColW, row1H };
+    g->drawTextFit(gameTime.getFormattedTime(), timeBox, { 255, 220, 130, 255 });
 
-    int itemLines = (int)rows.size();
-    float boxHeight = headerH + subHeaderH + padding + (itemLines * lineH) + padding;
+    // Right Side: Time Bar
+    float barW = rightColW;
+    float barX = rightColX;
+    float barH = std::clamp(row2H * 0.45f, 4.0f, 8.0f);
+    float barY = row2Y + (row2H - barH) * 0.5f;
 
-    float boxX = mouseX - boxWidth - 12.0f;
-    float boxY = mouseY;
+    float sunrisePct = gameTime.getSunriseHour() / 24.0f;
+    float sunsetPct = gameTime.getSunsetHour() / 24.0f;
 
-    if (boxX < 10.0f) boxX = mouseX + 12.0f;
-    if (boxY + boxHeight > screenH) boxY = screenH - boxHeight - 10.0f;
+    SDL_FRect fullBar = { barX, barY, barW, barH };
+    renderFillRoundedRect(renderer, fullBar, 2.0f, { 55, 55, 85, 255 });
 
-    SDL_FRect tooltipRect = { boxX, boxY, boxWidth, boxHeight };
-
-    renderFillRoundedRect(renderer, tooltipRect, 6.0f, { 25, 23, 30, 250 });
-    renderDrawRoundedRect(renderer, tooltipRect, 6.0f, { 255, 120, 170, 255 });
-
-    SDL_FRect titleRect = { boxX + padding, boxY + padding, boxWidth - (padding * 2.0f), headerH };
-    drawTextFit(activeTargetNPC->name, titleRect, { 255, 120, 170, 255 }, "title_font");
-
-    char subTitleBuffer[128];
-    snprintf(subTitleBuffer, sizeof(subTitleBuffer), "Masculine | Fit body | %.2fm tall", activeTargetNPC->anatomy.heightMeters);
-
-    SDL_FRect subTitleRect = { boxX + padding, boxY + padding + headerH, boxWidth - (padding * 2.0f), subHeaderH };
-    drawTextFit(subTitleBuffer, subTitleRect, { 100, 200, 255, 255 }, "button_font");
-
-    float dividerY = boxY + padding + headerH + subHeaderH + (padding * 0.4f);
-    SDL_SetRenderDrawColor(renderer, 60, 50, 75, 255);
-    SDL_RenderLine(renderer, boxX + padding, dividerY, boxX + boxWidth - padding, dividerY);
-
-    float currentY = dividerY + (padding * 0.4f);
-
-    for (const auto& row : rows)
+    float dayX = barX + (barW * sunrisePct);
+    float dayW = barW * (sunsetPct - sunrisePct);
+    if (dayW > 0.0f)
     {
-        float textY = currentY + (lineH - fontH) * 0.5f;
-        float bulletY = textY + (fontH - bulletSize) * 0.5f;
+        SDL_FRect dayLight = { dayX, barY, dayW, barH };
+        SDL_SetRenderDrawColor(renderer, 140, 185, 225, 255);
+        SDL_RenderFillRect(renderer, &dayLight);
+    }
 
-        SDL_FRect colorBullet = { boxX + padding, bulletY, bulletSize, bulletSize };
-        renderFillRoundedRect(renderer, colorBullet, 2.0f, row.bulletColor);
+    SDL_SetRenderDrawColor(renderer, 20, 18, 25, 255);
+    SDL_RenderRect(renderer, &fullBar);
 
-        float textX = boxX + padding + textStartXOffset;
-        renderTextLeftSegment(row.tokens, textX, textY, fontH, "button_font");
+    float currentTimePct = gameTime.getDayProgress();
+    float needleX = barX + (barW * currentTimePct);
+    float needleW = 2.0f;
 
-        currentY += lineH;
+    SDL_FRect needle = { needleX - 1.0f, barY - 2.0f, needleW, barH + 4.0f };
+    renderFillRoundedRect(renderer, needle, 1.0f, { 255, 255, 255, 255 });
+}
+
+// --- High-Level Member Layout Drawer Implementations ---
+
+void game::renderTitleBar(SDL_FRect t1, SDL_FRect t2, SDL_FRect t3)
+{
+    SDL_FRect boxes[3] = { t1, t2, t3 };
+    for (int i = 0; i < 3; i++)
+    {
+        SDL_Rect viewRect = { static_cast<int>(boxes[i].x), static_cast<int>(boxes[i].y), static_cast<int>(boxes[i].w), static_cast<int>(boxes[i].h) };
+        ViewportGuard vpGuard(renderer, &viewRect);
+        SDL_FRect r = { 0.0f, 0.0f, boxes[i].w, boxes[i].h };
+        renderFillRoundedRect(renderer, r, GLOBAL_CORNER_RADIUS, { 45, 45, 52, 255 });
+        renderDrawRoundedRect(renderer, r, GLOBAL_CORNER_RADIUS, { 65, 65, 75, 255 });
+    }
+
+    if (activeTargetNPC && activeTargetMode != TargetMode::NONE)
+    {
+        SDL_Rect viewRect3 = { static_cast<int>(t3.x), static_cast<int>(t3.y), static_cast<int>(t3.w), static_cast<int>(t3.h) };
+        ViewportGuard vpGuard(renderer, &viewRect3);
+        SDL_Color headerColor = { 255, 100, 150, 255 };
+        std::string headerTitle = "Enemy";
+
+        if (activeTargetMode == TargetMode::DIALOGUE)
+        {
+            headerColor = { 100, 210, 255, 255 };
+            headerTitle = "Interacting With";
+        }
+        else if (activeTargetMode == TargetMode::COMPANION)
+        {
+            headerColor = { 120, 240, 150, 255 };
+            headerTitle = "Ally";
+        }
+
+        SDL_FRect titleRect = { 0.0f, 0.0f, t3.w, t3.h };
+        drawTextFit(headerTitle, titleRect, headerColor, "title_font");
     }
 }
 
-float game::renderTextLeftSegment(const std::vector<ColorToken>& tokens, float startX, float startY, float maxH, const std::string& fontId)
+void game::renderCompanionPanel(SDL_FRect rect)
 {
-    float currentX = startX;
+    SDL_Rect viewRect = { static_cast<int>(rect.x), static_cast<int>(rect.y), static_cast<int>(rect.w), static_cast<int>(rect.h) };
+    ViewportGuard vpGuard(renderer, &viewRect);
 
-    for (const auto& token : tokens)
-    {
-        if (token.text.empty()) continue;
-
-        float srcW = 0.0f, srcH = 0.0f;
-        SDL_Texture* texture = getOrRenderText(token.text, fontId, token.color, srcW, srcH);
-
-        if (texture && srcH > 0.0f)
-        {
-            float scale = maxH / srcH;
-            float drawW = srcW * scale;
-            float drawH = maxH;
-
-            SDL_FRect renderDst = { currentX, startY, drawW, drawH };
-            SDL_RenderTexture(renderer, texture, NULL, &renderDst);
-
-            currentX += drawW;
-        }
-    }
-
-    return currentX - startX;
+    SDL_FRect panelRect = { 0.0f, 0.0f, rect.w, rect.h };
+    renderFillRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 30, 28, 35, 255 });
+    renderDrawRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 60, 55, 65, 255 });
 }
 
-void game::renderAnatomyTooltip(float mouseX, float mouseY)
+void game::renderTextPanel(SDL_FRect rect)
 {
-    if (!Player) return;
+    SDL_Rect viewRect = { static_cast<int>(rect.x), static_cast<int>(rect.y), static_cast<int>(rect.w), static_cast<int>(rect.h) };
+    ViewportGuard vpGuard(renderer, &viewRect);
 
-    int screenW = 1280, screenH = 720;
-    SDL_GetRenderOutputSize(renderer, &screenW, &screenH);
+    SDL_FRect panelRect = { 0.0f, 0.0f, rect.w, rect.h };
+    renderFillRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 40, 40, 40, 255 });
+    renderDrawRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 65, 65, 65, 255 });
 
-    static const std::vector<bodySlot> anatomicalOrder = {
-        bodySlot::HAIR, bodySlot::HEAD, bodySlot::EYES, bodySlot::EARS, bodySlot::HORNS,
-        bodySlot::MOUTH, bodySlot::NECK, bodySlot::TORSO, bodySlot::BREASTS, bodySlot::STOMACH,
-        bodySlot::BACK, bodySlot::ARMS, bodySlot::HANDS, bodySlot::FINGERS, bodySlot::HIPS,
-        bodySlot::GROIN, bodySlot::ASS, bodySlot::TAIL, bodySlot::LEGS, bodySlot::FEET,
-        bodySlot::WINGS, bodySlot::TENTACLES, bodySlot::ANTENNAE
-    };
-
-    float headerH = screenH * 0.032f;
-    float subHeaderH = screenH * 0.024f;
-    float lineH = screenH * 0.025f;
-    float fontH = lineH * 0.80f;
-    float padding = screenW * 0.008f;
-    float bulletSize = fontH * 0.45f;
-
-    struct RenderRowData
+    if (currentState == GameState::EVENT)
     {
-        bool isOccupied = false;
-        SDL_Color bulletColor = { 100, 100, 110, 255 };
-        std::vector<ColorToken> tokens;
-    };
+        SDL_FRect nameRect = { 0.0f, 0.0f, rect.w, 40.0f };
+        renderTextCentered(currentScene.speakerName, nameRect, "title_font", { 255, 200, 100, 255 });
 
-    std::vector<RenderRowData> rows;
-    float maxContentW = screenW * 0.18f;
+        SDL_FRect bodyRect = { 0.0f, 40.0f, rect.w, rect.h - 40.0f };
+        renderTextWrapped(currentScene.bodyText, bodyRect, "button_font", { 220, 220, 220, 255 });
+    }
+}
 
-    for (bodySlot slot : anatomicalOrder)
+void game::renderRightColumn(SDL_FRect top, SDL_FRect mid, SDL_FRect bot)
+{
+    if (activeTargetNPC && activeTargetMode != TargetMode::NONE)
     {
-        RenderRowData row;
-        const bodyPart* part = Player->anatomy.getPart(slot);
+        // Target NPC Summary Card
+        SDL_FRect targetCardFRect = { top.x, layout.charRect.y, top.w, layout.charRect.h };
+        UI::DrawEntitySummaryCard(renderer, this, targetCardFRect, activeTargetNPC, true);
 
-        if (part != nullptr)
+        // Target NPC Equipment Grid Widget
+        SDL_FRect targetEquipFRect = { top.x, layout.mapRect.y, top.w, layout.mapRect.h };
+        UI::DrawEquipmentGrid(renderer, this, targetEquipFRect, activeTargetNPC, equipSlot::NONE, 12);
+
+        float winX, winY, mouseX, mouseY;
+        SDL_GetMouseState(&winX, &winY);
+        SDL_RenderCoordinatesFromWindow(renderer, winX, winY, &mouseX, &mouseY);
+
+        if (UIGridHelper::contains(layout.targetAvatarRect, mouseX, mouseY))
         {
-            row.isOccupied = true;
-            row.bulletColor = getColorFromName(part->primaryColor);
-
-            std::string prefixStr = "";
-            if (slot == bodySlot::GROIN && part->length > 0.0f)
-            {
-                char buf[64];
-                snprintf(buf, sizeof(buf), "%s (%gcm long, %gcm diameter)", part->name.c_str(), part->length, part->diameter);
-                prefixStr = std::string(buf);
-            }
-            else if (slot == bodySlot::BREASTS && part->cupSize > 0)
-            {
-                prefixStr = part->name + " (" + bodyPart::getCupSizeName(part->cupSize) + "-cup)";
-            }
-            else
-            {
-                if (part->count == 2) prefixStr = "Two ";
-                else if (part->count > 2) prefixStr = std::to_string(part->count) + " ";
-
-                if (!part->style.empty()) prefixStr += part->style + " ";
-                prefixStr += part->name;
-            }
-
-            std::string coveringNoun = getCoveringNoun(part->covering);
-
-            row.tokens.push_back({ prefixStr + ": ", { 220, 220, 230, 255 } });
-            row.tokens.push_back({ part->race + " - ", { 180, 100, 255, 255 } });
-
-            if (!part->secondaryColor.empty())
-            {
-                row.tokens.push_back({ part->secondaryColor, getColorFromName(part->secondaryColor) });
-                row.tokens.push_back({ "-rimmed, ", { 220, 220, 230, 255 } });
-            }
-
-            row.tokens.push_back({ part->primaryColor + " ", row.bulletColor });
-            row.tokens.push_back({ coveringNoun, { 200, 200, 210, 255 } });
+            UI::DrawAnatomyTooltip(renderer, this, activeTargetNPC, mouseX, mouseY);
         }
-        else
-        {
-            row.isOccupied = false;
-            row.bulletColor = { 65, 65, 75, 255 };
-
-            std::string slotLabel = getSlotName(slot);
-            row.tokens.push_back({ slotLabel + ": ", { 110, 110, 125, 255 } });
-            row.tokens.push_back({ "None", { 140, 140, 150, 255 } });
-        }
-
-        float rowW = 0.0f;
-        for (const auto& tok : row.tokens)
-        {
-            float srcW = 0.0f, srcH = 0.0f;
-            getOrRenderText(tok.text, "button_font", tok.color, srcW, srcH);
-            if (srcH > 0.0f) rowW += srcW * (fontH / srcH);
-        }
-
-        if (rowW > maxContentW) maxContentW = rowW;
-        rows.push_back(row);
+        return;
     }
 
-    float textStartXOffset = bulletSize + (padding * 0.8f);
-    float boxWidth = maxContentW + textStartXOffset + (padding * 2.5f);
-
-    int itemLines = (int)rows.size();
-    float boxHeight = headerH + subHeaderH + padding + (itemLines * lineH) + padding;
-
-    if (mouseX + boxWidth > screenW) mouseX = screenW - boxWidth - 10.0f;
-    if (mouseY + boxHeight > screenH) mouseY = screenH - boxHeight - 10.0f;
-
-    SDL_FRect tooltipRect = { mouseX, mouseY, boxWidth, boxHeight };
-
-    renderFillRoundedRect(renderer, tooltipRect, 6.0f, { 25, 23, 30, 250 });
-    renderDrawRoundedRect(renderer, tooltipRect, 6.0f, { 140, 110, 200, 255 });
-
-    SDL_FRect titleRect = { mouseX + padding, mouseY + padding, boxWidth - (padding * 2.0f), headerH };
-    drawTextFit("Human", titleRect, { 210, 100, 255, 255 }, "title_font");
-
-    float heightMeters = Player->stats.getBaseStat("height");
-    if (heightMeters <= 0.0f) heightMeters = 1.75f;
-
-    char subTitleBuffer[128];
-    snprintf(subTitleBuffer, sizeof(subTitleBuffer), "Masculine | Fit body | %.2fm tall", Player->anatomy.heightMeters);
-
-    SDL_FRect subTitleRect = { mouseX + padding, mouseY + padding + headerH, boxWidth - (padding * 2.0f), subHeaderH };
-    drawTextFit(subTitleBuffer, subTitleRect, { 100, 200, 255, 255 }, "button_font");
-
-    float dividerY = mouseY + padding + headerH + subHeaderH + (padding * 0.4f);
-    SDL_SetRenderDrawColor(renderer, 60, 50, 75, 255);
-    SDL_RenderLine(renderer, mouseX + padding, dividerY, mouseX + boxWidth - padding, dividerY);
-
-    float currentY = dividerY + (padding * 0.4f);
-
-    for (const auto& row : rows)
+    SDL_FRect boxes[3] = { top, mid, bot };
+    for (int i = 0; i < 3; i++)
     {
-        float textY = currentY + (lineH - fontH) * 0.5f;
-        float bulletY = textY + (fontH - bulletSize) * 0.5f;
-
-        SDL_FRect colorBullet = { mouseX + padding, bulletY, bulletSize, bulletSize };
-        renderFillRoundedRect(renderer, colorBullet, 2.0f, row.bulletColor);
-
-        float textX = mouseX + padding + textStartXOffset;
-        renderTextLeftSegment(row.tokens, textX, textY, fontH, "button_font");
-
-        currentY += lineH;
+        SDL_Rect viewRect = { static_cast<int>(boxes[i].x), static_cast<int>(boxes[i].y), static_cast<int>(boxes[i].w), static_cast<int>(boxes[i].h) };
+        ViewportGuard vpGuard(renderer, &viewRect);
+        SDL_FRect r = { 0.0f, 0.0f, boxes[i].w, boxes[i].h };
+        renderFillRoundedRect(renderer, r, GLOBAL_CORNER_RADIUS, { 40, 40, 40, 255 });
+        renderDrawRoundedRect(renderer, r, GLOBAL_CORNER_RADIUS, { 65, 65, 75, 255 });
     }
 }

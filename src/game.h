@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <string>
 #include <cmath>
+#include <functional>
 
 #include "gameMap.h"
 #include "entity.h"
@@ -40,14 +41,28 @@ struct CachedTextTexture
 
 struct DashboardLayout
 {
-    SDL_Rect mapRect;
-    SDL_Rect timeRect;
-    SDL_Rect charRect;
-    SDL_Rect companionRect;
-    SDL_Rect textMainRect;
+    SDL_FRect mapRect;
+    SDL_FRect timeRect;
+    SDL_FRect charRect;
+    SDL_FRect companionRect;
+    SDL_FRect textMainRect;
     SDL_FRect actionGridRect;
-    SDL_Rect equipRect;
-    SDL_Rect inventoryRect;
+    SDL_FRect equipRect;
+    SDL_FRect inventoryRect;
+
+    // Header Title Boxes
+    SDL_FRect titleBox1;
+    SDL_FRect titleBox2;
+    SDL_FRect titleBox3;
+
+    // Right Column Stack
+    SDL_FRect rightStackTop;
+    SDL_FRect rightStackMid;
+    SDL_FRect rightStackBot;
+
+    // Hover Bounds
+    SDL_FRect playerAvatarRect;
+    SDL_FRect targetAvatarRect;
 };
 
 enum class TargetMode
@@ -111,19 +126,12 @@ public:
     void renderDashboardLayout();
     void renderMainMenuLayout();
 
-    void renderMapPanel(SDL_Rect rect, int padding);
-    void renderEquipmentPanel(SDL_Rect rect, int padding, entity* targetEntity = nullptr);
-    void renderInventoryPanel(SDL_Rect rect);
-    void renderTitleBar(SDL_Rect t1, SDL_Rect t2, SDL_Rect t3);
-    void renderCompanionPanel(SDL_Rect rect);
-    void renderTextPanel(SDL_Rect rect);
-    void renderRightColumn(SDL_Rect top, SDL_Rect mid, SDL_Rect bot);
-    void renderCharacterPanel(SDL_FRect rect, entity* playerObj);
-    void renderActionGrid(SDL_FRect rect);
-    void renderTimePanel(SDL_Rect rect);
+    void renderTitleBar(SDL_FRect t1, SDL_FRect t2, SDL_FRect t3);
+    void renderCompanionPanel(SDL_FRect rect);
+    void renderTextPanel(SDL_FRect rect);
+    void renderRightColumn(SDL_FRect top, SDL_FRect mid, SDL_FRect bot);
 
     float renderTextLeftSegment(const std::vector<ColorToken>& tokens, float startX, float startY, float maxH, const std::string& fontId);
-    void renderAnatomyTooltip(float mouseX, float mouseY);
 
     SDL_Texture* getOrRenderText(const std::string& text, const std::string& fontId, SDL_Color color, float& outW, float& outH);
     void clearTextCache();
@@ -133,9 +141,6 @@ public:
 
     entity* activeTargetNPC = nullptr;
     TargetMode activeTargetMode = TargetMode::NONE;
-
-    void renderNPCTargetPanel(float x, float y, float w, float h);
-    void renderNPCAnatomyTooltip(float mouseX, float mouseY);
 
 private:
     std::unordered_map<std::string, CachedTextTexture> textCache;

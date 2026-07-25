@@ -10,51 +10,85 @@
 class UIGridHelper
 {
 public:
-    // Helper to test if a point (x, y) resides inside an SDL_FRect
-    static inline bool contains(const SDL_FRect& rect, float x, float y)
+    static bool contains(SDL_FRect rect, float x, float y)
     {
-        return (x >= rect.x && x <= rect.x + rect.w && y >= rect.y && y <= rect.y + rect.h);
+        return (x >= rect.x && x <= rect.x + rect.w &&
+            y >= rect.y && y <= rect.y + rect.h);
     }
 
-    // Helper to test if a point (x, y) resides inside an SDL_Rect
-    static inline bool contains(const SDL_Rect& rect, float x, float y)
+    static SDL_FRect getEquipmentSlotRect(const SDL_FRect& bounds, int col, int row, int cols, int rows, int slotPadding, int outerPadding)
     {
-        return (x >= (float)rect.x && x <= (float)(rect.x + rect.w) &&
-            y >= (float)rect.y && y <= (float)(rect.y + rect.h));
-    }
+        float contentX = bounds.x + outerPadding;
+        float contentY = bounds.y + outerPadding;
+        float contentW = bounds.w - (2.0f * outerPadding);
+        float contentH = bounds.h - (2.0f * outerPadding);
 
-    // 1. Calculate 5x5 Map Tile Bounding Rectangle
-    static inline SDL_FRect getMapTileRect(const SDL_Rect& mapRect, int gridCol, int gridRow, int padding = 12)
-    {
-        int tileGap = 2;
-        int availableForTiles = mapRect.w - (2 * padding) - (4 * tileGap);
-        int drawnTileSize = availableForTiles / 5;
-        int totalGridSize = (drawnTileSize * 5) + (tileGap * 4);
+        float slotW = (contentW - (cols - 1) * slotPadding) / cols;
+        float slotH = (contentH - (rows - 1) * slotPadding) / rows;
 
-        int offsetX = mapRect.x + (mapRect.w - totalGridSize) / 2;
-        int offsetY = mapRect.y + (mapRect.h - totalGridSize) / 2;
-
-        return SDL_FRect{
-            (float)(offsetX + (gridCol * (drawnTileSize + tileGap))),
-            (float)(offsetY + (gridRow * (drawnTileSize + tileGap))),
-            (float)drawnTileSize,
-            (float)drawnTileSize
+        return {
+            contentX + col * (slotW + slotPadding),
+            contentY + row * (slotH + slotPadding),
+            slotW,
+            slotH
         };
     }
 
-    // 2. Calculate Action Grid Button Bounding Rectangle (5 Cols x 3 Rows)
-    static inline SDL_FRect getActionButtonRect(const SDL_FRect& actionRect, int col, int row,
-        int cols = 5, int rows = 3,
-        float gap = 8.0f, float vertPad = 15.0f, float horizPad = 40.0f)
+    static SDL_FRect getInventorySlotRect(const SDL_FRect& bounds, int index, int cols, int rows)
     {
-        float availableW = actionRect.w - (horizPad * 2.0f) - (gap * (cols - 1));
-        float availableH = actionRect.h - (vertPad * 2.0f) - (gap * (rows - 1));
-        float btnW = availableW / (float)cols;
-        float btnH = availableH / (float)rows;
+        float padding = 8.0f;
+        float halfW = bounds.w / 2.0f;
 
-        return SDL_FRect{
-            actionRect.x + horizPad + (col * (btnW + gap)),
-            actionRect.y + vertPad + (row * (btnH + gap)),
+        int side = index / (cols * rows); // 0 = left page, 1 = right page
+        int localIdx = index % (cols * rows);
+        int col = localIdx % cols;
+        int row = localIdx / cols;
+
+        float startX = bounds.x + (side * halfW) + padding;
+        float startY = bounds.y + padding;
+        float gridW = halfW - (2.0f * padding);
+        float gridH = bounds.h - (2.0f * padding);
+
+        float slotW = (gridW - (cols - 1) * padding) / cols;
+        float slotH = (gridH - (rows - 1) * padding) / rows;
+
+        return {
+            startX + col * (slotW + padding),
+            startY + row * (slotH + padding),
+            slotW,
+            slotH
+        };
+    }
+
+    static SDL_FRect getMapTileRect(const SDL_FRect& bounds, int col, int row, float padding)
+    {
+        float contentX = bounds.x + padding;
+        float contentY = bounds.y + padding;
+        float contentW = bounds.w - (2.0f * padding);
+        float contentH = bounds.h - (2.0f * padding);
+
+        float tileW = (contentW - (4.0f * 4.0f)) / 5.0f;
+        float tileH = (contentH - (4.0f * 4.0f)) / 5.0f;
+
+        return {
+            contentX + col * (tileW + 4.0f),
+            contentY + row * (tileH + 4.0f),
+            tileW,
+            tileH
+        };
+    }
+
+    static SDL_FRect getActionButtonRect(const SDL_FRect& bounds, int col, int row, int cols, int rows, float padding = 8.0f)
+    {
+        float contentW = bounds.w - (2.0f * padding);
+        float contentH = bounds.h - (2.0f * padding);
+
+        float btnW = (contentW - (cols - 1) * padding) / cols;
+        float btnH = (contentH - (rows - 1) * padding) / rows;
+
+        return {
+            bounds.x + padding + col * (btnW + padding),
+            bounds.y + padding + row * (btnH + padding),
             btnW,
             btnH
         };

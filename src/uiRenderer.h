@@ -3,8 +3,18 @@
 #include <algorithm>
 #include <cmath>
 #include <string>
+#include <vector>
 
-constexpr float GLOBAL_CORNER_RADIUS = 8.0f;
+class game;
+class entity;
+class gameMap;
+class timeManager;
+struct actionButton;
+enum class equipSlot;
+enum class TargetMode;
+enum class GameState;
+
+constexpr float GLOBAL_CORNER_RADIUS = 6.0f;
 
 inline SDL_Color getColorFromName(const std::string& colorName)
 {
@@ -75,13 +85,18 @@ inline void renderDrawRoundedRect(SDL_Renderer* renderer, SDL_FRect rect, float 
         return;
     }
 
-    float x2 = rect.x + rect.w - 1.0f;
-    float y2 = rect.y + rect.h - 1.0f;
+    // Snap edges to pixel boundaries to prevent white sub-pixel bleeding
+    float rx = std::floor(rect.x);
+    float ry = std::floor(rect.y);
+    float rw = std::floor(rect.w);
+    float rh = std::floor(rect.h);
+    float x2 = rx + rw - 1.0f;
+    float y2 = ry + rh - 1.0f;
 
-    SDL_RenderLine(renderer, rect.x + radius, rect.y, x2 - radius, rect.y);
-    SDL_RenderLine(renderer, rect.x + radius, y2, x2 - radius, y2);
-    SDL_RenderLine(renderer, rect.x, rect.y + radius, rect.x, y2 - radius);
-    SDL_RenderLine(renderer, x2, rect.y + radius, x2, y2 - radius);
+    SDL_RenderLine(renderer, rx + radius, ry, x2 - radius, ry);
+    SDL_RenderLine(renderer, rx + radius, y2, x2 - radius, y2);
+    SDL_RenderLine(renderer, rx, ry + radius, rx, y2 - radius);
+    SDL_RenderLine(renderer, x2, ry + radius, x2, y2 - radius);
 
     auto drawArc = [&](float cx, float cy, float quadX, float quadY)
         {
@@ -100,8 +115,22 @@ inline void renderDrawRoundedRect(SDL_Renderer* renderer, SDL_FRect rect, float 
             }
         };
 
-    drawArc(rect.x + radius, rect.y + radius, -1.0f, -1.0f);
-    drawArc(x2 - radius, rect.y + radius, 1.0f, -1.0f);
-    drawArc(rect.x + radius, y2 - radius, -1.0f, 1.0f);
+    drawArc(rx + radius, ry + radius, -1.0f, -1.0f);
+    drawArc(x2 - radius, ry + radius, 1.0f, -1.0f);
+    drawArc(rx + radius, y2 - radius, -1.0f, 1.0f);
     drawArc(x2 - radius, y2 - radius, 1.0f, 1.0f);
+}
+
+// --- Stateless Atomic Primitives ---
+namespace UI
+{
+    void DrawProgressBar(SDL_Renderer* renderer, game* g, SDL_FRect bounds, float currentVal, float maxVal, SDL_Color fillColor, SDL_Color bgColor = { 20, 18, 25, 255 });
+    void DrawVitalRow(SDL_Renderer* renderer, game* g, SDL_FRect bounds, float currentVal, float maxVal, SDL_Color barColor);
+    void DrawEquipmentGrid(SDL_Renderer* renderer, game* g, SDL_FRect bounds, entity* targetEntity, equipSlot selectedSlot, int padding = 12);
+    void DrawInventoryGrid(SDL_Renderer* renderer, game* g, SDL_FRect bounds, entity* targetEntity, int selectedIndex);
+    void DrawEntitySummaryCard(SDL_Renderer* renderer, game* g, SDL_FRect bounds, entity* targetEntity, bool isEnemy = false);
+    void DrawAnatomyTooltip(SDL_Renderer* renderer, game* g, entity* targetEntity, float mouseX, float mouseY);
+    void DrawMapGrid(SDL_Renderer* renderer, game* g, SDL_FRect bounds, gameMap* map, int playerX, int playerY, int padding = 12);
+    void DrawActionGrid(SDL_Renderer* renderer, game* g, SDL_FRect bounds, const std::vector<actionButton>& buttons);
+    void DrawTimePanel(SDL_Renderer* renderer, game* g, SDL_FRect bounds, const timeManager& gameTime);
 }
