@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <memory>
 #include <algorithm>
+#include <nlohmann/json.hpp>
 
 #include "quest.h" // Includes MapTrigger, gameCondition, and gameEffect definitions
 
@@ -78,6 +79,10 @@ public:
     void updateDiscovery(int playerX, int playerY);
     Tile getTile(int x, int y) const;
     bool checkWarp(int x, int y, MapWarp& outWarp) const;
+
+    // --- Add Save/Load Declarations Right Here ---
+    nlohmann::json saveStateToJson() const;
+    void loadStateFromJson(const nlohmann::json& j);
 
     // --- Dynamic Tile Data & Trigger Helpers ---
     TileRuntimeData& getRuntimeData(int x, int y);

@@ -173,3 +173,65 @@ bool gameMap::checkWarp(int x, int y, MapWarp& outWarp) const
     }
     return false;
 }
+
+using json = nlohmann::json;
+
+json gameMap::saveStateToJson() const
+{
+    json j;
+    j["mapId"] = mapId;
+
+    // 1. Save Discovery Grid
+    json discoveryGrid = json::array();
+    for (int y = 0; y < height; ++y)
+    {
+        json row = json::array();
+        for (int x = 0; x < width; ++x)
+        {
+            row.push_back(static_cast<int>(grid[y][x].discovery));
+        }
+        discoveryGrid.push_back(row);
+    }
+    j["discovery"] = discoveryGrid;
+
+    // 2. Save Persistent Tile NPCs
+    json tileNpcMap = json::object();
+    for (const auto& [key, runtime] : runtimeData)
+    {
+        if (runtime.persistentNPC)
+        {
+            tileNpcMap[key] = runtime.persistentNPC->toJson();
+        }
+    }
+    j["tileNPCs"] = tileNpcMap;
+
+    return j;
+}
+
+void gameMap::loadStateFromJson(const json& j)
+{
+    // 1. Restore Discovery Grid
+    if (j.contains("discovery"))
+    {
+        const auto& dGrid = j["discovery"];
+        for (size_t y = 0; y < (size_t)height && y < dGrid.size(); ++y)
+        {
+            const auto& row = dGrid[y];
+            for (size_t x = 0; x < (size_t)width && x < row.size(); ++x)
+            {
+                grid[y][x].discovery = static_cast<DiscoveryState>(row[x].get<int>());
+            }
+        }
+    }
+
+    // 2. Restore Persistent Tile NPCs
+    if (j.contains("tileNPCs"))
+    {
+        for (auto& [key, npcJson] : j["tileNPCs"].items())
+        {
+            auto npc = std::make_shared<entity>("", "");
+            npc->fromJson(npcJson);
+            runtimeData[key].persistentNPC = npc;
+        }
+    }
+}

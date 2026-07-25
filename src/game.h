@@ -15,6 +15,8 @@
 #include "questDatabase.h"
 #include "timeManager.h"
 #include "viewportGuard.h" // Adopt ViewportGuard everywhere!
+#include "uiRenderer.h"
+#include "saveManager.h"
 
 enum class GameState
 {
@@ -22,6 +24,12 @@ enum class GameState
     INVENTORY,
     MAIN_MENU,
     EVENT
+};
+
+struct ColorToken
+{
+    std::string text;
+    SDL_Color color;
 };
 
 struct CachedTextTexture
@@ -69,6 +77,7 @@ public:
 
     GameState currentState;
     DashboardLayout layout; // Holds calculated screen panel bounds
+    std::unordered_map<std::string, gameMap> mapCache;
 
     // UI & Text
     std::unordered_map<std::string, TTF_Font*> fonts;
@@ -112,6 +121,9 @@ public:
     void renderActionGrid(SDL_FRect rect);
     void renderTimePanel(SDL_Rect rect);
 
+    float renderTextLeftSegment(const std::vector<ColorToken>& tokens, float startX, float startY, float maxH, const std::string& fontId);
+    void renderAnatomyTooltip(float mouseX, float mouseY);
+
     SDL_Texture* getOrRenderText(const std::string& text, const std::string& fontId, SDL_Color color, float& outW, float& outH);
     void clearTextCache();
 
@@ -120,5 +132,4 @@ public:
 
 private:
     std::unordered_map<std::string, CachedTextTexture> textCache;
-    std::unordered_map<std::string, gameMap> mapCache;
 };

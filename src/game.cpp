@@ -1,5 +1,4 @@
 #include "game.h"
-#include "uiRenderer.h"
 
 game::game() : isRunning(false), window(nullptr), renderer(nullptr), map(nullptr), Player(nullptr), gridX(1), gridY(1), currentState(GameState::EXPLORATION) {}
 
@@ -82,6 +81,7 @@ void game::init(const char* title, int width, int height, bool fullscreen)
 
     window = SDL_CreateWindow(title, width, height, (fullscreen ? SDL_WINDOW_FULLSCREEN : SDL_WINDOW_RESIZABLE));
     renderer = SDL_CreateRenderer(window, NULL);
+    SDL_SetRenderVSync(renderer, 1);
 
     SDL_SetRenderLogicalPresentation(renderer, width, height, SDL_LOGICAL_PRESENTATION_STRETCH);
 
@@ -95,20 +95,13 @@ void game::init(const char* title, int width, int height, bool fullscreen)
 
     if (itemDatabase::loadDatabase("data/items.json"))
     {
-        Player = new entity("player_1", "Oellanix");
+        questDatabase::loadDatabase("data/quests");
 
-        // Base Attributes
-        Player->stats.setBaseStat("level", 1.0f);
-        Player->stats.setBaseStat("physique", 12.0f);
-        Player->stats.setBaseStat("arcane", 15.0f);
-        Player->stats.setBaseStat("corruption", 0.0f);
-
-        // Vitals
-        Player->stats.setBaseStat("health", 68.0f);
-        Player->stats.setBaseStat("mana", 91.0f);
-        Player->stats.setBaseStat("lust", 100.0f);
-        Player->stats.setBaseStat("currency", 0.0f);
-        Player->stats.setBaseStat("gems", 0.0f);
+        if (!saveManager::loadGame(this, "data/saves/save_01.json"))
+        {
+            saveManager::createInitialSave(this, "saves/save_01.json");
+            saveManager::loadGame(this, "saves/save_01.json");
+        }
     }
 
     questDatabase::loadDatabase("data/quests");
@@ -141,39 +134,52 @@ void game::handleEvents()
 
         if (event.type == SDL_EVENT_KEY_DOWN)
         {
+            // 1. Hotkeys & Menus
             if (event.key.key == SDLK_I)
             {
                 selectedInventoryIndex = -1;
                 selectedEquipmentSlot = equipSlot::NONE;
 
-                if (currentState == GameState::EXPLORATION)
-                {
-                    currentState = GameState::INVENTORY;
-                }
-                else if (currentState == GameState::INVENTORY)
-                {
-                    currentState = GameState::EXPLORATION;
-                }
+                if (currentState == GameState::EXPLORATION) currentState = GameState::INVENTORY;
+                else if (currentState == GameState::INVENTORY) currentState = GameState::EXPLORATION;
 
                 refreshActionGrid();
-                return; // CRITICAL: Stop event handling here so no turn advancement triggers!
+                return;
             }
             if (event.key.key == SDLK_M)
             {
                 currentState = (currentState == GameState::MAIN_MENU) ? GameState::EXPLORATION : GameState::MAIN_MENU;
+                return;
+            }
+            if (event.key.key == SDLK_F5)
+            {
+                saveManager::saveGame(this, "saves/save_01.json");
+                return;
+            }
+            if (event.key.key == SDLK_F9)
+            {
+                saveManager::loadGame(this, "saves/save_01.json");
+                return;
             }
 
+            // 2. Exploration Movement (ONLY move if arrow keys are actually pressed!)
             if (currentState == GameState::EXPLORATION)
             {
                 int nextX = gridX, nextY = gridY;
+                bool isMoveKey = false;
+
                 switch (event.key.key)
                 {
-                    case SDLK_UP:    nextY--; break;
-                    case SDLK_DOWN:  nextY++; break;
-                    case SDLK_LEFT:  nextX--; break;
-                    case SDLK_RIGHT: nextX++; break;
+                    case SDLK_UP:    nextY--; isMoveKey = true; break;
+                    case SDLK_DOWN:  nextY++; isMoveKey = true; break;
+                    case SDLK_LEFT:  nextX--; isMoveKey = true; break;
+                    case SDLK_RIGHT: nextX++; isMoveKey = true; break;
                 }
-                movePlayer(nextX, nextY);
+
+                if (isMoveKey)
+                {
+                    movePlayer(nextX, nextY);
+                }
             }
         }
     }
@@ -575,21 +581,11 @@ bool game::checkConditions(const std::vector<gameCondition>& conditions)
         }
         else if (cond.type == "STAT_MIN")
         {
-            if (Player->stats.getBaseStat(cond.target) < cond.requiredValue) return false;
+            if (Player->getStat(cond.target) < cond.requiredValue) return false;
         }
         else if (cond.type == "HAS_TAG")
         {
-            // Checks if player anatomy has tag on any body part
-            bool hasTag = false;
-            for (int s = 0; s < (int)bodySlot::TENTACLES; ++s)
-            {
-                if (Player->anatomy.hasTag((bodySlot)s, cond.target))
-                {
-                    hasTag = true;
-                    break;
-                }
-            }
-            if (!hasTag) return false;
+            if (!Player->anatomy.hasGlobalTag(cond.target)) return false;
         }
     }
     return true;
@@ -771,7 +767,6 @@ SDL_Texture* game::getOrRenderText(const std::string& textStr, const std::string
 {
     if (textStr.empty()) return nullptr;
 
-    // Build unique cache key
     std::string cacheKey = fontId + "_" + textStr + "_" +
         std::to_string(color.r) + "_" +
         std::to_string(color.g) + "_" +
@@ -781,13 +776,21 @@ SDL_Texture* game::getOrRenderText(const std::string& textStr, const std::string
     auto it = textCache.find(cacheKey);
     if (it != textCache.end())
     {
-        // Match your struct's actual member names (w and h)
         outW = static_cast<float>(it->second.w);
         outH = static_cast<float>(it->second.h);
         return it->second.texture;
     }
 
-    // Use your engine's actual font lookup map variable name (e.g., fonts instead of fontMap)
+    // Safety check: Prevent unbounded growth by clearing cache if it exceeds 300 unique text styles
+    if (textCache.size() > 300)
+    {
+        for (auto& pair : textCache)
+        {
+            if (pair.second.texture) SDL_DestroyTexture(pair.second.texture);
+        }
+        textCache.clear();
+    }
+
     TTF_Font* font = fonts[fontId];
     if (!font) return nullptr;
 
@@ -804,7 +807,6 @@ SDL_Texture* game::getOrRenderText(const std::string& textStr, const std::string
 
     if (texture)
     {
-        // Store using w and h with explicit static casts to satisfy narrowing rules
         textCache[cacheKey] = { texture, surfW, surfH };
     }
 

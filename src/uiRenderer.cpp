@@ -89,6 +89,28 @@ void game::renderDashboardLayout()
 
         default: break;
     }
+
+    // --- ANATOMY AVATAR HOVER CHECK ---
+    float charPadX = layout.charRect.w * 0.04f;
+    float charPadY = layout.charRect.h * 0.04f;
+    float avatarSize = layout.charRect.h * 0.16f;
+
+    SDL_FRect avatarScreenRect = {
+        (float)layout.charRect.x + charPadX,
+        (float)layout.charRect.y + charPadY,
+        avatarSize,
+        avatarSize
+    };
+
+    float winX, winY, mouseX, mouseY;
+    SDL_GetMouseState(&winX, &winY);
+    SDL_RenderCoordinatesFromWindow(renderer, winX, winY, &mouseX, &mouseY);
+
+    if (mouseX >= avatarScreenRect.x && mouseX <= avatarScreenRect.x + avatarScreenRect.w &&
+        mouseY >= avatarScreenRect.y && mouseY <= avatarScreenRect.y + avatarScreenRect.h)
+    {
+        renderAnatomyTooltip(mouseX + 15.0f, mouseY + 15.0f);
+    }
 }
 
 void game::renderMainMenuLayout()
@@ -155,7 +177,7 @@ void game::renderCharacterPanel(SDL_FRect rect, entity* playerObj)
     renderDrawRoundedRect(renderer, avatarRect, 4.0f, { 90, 90, 105, 255 });
 
     float headerTextX = avatarRect.x + avatarSize + (padX * 0.8f);
-    std::string headerStr = playerObj->name + " - Level " + std::to_string((int)playerObj->stats.getBaseStat("level"));
+    std::string headerStr = playerObj->name + " - Level " + std::to_string(playerObj->stats.level);
     float headerTextH = avatarSize * 0.55f;
     SDL_FRect headerTextRect = { headerTextX, currentY, rect.w - headerTextX - padX, headerTextH };
     drawTextFit(headerStr, headerTextRect, { 160, 200, 255, 255 });
@@ -242,10 +264,11 @@ void game::renderCharacterPanel(SDL_FRect rect, entity* playerObj)
             drawTextFit(std::to_string((int)currentVal), textRect, { 240, 240, 240, 255 });
         };
 
+    // 4. Main Vital Bars (Health, Mana, Lust)
     drawVitalBar(currentY, "health", 100.0f, { 255, 60, 90, 255 });
     currentY += iconRadius + barGap;
 
-    drawVitalBar(currentY, "arcane", 100.0f, { 220, 130, 255, 255 });
+    drawVitalBar(currentY, "mana", 100.0f, { 220, 130, 255, 255 });
     currentY += iconRadius + barGap;
 
     drawVitalBar(currentY, "lust", 100.0f, { 230, 50, 150, 255 });
@@ -633,5 +656,230 @@ void game::renderActionGrid(SDL_FRect rect)
             }
             renderDrawRoundedRect(renderer, btn, 4.0f, { 60, 60, 70, 255 });
         }
+    }
+}
+
+// 1. Helper to map color strings to RGB
+inline SDL_Color getColorFromName(const std::string& colorName)
+{
+    std::string lower = colorName;
+    std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+
+    if (lower == "fair" || lower == "flesh") return { 240, 190, 170, 255 };
+    if (lower == "brown") return { 160, 90, 44, 255 };
+    if (lower == "blue") return { 80, 160, 255, 255 };
+    if (lower == "pink") return { 255, 130, 180, 255 };
+    if (lower == "scarlet" || lower == "red") return { 230, 40, 50, 255 };
+    if (lower == "yellow") return { 255, 215, 0, 255 };
+    if (lower == "purple") return { 180, 100, 255, 255 };
+    if (lower == "green") return { 60, 200, 80, 255 };
+    if (lower == "black" || lower == "dark") return { 100, 100, 110, 255 };
+    if (lower == "white") return { 240, 240, 240, 255 };
+
+    return { 220, 220, 230, 255 }; // Default fallback text color
+}
+
+// 3. Left-Justified Segment Text Renderer
+float game::renderTextLeftSegment(const std::vector<ColorToken>& tokens, float startX, float startY, float maxH, const std::string& fontId)
+{
+    float currentX = startX;
+
+    for (const auto& token : tokens)
+    {
+        if (token.text.empty()) continue;
+
+        float srcW = 0.0f, srcH = 0.0f;
+        SDL_Texture* texture = getOrRenderText(token.text, fontId, token.color, srcW, srcH);
+
+        if (texture && srcH > 0.0f)
+        {
+            float scale = maxH / srcH;
+            float drawW = srcW * scale;
+            float drawH = maxH;
+
+            SDL_FRect renderDst = { currentX, startY, drawW, drawH };
+            SDL_RenderTexture(renderer, texture, NULL, &renderDst);
+
+            currentX += drawW;
+        }
+    }
+
+    return currentX - startX;
+}
+
+// 4. Fully Scaled & Formatted Anatomy Tooltip
+void game::renderAnatomyTooltip(float mouseX, float mouseY)
+{
+    if (!Player) return;
+
+    int screenW = 1280, screenH = 720;
+    SDL_GetRenderOutputSize(renderer, &screenW, &screenH);
+
+    // 1. Define Strict Top-to-Bottom Anatomical Slot Order
+    static const std::vector<bodySlot> anatomicalOrder = {
+        bodySlot::HAIR,
+        bodySlot::HEAD,
+        bodySlot::EYES,
+        bodySlot::EARS,
+        bodySlot::HORNS,
+        bodySlot::MOUTH,
+        bodySlot::NECK,
+        bodySlot::TORSO,
+        bodySlot::BREASTS,
+        bodySlot::STOMACH,
+        bodySlot::BACK,
+        bodySlot::ARMS,
+        bodySlot::HANDS,
+        bodySlot::FINGERS,
+        bodySlot::HIPS,
+        bodySlot::GROIN,
+        bodySlot::ASS,
+        bodySlot::TAIL,
+        bodySlot::LEGS,
+        bodySlot::FEET,
+        bodySlot::WINGS,
+        bodySlot::TENTACLES,
+        bodySlot::ANTENNAE
+    };
+
+    // Compact Base Scales
+    float headerH = screenH * 0.032f;        // ~23px
+    float subHeaderH = screenH * 0.024f;     // ~17px
+    float lineH = screenH * 0.025f;          // ~18px
+    float fontH = lineH * 0.80f;             // Actual text height
+    float padding = screenW * 0.008f;        // ~10px padding
+    float bulletSize = fontH * 0.45f;        // Bullet square size
+
+    // 2. Pre-calculate Line Data in Top-to-Bottom Order
+    struct RenderRowData
+    {
+        bool isOccupied = false;
+        SDL_Color bulletColor = { 100, 100, 110, 255 };
+        std::vector<ColorToken> tokens;
+    };
+
+    std::vector<RenderRowData> rows;
+    float maxContentW = screenW * 0.18f; // Baseline width
+
+    for (bodySlot slot : anatomicalOrder)
+    {
+        RenderRowData row;
+        const bodyPart* part = Player->anatomy.getPart(slot);
+
+        if (part != nullptr)
+        {
+            row.isOccupied = true;
+            row.bulletColor = getColorFromName(part->primaryColor);
+
+            // Build Prefix String
+            std::string prefixStr = "";
+            if (slot == bodySlot::GROIN && part->length > 0.0f)
+            {
+                char buf[64];
+                snprintf(buf, sizeof(buf), "%s (%gcm long, %gcm diameter)", part->name.c_str(), part->length, part->diameter);
+                prefixStr = std::string(buf);
+            }
+            else if (slot == bodySlot::BREASTS && part->cupSize > 0)
+            {
+                prefixStr = part->name + " (" + bodyPart::getCupSizeName(part->cupSize) + "-cup)";
+            }
+            else
+            {
+                if (part->count == 2) prefixStr = "Two ";
+                else if (part->count > 2) prefixStr = std::to_string(part->count) + " ";
+
+                if (!part->style.empty()) prefixStr += part->style + " ";
+                prefixStr += part->name;
+            }
+
+            std::string coveringNoun = getCoveringNoun(part->covering);
+
+            row.tokens.push_back({ prefixStr + ": ", { 220, 220, 230, 255 } });
+            row.tokens.push_back({ part->race + " - ", { 180, 100, 255, 255 } });
+
+            if (!part->secondaryColor.empty())
+            {
+                row.tokens.push_back({ part->secondaryColor, getColorFromName(part->secondaryColor) });
+                row.tokens.push_back({ "-rimmed, ", { 220, 220, 230, 255 } });
+            }
+
+            row.tokens.push_back({ part->primaryColor + " ", row.bulletColor });
+            row.tokens.push_back({ coveringNoun, { 200, 200, 210, 255 } });
+        }
+        else
+        {
+            // Missing Body Part -> Greyed Out Entry
+            row.isOccupied = false;
+            row.bulletColor = { 65, 65, 75, 255 }; // Dark grey bullet
+
+            std::string slotLabel = getSlotName(slot);
+            row.tokens.push_back({ slotLabel + ": ", { 110, 110, 125, 255 } });
+            row.tokens.push_back({ "None", { 140, 140, 150, 255 } });
+        }
+
+        // Measure total line width for auto-scaling box width
+        float rowW = 0.0f;
+        for (const auto& tok : row.tokens)
+        {
+            float srcW = 0.0f, srcH = 0.0f;
+            getOrRenderText(tok.text, "button_font", tok.color, srcW, srcH);
+            if (srcH > 0.0f) rowW += srcW * (fontH / srcH);
+        }
+
+        if (rowW > maxContentW) maxContentW = rowW;
+        rows.push_back(row);
+    }
+
+    // Dynamic Width calculation
+    float textStartXOffset = bulletSize + (padding * 0.8f);
+    float boxWidth = maxContentW + textStartXOffset + (padding * 2.5f);
+
+    int itemLines = (int)rows.size();
+    float boxHeight = headerH + subHeaderH + padding + (itemLines * lineH) + padding;
+
+    // Window Safety Offset
+    if (mouseX + boxWidth > screenW) mouseX = screenW - boxWidth - 10.0f;
+    if (mouseY + boxHeight > screenH) mouseY = screenH - boxHeight - 10.0f;
+
+    SDL_FRect tooltipRect = { mouseX, mouseY, boxWidth, boxHeight };
+
+    // Outer Card Frame
+    renderFillRoundedRect(renderer, tooltipRect, 6.0f, { 25, 23, 30, 250 });
+    renderDrawRoundedRect(renderer, tooltipRect, 6.0f, { 140, 110, 200, 255 });
+
+    // 3. Centered Top Headers
+    SDL_FRect titleRect = { mouseX + padding, mouseY + padding, boxWidth - (padding * 2.0f), headerH };
+    drawTextFit("Human", titleRect, { 210, 100, 255, 255 }, "title_font");
+
+    float heightMeters = Player->stats.getBaseStat("height");
+    if (heightMeters <= 0.0f) heightMeters = 1.75f; // Standard default height
+
+    char subTitleBuffer[128];
+    snprintf(subTitleBuffer, sizeof(subTitleBuffer), "Masculine | Fit body | %.2fm tall", Player->anatomy.heightMeters);
+
+    SDL_FRect subTitleRect = { mouseX + padding, mouseY + padding + headerH, boxWidth - (padding * 2.0f), subHeaderH };
+    drawTextFit(subTitleBuffer, subTitleRect, { 100, 200, 255, 255 }, "button_font");
+
+    float dividerY = mouseY + padding + headerH + subHeaderH + (padding * 0.4f);
+    SDL_SetRenderDrawColor(renderer, 60, 50, 75, 255);
+    SDL_RenderLine(renderer, mouseX + padding, dividerY, mouseX + boxWidth - padding, dividerY);
+
+    float currentY = dividerY + (padding * 0.4f);
+
+    // 4. Render Body Part Rows in Order
+    for (const auto& row : rows)
+    {
+        // Vertical Centering for Bullet Squares
+        float textY = currentY + (lineH - fontH) * 0.5f;
+        float bulletY = textY + (fontH - bulletSize) * 0.5f;
+
+        SDL_FRect colorBullet = { mouseX + padding, bulletY, bulletSize, bulletSize };
+        renderFillRoundedRect(renderer, colorBullet, 2.0f, row.bulletColor);
+
+        // Render Tokens
+        float textX = mouseX + padding + textStartXOffset;
+        renderTextLeftSegment(row.tokens, textX, textY, fontH, "button_font");
+
+        currentY += lineH;
     }
 }
