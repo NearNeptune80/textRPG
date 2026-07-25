@@ -1,17 +1,39 @@
 {
   "items": [
     {
-      "id": "item_canis_root",
-      "name": "Canis Root Potion",
-      "isConsumable": true,
-      "isEquippable": false,
-      "targetSlot": "NONE",
+      "id": "item_linen_shirt",
+      "name": "Linen Shirt",
+      "description": "A simple, comfortable shirt made of woven linen. It shows minor signs of wear around the collar but remains light, breathable, and suitable for daily wear under heavier armor or garments.",
+      "isConsumable": false,
+      "isEquippable": true,
+      "targetSlot": "CHEST",
       "requiredTags": [],
       "forbiddenTags": []
     },
     {
-      "id": "item_leather_collar",
-      "name": "Leather Collar",
+      "id": "item_leather_trousers",
+      "name": "Leather Trousers",
+      "description": "Fitted trousers crafted from treated hide. Designed to provide decent protection against scrapes and minor scratches while offering full range of movement.",
+      "isConsumable": false,
+      "isEquippable": true,
+      "targetSlot": "LEGS",
+      "requiredTags": [],
+      "forbiddenTags": []
+    },
+    {
+      "id": "item_leather_boots",
+      "name": "Traveler's Boots",
+      "description": "Sturdy leather boots with thick rubber soles, reinforced stitching, and brass lace hooks. Built specifically to survive long treks across rough terrain without wearing down or causing blisters.",
+      "isConsumable": false,
+      "isEquippable": true,
+      "targetSlot": "FEET",
+      "requiredTags": [],
+      "forbiddenTags": []
+    },
+    {
+      "id": "item_leather_choker",
+      "name": "Leather Choker",
+      "description": "A simple black leather choker featuring a polished brass ring mounted at the front center.",
       "isConsumable": false,
       "isEquippable": true,
       "targetSlot": "NECKWEAR",
@@ -19,22 +41,64 @@
       "forbiddenTags": []
     },
     {
-      "id": "item_digitigrade_boots",
-      "name": "Greaves of the Fiend",
+      "id": "item_cloth_gloves",
+      "name": "Cloth Gloves",
+      "description": "Light fabric gloves that keep hands clean without restricting finger dexterity.",
       "isConsumable": false,
       "isEquippable": true,
-      "targetSlot": "LEGS_OUTER",
-      "requiredTags": [ "digitigrade" ],
+      "targetSlot": "HANDS",
+      "requiredTags": [],
       "forbiddenTags": []
     },
     {
-      "id": "item_human_shoes",
-      "name": "Standard Shoes",
+      "id": "item_silk_panties",
+      "name": "Silk Panties",
+      "description": "Soft silk undergarments designed for maximum comfort.",
       "isConsumable": false,
       "isEquippable": true,
-      "targetSlot": "FEET",
+      "targetSlot": "UNDERWEAR_BOTTOM",
       "requiredTags": [],
-      "forbiddenTags": [ "digitigrade" ]
+      "forbiddenTags": []
+    },
+    {
+      "id": "item_silk_bra",
+      "name": "Silk Bra",
+      "description": "A matching lightweight silk bra.",
+      "isConsumable": false,
+      "isEquippable": true,
+      "targetSlot": "UNDERWEAR_TOP",
+      "requiredTags": [],
+      "forbiddenTags": []
+    },
+    {
+      "id": "item_ancient_tome",
+      "name": "Arcane Codex of the Forgotten Sun",
+      "description": "An ancient, heavy leather-bound tome bound in cracked dragonhide and sealed with tarnished silver clasps. The pages within are crafted from thick vellum and covered in dense, hand-drawn arcane sigils written in an ancient dialect long lost to memory. As you flip through the fragile pages, subtle currents of warm elemental energy whisper across your fingertips. The text details the fundamental principles of solar manipulation, historical astronomical observations, ritualistic incantations for channeling daylight energy, and forgotten alchemy recipes that require rare reagents found only in sunlit high-altitude peaks. Reading even a single chapter requires intense mental concentration and an affinity for celestial magic.",
+      "isConsumable": false,
+      "isEquippable": false,
+      "targetSlot": "NONE",
+      "requiredTags": [],
+      "forbiddenTags": []
+    },
+    {
+      "id": "item_canis_root",
+      "name": "Canis Root Potion",
+      "description": "A thick, pungent potion brewed from boiled Canis Root extracts, cave moss, and distilled spring water. Drinking this pungent liquid restores 45 vitality instantly while coating the drinker's veins with temporary physical resilience against incoming blunt strikes.",
+      "isConsumable": true,
+      "isEquippable": false,
+      "targetSlot": "NONE",
+      "requiredTags": [],
+      "forbiddenTags": []
+    },
+    {
+      "id": "item_golden_pendant",
+      "name": "Amulet of Eternal Dawn",
+      "description": "A radiant golden pendant encrusted with a polished amber gem at its center. The amber appears to glow faintly with internal heat, casting warm ember-like flickering reflections when held in dim lighting. Legend speaks of this amulet being worn by royal sorcerers during the First Age to ward off debilitating curses and dark corruption.",
+      "isConsumable": false,
+      "isEquippable": true,
+      "targetSlot": "NECKWEAR",
+      "requiredTags": [],
+      "forbiddenTags": []
     }
   ]
 }

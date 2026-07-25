@@ -16,7 +16,15 @@ public:
             y >= rect.y && y <= rect.y + rect.h);
     }
 
-    static SDL_FRect getEquipmentSlotRect(const SDL_FRect& bounds, int col, int row, int cols, int rows, int slotPadding, int outerPadding)
+    static SDL_FRect getActionGridBounds(const SDL_FRect& bounds, float arrowWRatio = 0.03f, float padding = 8.0f)
+    {
+        float arrowW = bounds.w * arrowWRatio;
+        float gridX = padding + arrowW + (padding * 0.5f);
+        float gridW = bounds.w - (2.0f * (padding + arrowW + (padding * 0.5f)));
+        return { gridX, 0.0f, gridW, bounds.h };
+    }
+
+    static SDL_FRect getEquipmentSlotRect(const SDL_FRect& bounds, int col, int row, int cols, int rows, float slotPadding, float outerPadding)
     {
         float contentX = bounds.x + outerPadding;
         float contentY = bounds.y + outerPadding;
@@ -34,29 +42,67 @@ public:
         };
     }
 
-    static SDL_FRect getInventorySlotRect(const SDL_FRect& bounds, int index, int cols, int rows)
+    /**
+ * Calculates square layout geometry for twin inventory grids (Player left, Target right).
+ */
+    static SDL_FRect getInventorySlotRect(const SDL_FRect& bounds, int index, int cols = 6, int rows = 5, float headerHeight = 24.0f)
     {
-        float padding = 8.0f;
+        float padding = 6.0f;
+        float tabW = 28.0f; // Square tab button width
         float halfW = bounds.w / 2.0f;
 
-        int side = index / (cols * rows); // 0 = left page, 1 = right page
+        int side = index / (cols * rows); // 0 = Left Grid, 1 = Right Grid
         int localIdx = index % (cols * rows);
         int col = localIdx % cols;
         int row = localIdx / cols;
 
-        float startX = bounds.x + (side * halfW) + padding;
-        float startY = bounds.y + padding;
-        float gridW = halfW - (2.0f * padding);
-        float gridH = bounds.h - (2.0f * padding);
+        // Determine grid sub-region (accounting for left tab bar on Left side, right tab bar on Right side)
+        float pageX = bounds.x + (side * halfW) + padding;
+        if (side == 0) pageX += tabW + padding; // Push left grid past left tabs
 
-        float slotW = (gridW - (cols - 1) * padding) / cols;
-        float slotH = (gridH - (rows - 1) * padding) / rows;
+        float pageW = halfW - (tabW + (3.0f * padding));
+        float pageY = bounds.y + headerHeight + padding;
+        float pageH = bounds.h - headerHeight - (2.0f * padding);
+
+        float rawW = (pageW - (cols - 1) * padding) / cols;
+        float rawH = (pageH - (rows - 1) * padding) / rows;
+        float squareSize = std::min(rawW, rawH);
+
+        float gridW = (squareSize * cols) + ((cols - 1) * padding);
+        float gridH = (squareSize * rows) + ((rows - 1) * padding);
+
+        float offsetX = pageX + (pageW - gridW) * 0.5f;
+        float offsetY = pageY + (pageH - gridH) * 0.5f;
 
         return {
-            startX + col * (slotW + padding),
-            startY + row * (slotH + padding),
-            slotW,
-            slotH
+            offsetX + col * (squareSize + padding),
+            offsetY + row * (squareSize + padding),
+            squareSize,
+            squareSize
+        };
+    }
+
+    /**
+ * Single-source-of-truth for square tab button geometry.
+ */
+    static SDL_FRect getInventoryTabRect(const SDL_FRect& bounds, int side, int tabIndex)
+    {
+        float padding = 6.0f;
+        float tabW = 28.0f;
+        float headerH = 24.0f;
+        float halfW = bounds.w / 2.0f;
+
+        float tabX = (side == 0)
+            ? (bounds.x + padding)
+            : (bounds.x + bounds.w - tabW - padding);
+
+        float startY = bounds.y + headerH + padding;
+
+        return {
+            tabX,
+            startY + tabIndex * (tabW + padding),
+            tabW,
+            tabW // Strictly 1:1 Square Tab
         };
     }
 
@@ -91,60 +137,6 @@ public:
             bounds.y + padding + row * (btnH + padding),
             btnW,
             btnH
-        };
-    }
-
-    // 3. Calculate 6x6 Equipment Grid Slot Rectangle
-    static inline SDL_FRect getEquipmentSlotRect(const SDL_Rect& equipRect, int col, int row,
-        int cols = 6, int rows = 6,
-        int slotGap = 4, int padding = 12)
-    {
-        int internalPadding = padding + 6;
-        int availableW = equipRect.w - (2 * internalPadding) - ((cols - 1) * slotGap);
-        int availableH = equipRect.h - (2 * internalPadding) - ((rows - 1) * slotGap);
-        int slotSize = std::min(availableW / cols, availableH / rows);
-
-        int gridW = (slotSize * cols) + (slotGap * (cols - 1));
-        int gridH = (slotSize * rows) + (slotGap * (rows - 1));
-
-        int offsetX = equipRect.x + (equipRect.w - gridW) / 2;
-        int offsetY = equipRect.y + (equipRect.h - gridH) / 2;
-
-        return SDL_FRect{
-            (float)(offsetX + (col * (slotSize + slotGap))),
-            (float)(offsetY + (row * (slotSize + slotGap))),
-            (float)slotSize,
-            (float)slotSize
-        };
-    }
-
-    // 4. Calculate Inventory Slot Rectangle (6 Cols x 5 Rows x 2 Columns)
-    static inline SDL_FRect getInventorySlotRect(const SDL_Rect& invRect, int slotIndex,
-        int cols = 6, int rows = 5,
-        int slotGap = 4, int sidePad = 20, int topPad = 60)
-    {
-        int halfWidth = invRect.w / 2;
-        int availableW = halfWidth - (2 * sidePad) - ((cols - 1) * slotGap);
-        int availableH = invRect.h - topPad - sidePad - ((rows - 1) * slotGap);
-        int slotSize = std::min(availableW / cols, availableH / rows);
-
-        int gridW = (slotSize * cols) + (slotGap * (cols - 1));
-        int leftOffsetX = invRect.x + (halfWidth - gridW) / 2;
-        int rightOffsetX = invRect.x + halfWidth + (halfWidth - gridW) / 2;
-        int gridOffsetY = invRect.y + topPad;
-
-        int maxSlotsPerSide = cols * rows;
-        int side = slotIndex / maxSlotsPerSide;
-        int localIndex = slotIndex % maxSlotsPerSide;
-        int r = localIndex / cols;
-        int c = localIndex % cols;
-        float originX = (side == 0) ? (float)leftOffsetX : (float)rightOffsetX;
-
-        return SDL_FRect{
-            originX + (c * (slotSize + slotGap)),
-            (float)(gridOffsetY + (r * (slotSize + slotGap))),
-            (float)slotSize,
-            (float)slotSize
         };
     }
 };

@@ -48,7 +48,10 @@ struct DashboardLayout
     SDL_FRect textMainRect;
     SDL_FRect actionGridRect;
     SDL_FRect equipRect;
-    SDL_FRect inventoryRect;
+
+    // Inventory Split Bounds
+    SDL_FRect inventoryGridRect;
+    SDL_FRect inventoryDetailRect;
 
     // Header Title Boxes
     SDL_FRect titleBox1;
@@ -99,6 +102,10 @@ public:
     GameState currentState;
     DashboardLayout layout;
     std::unordered_map<std::string, gameMap> mapCache;
+
+    int currentInventoryPage = 0; // 0..5 = Pages I to VI, 6 = Key Items
+    int currentRightInventoryPage = 0; // Right Grid Page (0..5 = Pages I-VI, 6 = Key)
+    float descriptionScrollY = 0.0f;
 
     std::unordered_map<std::string, TTF_Font*> fonts;
     std::vector<actionButton> activeButtons;

@@ -165,6 +165,15 @@ void game::handleEvents()
                 return;
             }
 
+            if (event.type == SDL_EVENT_MOUSE_WHEEL)
+            {
+                if (currentState == GameState::INVENTORY)
+                {
+                    descriptionScrollY -= event.wheel.y * 12.0f;
+                    if (descriptionScrollY < 0.0f) descriptionScrollY = 0.0f;
+                }
+            }
+
             if (currentState == GameState::EXPLORATION)
             {
                 int nextX = gridX, nextY = gridY;
@@ -222,7 +231,19 @@ void game::updateLayoutBounds(int w, int h)
 
     // Center Column Bounds
     float btnH = h * 0.15f;
-    layout.textMainRect = { centerX, colStartY, centerColW, (colEndY - btnH - padding) - colStartY };
+
+    float centerAvailableH = (colEndY - btnH - padding) - colStartY;
+    
+    // Standard Text Box (Exploration / Events)
+    layout.textMainRect = { centerX, colStartY, centerColW, centerAvailableH };
+
+    // Split Inventory View
+    float gridH = centerAvailableH * 0.52f;
+    float detailH = centerAvailableH - gridH - padding;
+
+    layout.inventoryGridRect = { centerX, colStartY, centerColW, gridH };
+    layout.inventoryDetailRect = { centerX, colStartY + gridH + padding, centerColW, detailH };
+
     layout.actionGridRect = { centerX, colEndY - btnH, centerColW, btnH };
 
     // Right Column Stack
@@ -234,7 +255,7 @@ void game::updateLayoutBounds(int w, int h)
     layout.rightStackBot = { rightX, colStartY + (rightStackH + padding) * 2.0f, rightColW, rightAvailableH - (rightStackH * 2.0f + padding * 2.0f) };
 
     layout.equipRect = layout.mapRect;
-    layout.inventoryRect = layout.textMainRect;
+    
 
     // Hover Avatar Regions
     float charPadX = layout.charRect.w * 0.04f;
@@ -268,16 +289,21 @@ void game::handleMouseClick(float windowX, float windowY)
     updateLayoutBounds(w, h);
     float padding = 12.0f;
 
-    // 1. Action Grid Clicks (Direct Lambda Invocation)
+    // 1. Action Grid Clicks (Aligned with navigation arrow layout offsets)
     if (UIGridHelper::contains(layout.actionGridRect, mouseX, mouseY))
     {
+        SDL_FRect gridBounds = UIGridHelper::getActionGridBounds(layout.actionGridRect);
+        // Translate mouse click to action grid local bounds
+        float localMouseX = mouseX - layout.actionGridRect.x;
+        float localMouseY = mouseY - layout.actionGridRect.y;
+
         int cols = 5, rows = 3;
         for (int r = 0; r < rows; r++)
         {
             for (int c = 0; c < cols; c++)
             {
-                SDL_FRect btn = UIGridHelper::getActionButtonRect(layout.actionGridRect, c, r, cols, rows);
-                if (UIGridHelper::contains(btn, mouseX, mouseY))
+                SDL_FRect btn = UIGridHelper::getActionButtonRect(gridBounds, c, r, cols, rows, 8.0f);
+                if (UIGridHelper::contains(btn, localMouseX, localMouseY))
                 {
                     int index = (r * cols) + c;
                     if (index < static_cast<int>(activeButtons.size()) && activeButtons[index].onClick)
@@ -321,7 +347,7 @@ void game::handleMouseClick(float windowX, float windowY)
             {
                 for (int c = 0; c < cols; c++)
                 {
-                    SDL_FRect slot = UIGridHelper::getEquipmentSlotRect(layout.equipRect, c, r, cols, rows, 4, padding);
+                    SDL_FRect slot = UIGridHelper::getEquipmentSlotRect(layout.equipRect, c, r, cols, rows, 4.0f, padding);
                     if (UIGridHelper::contains(slot, mouseX, mouseY))
                     {
                         int slotIdx = (r * cols) + c;
@@ -346,22 +372,64 @@ void game::handleMouseClick(float windowX, float windowY)
             }
         }
 
-        if (UIGridHelper::contains(layout.inventoryRect, mouseX, mouseY))
+        if (UIGridHelper::contains(layout.inventoryGridRect, mouseX, mouseY))
         {
-            int cols = 6, rows = 5;
-            int maxSlots = cols * rows * 2;
+            float localMouseX = mouseX - layout.inventoryGridRect.x;
+            float localMouseY = mouseY - layout.inventoryGridRect.y;
+            SDL_FRect localBounds = { 0.0f, 0.0f, layout.inventoryGridRect.w, layout.inventoryGridRect.h };
 
-            for (int i = 0; i < maxSlots; i++)
+            // A. Test Left & Right Square Page Tabs
+            for (int side = 0; side < 2; side++)
             {
-                SDL_FRect slot = UIGridHelper::getInventorySlotRect(layout.inventoryRect, i, cols, rows);
-                if (UIGridHelper::contains(slot, mouseX, mouseY))
+                for (int t = 0; t < 7; t++)
                 {
-                    selectedEquipmentSlot = equipSlot::NONE;
-                    if (Player && i < static_cast<int>(Player->inventory.backpack.size())) selectedInventoryIndex = i;
-                    else selectedInventoryIndex = -1;
+                    SDL_FRect tabRect = UIGridHelper::getInventoryTabRect(localBounds, side, t);
+                    if (UIGridHelper::contains(tabRect, localMouseX, localMouseY))
+                    {
+                        if (side == 0) currentInventoryPage = t;
+                        else currentRightInventoryPage = t;
 
-                    refreshActionGrid();
-                    return;
+                        selectedInventoryIndex = -1;
+                        refreshActionGrid();
+                        return;
+                    }
+                }
+            }
+
+            // B. Test Inventory Item Slots
+            int cols = 6, rows = 5;
+            int itemsPerPage = cols * rows;
+
+            for (int side = 0; side < 2; side++)
+            {
+                int activePage = (side == 0) ? currentInventoryPage : currentRightInventoryPage;
+                int pageOffset = activePage * itemsPerPage;
+
+                for (int i = 0; i < itemsPerPage; i++)
+                {
+                    int gridSlotIdx = (side * itemsPerPage) + i;
+                    SDL_FRect slot = UIGridHelper::getInventorySlotRect(localBounds, gridSlotIdx, cols, rows);
+
+                    if (UIGridHelper::contains(slot, localMouseX, localMouseY))
+                    {
+                        selectedEquipmentSlot = equipSlot::NONE;
+
+                        if (side == 0 && Player)
+                        {
+                            int absoluteItemIdx = pageOffset + i;
+                            if (absoluteItemIdx < static_cast<int>(Player->inventory.backpack.size()))
+                            {
+                                selectedInventoryIndex = absoluteItemIdx;
+                            }
+                            else
+                            {
+                                selectedInventoryIndex = -1;
+                            }
+                        }
+
+                        refreshActionGrid();
+                        return;
+                    }
                 }
             }
         }
@@ -660,9 +728,11 @@ void game::renderDashboardLayout()
         case GameState::INVENTORY:
         {
             UI::DrawEquipmentGrid(renderer, this, layout.equipRect, Player, selectedEquipmentSlot, 12);
-            UI::DrawInventoryGrid(renderer, this, layout.inventoryRect, Player, selectedInventoryIndex);
+            UI::DrawInventoryGrid(renderer, this, layout.inventoryGridRect, Player, selectedInventoryIndex);
+            UI::DrawItemDetailPanel(renderer, this, layout.inventoryDetailRect, Player, selectedInventoryIndex);
             renderRightColumn(layout.rightStackTop, layout.rightStackMid, layout.rightStackBot);
         }
+        break;
         break;
 
         default: break;
@@ -716,22 +786,18 @@ void game::drawTextFit(const std::string& textStr, SDL_FRect destRect, SDL_Color
 
 void game::renderTextCentered(const std::string& text, SDL_FRect targetRect, const std::string& fontId, SDL_Color color)
 {
-    if (text.empty() || fonts.find(fontId) == fonts.end()) return;
+    if (text.empty()) return;
 
-    TTF_Font* targetFont = fonts[fontId];
-    SDL_Surface* surface = TTF_RenderText_Blended(targetFont, text.c_str(), 0, color);
-    if (!surface) return;
+    float srcW = 0.0f, srcH = 0.0f;
+    SDL_Texture* texture = getOrRenderText(text, fontId, color, srcW, srcH);
 
-    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
-    if (texture)
+    if (texture && srcH > 0.0f)
     {
-        float textX = targetRect.x + (targetRect.w - surface->w) / 2.0f;
-        float textY = targetRect.y + (targetRect.h - surface->h) / 2.0f;
-        SDL_FRect destRect = { textX, textY, static_cast<float>(surface->w), static_cast<float>(surface->h) };
+        float textX = targetRect.x + (targetRect.w - srcW) / 2.0f;
+        float textY = targetRect.y + (targetRect.h - srcH) / 2.0f;
+        SDL_FRect destRect = { textX, textY, srcW, srcH };
         SDL_RenderTexture(renderer, texture, NULL, &destRect);
-        SDL_DestroyTexture(texture);
     }
-    SDL_DestroySurface(surface);
 }
 
 void game::renderTextWrapped(const std::string& text, SDL_FRect targetRect, const std::string& fontId, SDL_Color color)

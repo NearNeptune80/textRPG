@@ -51,7 +51,7 @@ void UI::DrawEquipmentGrid(SDL_Renderer* renderer, game* g, SDL_FRect bounds, en
         for (int c = 0; c < cols; c++)
         {
             int slotIdx = (r * cols) + c;
-            SDL_FRect slot = UIGridHelper::getEquipmentSlotRect(viewRect, c, r, cols, rows, 4, padding);
+            SDL_FRect slot = UIGridHelper::getEquipmentSlotRect(bounds, c, r, cols, rows, 4.0f, static_cast<float>(padding));
 
             // Adjust to viewport local coords
             slot.x -= bounds.x;
@@ -94,39 +94,170 @@ void UI::DrawInventoryGrid(SDL_Renderer* renderer, game* g, SDL_FRect bounds, en
     SDL_Rect viewRect = { static_cast<int>(bounds.x), static_cast<int>(bounds.y), static_cast<int>(bounds.w), static_cast<int>(bounds.h) };
     ViewportGuard vpGuard(renderer, &viewRect);
 
+    // 1. Panel Background
     SDL_FRect panelRect = { 0.0f, 0.0f, bounds.w, bounds.h };
-    renderFillRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 35, 35, 45, 255 });
-    renderDrawRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 60, 60, 75, 255 });
+    renderFillRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 30, 28, 35, 255 });
+    renderDrawRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 60, 55, 65, 255 });
 
-    SDL_SetRenderDrawColor(renderer, 60, 60, 70, 255);
-    SDL_RenderLine(renderer, bounds.w / 2.0f, 20.0f, bounds.w / 2.0f, bounds.h - 20.0f);
+    const char* tabLabels[7] = { "I", "II", "III", "IV", "V", "VI", "Key" };
+    float halfW = bounds.w * 0.5f;
 
-    int cols = 6, rows = 5;
-    int maxSlots = cols * rows * 2;
-
-    for (int i = 0; i < maxSlots; i++)
+    // 2. Render Headers & Square Tabs for Left (Player) and Right (Area/Target) Grids
+    for (int side = 0; side < 2; side++)
     {
-        SDL_FRect slot = UIGridHelper::getInventorySlotRect(viewRect, i, cols, rows);
-        slot.x -= bounds.x;
-        slot.y -= bounds.y;
+        int activePage = (side == 0) ? g->currentInventoryPage : g->currentRightInventoryPage;
 
-        bool hasItem = (targetEntity != nullptr) && (i < static_cast<int>(targetEntity->inventory.backpack.size()));
+        // Centered Header Title
+        std::string titleStr = (side == 0)
+            ? "Your Inventory | Page " + std::string(tabLabels[activePage])
+            : "In Area | Page " + std::string(tabLabels[activePage]);
 
-        SDL_Color bgCol = hasItem ? SDL_Color{ 60, 70, 90, 255 } : SDL_Color{ 50, 50, 60, 255 };
-        renderFillRoundedRect(renderer, slot, GLOBAL_CORNER_RADIUS, bgCol);
+        SDL_FRect headerBox = { side * halfW, 4.0f, halfW, 20.0f };
+        g->drawTextFit(titleStr, headerBox, { 220, 225, 240, 255 }, "button_font");
 
-        SDL_Color borderCol = (i == selectedIndex) ? SDL_Color{ 255, 215, 0, 255 } : SDL_Color{ 70, 70, 85, 255 };
-        renderDrawRoundedRect(renderer, slot, GLOBAL_CORNER_RADIUS, borderCol);
-
-        if (hasItem)
+        // Square Tab Buttons
+        for (int t = 0; t < 7; t++)
         {
-            std::string displayName = targetEntity->inventory.backpack[i]->name;
-            if (displayName.length() > 8) displayName = displayName.substr(0, 7) + ".";
+            SDL_FRect tabRect = UIGridHelper::getInventoryTabRect(panelRect, side, t);
+            bool isSelected = (activePage == t);
 
-            SDL_FRect textSlot = { slot.x + 2.0f, slot.y + 2.0f, slot.w - 4.0f, slot.h - 4.0f };
-            g->drawTextFit(displayName, textSlot, { 255, 255, 255, 255 });
+            SDL_Color bgCol = isSelected ? SDL_Color{ 70, 60, 95, 255 } : SDL_Color{ 40, 38, 48, 255 };
+            SDL_Color borderCol = isSelected ? SDL_Color{ 180, 150, 220, 255 } : SDL_Color{ 65, 60, 75, 255 };
+
+            renderFillRoundedRect(renderer, tabRect, 3.0f, bgCol);
+            renderDrawRoundedRect(renderer, tabRect, 3.0f, borderCol);
+
+            SDL_Color textCol = isSelected ? SDL_Color{ 255, 255, 255, 255 } : SDL_Color{ 130, 130, 145, 255 };
+            g->drawTextFit(tabLabels[t], tabRect, textCol, "button_font");
         }
     }
+
+    // 3. Center Divider Line
+    SDL_SetRenderDrawColor(renderer, 55, 50, 65, 255);
+    SDL_RenderLine(renderer, halfW, 10.0f, halfW, bounds.h - 10.0f);
+
+    // 4. Render Grid Items
+    int cols = 6, rows = 5;
+    int itemsPerPage = cols * rows;
+
+    for (int side = 0; side < 2; side++)
+    {
+        int activePage = (side == 0) ? g->currentInventoryPage : g->currentRightInventoryPage;
+        int pageOffset = activePage * itemsPerPage;
+
+        for (int i = 0; i < itemsPerPage; i++)
+        {
+            int gridSlotIdx = (side * itemsPerPage) + i;
+            int absoluteItemIdx = pageOffset + i;
+
+            SDL_FRect slot = UIGridHelper::getInventorySlotRect(panelRect, gridSlotIdx, cols, rows);
+
+            // Left side renders Player inventory
+            bool hasItem = (side == 0) && (targetEntity != nullptr) && (absoluteItemIdx < static_cast<int>(targetEntity->inventory.backpack.size()));
+
+            SDL_Color bgCol = hasItem ? SDL_Color{ 50, 55, 75, 255 } : SDL_Color{ 40, 38, 48, 255 };
+            renderFillRoundedRect(renderer, slot, 4.0f, bgCol);
+
+            bool isSelected = (side == 0) && (absoluteItemIdx == selectedIndex);
+            SDL_Color borderCol = isSelected ? SDL_Color{ 255, 215, 0, 255 } : SDL_Color{ 65, 60, 75, 255 };
+            renderDrawRoundedRect(renderer, slot, 4.0f, borderCol);
+
+            if (hasItem)
+            {
+                std::string displayName = targetEntity->inventory.backpack[absoluteItemIdx]->name;
+                if (displayName.length() > 8) displayName = displayName.substr(0, 7) + ".";
+
+                SDL_FRect textSlot = { slot.x + 2.0f, slot.y + 2.0f, slot.w - 4.0f, slot.h - 4.0f };
+                g->drawTextFit(displayName, textSlot, { 255, 255, 255, 255 });
+            }
+        }
+    }
+}
+
+void UI::DrawItemDetailPanel(SDL_Renderer* renderer, game* g, SDL_FRect bounds, entity* targetEntity, int selectedIndex)
+{
+    SDL_Rect viewRect = { static_cast<int>(bounds.x), static_cast<int>(bounds.y), static_cast<int>(bounds.w), static_cast<int>(bounds.h) };
+    ViewportGuard vpGuard(renderer, &viewRect);
+
+    // Outer Panel Frame
+    SDL_FRect panelRect = { 0.0f, 0.0f, bounds.w, bounds.h };
+    renderFillRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 30, 28, 35, 255 });
+    renderDrawRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 60, 55, 65, 255 });
+
+    float pad = 12.0f;
+
+    // 1. Fetch item from Backpack OR Equipped Slot
+    std::shared_ptr<item> selectedItem = nullptr;
+    if (targetEntity)
+    {
+        if (selectedIndex >= 0 && static_cast<size_t>(selectedIndex) < targetEntity->inventory.backpack.size())
+        {
+            selectedItem = targetEntity->inventory.backpack[selectedIndex];
+        }
+        else if (g->selectedEquipmentSlot != equipSlot::NONE && targetEntity->inventory.isEquipped(g->selectedEquipmentSlot))
+        {
+            selectedItem = targetEntity->inventory.getEquippedItem(g->selectedEquipmentSlot);
+        }
+    }
+
+    if (!selectedItem)
+    {
+        SDL_FRect emptyBox = { pad, pad, bounds.w - (2.0f * pad), bounds.h - (2.0f * pad) };
+        g->renderTextCentered("Select an item to view details", emptyBox, "button_font", { 120, 120, 135, 255 });
+        return;
+    }
+
+    // Right Side: Fixed-Square Preview Box
+    float previewSize = bounds.h - (2.0f * pad);
+    float previewX = bounds.w - previewSize - pad;
+    SDL_FRect previewRect = { previewX, pad, previewSize, previewSize };
+
+    renderFillRoundedRect(renderer, previewRect, 4.0f, { 20, 18, 24, 255 });
+    renderDrawRoundedRect(renderer, previewRect, 4.0f, { 70, 65, 80, 255 });
+    g->renderTextCentered("No Image", previewRect, "button_font", { 90, 90, 105, 255 });
+
+    // Left Side: Text Details
+    float textW = previewX - (2.0f * pad);
+    float currentY = pad;
+
+    // Title
+    float titleH = 22.0f;
+    SDL_FRect nameRect = { pad, currentY, textW, titleH };
+    g->drawTextFit(selectedItem->name, nameRect, { 255, 215, 0, 255 }, "title_font");
+    currentY += titleH + 4.0f;
+
+    // Subtitle
+    float subH = 16.0f;
+    std::string typeStr = selectedItem->isEquippable ? "Equippable Item" : (selectedItem->isConsumable ? "Consumable" : "Misc Item");
+    SDL_FRect typeRect = { pad, currentY, textW, subH };
+    g->drawTextFit(typeStr, typeRect, { 140, 185, 225, 255 }, "button_font");
+    currentY += subH + 6.0f;
+
+    // Tag Requirements
+    if (!selectedItem->requiredTags.empty())
+    {
+        std::string reqStr = "Requires: ";
+        for (const auto& tag : selectedItem->requiredTags) reqStr += tag + " ";
+
+        SDL_FRect reqRect = { pad, currentY, textW, 14.0f };
+        g->drawTextFit(reqStr, reqRect, { 180, 110, 255, 255 }, "button_font");
+        currentY += 18.0f;
+    }
+
+    // Scrollable Description Viewport
+    float descH = bounds.h - currentY - pad;
+
+    SDL_Rect descClip = {
+        static_cast<int>(bounds.x + pad),
+        static_cast<int>(bounds.y + currentY),
+        static_cast<int>(textW),
+        static_cast<int>(descH)
+    };
+    ViewportGuard descGuard(renderer, &descClip);
+
+    SDL_FRect descContentRect = { 0.0f, -g->descriptionScrollY, textW, 200.0f };
+    std::string descText = selectedItem->description.empty() ? "No description available." : selectedItem->description;
+    g->renderTextWrapped(descText, descContentRect, "button_font", { 200, 200, 210, 255 });
 }
 
 void UI::DrawEntitySummaryCard(SDL_Renderer* renderer, game* g, SDL_FRect bounds, entity* targetEntity, bool isEnemy)

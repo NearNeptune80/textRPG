@@ -11,6 +11,7 @@ struct item
 {
     std::string id;
     std::string name;
+    std::string description;
 
     bool isConsumable = false;
     bool isEquippable = false;

@@ -128,6 +128,7 @@ namespace UI
     void DrawVitalRow(SDL_Renderer* renderer, game* g, SDL_FRect bounds, float currentVal, float maxVal, SDL_Color barColor);
     void DrawEquipmentGrid(SDL_Renderer* renderer, game* g, SDL_FRect bounds, entity* targetEntity, equipSlot selectedSlot, int padding = 12);
     void DrawInventoryGrid(SDL_Renderer* renderer, game* g, SDL_FRect bounds, entity* targetEntity, int selectedIndex);
+    void DrawItemDetailPanel(SDL_Renderer* renderer, game* g, SDL_FRect bounds, entity* targetEntity, int selectedIndex);
     void DrawEntitySummaryCard(SDL_Renderer* renderer, game* g, SDL_FRect bounds, entity* targetEntity, bool isEnemy = false);
     void DrawAnatomyTooltip(SDL_Renderer* renderer, game* g, entity* targetEntity, float mouseX, float mouseY);
     void DrawMapGrid(SDL_Renderer* renderer, game* g, SDL_FRect bounds, gameMap* map, int playerX, int playerY, int padding = 12);
