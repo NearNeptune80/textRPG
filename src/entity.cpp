@@ -219,14 +219,10 @@ json entity::toJson() const
     statsJson["currentXp"] = stats.currentXp;
 
     json baseStats;
-    baseStats["health"] = stats.getBaseStat("health");
-    baseStats["mana"] = stats.getBaseStat("mana");
-    baseStats["lust"] = stats.getBaseStat("lust");
-    baseStats["physique"] = stats.getBaseStat("physique");
-    baseStats["arcane"] = stats.getBaseStat("arcane");
-    baseStats["corruption"] = stats.getBaseStat("corruption");
-    baseStats["currency"] = stats.getBaseStat("currency");
-    baseStats["gems"] = stats.getBaseStat("gems");
+    for (const auto& [statName, val] : stats.getAllBaseStats())
+    {
+        baseStats[statName] = val;
+    }
     statsJson["baseValues"] = baseStats;
     j["stats"] = statsJson;
 
@@ -255,6 +251,7 @@ json entity::toJson() const
     }
     j["statusEffects"] = fxArray;
     j["quests"] = quests.activeQuests;
+    j["essences"] = essences;
 
     json anatomyJson = json::object();
     anatomyJson["heightMeters"] = anatomy.heightMeters;
@@ -273,7 +270,7 @@ json entity::toJson() const
         pJson["cupSize"] = part.cupSize;
         pJson["style"] = part.style;
         pJson["tags"] = part.tags;
-        anatomyJson[std::to_string(static_cast<int>(slot))] = pJson;
+        anatomyJson[bodySlotToString(slot)] = pJson;
     }
     j["anatomy"] = anatomyJson;
 
@@ -287,7 +284,7 @@ json entity::toJson() const
     json equippedJson = json::object();
     for (const auto& [slot, itemPtr] : inventory.equipped)
     {
-        if (itemPtr) equippedJson[std::to_string(static_cast<int>(slot))] = itemPtr->id;
+        if (itemPtr) equippedJson[equipSlotToString(slot)] = itemPtr->id;
     }
     j["equipped"] = equippedJson;
 
@@ -347,6 +344,11 @@ void entity::fromJson(const json& j)
         quests.activeQuests = j["quests"].get<std::unordered_map<std::string, int>>();
     }
 
+    if (j.contains("essences"))
+    {
+        essences = j["essences"].get<std::unordered_map<std::string, int>>();
+    }
+
     if (j.contains("anatomy"))
     {
         const auto& aJson = j["anatomy"];
@@ -356,7 +358,7 @@ void entity::fromJson(const json& j)
         {
             if (slotStr == "heightMeters") continue;
 
-            bodySlot slot = static_cast<bodySlot>(std::stoi(slotStr));
+            bodySlot slot = stringToBodySlot(slotStr);
             bodyPart part;
             part.id = pJson.value("id", "");
             part.name = pJson.value("name", "");
@@ -389,9 +391,12 @@ void entity::fromJson(const json& j)
     {
         for (auto& [slotStr, itemId] : j["equipped"].items())
         {
-            equipSlot slot = static_cast<equipSlot>(std::stoi(slotStr));
-            auto itemPtr = itemDatabase::getItem(itemId.get<std::string>());
-            if (itemPtr) inventory.equipped[slot] = itemPtr;
+            equipSlot slot = stringToEquipSlot(slotStr);
+            if (slot != equipSlot::NONE)
+            {
+                auto itemPtr = itemDatabase::getItem(itemId.get<std::string>());
+                if (itemPtr) inventory.equipped[slot] = itemPtr;
+            }
         }
     }
 }

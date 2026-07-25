@@ -9,6 +9,41 @@ game::~game()
     if (Player) delete Player;
 }
 
+static std::string formatEquipSlotName(equipSlot slot)
+{
+    switch (slot)
+    {
+        case equipSlot::EYEWEAR:         return "Eyes";
+        case equipSlot::HEADWEAR:        return "Head";
+        case equipSlot::HAIR_WEAR:       return "Hair";
+        case equipSlot::HORNS_SLOT:      return "Horns";
+        case equipSlot::WEAPON_MAIN:     return "Main Hand";
+        case equipSlot::WEAPON_OFF:      return "Off Hand";
+        case equipSlot::MOUTHWEAR:       return "Mouth";
+        case equipSlot::TORSO_OVER:      return "Over-torso";
+        case equipSlot::NECKWEAR:        return "Neck";
+        case equipSlot::WINGS_SLOT:      return "Wings";
+        case equipSlot::WRISTS:          return "Wrists";
+        case equipSlot::TORSO_UNDER:     return "Torso";
+        case equipSlot::CHEST_WEAR:      return "Chest";
+        case equipSlot::NIPPLES_WEAR:    return "Nipples";
+        case equipSlot::HANDS:           return "Hands";
+        case equipSlot::HIPS_WEAR:       return "Hips";
+        case equipSlot::STOMACH_WEAR:    return "Stomach";
+        case equipSlot::FINGER_PRIMARY:  return "Fingers";
+        case equipSlot::ANKLES:          return "Ankles";
+        case equipSlot::LEGS_OUTER:      return "Legs";
+        case equipSlot::GROIN_OVER:      return "Groin";
+        case equipSlot::TAIL_SLOT:       return "Tail";
+        case equipSlot::CALVES:          return "Calves";
+        case equipSlot::FEET:            return "Feet";
+        case equipSlot::ASS_WEAR:        return "Anus";
+        case equipSlot::PENIS_WEAR:      return "Penis";
+        case equipSlot::VAGINA_WEAR:     return "Vagina";
+        default:                         return "Equip";
+    }
+}
+
 bool game::loadMap(const std::string& mapId, int startX, int startY)
 {
     if (mapCache.find(mapId) == mapCache.end())
@@ -31,6 +66,10 @@ void game::movePlayer(int nextX, int nextY)
 {
     if (!map || !map->isWalkable(nextX, nextY)) return;
 
+    // 1. Event-driven cleanup: Clear dropped items on current tile if it's unsafe BEFORE moving
+    map->clearUnsafeItems(gridX, gridY);
+
+    // 2. Update player coordinates
     gridX = nextX;
     gridY = nextY;
 
@@ -99,12 +138,10 @@ void game::init(const char* title, int width, int height, bool fullscreen)
 
         if (!saveManager::loadGame(this, "data/saves/save_01.json"))
         {
-            saveManager::createInitialSave(this, "saves/save_01.json");
-            saveManager::loadGame(this, "saves/save_01.json");
+            saveManager::createInitialSave(this, "data/saves/save_01.json");
+            saveManager::loadGame(this, "data/saves/save_01.json");
         }
     }
-
-    questDatabase::loadDatabase("data/quests");
     loadMap("overworld", 1, 1);
 
     isRunning = true;
@@ -130,15 +167,24 @@ void game::handleEvents()
             }
         }
 
+        // MOVED HERE: Separate top-level event check for mouse wheel
+        if (event.type == SDL_EVENT_MOUSE_WHEEL)
+        {
+            if (currentState == GameState::INVENTORY)
+            {
+                // Smoothly adjust scroll position
+                descriptionScrollY -= event.wheel.y * 18.0f;
+
+                // Immediate boundary clamping prevents the single-frame glitch/jump
+                descriptionScrollY = std::clamp(descriptionScrollY, 0.0f, maxDescriptionScrollY);
+            }
+        }
+
         if (event.type == SDL_EVENT_KEY_DOWN)
         {
             if (event.key.key == SDLK_I)
             {
-                // Softlock Prevention: Cannot open/close inventory during active cutscenes or encounter events
-                if (currentState == GameState::EVENT)
-                {
-                    return;
-                }
+                if (currentState == GameState::EVENT) return;
 
                 selectedInventoryIndex = -1;
                 selectedEquipmentSlot = equipSlot::NONE;
@@ -156,22 +202,13 @@ void game::handleEvents()
             }
             if (event.key.key == SDLK_F5)
             {
-                saveManager::saveGame(this, "saves/save_01.json");
+                saveManager::saveGame(this, "data/saves/save_01.json");
                 return;
             }
             if (event.key.key == SDLK_F9)
             {
-                saveManager::loadGame(this, "saves/save_01.json");
+                saveManager::loadGame(this, "data/saves/save_01.json");
                 return;
-            }
-
-            if (event.type == SDL_EVENT_MOUSE_WHEEL)
-            {
-                if (currentState == GameState::INVENTORY)
-                {
-                    descriptionScrollY -= event.wheel.y * 12.0f;
-                    if (descriptionScrollY < 0.0f) descriptionScrollY = 0.0f;
-                }
             }
 
             if (currentState == GameState::EXPLORATION)
@@ -292,23 +329,43 @@ void game::handleMouseClick(float windowX, float windowY)
     // 1. Action Grid Clicks (Aligned with navigation arrow layout offsets)
     if (UIGridHelper::contains(layout.actionGridRect, mouseX, mouseY))
     {
+        float padding = 8.0f;
+        float arrowW = layout.actionGridRect.w * 0.03f;
+        float localX = mouseX - layout.actionGridRect.x;
+        float localY = mouseY - layout.actionGridRect.y;
+
+        // Left (<) Arrow Click
+        SDL_FRect leftArrowRect = { padding, padding, arrowW, layout.actionGridRect.h - (2.0f * padding) };
+        if (UIGridHelper::contains(leftArrowRect, localX, localY))
+        {
+            if (actionGridPage > 0) actionGridPage--;
+            return;
+        }
+
+        // Right (>) Arrow Click
+        SDL_FRect rightArrowRect = { layout.actionGridRect.w - arrowW - padding, padding, arrowW, layout.actionGridRect.h - (2.0f * padding) };
+        if (UIGridHelper::contains(rightArrowRect, localX, localY))
+        {
+            actionGridPage++;
+            return;
+        }
+
+        // Center Grid Slot Clicks
         SDL_FRect gridBounds = UIGridHelper::getActionGridBounds(layout.actionGridRect);
-        // Translate mouse click to action grid local bounds
-        float localMouseX = mouseX - layout.actionGridRect.x;
-        float localMouseY = mouseY - layout.actionGridRect.y;
+        auto currentSlots = getSlotsForCurrentActionPage();
 
         int cols = 5, rows = 3;
         for (int r = 0; r < rows; r++)
         {
             for (int c = 0; c < cols; c++)
             {
-                SDL_FRect btn = UIGridHelper::getActionButtonRect(gridBounds, c, r, cols, rows, 8.0f);
-                if (UIGridHelper::contains(btn, localMouseX, localMouseY))
+                SDL_FRect btnRect = UIGridHelper::getActionButtonRect(gridBounds, c, r, cols, rows, padding);
+                if (UIGridHelper::contains(btnRect, localX, localY))
                 {
-                    int index = (r * cols) + c;
-                    if (index < static_cast<int>(activeButtons.size()) && activeButtons[index].onClick)
+                    int slotIdx = (r * cols) + c;
+                    if (!currentSlots[slotIdx].label.empty() && currentSlots[slotIdx].onClick)
                     {
-                        activeButtons[index].onClick();
+                        currentSlots[slotIdx].onClick();
                     }
                     return;
                 }
@@ -425,6 +482,7 @@ void game::handleMouseClick(float windowX, float windowY)
                             {
                                 selectedInventoryIndex = -1;
                             }
+                            descriptionScrollY = 0.0f; // Reset scroll on item change
                         }
 
                         refreshActionGrid();
@@ -440,31 +498,53 @@ int game::getEquipmentGridIndex(equipSlot slot)
 {
     switch (slot)
     {
-        case equipSlot::HEADWEAR:        return 1;
-        case equipSlot::EYEWEAR:         return 2;
-        case equipSlot::HORNS_SLOT:      return 3;
-        case equipSlot::PIERCING_EAR:    return 4;
+        // Row 1
+        case equipSlot::EYEWEAR:         return 0;  // Eyes
+        case equipSlot::HEADWEAR:        return 1;  // Head
+        case equipSlot::HAIR_WEAR:       return 2;  // Hair
+        case equipSlot::HORNS_SLOT:      return 3;  // Horns
+        case equipSlot::WEAPON_MAIN:     return 4;  // Primary Weapon
+        case equipSlot::WEAPON_OFF:      return 5;  // Secondary Weapon
 
-        case equipSlot::NECKWEAR:        return 7;
-        case equipSlot::SHOULDERS:       return 8;
-        case equipSlot::CHEST_WEAR:      return 9;
-        case equipSlot::TORSO_OVER:      return 10;
+            // Row 2
+        case equipSlot::MOUTHWEAR:       return 6;  // Mouth
+        case equipSlot::TORSO_OVER:      return 7;  // Over-torso
+        case equipSlot::NECKWEAR:        return 8;  // Neck
+        case equipSlot::WINGS_SLOT:      return 9;  // Wings
+        case equipSlot::PIERCING_EAR:    return 10; // Ear Piercing
+        case equipSlot::PIERCING_NOSE:   return 11; // Nose Piercing
 
-        case equipSlot::WEAPON_MAIN:     return 12;
-        case equipSlot::HANDS:           return 13;
-        case equipSlot::TORSO_UNDER:     return 14;
-        case equipSlot::WEAPON_OFF:      return 15;
+            // Row 3
+        case equipSlot::WRISTS:          return 12; // Wrists
+        case equipSlot::TORSO_UNDER:     return 13; // Torso
+        case equipSlot::CHEST_WEAR:      return 14; // Chest
+        case equipSlot::NIPPLES_WEAR:    return 15; // Nipples
+        case equipSlot::PIERCING_LIP:    return 16; // Lip Piercing
+        case equipSlot::PIERCING_TONGUE: return 17; // Tongue Piercing
 
-        case equipSlot::STOMACH_WEAR:    return 19;
-        case equipSlot::HIPS_WEAR:       return 20;
-        case equipSlot::TAIL_SLOT:       return 21;
+            // Row 4
+        case equipSlot::HANDS:           return 18; // Hands
+        case equipSlot::HIPS_WEAR:       return 19; // Hips
+        case equipSlot::STOMACH_WEAR:    return 20; // Stomach
+        case equipSlot::FINGER_PRIMARY:  return 21; // Fingers
+        case equipSlot::PIERCING_NIPPLE: return 22; // Nipple Piercing
+        case equipSlot::PIERCING_NAVEL:  return 23; // Navel Piercing
 
-        case equipSlot::GROIN_OVER:      return 25;
-        case equipSlot::LEGS_INNER:      return 26;
-        case equipSlot::LEGS_OUTER:      return 27;
+            // Row 5
+        case equipSlot::ANKLES:          return 24; // Ankles
+        case equipSlot::LEGS_OUTER:      return 25; // Legs
+        case equipSlot::GROIN_OVER:      return 26; // Groin
+        case equipSlot::TAIL_SLOT:       return 27; // Tail
+        case equipSlot::PIERCING_COCK:   return 28; // Cock Piercing
+        case equipSlot::PIERCING_VAGINA: return 29; // Vaginal Piercing
 
-        case equipSlot::FEET:            return 32;
-        case equipSlot::WINGS_SLOT:      return 33;
+            // Row 6
+        case equipSlot::CALVES:          return 30; // Calves
+        case equipSlot::FEET:            return 31; // Feet
+        case equipSlot::ASS_WEAR:        return 32; // Anus
+        case equipSlot::PENIS_WEAR:      return 33; // Penis
+        case equipSlot::VAGINA_WEAR:     return 34; // Vagina
+            // Slot 35 is left blank for the special button box!
 
         default:                         return -1;
     }
@@ -475,12 +555,21 @@ void game::handleEquipAction(int backpackIndex)
     if (!Player || backpackIndex < 0 || static_cast<size_t>(backpackIndex) >= Player->inventory.backpack.size()) return;
 
     std::shared_ptr<item> targetItem = Player->inventory.backpack[backpackIndex];
-    if (!targetItem->isEquippable) return;
+    if (!targetItem || !targetItem->isEquippable) return;
 
-    std::vector<std::string> bodyTags;
+    // Safety Guard: Don't equip items assigned to equipSlot::NONE
+    if (targetItem->targetSlot == equipSlot::NONE)
+    {
+        std::cout << "[Warning] Item '" << targetItem->name << "' has no valid target equipSlot mapping.\n";
+        return;
+    }
+
+    std::vector<std::string> bodyTags = Player->anatomy.getAllTags();
     if (Player->inventory.equipItem(static_cast<size_t>(backpackIndex), targetItem->targetSlot, bodyTags))
     {
         selectedInventoryIndex = -1;
+        selectedEquipmentSlot = targetItem->targetSlot;
+        descriptionScrollY = 0.0f;
         refreshActionGrid();
     }
 }
@@ -492,7 +581,9 @@ void game::handleUnequipAction(equipSlot slot)
     if (Player->inventory.unequipItem(slot))
     {
         selectedEquipmentSlot = equipSlot::NONE;
-        selectedInventoryIndex = -1;
+        // Point selection to the newly returned item at the end of the backpack
+        selectedInventoryIndex = static_cast<int>(Player->inventory.backpack.size()) - 1;
+        descriptionScrollY = 0.0f;
         refreshActionGrid();
     }
 }
@@ -501,69 +592,120 @@ void game::refreshActionGrid()
 {
     activeButtons.clear();
 
-    if (currentState == GameState::EXPLORATION)
+    if (currentState == GameState::INVENTORY)
     {
-        MapWarp warp;
-        if (map && map->checkWarp(gridX, gridY, warp))
-        {
-            actionButton warpBtn;
-            warpBtn.label = "Enter Door";
-            warpBtn.onClick = [this, warp]()
-                {
-                    loadMap(warp.targetMap, warp.targetX, warp.targetY);
-                };
-            activeButtons.push_back(warpBtn);
-        }
-
-        if (map)
-        {
-            auto triggers = questDatabase::getTriggersForLocation(map->getId(), gridX, gridY);
-            for (const auto& trig : triggers)
+        // 1. Pinned "Close inventory" Button (Bottom-Right Slot 14)
+        actionButton closeBtn;
+        closeBtn.label = "Close inventory";
+        closeBtn.slotIndex = 14;
+        closeBtn.pinnedAllPages = true;
+        closeBtn.onClick = [this]()
             {
-                if (checkConditions(trig.conditions))
-                {
-                    actionButton triggerBtn;
-                    triggerBtn.label = trig.label;
-                    triggerBtn.onClick = [this, trig]()
-                        {
-                            loadScene(trig.sceneId);
-                        };
-                    activeButtons.push_back(triggerBtn);
-                }
-            }
-        }
-    }
-    else if (currentState == GameState::INVENTORY)
-    {
-        if (selectedInventoryIndex >= 0 && Player && static_cast<size_t>(selectedInventoryIndex) < Player->inventory.backpack.size())
+                currentState = GameState::EXPLORATION;
+                selectedInventoryIndex = -1;
+                selectedEquipmentSlot = equipSlot::NONE;
+                refreshActionGrid();
+            };
+        activeButtons.push_back(closeBtn);
+
+        TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
+
+        // 2. Selected Backpack Item Actions (Left Grid Selected)
+        if (selectedInventorySide == 0 && selectedInventoryIndex >= 0 && Player && static_cast<size_t>(selectedInventoryIndex) < Player->inventory.backpack.size())
         {
-            const std::shared_ptr<item> selItem = Player->inventory.backpack[selectedInventoryIndex];
+            auto selItem = Player->inventory.backpack[selectedInventoryIndex];
+            int idx = selectedInventoryIndex;
+
+            // --- ROW 1: Standard Item Management Slots ---
+            // Slot 0: Drop (1)
+            actionButton drop1Btn;
+            drop1Btn.label = "Drop (1)";
+            drop1Btn.slotIndex = 0;
+            drop1Btn.onClick = [this, idx]()
+                {
+                    if (Player && idx < static_cast<int>(Player->inventory.backpack.size()))
+                    {
+                        auto itemPtr = Player->inventory.backpack[idx];
+                        Player->inventory.backpack.erase(Player->inventory.backpack.begin() + idx);
+                        map->getRuntimeData(gridX, gridY).droppedItems.push_back(itemPtr);
+
+                        selectedInventoryIndex = -1;
+                        refreshActionGrid();
+                    }
+                };
+            activeButtons.push_back(drop1Btn);
+
+            // Slot 1: Drop (5) [Disabled visual placeholder for stacks]
+            actionButton drop5Btn;
+            drop5Btn.label = "Drop (5)";
+            drop5Btn.slotIndex = 1;
+            activeButtons.push_back(drop5Btn);
+
+            // Slot 2: Drop (All)
+            actionButton dropAllBtn;
+            dropAllBtn.label = "Drop (All)";
+            dropAllBtn.slotIndex = 2;
+            dropAllBtn.onClick = drop1Btn.onClick; // Same single-item drop logic for non-stacked
+            activeButtons.push_back(dropAllBtn);
+
+            // Slot 4: Enchant
+            actionButton enchantBtn;
+            enchantBtn.label = "Enchant";
+            enchantBtn.slotIndex = 4;
+            activeButtons.push_back(enchantBtn);
+
+            // --- ROW 2: Primary Use / Equip / Consume Slots ---
             if (selItem->isEquippable)
             {
                 actionButton equipBtn;
-                equipBtn.label = "Equip " + selItem->name;
-                int idx = selectedInventoryIndex;
-                equipBtn.onClick = [this, idx]()
-                    {
-                        handleEquipAction(idx);
-                    };
+                equipBtn.label = "Equip: " + formatEquipSlotName(selItem->targetSlot);
+                equipBtn.slotIndex = 5; // Row 2, Slot 0
+                equipBtn.onClick = [this, idx]() { handleEquipAction(idx); };
                 activeButtons.push_back(equipBtn);
             }
-        }
-        else if (selectedEquipmentSlot != equipSlot::NONE && Player && Player->inventory.isEquipped(selectedEquipmentSlot))
-        {
-            std::shared_ptr<item> eqItem = Player->inventory.getEquippedItem(selectedEquipmentSlot);
-            if (eqItem)
+            else if (selItem->isConsumable)
             {
-                actionButton unequipBtn;
-                unequipBtn.label = "Unequip " + eqItem->name;
-                equipSlot slot = selectedEquipmentSlot;
-                unequipBtn.onClick = [this, slot]()
+                actionButton eatBtn;
+                eatBtn.label = "Eat (Self)";
+                eatBtn.slotIndex = 5; // Fixed at Row 2, Slot 0
+                eatBtn.onClick = [this, idx]()
                     {
-                        handleUnequipAction(slot);
+                        // Place consumable effect logic here
+                        Player->inventory.backpack.erase(Player->inventory.backpack.begin() + idx);
+                        selectedInventoryIndex = -1;
+                        refreshActionGrid();
                     };
-                activeButtons.push_back(unequipBtn);
+                activeButtons.push_back(eatBtn);
+
+                actionButton eatAllBtn;
+                eatAllBtn.label = "Eat all (Self)";
+                eatAllBtn.slotIndex = 6; // Fixed at Row 2, Slot 1
+                eatAllBtn.onClick = eatBtn.onClick;
+                activeButtons.push_back(eatAllBtn);
             }
+        }
+        // 3. Selected Ground Tile Actions (Right Grid Selected)
+        else if (selectedInventorySide == 1 && selectedInventoryIndex >= 0 && static_cast<size_t>(selectedInventoryIndex) < tileData.droppedItems.size())
+        {
+            // Slot 0: Pick Up (1)
+            actionButton pickUpBtn;
+            pickUpBtn.label = "Pick Up";
+            pickUpBtn.slotIndex = 0;
+            int idx = selectedInventoryIndex;
+            pickUpBtn.onClick = [this, idx]()
+                {
+                    TileRuntimeData& tData = map->getRuntimeData(gridX, gridY);
+                    if (idx < static_cast<int>(tData.droppedItems.size()))
+                    {
+                        auto itemPtr = tData.droppedItems[idx];
+                        tData.droppedItems.erase(tData.droppedItems.begin() + idx);
+                        Player->inventory.addItem(itemPtr);
+
+                        selectedInventoryIndex = -1;
+                        refreshActionGrid();
+                    }
+                };
+            activeButtons.push_back(pickUpBtn);
         }
     }
 }
@@ -805,13 +947,22 @@ void game::renderTextWrapped(const std::string& text, SDL_FRect targetRect, cons
     if (text.empty() || fonts.find(fontId) == fonts.end()) return;
 
     TTF_Font* targetFont = fonts[fontId];
-    SDL_Surface* surface = TTF_RenderText_Blended_Wrapped(targetFont, text.c_str(), 0, color, static_cast<int>(targetRect.w) - 40);
+    SDL_Surface* surface = TTF_RenderText_Blended_Wrapped(targetFont, text.c_str(), 0, color, static_cast<int>(targetRect.w));
     if (!surface) return;
+
+    // Calculate maximum scroll height based on surface dimensions
+    maxDescriptionScrollY = std::max(0.0f, static_cast<float>(surface->h) - targetRect.h);
+
+    if (descriptionScrollY > maxDescriptionScrollY)
+    {
+        descriptionScrollY = maxDescriptionScrollY;
+    }
 
     SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
     if (texture)
     {
-        SDL_FRect destRect = { targetRect.x + 20.0f, targetRect.y + 20.0f, static_cast<float>(surface->w), static_cast<float>(surface->h) };
+        // Render starting at the local viewport targetRect.y position
+        SDL_FRect destRect = { targetRect.x, targetRect.y, static_cast<float>(surface->w), static_cast<float>(surface->h) };
         SDL_RenderTexture(renderer, texture, NULL, &destRect);
         SDL_DestroyTexture(texture);
     }
@@ -956,6 +1107,69 @@ void game::triggerEncounter(std::shared_ptr<entity> npc)
             };
         activeButtons.push_back(btn);
     }
+}
+
+std::array<actionButton, 15> game::getSlotsForCurrentActionPage()
+{
+    std::array<actionButton, 15> pageSlots;
+    int itemsPerPage = 15;
+
+    // 1. Separate pinned/fixed buttons from flow buttons
+    std::vector<actionButton> flowButtons;
+
+    for (const auto& btn : activeButtons)
+    {
+        // Pinned to all pages (e.g., Close Inventory at slot 14)
+        if (btn.pinnedAllPages && btn.slotIndex >= 0 && btn.slotIndex < 15)
+        {
+            pageSlots[btn.slotIndex] = btn;
+        }
+        // Pinned to a specific slot on a specific page
+        else if (btn.slotIndex >= 0)
+        {
+            int btnPage = btn.slotIndex / itemsPerPage;
+            int localSlot = btn.slotIndex % itemsPerPage;
+            if (btnPage == actionGridPage && localSlot >= 0 && localSlot < 15)
+            {
+                pageSlots[localSlot] = btn;
+            }
+        }
+        // Sequential/Flow button (fills next available slot without gaps)
+        else
+        {
+            flowButtons.push_back(btn);
+        }
+    }
+
+    // 2. Fill flow buttons into the open slots across pages sequentially
+    int currentFlowIdx = 0;
+    int targetStartFlowIdx = actionGridPage * itemsPerPage; // Offset for current page
+
+    // Skip flow buttons belonging to earlier pages
+    for (int page = 0; page < actionGridPage; page++)
+    {
+        int slotsFilledOnPage = 0;
+        for (int s = 0; s < 15; s++)
+        {
+            // If slot wasn't reserved/pinned, it consumes a flow button
+            if (pageSlots[s].label.empty() && currentFlowIdx < static_cast<int>(flowButtons.size()))
+            {
+                currentFlowIdx++;
+                slotsFilledOnPage++;
+            }
+        }
+    }
+
+    // Populate current page open slots with current flow buttons
+    for (int s = 0; s < 15; s++)
+    {
+        if (pageSlots[s].label.empty() && currentFlowIdx < static_cast<int>(flowButtons.size()))
+        {
+            pageSlots[s] = flowButtons[currentFlowIdx++];
+        }
+    }
+
+    return pageSlots;
 }
 
 void game::clean()

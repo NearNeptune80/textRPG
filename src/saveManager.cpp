@@ -99,9 +99,9 @@ bool saveManager::loadGame(game* g, const std::string& filePath)
         g->refreshActionGrid();
         return true;
     }
-    catch (const nlohmann::json::exception& e)
+    catch (const std::exception& e)
     {
-        std::cerr << "[Save System] Corrupted save file: " << e.what() << "\n";
+        std::cerr << "[Save System] Corrupted save file or invalid format: " << e.what() << "\n";
         return false;
     }
 }
@@ -121,8 +121,8 @@ void saveManager::createInitialSave(game* g, const std::string& filePath)
     g->Player->stats.setBaseStat("health", 68.0f);
     g->Player->stats.setBaseStat("mana", 91.0f);
     g->Player->stats.setBaseStat("lust", 100.0f);
-    g->Player->stats.setBaseStat("currency", 0.0f);
-    g->Player->stats.setBaseStat("gems", 0.0f);
+    g->Player->stats.setBaseStat("currency", 150.0f);
+    g->Player->stats.setBaseStat("gems", 10.0f);
 
     auto createHumanPart = [](const std::string& id, const std::string& name, CoveringType covering, const std::string& color, int count = 1, const std::string& style = "", const std::vector<std::string>& tags = {})
         {
@@ -156,7 +156,6 @@ void saveManager::createInitialSave(game* g, const std::string& filePath)
     g->Player->anatomy.setPart(bodySlot::HANDS, createHumanPart("part_hands_human", "Hands", CoveringType::SKIN, "Fair", 2));
     g->Player->anatomy.setPart(bodySlot::FINGERS, createHumanPart("part_fingers_human", "Fingers", CoveringType::SKIN, "Fair", 10));
     g->Player->anatomy.setPart(bodySlot::HIPS, createHumanPart("part_hips_human", "Hips", CoveringType::SKIN, "Fair"));
-    g->Player->anatomy.setPart(bodySlot::GROIN, createHumanPart("part_groin_human", "Groin", CoveringType::SKIN, "Fair"));
 
     bodyPart penis = createHumanPart("part_penis_human", "Penis", CoveringType::SKIN, "Fair");
     penis.length = 14.0f;
@@ -170,8 +169,24 @@ void saveManager::createInitialSave(game* g, const std::string& filePath)
     g->Player->anatomy.setPart(bodySlot::LEGS, createHumanPart("part_legs_human", "Legs", CoveringType::SKIN, "Fair", 2, "plantigrade", { "plantigrade" }));
     g->Player->anatomy.setPart(bodySlot::FEET, createHumanPart("part_feet_human", "Feet", CoveringType::SKIN, "Fair", 2, "plantigrade", { "plantigrade" }));
 
-    auto potion = itemDatabase::getItem("item_canis_root");
-    if (potion) g->Player->inventory.addItem(potion);
+    // Pre-populate multi-page test items
+    std::vector<std::string> initialItems = {
+        "item_linen_shirt", "item_leather_trousers", "item_leather_boots", "item_leather_choker",
+        "item_cloth_gloves", "item_silk_panties", "item_silk_bra", "item_ancient_tome",
+        "item_canis_root", "item_golden_pendant", "item_canis_root", "item_canis_root",
+        "item_linen_shirt", "item_leather_trousers", "item_leather_boots", "item_cloth_gloves",
+        "item_canis_root", "item_canis_root", "item_canis_root", "item_ancient_tome",
+        "item_golden_pendant", "item_silk_panties", "item_silk_bra", "item_leather_choker",
+        "item_canis_root", "item_canis_root", "item_linen_shirt", "item_leather_trousers",
+        "item_leather_boots", "item_cloth_gloves", "item_ancient_tome", "item_golden_pendant",
+        "item_canis_root", "item_canis_root", "item_silk_panties", "item_silk_bra"
+    };
+
+    for (const auto& itemId : initialItems)
+    {
+        auto itemPtr = itemDatabase::getItem(itemId);
+        if (itemPtr) g->Player->inventory.addItem(itemPtr);
+    }
 
     g->loadMap("overworld", 1, 1);
     saveGame(g, filePath);

@@ -23,15 +23,16 @@
         "physique": 12.0,
         "arcane": 15.0,
         "corruption": 0.0,
-        "currency": 0.0,
-        "gems": 0.0
+        "currency": 150.0,
+        "gems": 10.0
       }
     },
     "statusEffects": [],
     "quests": {},
+    "essences": {},
     "anatomy": {
       "heightMeters": 1.78,
-      "0": {
+      "HAIR": {
         "id": "part_hair_human",
         "name": "Hair",
         "race": "Human",
@@ -45,7 +46,7 @@
         "style": "Short loose",
         "tags": []
       },
-      "1": {
+      "HEAD": {
         "id": "part_head_human",
         "name": "Face",
         "race": "Human",
@@ -59,7 +60,7 @@
         "style": "",
         "tags": []
       },
-      "2": {
+      "EYES": {
         "id": "part_eyes_human",
         "name": "Eyes",
         "race": "Human",
@@ -73,7 +74,7 @@
         "style": "",
         "tags": []
       },
-      "3": {
+      "EARS": {
         "id": "part_ears_human",
         "name": "Ears",
         "race": "Human",
@@ -87,7 +88,7 @@
         "style": "",
         "tags": []
       },
-      "4": {
+      "MOUTH": {
         "id": "part_mouth_human",
         "name": "Tongue",
         "race": "Human",
@@ -101,7 +102,7 @@
         "style": "",
         "tags": []
       },
-      "5": {
+      "NECK": {
         "id": "part_neck_human",
         "name": "Neck",
         "race": "Human",
@@ -115,7 +116,7 @@
         "style": "",
         "tags": []
       },
-      "8": {
+      "TORSO": {
         "id": "part_torso_human",
         "name": "Torso",
         "race": "Human",
@@ -129,7 +130,7 @@
         "style": "",
         "tags": []
       },
-      "9": {
+      "BREASTS": {
         "id": "part_breasts_human",
         "name": "Nipples",
         "race": "Human",
@@ -143,7 +144,7 @@
         "style": "",
         "tags": []
       },
-      "11": {
+      "STOMACH": {
         "id": "part_stomach_human",
         "name": "Stomach",
         "race": "Human",
@@ -157,7 +158,7 @@
         "style": "",
         "tags": []
       },
-      "12": {
+      "BACK": {
         "id": "part_back_human",
         "name": "Back",
         "race": "Human",
@@ -171,7 +172,7 @@
         "style": "",
         "tags": []
       },
-      "13": {
+      "ARMS": {
         "id": "part_arms_human",
         "name": "Arms",
         "race": "Human",
@@ -185,7 +186,7 @@
         "style": "",
         "tags": []
       },
-      "14": {
+      "HANDS": {
         "id": "part_hands_human",
         "name": "Hands",
         "race": "Human",
@@ -199,7 +200,7 @@
         "style": "",
         "tags": []
       },
-      "15": {
+      "FINGERS": {
         "id": "part_fingers_human",
         "name": "Fingers",
         "race": "Human",
@@ -213,7 +214,7 @@
         "style": "",
         "tags": []
       },
-      "16": {
+      "HIPS": {
         "id": "part_hips_human",
         "name": "Hips",
         "race": "Human",
@@ -227,7 +228,7 @@
         "style": "",
         "tags": []
       },
-      "17": {
+      "GROIN": {
         "id": "part_groin_human",
         "name": "Penis",
         "race": "Human",
@@ -241,7 +242,7 @@
         "style": "",
         "tags": []
       },
-      "18": {
+      "ASS": {
         "id": "part_ass_human",
         "name": "Anus",
         "race": "Human",
@@ -255,7 +256,7 @@
         "style": "",
         "tags": []
       },
-      "20": {
+      "LEGS": {
         "id": "part_legs_human",
         "name": "Legs",
         "race": "Human",
@@ -271,7 +272,7 @@
           "plantigrade"
         ]
       },
-      "21": {
+      "FEET": {
         "id": "part_feet_human",
         "name": "Feet",
         "race": "Human",
@@ -289,11 +290,48 @@
       }
     },
     "backpack": [
+      "item_linen_shirt",
+      "item_leather_trousers",
+      "item_leather_boots",
+      "item_leather_choker",
+      "item_cloth_gloves",
+      "item_silk_panties",
+      "item_silk_bra",
+      "item_ancient_tome",
       "item_canis_root",
-      "item_human_shoes"
+      "item_golden_pendant",
+      "item_canis_root",
+      "item_canis_root",
+      "item_linen_shirt",
+      "item_leather_trousers",
+      "item_leather_boots",
+      "item_cloth_gloves",
+      "item_canis_root",
+      "item_canis_root",
+      "item_canis_root",
+      "item_ancient_tome",
+      "item_golden_pendant",
+      "item_silk_panties",
+      "item_silk_bra",
+      "item_leather_choker",
+      "item_canis_root",
+      "item_canis_root",
+      "item_linen_shirt",
+      "item_leather_trousers",
+      "item_leather_boots",
+      "item_cloth_gloves",
+      "item_ancient_tome",
+      "item_golden_pendant",
+      "item_canis_root",
+      "item_canis_root",
+      "item_silk_panties",
+      "item_silk_bra"
     ],
     "equipped": {
-      "3": "item_leather_collar"
+      "NECKWEAR": "item_leather_choker",
+      "CHEST_WEAR": "item_linen_shirt",
+      "LEGS_OUTER": "item_leather_trousers",
+      "FEET": "item_leather_boots"
     }
   },
   "maps": {}

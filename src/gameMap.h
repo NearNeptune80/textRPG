@@ -7,6 +7,7 @@
 #include <nlohmann/json.hpp>
 
 #include "quest.h"
+#include "item.h"
 
 class entity;
 
@@ -50,8 +51,10 @@ struct TemporarySafetyModifier
 struct TileRuntimeData
 {
     std::shared_ptr<entity> persistentNPC = nullptr;
+    std::vector<std::shared_ptr<item>> droppedItems; // Items dropped on this tile
     std::string iconId = "";
     int baseDangerLevel = 0;
+    bool isStorageSafe = false; // Flag for persistent tile storage
 
     std::vector<TemporarySafetyModifier> safetyModifiers;
 
@@ -71,6 +74,19 @@ class gameMap
 public:
     gameMap();
     ~gameMap();
+
+    bool isStorageSafe(int x, int y)
+    {
+        return getRuntimeData(x, y).isStorageSafe;
+    }
+
+    void clearUnsafeItems(int x, int y)
+    {
+        if (!isStorageSafe(x, y))
+        {
+            getRuntimeData(x, y).droppedItems.clear();
+        }
+    }
 
     bool loadFromFile(const std::string& filePath);
     bool isWalkable(int x, int y) const;

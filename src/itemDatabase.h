@@ -4,6 +4,9 @@
 #include <memory>
 #include "item.h"
 
+equipSlot stringToEquipSlot(const std::string& str);
+std::string equipSlotToString(equipSlot slot);
+
 class itemDatabase
 {
 private:

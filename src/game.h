@@ -92,12 +92,15 @@ public:
     bool isRunning;
     SDL_Window* window;
     SDL_Renderer* renderer;
+    int selectedInventorySide = 0;
     int selectedInventoryIndex = -1;
     equipSlot selectedEquipmentSlot = equipSlot::NONE;
 
     gameMap* map;
     entity* Player;
     int gridX, gridY;
+
+    int actionGridPage = 0; // Current active page in the action grid
 
     GameState currentState;
     DashboardLayout layout;
@@ -106,6 +109,7 @@ public:
     int currentInventoryPage = 0; // 0..5 = Pages I to VI, 6 = Key Items
     int currentRightInventoryPage = 0; // Right Grid Page (0..5 = Pages I-VI, 6 = Key)
     float descriptionScrollY = 0.0f;
+    float maxDescriptionScrollY = 0.0f;
 
     std::unordered_map<std::string, TTF_Font*> fonts;
     std::vector<actionButton> activeButtons;
@@ -145,6 +149,8 @@ public:
 
     std::shared_ptr<entity> generateEncounterNPC();
     void triggerEncounter(std::shared_ptr<entity> npc);
+
+    std::array<actionButton, 15> getSlotsForCurrentActionPage();
 
     entity* activeTargetNPC = nullptr;
     TargetMode activeTargetMode = TargetMode::NONE;

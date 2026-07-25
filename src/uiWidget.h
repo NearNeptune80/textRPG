@@ -45,20 +45,20 @@ public:
     /**
  * Calculates square layout geometry for twin inventory grids (Player left, Target right).
  */
-    static SDL_FRect getInventorySlotRect(const SDL_FRect& bounds, int index, int cols = 6, int rows = 5, float headerHeight = 24.0f)
+    static SDL_FRect getInventorySlotRect(const SDL_FRect& bounds, int index, int cols = 6, int rows = 5)
     {
-        float padding = 6.0f;
-        float tabW = 28.0f; // Square tab button width
+        float padding = bounds.h * 0.02f;
+        float headerHeight = bounds.h * 0.08f; // Proportional header
+        float tabW = bounds.h * 0.085f;        // Proportional tab width
         float halfW = bounds.w / 2.0f;
 
-        int side = index / (cols * rows); // 0 = Left Grid, 1 = Right Grid
+        int side = index / (cols * rows);
         int localIdx = index % (cols * rows);
         int col = localIdx % cols;
         int row = localIdx / cols;
 
-        // Determine grid sub-region (accounting for left tab bar on Left side, right tab bar on Right side)
         float pageX = bounds.x + (side * halfW) + padding;
-        if (side == 0) pageX += tabW + padding; // Push left grid past left tabs
+        if (side == 0) pageX += tabW + padding;
 
         float pageW = halfW - (tabW + (3.0f * padding));
         float pageY = bounds.y + headerHeight + padding;
@@ -87,22 +87,27 @@ public:
  */
     static SDL_FRect getInventoryTabRect(const SDL_FRect& bounds, int side, int tabIndex)
     {
-        float padding = 6.0f;
-        float tabW = 28.0f;
-        float headerH = 24.0f;
-        float halfW = bounds.w / 2.0f;
+        float padding = bounds.h * 0.02f;
+        float headerH = bounds.h * 0.08f;
+
+        // Calculate total available vertical grid span (Top of Grid to Bottom of Grid)
+        float gridTop = bounds.y + headerH + padding;
+        float gridBottom = bounds.y + bounds.h - padding;
+        float totalGridSpan = gridBottom - gridTop;
+
+        // Force square tabs based on height distribution across 7 tabs
+        int totalTabs = 7;
+        float tabW = (totalGridSpan - ((totalTabs - 1) * (padding * 0.5f))) / totalTabs;
 
         float tabX = (side == 0)
             ? (bounds.x + padding)
             : (bounds.x + bounds.w - tabW - padding);
 
-        float startY = bounds.y + headerH + padding;
-
         return {
             tabX,
-            startY + tabIndex * (tabW + padding),
+            gridTop + tabIndex * (tabW + (padding * 0.5f)),
             tabW,
-            tabW // Strictly 1:1 Square Tab
+            tabW // Strictly square
         };
     }
 

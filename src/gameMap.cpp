@@ -174,6 +174,7 @@ json gameMap::saveStateToJson() const
     json j;
     j["mapId"] = mapId;
 
+    // Save discovery states...
     json discoveryGrid = json::array();
     for (int y = 0; y < height; ++y)
     {
@@ -186,21 +187,28 @@ json gameMap::saveStateToJson() const
     }
     j["discovery"] = discoveryGrid;
 
-    json tileNpcMap = json::object();
+    // Save Dropped Tile Items
+    json tileItemsMap = json::object();
     for (const auto& [key, runtime] : runtimeData)
     {
-        if (runtime.persistentNPC)
+        if (!runtime.droppedItems.empty())
         {
-            tileNpcMap[key] = runtime.persistentNPC->toJson();
+            json itemArray = json::array();
+            for (const auto& itemPtr : runtime.droppedItems)
+            {
+                if (itemPtr) itemArray.push_back(itemPtr->id);
+            }
+            tileItemsMap[key] = itemArray;
         }
     }
-    j["tileNPCs"] = tileNpcMap;
+    j["tileItems"] = tileItemsMap;
 
     return j;
 }
 
 void gameMap::loadStateFromJson(const json& j)
 {
+    // Load discovery...
     if (j.contains("discovery"))
     {
         const auto& dGrid = j["discovery"];
@@ -214,13 +222,17 @@ void gameMap::loadStateFromJson(const json& j)
         }
     }
 
-    if (j.contains("tileNPCs"))
+    // Load Dropped Items
+    if (j.contains("tileItems"))
     {
-        for (auto& [key, npcJson] : j["tileNPCs"].items())
+        for (auto& [key, itemsJson] : j["tileItems"].items())
         {
-            auto npc = std::make_shared<entity>("", "");
-            npc->fromJson(npcJson);
-            runtimeData[key].persistentNPC = npc;
+            runtimeData[key].droppedItems.clear();
+            for (const auto& itemId : itemsJson)
+            {
+                auto itemPtr = itemDatabase::getItem(itemId.get<std::string>());
+                if (itemPtr) runtimeData[key].droppedItems.push_back(itemPtr);
+            }
         }
     }
 }
