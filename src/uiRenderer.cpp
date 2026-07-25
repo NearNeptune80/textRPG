@@ -51,11 +51,21 @@ void game::renderDashboardLayout()
     int topBarH = (int)(h * 0.08f);
     int titleW = (w - (4 * padding)) / 3;
 
-    SDL_Rect slotTitle1 = { padding, padding, titleW, topBarH };
-    SDL_Rect slotTitle2 = { padding + titleW + padding, padding, titleW, topBarH };
-    SDL_Rect slotTitle3 = { padding + (titleW + padding) * 2, padding, titleW, topBarH };
+    // 1. Calculate exact column X positions and widths
+    int leftX = layout.charRect.x;
+    int leftW = layout.charRect.w;
+
+    int centerX = layout.textMainRect.x;
+    int centerW = layout.textMainRect.w;
 
     int rightX = layout.textMainRect.x + layout.textMainRect.w + padding;
+    int rightW = leftW;
+
+    // 2. Title bar slots match exact column widths and X positions
+    SDL_Rect slotTitle1 = { leftX, padding, leftW, topBarH };
+    SDL_Rect slotTitle2 = { centerX, padding, centerW, topBarH };
+    SDL_Rect slotTitle3 = { rightX, padding, rightW, topBarH };
+
     int rightColW = layout.mapRect.w;
     int colStartY = layout.charRect.y;
     int colEndY = h - padding;
@@ -127,6 +137,7 @@ void game::renderMainMenuLayout()
     renderDrawRoundedRect(renderer, panelRect, GLOBAL_CORNER_RADIUS, { 60, 120, 160, 255 });
 }
 
+// In renderTitleBar inside src/uiRenderer.cpp
 void game::renderTitleBar(SDL_Rect t1, SDL_Rect t2, SDL_Rect t3)
 {
     SDL_Rect boxes[3] = { t1, t2, t3 };
@@ -136,6 +147,28 @@ void game::renderTitleBar(SDL_Rect t1, SDL_Rect t2, SDL_Rect t3)
         SDL_FRect r = { 0.0f, 0.0f, (float)boxes[i].w, (float)boxes[i].h };
         renderFillRoundedRect(renderer, r, GLOBAL_CORNER_RADIUS, { 45, 45, 52, 255 });
         renderDrawRoundedRect(renderer, r, GLOBAL_CORNER_RADIUS, { 65, 65, 75, 255 });
+    }
+
+    // Render Context Header Text inside Slot 3
+    if (activeTargetNPC && activeTargetMode != TargetMode::NONE)
+    {
+        ViewportGuard vpGuard(renderer, &t3);
+        SDL_Color headerColor = { 255, 100, 150, 255 }; // Enemy pink/red
+        std::string headerTitle = "Enemy";
+
+        if (activeTargetMode == TargetMode::DIALOGUE)
+        {
+            headerColor = { 100, 210, 255, 255 };
+            headerTitle = "Interacting With";
+        }
+        else if (activeTargetMode == TargetMode::COMPANION)
+        {
+            headerColor = { 120, 240, 150, 255 };
+            headerTitle = "Ally";
+        }
+
+        SDL_FRect titleRect = { 0.0f, 0.0f, (float)t3.w, (float)t3.h };
+        drawTextFit(headerTitle, titleRect, headerColor, "title_font");
     }
 }
 
@@ -468,8 +501,10 @@ void game::renderMapPanel(SDL_Rect rect, int padding)
     renderFillRoundedRect(renderer, p, 3.0f, { 0, 200, 255, 255 });
 }
 
-void game::renderEquipmentPanel(SDL_Rect rect, int padding)
+void game::renderEquipmentPanel(SDL_Rect rect, int padding, entity* targetEntity)
 {
+    if (!targetEntity) targetEntity = Player;
+
     ViewportGuard vpGuard(renderer, &rect);
 
     SDL_FRect panelRect = { 0.0f, 0.0f, (float)rect.w, (float)rect.h };
@@ -500,15 +535,15 @@ void game::renderEquipmentPanel(SDL_Rect rect, int padding)
             std::string equippedName = "";
             bool isSelectedEquip = false;
 
-            if (Player)
+            if (targetEntity)
             {
-                for (const auto& [eSlot, eqItem] : Player->inventory.equipped)
+                for (const auto& [eSlot, eqItem] : targetEntity->inventory.equipped)
                 {
                     if (getEquipmentGridIndex(eSlot) == slotIdx && !eqItem->id.empty())
                     {
                         isOccupied = true;
                         equippedName = eqItem->name;
-                        if (eSlot == selectedEquipmentSlot) isSelectedEquip = true;
+                        if (targetEntity == Player && eSlot == selectedEquipmentSlot) isSelectedEquip = true;
                         break;
                     }
                 }
@@ -614,6 +649,24 @@ void game::renderTextPanel(SDL_Rect rect)
 
 void game::renderRightColumn(SDL_Rect top, SDL_Rect mid, SDL_Rect bot)
 {
+    if (activeTargetNPC && activeTargetMode != TargetMode::NONE)
+    {
+        float rightX = (float)top.x;
+        float rightY = (float)top.y; // Aligns perfectly with layout.charRect.y
+        float rightW = (float)top.w;
+
+        // Render Enemy Profile Card in top slot
+        float cardH = (float)top.h;
+        SDL_FRect cardRect = { rightX, rightY, rightW, cardH };
+        renderNPCTargetPanel(rightX, rightY, rightW, cardH);
+
+        // Render Enemy Equipment Grid in bottom slot (identical to player equipment grid!)
+        SDL_Rect equipBox = { (int)rightX, bot.y, (int)rightW, bot.h };
+        renderEquipmentPanel(equipBox, 12, activeTargetNPC);
+        return;
+    }
+
+    // Default Fallback
     SDL_Rect boxes[3] = { top, mid, bot };
     for (int i = 0; i < 3; i++)
     {
@@ -657,26 +710,6 @@ void game::renderActionGrid(SDL_FRect rect)
             renderDrawRoundedRect(renderer, btn, 4.0f, { 60, 60, 70, 255 });
         }
     }
-}
-
-// 1. Helper to map color strings to RGB
-inline SDL_Color getColorFromName(const std::string& colorName)
-{
-    std::string lower = colorName;
-    std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
-
-    if (lower == "fair" || lower == "flesh") return { 240, 190, 170, 255 };
-    if (lower == "brown") return { 160, 90, 44, 255 };
-    if (lower == "blue") return { 80, 160, 255, 255 };
-    if (lower == "pink") return { 255, 130, 180, 255 };
-    if (lower == "scarlet" || lower == "red") return { 230, 40, 50, 255 };
-    if (lower == "yellow") return { 255, 215, 0, 255 };
-    if (lower == "purple") return { 180, 100, 255, 255 };
-    if (lower == "green") return { 60, 200, 80, 255 };
-    if (lower == "black" || lower == "dark") return { 100, 100, 110, 255 };
-    if (lower == "white") return { 240, 240, 240, 255 };
-
-    return { 220, 220, 230, 255 }; // Default fallback text color
 }
 
 // 3. Left-Justified Segment Text Renderer

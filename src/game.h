@@ -52,6 +52,14 @@ struct DashboardLayout
     SDL_Rect inventoryRect;
 };
 
+enum class TargetMode
+{
+    NONE,
+    DIALOGUE,
+    COMBAT_ENEMY,
+    COMPANION
+};
+
 class game
 {
 public:
@@ -111,7 +119,7 @@ public:
     void renderMainMenuLayout();
 
     void renderMapPanel(SDL_Rect rect, int padding);
-    void renderEquipmentPanel(SDL_Rect rect, int padding);
+    void renderEquipmentPanel(SDL_Rect rect, int padding, entity* targetEntity = nullptr);
     void renderInventoryPanel(SDL_Rect rect);
     void renderTitleBar(SDL_Rect t1, SDL_Rect t2, SDL_Rect t3);
     void renderCompanionPanel(SDL_Rect rect);
@@ -129,6 +137,14 @@ public:
 
     std::shared_ptr<entity> generateEncounterNPC();
     void triggerEncounter(std::shared_ptr<entity> npc);
+
+    // Active NPC Target Tracking
+    entity* activeTargetNPC = nullptr;
+    TargetMode activeTargetMode = TargetMode::NONE;
+
+    // UI Rendering Helper
+    void renderNPCTargetPanel(float x, float y, float w, float h);
+    void renderNPCAnatomyTooltip(float mouseX, float mouseY);
 
 private:
     std::unordered_map<std::string, CachedTextTexture> textCache;

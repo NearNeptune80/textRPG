@@ -6,6 +6,25 @@
 // Global UI Radius Constant for perfect consistency across every panel
 constexpr float GLOBAL_CORNER_RADIUS = 8.0f;
 
+inline SDL_Color getColorFromName(const std::string& colorName)
+{
+    std::string lower = colorName;
+    std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+
+    if (lower == "fair" || lower == "flesh") return { 240, 190, 170, 255 };
+    if (lower == "brown") return { 160, 90, 44, 255 };
+    if (lower == "blue") return { 80, 160, 255, 255 };
+    if (lower == "pink") return { 255, 130, 180, 255 };
+    if (lower == "scarlet" || lower == "red") return { 230, 40, 50, 255 };
+    if (lower == "yellow") return { 255, 215, 0, 255 };
+    if (lower == "purple") return { 180, 100, 255, 255 };
+    if (lower == "green") return { 60, 200, 80, 255 };
+    if (lower == "black" || lower == "dark") return { 100, 100, 110, 255 };
+    if (lower == "white") return { 240, 240, 240, 255 };
+
+    return { 220, 220, 230, 255 }; // Default fallback
+}
+
 inline void renderFillRoundedRect(SDL_Renderer* renderer, SDL_FRect rect, float radius, SDL_Color color)
 {
     SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
