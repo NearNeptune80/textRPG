@@ -102,8 +102,9 @@ void UI::DrawInventoryGrid(SDL_Renderer* renderer, game* g, SDL_FRect bounds, en
     const char* tabLabels[7] = { "I", "II", "III", "IV", "V", "VI", "Key" };
     float halfW = bounds.w * 0.5f;
 
-    // 2. Render Headers & Square Tabs for Left (Player) and Right (Area/Target) Grids
+    // 2. Render Headers & Square Tabs for Left (Player) and Right (NPC / Area) Grids
     float headerH = bounds.h * 0.08f;
+    entity* rightEntity = g->activeTargetNPC ? g->activeTargetNPC : nullptr;
 
     for (int side = 0; side < 2; side++)
     {
@@ -111,12 +112,12 @@ void UI::DrawInventoryGrid(SDL_Renderer* renderer, game* g, SDL_FRect bounds, en
 
         std::string titleStr = (side == 0)
             ? "Your Inventory | Page " + std::string(tabLabels[activePage])
-            : "In Area | Page " + std::string(tabLabels[activePage]);
+            : (rightEntity ? rightEntity->name + "'s Inventory | Page " + std::string(tabLabels[activePage])
+                : "In Area | Page " + std::string(tabLabels[activePage]));
 
         SDL_FRect headerBox = { side * halfW, bounds.h * 0.015f, halfW, headerH };
         g->drawTextFit(titleStr, headerBox, { 220, 225, 240, 255 }, "button_font");
 
-        // Square Tab Buttons (Scales with window)
         for (int t = 0; t < 7; t++)
         {
             SDL_FRect tabRect = UIGridHelper::getInventoryTabRect(panelRect, side, t);
@@ -137,11 +138,13 @@ void UI::DrawInventoryGrid(SDL_Renderer* renderer, game* g, SDL_FRect bounds, en
     SDL_SetRenderDrawColor(renderer, 55, 50, 65, 255);
     SDL_RenderLine(renderer, halfW, 10.0f, halfW, bounds.h - 10.0f);
 
-    // 4. Render Grid Items
+    // 4. Single Initialization of Cached Data (Prevents Redefinition Errors)
     int cols = 6, rows = 5;
     int itemsPerPage = cols * rows;
 
     TileRuntimeData& currentTileData = g->map->getRuntimeData(g->gridX, g->gridY);
+    std::vector<InventorySlot> playerStackedView = targetEntity ? targetEntity->inventory.getStackedView() : std::vector<InventorySlot>{};
+    std::vector<InventorySlot> npcStackedView = rightEntity ? rightEntity->inventory.getStackedView() : std::vector<InventorySlot>{};
 
     for (int side = 0; side < 2; side++)
     {
@@ -155,25 +158,36 @@ void UI::DrawInventoryGrid(SDL_Renderer* renderer, game* g, SDL_FRect bounds, en
 
             SDL_FRect slot = UIGridHelper::getInventorySlotRect(panelRect, gridSlotIdx, cols, rows);
 
-            // Check if item exists in Player Backpack (Left) OR Tile Dropped Items (Right)
             bool hasItem = false;
             std::string itemName = "";
+            int itemQuantity = 1;
 
-            if (side == 0 && targetEntity && absoluteItemIdx < static_cast<int>(targetEntity->inventory.backpack.size()))
+            if (side == 0 && absoluteItemIdx < static_cast<int>(playerStackedView.size()))
             {
                 hasItem = true;
-                itemName = targetEntity->inventory.backpack[absoluteItemIdx]->name;
+                const auto& stackedSlot = playerStackedView[absoluteItemIdx];
+                itemName = stackedSlot.itemPtr->name;
+                itemQuantity = stackedSlot.totalCount;
             }
-            else if (side == 1 && absoluteItemIdx < static_cast<int>(currentTileData.droppedItems.size()))
+            else if (side == 1 && rightEntity && absoluteItemIdx < static_cast<int>(npcStackedView.size()))
             {
                 hasItem = true;
-                itemName = currentTileData.droppedItems[absoluteItemIdx]->name;
+                const auto& stackedSlot = npcStackedView[absoluteItemIdx];
+                itemName = stackedSlot.itemPtr->name;
+                itemQuantity = stackedSlot.totalCount;
+            }
+            else if (side == 1 && !rightEntity && absoluteItemIdx < static_cast<int>(currentTileData.droppedItems.size()))
+            {
+                hasItem = true;
+                auto itemPtr = currentTileData.droppedItems[absoluteItemIdx];
+                itemName = itemPtr->name;
+                itemQuantity = itemPtr->isStackable ? itemPtr->count : 1;
             }
 
             SDL_Color bgCol = hasItem ? SDL_Color{ 50, 55, 75, 255 } : SDL_Color{ 40, 38, 48, 255 };
             renderFillRoundedRect(renderer, slot, 4.0f, bgCol);
 
-            // Highlight selection on either side
+            // Highlight selection
             bool isSelected = (side == g->selectedInventorySide) && (absoluteItemIdx == selectedIndex);
             SDL_Color borderCol = isSelected ? SDL_Color{ 255, 215, 0, 255 } : SDL_Color{ 65, 60, 75, 255 };
             renderDrawRoundedRect(renderer, slot, 4.0f, borderCol);
@@ -183,6 +197,15 @@ void UI::DrawInventoryGrid(SDL_Renderer* renderer, game* g, SDL_FRect bounds, en
                 if (itemName.length() > 8) itemName = itemName.substr(0, 7) + ".";
                 SDL_FRect textSlot = { slot.x + 2.0f, slot.y + 2.0f, slot.w - 4.0f, slot.h - 4.0f };
                 g->drawTextFit(itemName, textSlot, { 255, 255, 255, 255 });
+
+                if (itemQuantity > 1)
+                {
+                    std::string countStr = "x" + std::to_string(itemQuantity);
+                    float countW = slot.w * 0.45f;
+                    float countH = slot.h * 0.30f;
+                    SDL_FRect countRect = { slot.x + slot.w - countW - 2.0f, slot.y + slot.h - countH - 2.0f, countW, countH };
+                    g->drawTextFit(countStr, countRect, { 255, 215, 0, 255 }, "button_font");
+                }
             }
         }
     }
@@ -204,9 +227,13 @@ void UI::DrawItemDetailPanel(SDL_Renderer* renderer, game* g, SDL_FRect bounds, 
 
     if (g->selectedInventoryIndex >= 0)
     {
-        if (g->selectedInventorySide == 0 && targetEntity && static_cast<size_t>(g->selectedInventoryIndex) < targetEntity->inventory.backpack.size())
+        if (g->selectedInventorySide == 0 && targetEntity)
         {
-            selectedItem = targetEntity->inventory.backpack[g->selectedInventoryIndex];
+            auto stackedView = targetEntity->inventory.getStackedView();
+            if (static_cast<size_t>(g->selectedInventoryIndex) < stackedView.size())
+            {
+                selectedItem = stackedView[g->selectedInventoryIndex].itemPtr;
+            }
         }
         else if (g->selectedInventorySide == 1 && static_cast<size_t>(g->selectedInventoryIndex) < tileData.droppedItems.size())
         {
@@ -639,9 +666,20 @@ void UI::DrawActionGrid(SDL_Renderer* renderer, game* g, SDL_FRect bounds, const
 
             if (!activeBtn.label.empty())
             {
-                renderFillRoundedRect(renderer, btnRect, 4.0f, { 70, 100, 140, 255 });
-                renderDrawRoundedRect(renderer, btnRect, 4.0f, { 100, 140, 190, 255 });
-                g->renderTextCentered(activeBtn.label, btnRect, "button_font");
+                if (activeBtn.isEnabled)
+                {
+                    // Standard Active Button Style
+                    renderFillRoundedRect(renderer, btnRect, 4.0f, { 70, 100, 140, 255 });
+                    renderDrawRoundedRect(renderer, btnRect, 4.0f, { 100, 140, 190, 255 });
+                    g->renderTextCentered(activeBtn.label, btnRect, "button_font", { 255, 255, 255, 255 });
+                }
+                else
+                {
+                    // Greyed-Out / Disabled Button Style
+                    renderFillRoundedRect(renderer, btnRect, 4.0f, { 45, 45, 52, 255 });
+                    renderDrawRoundedRect(renderer, btnRect, 4.0f, { 65, 65, 75, 255 });
+                    g->renderTextCentered(activeBtn.label, btnRect, "button_font", { 110, 110, 120, 255 });
+                }
             }
             else
             {

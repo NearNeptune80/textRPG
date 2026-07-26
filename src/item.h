@@ -15,13 +15,14 @@ struct item
 
     bool isConsumable = false;
     bool isEquippable = false;
+    bool isStackable = false; // Flag for stackable items (potions, reagents, etc.)
+    int count = 1;             // Active stack quantity
 
     equipSlot targetSlot = equipSlot::NONE;
 
     std::string baseRace;
     std::vector<enchantment> enchantments;
 
-    // Anatomy tag constraints
     std::vector<std::string> requiredTags;
     std::vector<std::string> forbiddenTags;
 };

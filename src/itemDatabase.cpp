@@ -117,6 +117,8 @@ void from_json(const json& j, item& itemObj)
 
     itemObj.isConsumable = j.value("isConsumable", false);
     itemObj.isEquippable = j.value("isEquippable", false);
+    itemObj.isStackable = j.value("isStackable", false);
+    itemObj.count = j.value("count", 1);
     itemObj.baseRace = j.value("baseRace", "");
 
     if (j.contains("targetSlot"))

@@ -126,6 +126,8 @@ public:
     void refreshActionGrid();
     void handleMouseClick(float windowX, float windowY);
     int getEquipmentGridIndex(equipSlot slot);
+    void handleDropAction(int stackedIndex, int quantity);
+    void handlePickupAction(int groundIndex, int quantity);
     void handleEquipAction(int backpackIndex);
     void handleUnequipAction(equipSlot slot);
 

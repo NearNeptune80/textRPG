@@ -9,6 +9,99 @@ game::~game()
     if (Player) delete Player;
 }
 
+void game::handleDropAction(int stackedIndex, int quantity)
+{
+    if (!Player) return;
+
+    auto stackedView = Player->inventory.getStackedView();
+    if (stackedIndex < 0 || static_cast<size_t>(stackedIndex) >= stackedView.size()) return;
+
+    const auto& slotData = stackedView[stackedIndex];
+    int actualDropCount = std::min(quantity, slotData.totalCount);
+    std::string targetItemId = slotData.itemPtr->id;
+
+    TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
+
+    // 1. Add to tile ground stack or create new item entry
+    bool merged = false;
+    if (slotData.itemPtr->isStackable)
+    {
+        for (auto& gItem : tileData.droppedItems)
+        {
+            if (gItem && gItem->id == targetItemId)
+            {
+                gItem->count += actualDropCount;
+                merged = true;
+                break;
+            }
+        }
+    }
+
+    if (!merged)
+    {
+        auto droppedCopy = std::make_shared<item>(*slotData.itemPtr);
+        droppedCopy->count = actualDropCount;
+        tileData.droppedItems.push_back(droppedCopy);
+    }
+
+    // 2. Remove items from player's backpack
+    Player->inventory.removeItem(targetItemId, actualDropCount);
+
+    selectedInventoryIndex = -1;
+    refreshActionGrid();
+}
+
+void game::handlePickupAction(int groundIndex, int quantity)
+{
+    if (!Player) return;
+
+    TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
+    if (groundIndex < 0 || static_cast<size_t>(groundIndex) >= tileData.droppedItems.size()) return;
+
+    auto groundItem = tileData.droppedItems[groundIndex];
+    if (!groundItem) return;
+
+    int totalGroundCount = groundItem->isStackable ? groundItem->count : 1;
+    int actualTakeCount = std::min(quantity, totalGroundCount);
+
+    // 1. Add to player inventory
+    if (groundItem->isStackable)
+    {
+        bool mergedInBackpack = false;
+        for (auto& bpItem : Player->inventory.backpack)
+        {
+            if (bpItem && bpItem->id == groundItem->id)
+            {
+                bpItem->count += actualTakeCount;
+                mergedInBackpack = true;
+                break;
+            }
+        }
+
+        if (!mergedInBackpack)
+        {
+            auto playerCopy = std::make_shared<item>(*groundItem);
+            playerCopy->count = actualTakeCount;
+            Player->inventory.addItem(playerCopy);
+        }
+
+        // Subtract from ground tile stack
+        groundItem->count -= actualTakeCount;
+        if (groundItem->count <= 0)
+        {
+            tileData.droppedItems.erase(tileData.droppedItems.begin() + groundIndex);
+        }
+    }
+    else
+    {
+        Player->inventory.addItem(groundItem);
+        tileData.droppedItems.erase(tileData.droppedItems.begin() + groundIndex);
+    }
+
+    selectedInventoryIndex = -1;
+    refreshActionGrid();
+}
+
 static std::string formatEquipSlotName(equipSlot slot)
 {
     switch (slot)
@@ -326,7 +419,7 @@ void game::handleMouseClick(float windowX, float windowY)
     updateLayoutBounds(w, h);
     float padding = 12.0f;
 
-    // 1. Action Grid Clicks (Aligned with navigation arrow layout offsets)
+    // 1. Action Grid Clicks
     if (UIGridHelper::contains(layout.actionGridRect, mouseX, mouseY))
     {
         float padding = 8.0f;
@@ -363,7 +456,7 @@ void game::handleMouseClick(float windowX, float windowY)
                 if (UIGridHelper::contains(btnRect, localX, localY))
                 {
                     int slotIdx = (r * cols) + c;
-                    if (!currentSlots[slotIdx].label.empty() && currentSlots[slotIdx].onClick)
+                    if (!currentSlots[slotIdx].label.empty() && currentSlots[slotIdx].isEnabled && currentSlots[slotIdx].onClick)
                     {
                         currentSlots[slotIdx].onClick();
                     }
@@ -397,19 +490,24 @@ void game::handleMouseClick(float windowX, float windowY)
     // 3. Equipment & Inventory Slot Selection
     else if (currentState == GameState::INVENTORY)
     {
-        if (UIGridHelper::contains(layout.equipRect, mouseX, mouseY))
+        SDL_FRect playerEquipRect = layout.equipRect;
+        SDL_FRect rightEquipRect = { layout.rightStackTop.x, layout.mapRect.y, layout.rightStackTop.w, layout.mapRect.h };
+
+        // A. Left Player Equipment Grid Clicks
+        if (UIGridHelper::contains(playerEquipRect, mouseX, mouseY))
         {
             int cols = 6, rows = 6;
             for (int r = 0; r < rows; r++)
             {
                 for (int c = 0; c < cols; c++)
                 {
-                    SDL_FRect slot = UIGridHelper::getEquipmentSlotRect(layout.equipRect, c, r, cols, rows, 4.0f, padding);
+                    SDL_FRect slot = UIGridHelper::getEquipmentSlotRect(playerEquipRect, c, r, cols, rows, 4.0f, padding);
                     if (UIGridHelper::contains(slot, mouseX, mouseY))
                     {
                         int slotIdx = (r * cols) + c;
                         selectedEquipmentSlot = equipSlot::NONE;
                         selectedInventoryIndex = -1;
+                        selectedInventorySide = 0;
 
                         if (Player)
                         {
@@ -428,14 +526,45 @@ void game::handleMouseClick(float windowX, float windowY)
                 }
             }
         }
+        // B. Right Target NPC Equipment Grid Clicks
+        else if (activeTargetNPC && UIGridHelper::contains(rightEquipRect, mouseX, mouseY))
+        {
+            int cols = 6, rows = 6;
+            for (int r = 0; r < rows; r++)
+            {
+                for (int c = 0; c < cols; c++)
+                {
+                    SDL_FRect slot = UIGridHelper::getEquipmentSlotRect(rightEquipRect, c, r, cols, rows, 4.0f, padding);
+                    if (UIGridHelper::contains(slot, mouseX, mouseY))
+                    {
+                        int slotIdx = (r * cols) + c;
+                        selectedEquipmentSlot = equipSlot::NONE;
+                        selectedInventoryIndex = -1;
+                        selectedInventorySide = 1;
 
+                        for (const auto& [eSlot, eqItem] : activeTargetNPC->inventory.equipped)
+                        {
+                            if (getEquipmentGridIndex(eSlot) == slotIdx && eqItem && !eqItem->id.empty())
+                            {
+                                selectedEquipmentSlot = eSlot;
+                                break;
+                            }
+                        }
+                        refreshActionGrid();
+                        return;
+                    }
+                }
+            }
+        }
+
+        // C. Twin Inventory Grid Clicks (Left = Player, Right = NPC or Ground Tile)
         if (UIGridHelper::contains(layout.inventoryGridRect, mouseX, mouseY))
         {
             float localMouseX = mouseX - layout.inventoryGridRect.x;
             float localMouseY = mouseY - layout.inventoryGridRect.y;
             SDL_FRect localBounds = { 0.0f, 0.0f, layout.inventoryGridRect.w, layout.inventoryGridRect.h };
 
-            // A. Test Left & Right Square Page Tabs
+            // Page Tabs
             for (int side = 0; side < 2; side++)
             {
                 for (int t = 0; t < 7; t++)
@@ -454,7 +583,7 @@ void game::handleMouseClick(float windowX, float windowY)
                 }
             }
 
-            // B. Test Inventory Item Slots (Left = Player Backpack, Right = Tile Ground)
+            // Inventory Item Slots
             int cols = 6, rows = 5;
             int itemsPerPage = cols * rows;
             TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
@@ -477,7 +606,8 @@ void game::handleMouseClick(float windowX, float windowY)
                         if (side == 0 && Player)
                         {
                             selectedInventorySide = 0;
-                            if (absoluteItemIdx < static_cast<int>(Player->inventory.backpack.size()))
+                            auto stackedView = Player->inventory.getStackedView();
+                            if (absoluteItemIdx < static_cast<int>(stackedView.size()))
                             {
                                 selectedInventoryIndex = absoluteItemIdx;
                             }
@@ -489,17 +619,32 @@ void game::handleMouseClick(float windowX, float windowY)
                         else if (side == 1)
                         {
                             selectedInventorySide = 1;
-                            if (absoluteItemIdx < static_cast<int>(tileData.droppedItems.size()))
+                            if (activeTargetNPC)
                             {
-                                selectedInventoryIndex = absoluteItemIdx;
+                                auto npcView = activeTargetNPC->inventory.getStackedView();
+                                if (absoluteItemIdx < static_cast<int>(npcView.size()))
+                                {
+                                    selectedInventoryIndex = absoluteItemIdx;
+                                }
+                                else
+                                {
+                                    selectedInventoryIndex = -1;
+                                }
                             }
                             else
                             {
-                                selectedInventoryIndex = -1;
+                                if (absoluteItemIdx < static_cast<int>(tileData.droppedItems.size()))
+                                {
+                                    selectedInventoryIndex = absoluteItemIdx;
+                                }
+                                else
+                                {
+                                    selectedInventoryIndex = -1;
+                                }
                             }
                         }
 
-                        descriptionScrollY = 0.0f; // Reset scroll on item change
+                        descriptionScrollY = 0.0f;
                         refreshActionGrid();
                         return;
                     }
@@ -607,37 +752,6 @@ void game::refreshActionGrid()
 {
     activeButtons.clear();
 
-    if (currentState == GameState::EXPLORATION)
-    {
-        activeButtons.clear();
-
-        // 1. Map Triggers on Current Tile (Flows naturally from left-to-right)
-        auto triggers = questDatabase::getTriggersForLocation(map->getId(), gridX, gridY);
-        for (const auto& trig : triggers)
-        {
-            if (checkConditions(trig.conditions))
-            {
-                actionButton trigBtn;
-                trigBtn.label = trig.label;
-                // Leave slotIndex = -1 to auto-flow left-to-right
-                std::string sId = trig.sceneId;
-                trigBtn.onClick = [this, sId]() { loadScene(sId); };
-                activeButtons.push_back(trigBtn);
-            }
-        }
-
-        // 2. Map Warps on Current Tile (Flows into next available slot)
-        MapWarp w;
-        if (map->checkWarp(gridX, gridY, w))
-        {
-            actionButton warpBtn;
-            warpBtn.label = "Enter Door";
-            // Leave slotIndex = -1 to auto-flow left-to-right
-            warpBtn.onClick = [this, w]() { loadMap(w.targetMap, w.targetX, w.targetY); };
-            activeButtons.push_back(warpBtn);
-        }
-    }
-
     if (currentState == GameState::INVENTORY)
     {
         // 1. Pinned "Close inventory" Button (Bottom-Right Slot 14)
@@ -647,111 +761,324 @@ void game::refreshActionGrid()
         closeBtn.pinnedAllPages = true;
         closeBtn.onClick = [this]()
             {
-                currentState = GameState::EXPLORATION;
                 selectedInventoryIndex = -1;
                 selectedEquipmentSlot = equipSlot::NONE;
-                refreshActionGrid();
+
+                if (activeTargetNPC)
+                {
+                    // Re-open victory scene options when returning from NPC inventory
+                    dialogueChoice fightSim;
+                    fightSim.nextSceneId = "ENCOUNTER_FIGHT";
+                    processChoice(fightSim);
+                }
+                else
+                {
+                    currentState = GameState::EXPLORATION;
+                    refreshActionGrid();
+                }
             };
         activeButtons.push_back(closeBtn);
 
         TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
 
-        // 2. Selected Backpack Item Actions (Left Grid Selected)
-        if (selectedInventorySide == 0 && selectedInventoryIndex >= 0 && Player && static_cast<size_t>(selectedInventoryIndex) < Player->inventory.backpack.size())
+        // 2. Equipped Item Selected Actions (Player or Target NPC)
+        if (selectedEquipmentSlot != equipSlot::NONE)
         {
-            auto selItem = Player->inventory.backpack[selectedInventoryIndex];
-            int idx = selectedInventoryIndex;
+            entity* targetChar = (selectedInventorySide == 1 && activeTargetNPC) ? activeTargetNPC : Player;
 
-            // --- ROW 1: Standard Item Management Slots ---
-            // Slot 0: Drop (1)
-            actionButton drop1Btn;
-            drop1Btn.label = "Drop (1)";
-            drop1Btn.slotIndex = 0;
-            drop1Btn.onClick = [this, idx]()
-                {
-                    if (Player && idx < static_cast<int>(Player->inventory.backpack.size()))
-                    {
-                        auto itemPtr = Player->inventory.backpack[idx];
-                        Player->inventory.backpack.erase(Player->inventory.backpack.begin() + idx);
-                        map->getRuntimeData(gridX, gridY).droppedItems.push_back(itemPtr);
-
-                        selectedInventoryIndex = -1;
-                        refreshActionGrid();
-                    }
-                };
-            activeButtons.push_back(drop1Btn);
-
-            // Slot 1: Drop (5) [Disabled visual placeholder for stacks]
-            actionButton drop5Btn;
-            drop5Btn.label = "Drop (5)";
-            drop5Btn.slotIndex = 1;
-            activeButtons.push_back(drop5Btn);
-
-            // Slot 2: Drop (All)
-            actionButton dropAllBtn;
-            dropAllBtn.label = "Drop (All)";
-            dropAllBtn.slotIndex = 2;
-            dropAllBtn.onClick = drop1Btn.onClick; // Same single-item drop logic for non-stacked
-            activeButtons.push_back(dropAllBtn);
-
-            // Slot 4: Enchant
-            actionButton enchantBtn;
-            enchantBtn.label = "Enchant";
-            enchantBtn.slotIndex = 4;
-            activeButtons.push_back(enchantBtn);
-
-            // --- ROW 2: Primary Use / Equip / Consume Slots ---
-            if (selItem->isEquippable)
+            if (targetChar && targetChar->inventory.isEquipped(selectedEquipmentSlot))
             {
-                actionButton equipBtn;
-                equipBtn.label = "Equip: " + formatEquipSlotName(selItem->targetSlot);
-                equipBtn.slotIndex = 5; // Row 2, Slot 0
-                equipBtn.onClick = [this, idx]() { handleEquipAction(idx); };
-                activeButtons.push_back(equipBtn);
-            }
-            else if (selItem->isConsumable)
-            {
-                actionButton eatBtn;
-                eatBtn.label = "Eat (Self)";
-                eatBtn.slotIndex = 5; // Fixed at Row 2, Slot 0
-                eatBtn.onClick = [this, idx]()
+                auto eqItem = targetChar->inventory.getEquippedItem(selectedEquipmentSlot);
+
+                // Slot 0: Drop or Take
+                actionButton dropBtn;
+                dropBtn.label = (targetChar == Player) ? "Drop" : "Take (1)";
+                dropBtn.slotIndex = 0;
+                dropBtn.onClick = [this, targetChar]()
                     {
-                        // Place consumable effect logic here
-                        Player->inventory.backpack.erase(Player->inventory.backpack.begin() + idx);
-                        selectedInventoryIndex = -1;
-                        refreshActionGrid();
+                        if (targetChar->inventory.unequipItem(selectedEquipmentSlot))
+                        {
+                            selectedEquipmentSlot = equipSlot::NONE;
+                            refreshActionGrid();
+                        }
                     };
-                activeButtons.push_back(eatBtn);
+                activeButtons.push_back(dropBtn);
 
-                actionButton eatAllBtn;
-                eatAllBtn.label = "Eat all (Self)";
-                eatAllBtn.slotIndex = 6; // Fixed at Row 2, Slot 1
-                eatAllBtn.onClick = eatBtn.onClick;
-                activeButtons.push_back(eatAllBtn);
+                // Slot 3: Dye
+                actionButton dyeBtn;
+                dyeBtn.label = "Dye";
+                dyeBtn.slotIndex = 3;
+                activeButtons.push_back(dyeBtn);
+
+                // Slot 4: Enchant
+                actionButton enchantBtn;
+                enchantBtn.label = "Enchant";
+                enchantBtn.slotIndex = 4;
+                activeButtons.push_back(enchantBtn);
+
+                // Slot 5: Unequip
+                actionButton unequipBtn;
+                unequipBtn.label = "Unequip";
+                unequipBtn.slotIndex = 5;
+                unequipBtn.onClick = dropBtn.onClick;
+                activeButtons.push_back(unequipBtn);
+
+                // Slot 10: Pull down
+                actionButton pullBtn;
+                pullBtn.label = "Pull down";
+                pullBtn.slotIndex = 10;
+                activeButtons.push_back(pullBtn);
+
+                // Slot 11: Shift aside
+                actionButton shiftBtn;
+                shiftBtn.label = "Shift aside";
+                shiftBtn.slotIndex = 11;
+                activeButtons.push_back(shiftBtn);
             }
         }
-        // 3. Selected Ground Tile Actions (Right Grid Selected)
-        else if (selectedInventorySide == 1 && selectedInventoryIndex >= 0 && static_cast<size_t>(selectedInventoryIndex) < tileData.droppedItems.size())
+        // 3. Left Grid (Player Backpack) Selection Actions
+        else if (selectedInventorySide == 0 && selectedInventoryIndex >= 0 && Player)
         {
-            // Slot 0: Pick Up (1)
-            actionButton pickUpBtn;
-            pickUpBtn.label = "Pick Up";
-            pickUpBtn.slotIndex = 0;
-            int idx = selectedInventoryIndex;
-            pickUpBtn.onClick = [this, idx]()
-                {
-                    TileRuntimeData& tData = map->getRuntimeData(gridX, gridY);
-                    if (idx < static_cast<int>(tData.droppedItems.size()))
-                    {
-                        auto itemPtr = tData.droppedItems[idx];
-                        tData.droppedItems.erase(tData.droppedItems.begin() + idx);
-                        Player->inventory.addItem(itemPtr);
+            auto stackedView = Player->inventory.getStackedView();
+            if (static_cast<size_t>(selectedInventoryIndex) < stackedView.size())
+            {
+                const auto& slotData = stackedView[selectedInventoryIndex];
+                auto selItem = slotData.itemPtr;
+                int totalCount = slotData.totalCount;
+                int idx = selectedInventoryIndex;
 
-                        selectedInventoryIndex = -1;
-                        refreshActionGrid();
+                // --- ROW 1: Drop Management Slots ---
+                actionButton drop1Btn;
+                drop1Btn.label = "Drop (1)";
+                drop1Btn.slotIndex = 0;
+                drop1Btn.isEnabled = (totalCount >= 1);
+                drop1Btn.onClick = [this, idx]() { handleDropAction(idx, 1); };
+                activeButtons.push_back(drop1Btn);
+
+                actionButton drop5Btn;
+                drop5Btn.label = "Drop (5)";
+                drop5Btn.slotIndex = 1;
+                drop5Btn.isEnabled = (totalCount >= 5);
+                drop5Btn.onClick = [this, idx]() { handleDropAction(idx, 5); };
+                activeButtons.push_back(drop5Btn);
+
+                actionButton dropAllBtn;
+                dropAllBtn.label = "Drop (All)";
+                dropAllBtn.slotIndex = 2;
+                dropAllBtn.isEnabled = (totalCount >= 1);
+                dropAllBtn.onClick = [this, idx, totalCount]() { handleDropAction(idx, totalCount); };
+                activeButtons.push_back(dropAllBtn);
+
+                actionButton enchantBtn;
+                enchantBtn.label = "Enchant";
+                enchantBtn.slotIndex = 4;
+                activeButtons.push_back(enchantBtn);
+
+                // --- ROW 2: Primary Use / Equip / Consume Slots ---
+                if (selItem->isEquippable)
+                {
+                    actionButton equipBtn;
+                    equipBtn.label = "Equip: " + formatEquipSlotName(selItem->targetSlot);
+                    equipBtn.slotIndex = 5;
+                    equipBtn.onClick = [this, slotData]()
+                        {
+                            handleEquipAction(slotData.firstBackpackIndex);
+                        };
+                    activeButtons.push_back(equipBtn);
+                }
+                else if (selItem->isConsumable)
+                {
+                    actionButton eatBtn;
+                    eatBtn.label = "Eat (Self)";
+                    eatBtn.slotIndex = 5;
+                    eatBtn.onClick = [this, selItem]()
+                        {
+                            Player->inventory.removeItem(selItem->id, 1);
+                            selectedInventoryIndex = -1;
+                            refreshActionGrid();
+                        };
+                    activeButtons.push_back(eatBtn);
+
+                    actionButton eatAllBtn;
+                    eatAllBtn.label = "Eat all (Self)";
+                    eatAllBtn.slotIndex = 6;
+                    eatAllBtn.isEnabled = (totalCount >= 1);
+                    eatAllBtn.onClick = [this, selItem, totalCount]()
+                        {
+                            Player->inventory.removeItem(selItem->id, totalCount);
+                            selectedInventoryIndex = -1;
+                            refreshActionGrid();
+                        };
+                    activeButtons.push_back(eatAllBtn);
+                }
+            }
+        }
+        // 4. Right Grid Selection Actions (Take 1, Take 5, Take All - NPC or Ground)
+        else if (selectedInventorySide == 1 && selectedInventoryIndex >= 0)
+        {
+            if (activeTargetNPC)
+            {
+                auto npcView = activeTargetNPC->inventory.getStackedView();
+                if (static_cast<size_t>(selectedInventoryIndex) < npcView.size())
+                {
+                    const auto& slotData = npcView[selectedInventoryIndex];
+                    auto selItem = slotData.itemPtr;
+                    int totalCount = slotData.totalCount;
+
+                    // Take (1) -> Slot 0
+                    actionButton take1Btn;
+                    take1Btn.label = "Take (1)";
+                    take1Btn.slotIndex = 0;
+                    take1Btn.isEnabled = (totalCount >= 1);
+                    take1Btn.onClick = [this, selItem]()
+                        {
+                            if (activeTargetNPC && activeTargetNPC->inventory.removeItem(selItem->id, 1))
+                            {
+                                auto copy = std::make_shared<item>(*selItem);
+                                copy->count = 1;
+                                Player->inventory.addItem(copy);
+                                selectedInventoryIndex = -1;
+                                refreshActionGrid();
+                            }
+                        };
+                    activeButtons.push_back(take1Btn);
+
+                    // Take (5) -> Slot 1
+                    actionButton take5Btn;
+                    take5Btn.label = "Take (5)";
+                    take5Btn.slotIndex = 1;
+                    take5Btn.isEnabled = (totalCount >= 5);
+                    take5Btn.onClick = [this, selItem]()
+                        {
+                            if (activeTargetNPC && activeTargetNPC->inventory.removeItem(selItem->id, 5))
+                            {
+                                auto copy = std::make_shared<item>(*selItem);
+                                copy->count = 5;
+                                Player->inventory.addItem(copy);
+                                selectedInventoryIndex = -1;
+                                refreshActionGrid();
+                            }
+                        };
+                    activeButtons.push_back(take5Btn);
+
+                    // Take (All) -> Slot 2
+                    actionButton takeAllBtn;
+                    takeAllBtn.label = "Take (All)";
+                    takeAllBtn.slotIndex = 2;
+                    takeAllBtn.isEnabled = (totalCount >= 1);
+                    takeAllBtn.onClick = [this, selItem, totalCount]()
+                        {
+                            if (activeTargetNPC && activeTargetNPC->inventory.removeItem(selItem->id, totalCount))
+                            {
+                                auto copy = std::make_shared<item>(*selItem);
+                                copy->count = totalCount;
+                                Player->inventory.addItem(copy);
+                                selectedInventoryIndex = -1;
+                                refreshActionGrid();
+                            }
+                        };
+                    activeButtons.push_back(takeAllBtn);
+
+                    // Equip directly from NPC -> Slot 5
+                    if (selItem->isEquippable)
+                    {
+                        actionButton equipBtn;
+                        equipBtn.label = "Equip: " + formatEquipSlotName(selItem->targetSlot);
+                        equipBtn.slotIndex = 5;
+                        equipBtn.onClick = [this, selItem]()
+                            {
+                                if (activeTargetNPC && activeTargetNPC->inventory.removeItem(selItem->id, 1))
+                                {
+                                    auto copy = std::make_shared<item>(*selItem);
+                                    copy->count = 1;
+                                    Player->inventory.addItem(copy);
+
+                                    int newBackpackIdx = static_cast<int>(Player->inventory.backpack.size()) - 1;
+                                    handleEquipAction(newBackpackIdx);
+                                }
+                            };
+                        activeButtons.push_back(equipBtn);
                     }
-                };
-            activeButtons.push_back(pickUpBtn);
+                }
+            }
+            else if (static_cast<size_t>(selectedInventoryIndex) < tileData.droppedItems.size())
+            {
+                auto selItem = tileData.droppedItems[selectedInventoryIndex];
+                int totalCount = selItem->isStackable ? selItem->count : 1;
+                int idx = selectedInventoryIndex;
+
+                // Take (1) -> Slot 0
+                actionButton take1Btn;
+                take1Btn.label = "Take (1)";
+                take1Btn.slotIndex = 0;
+                take1Btn.isEnabled = (totalCount >= 1);
+                take1Btn.onClick = [this, idx]() { handlePickupAction(idx, 1); };
+                activeButtons.push_back(take1Btn);
+
+                // Take (5) -> Slot 1
+                actionButton take5Btn;
+                take5Btn.label = "Take (5)";
+                take5Btn.slotIndex = 1;
+                take5Btn.isEnabled = (totalCount >= 5);
+                take5Btn.onClick = [this, idx]() { handlePickupAction(idx, 5); };
+                activeButtons.push_back(take5Btn);
+
+                // Take (All) -> Slot 2
+                actionButton takeAllBtn;
+                takeAllBtn.label = "Take (All)";
+                takeAllBtn.slotIndex = 2;
+                takeAllBtn.isEnabled = (totalCount >= 1);
+                takeAllBtn.onClick = [this, idx, totalCount]() { handlePickupAction(idx, totalCount); };
+                activeButtons.push_back(takeAllBtn);
+
+                // Equip directly from ground -> Slot 5
+                if (selItem->isEquippable)
+                {
+                    actionButton equipBtn;
+                    equipBtn.label = "Equip: " + formatEquipSlotName(selItem->targetSlot);
+                    equipBtn.slotIndex = 5;
+                    equipBtn.onClick = [this, idx]()
+                        {
+                            TileRuntimeData& tData = map->getRuntimeData(gridX, gridY);
+                            if (idx < static_cast<int>(tData.droppedItems.size()))
+                            {
+                                auto groundItem = tData.droppedItems[idx];
+                                tData.droppedItems.erase(tData.droppedItems.begin() + idx);
+                                Player->inventory.addItem(groundItem);
+
+                                int newBackpackIdx = static_cast<int>(Player->inventory.backpack.size()) - 1;
+                                handleEquipAction(newBackpackIdx);
+                            }
+                        };
+                    activeButtons.push_back(equipBtn);
+                }
+            }
+        }
+    }
+    else if (currentState == GameState::EXPLORATION)
+    {
+        // 1. Map Triggers on Current Tile (Flows naturally from left-to-right)
+        auto triggers = questDatabase::getTriggersForLocation(map->getId(), gridX, gridY);
+        for (const auto& trig : triggers)
+        {
+            if (checkConditions(trig.conditions))
+            {
+                actionButton trigBtn;
+                trigBtn.label = trig.label;
+                std::string sId = trig.sceneId;
+                trigBtn.onClick = [this, sId]() { loadScene(sId); };
+                activeButtons.push_back(trigBtn);
+            }
+        }
+
+        // 2. Map Warps on Current Tile
+        MapWarp w;
+        if (map->checkWarp(gridX, gridY, w))
+        {
+            actionButton warpBtn;
+            warpBtn.label = "Enter Door";
+            warpBtn.onClick = [this, w]() { loadMap(w.targetMap, w.targetX, w.targetY); };
+            activeButtons.push_back(warpBtn);
         }
     }
 }
@@ -797,18 +1124,48 @@ bool game::checkConditions(const std::vector<gameCondition>& conditions)
 
 void game::processChoice(const dialogueChoice& choice)
 {
-    if (choice.nextSceneId == "ENCOUNTER_FIGHT" ||
-        choice.nextSceneId == "ENCOUNTER_PAY" ||
-        choice.nextSceneId == "ENCOUNTER_SURRENDER")
+    if (choice.nextSceneId == "ENCOUNTER_FIGHT")
     {
-        if (choice.nextSceneId == "ENCOUNTER_PAY")
-        {
-            Player->stats.modifyBaseStat("currency", -25.0f);
-        }
+        // Transition to victory scene
+        currentScene.id = "encounter_victory";
+        currentScene.speakerName = activeTargetNPC ? activeTargetNPC->name : "Enemy";
+        currentScene.bodyText = "You defeated " + currentScene.speakerName + " in combat!";
+        currentScene.choices.clear();
 
-        activeTargetNPC = nullptr;
-        activeTargetMode = TargetMode::NONE;
-        currentState = GameState::EXPLORATION;
+        // 1. Continue Button (Slot 0) -> Exit to Exploration
+        dialogueChoice contChoice;
+        contChoice.label = "Continue";
+        contChoice.nextSceneId = "EXIT";
+        currentScene.choices.push_back(contChoice);
+
+        // 2. Inventory Button (Slot 1) -> Open Dual Inventory View
+        dialogueChoice invChoice;
+        invChoice.label = "Inventory";
+        invChoice.nextSceneId = "VICTORY_INVENTORY";
+        currentScene.choices.push_back(invChoice);
+
+        // 3. Talk Button (Slot 2) -> Placeholder
+        dialogueChoice talkChoice;
+        talkChoice.label = "Talk";
+        talkChoice.nextSceneId = "VICTORY_TALK";
+        currentScene.choices.push_back(talkChoice);
+
+        activeButtons.clear();
+        for (const auto& c : currentScene.choices)
+        {
+            actionButton btn;
+            btn.label = c.label;
+            btn.onClick = [this, c]() { processChoice(c); };
+            activeButtons.push_back(btn);
+        }
+        return;
+    }
+
+    if (choice.nextSceneId == "VICTORY_INVENTORY")
+    {
+        currentState = GameState::INVENTORY;
+        selectedInventoryIndex = -1;
+        selectedEquipmentSlot = equipSlot::NONE;
         refreshActionGrid();
         return;
     }
@@ -1112,6 +1469,35 @@ std::shared_ptr<entity> game::generateEncounterNPC()
     npc->stats.setBaseStat("health", 50.0f);
     npc->stats.setBaseStat("mana", 30.0f);
     npc->stats.setBaseStat("lust", 100.0f);
+
+    // Populate initial NPC inventory and equipment
+    auto shirt = itemDatabase::getItem("item_linen_shirt");
+    auto pants = itemDatabase::getItem("item_leather_trousers");
+    auto boots = itemDatabase::getItem("item_leather_boots");
+    auto potion = itemDatabase::getItem("item_canis_root");
+
+    std::vector<std::string> tags = npc->anatomy.getAllTags();
+
+    if (shirt)
+    {
+        npc->inventory.addItem(shirt);
+        npc->inventory.equipItem(0, equipSlot::TORSO_UNDER, tags);
+    }
+    if (pants)
+    {
+        npc->inventory.addItem(pants);
+        npc->inventory.equipItem(0, equipSlot::LEGS_OUTER, tags);
+    }
+    if (boots)
+    {
+        npc->inventory.addItem(boots);
+        npc->inventory.equipItem(0, equipSlot::FEET, tags);
+    }
+    if (potion)
+    {
+        potion->count = 3;
+        npc->inventory.addItem(potion);
+    }
 
     return npc;
 }
