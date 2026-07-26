@@ -2,29 +2,30 @@
 #include <SDL3/SDL.h>
 
 /**
- * RAII helper to establish a scoped SDL renderer viewport.
- * Resets the viewport back to NULL (full screen) upon destruction.
+ * RAII Guard to handle temporary Viewport/Clip changes cleanly without leakage.
  */
-struct ViewportGuard
+class ViewportGuard
 {
-    SDL_Renderer* renderer;
-
-    ViewportGuard(SDL_Renderer* r, const SDL_Rect* rect) : renderer(r)
+public:
+    ViewportGuard(SDL_Renderer* renderer, const SDL_Rect* newViewport) : m_renderer(renderer)
     {
-        SDL_SetRenderViewport(renderer, rect);
+        SDL_GetRenderViewport(m_renderer, &m_oldViewport);
+        SDL_SetRenderViewport(m_renderer, newViewport);
     }
 
-    ViewportGuard(SDL_Renderer* r, const SDL_FRect* frect) : renderer(r)
+    ViewportGuard(SDL_Renderer* renderer, const SDL_FRect& fBounds) : m_renderer(renderer)
     {
-        if (frect)
-        {
-            SDL_Rect rect = { (int)frect->x, (int)frect->y, (int)frect->w, (int)frect->h };
-            SDL_SetRenderViewport(renderer, &rect);
-        }
+        SDL_Rect viewRect = { static_cast<int>(fBounds.x), static_cast<int>(fBounds.y), static_cast<int>(fBounds.w), static_cast<int>(fBounds.h) };
+        SDL_GetRenderViewport(m_renderer, &m_oldViewport);
+        SDL_SetRenderViewport(m_renderer, &viewRect);
     }
 
     ~ViewportGuard()
     {
-        SDL_SetRenderViewport(renderer, NULL);
+        SDL_SetRenderViewport(m_renderer, &m_oldViewport);
     }
+
+private:
+    SDL_Renderer* m_renderer;
+    SDL_Rect m_oldViewport;
 };

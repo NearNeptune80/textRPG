@@ -1,0 +1,34 @@
+{
+  "bgDark": [ 30, 30, 30, 255 ],
+  "bgPanel": [ 30, 28, 35, 255 ],
+  "bgHeader": [ 45, 45, 52, 255 ],
+  "bgSlot": [ 40, 38, 48, 255 ],
+  "bgSlotOccupied": [ 50, 55, 75, 255 ],
+  "bgSlotSelected": [ 70, 60, 95, 255 ],
+  "bgButton": [ 70, 100, 140, 255 ],
+  "bgButtonDisabled": [ 45, 45, 52, 255 ],
+
+  "borderNormal": [ 60, 55, 65, 255 ],
+  "borderSelected": [ 255, 215, 0, 255 ],
+  "borderButton": [ 100, 140, 190, 255 ],
+  "borderButtonDisabled": [ 65, 65, 75, 255 ],
+
+  "textPrimary": [ 255, 255, 255, 255 ],
+  "textSecondary": [ 220, 225, 240, 255 ],
+  "textMuted": [ 130, 130, 145, 255 ],
+  "textGold": [ 255, 215, 0, 255 ],
+  "textAccent": [ 180, 150, 220, 255 ],
+
+  "health": [ 255, 60, 90, 255 ],
+  "mana": [ 220, 130, 255, 255 ],
+  "lust": [ 230, 50, 150, 255 ],
+  "physique": [ 255, 50, 120, 255 ],
+  "arcane": [ 180, 110, 255, 255 ],
+  "corruption": [ 100, 200, 255, 255 ],
+  "currency": [ 255, 215, 0, 255 ],
+  "gems": [ 255, 100, 220, 255 ],
+
+  "enemy": [ 255, 120, 170, 255 ],
+  "friendly": [ 100, 210, 255, 255 ],
+  "companion": [ 120, 240, 150, 255 ]
+}
