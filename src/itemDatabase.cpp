@@ -9,7 +9,6 @@ std::unordered_map<std::string, item> itemDatabase::registry;
 
 equipSlot stringToEquipSlot(const std::string& str)
 {
-    // Row 1
     if (str == "EYEWEAR" || str == "EYES")                  return equipSlot::EYEWEAR;
     if (str == "HEADWEAR" || str == "HEAD")                 return equipSlot::HEADWEAR;
     if (str == "HAIR_WEAR" || str == "HAIR")                return equipSlot::HAIR_WEAR;
@@ -17,7 +16,6 @@ equipSlot stringToEquipSlot(const std::string& str)
     if (str == "WEAPON_MAIN" || str == "PRIMARY_WEAPON")    return equipSlot::WEAPON_MAIN;
     if (str == "WEAPON_OFF" || str == "SECONDARY_WEAPON")   return equipSlot::WEAPON_OFF;
 
-    // Row 2
     if (str == "MOUTHWEAR" || str == "MOUTH")               return equipSlot::MOUTHWEAR;
     if (str == "TORSO_OVER" || str == "OVER_TORSO")         return equipSlot::TORSO_OVER;
     if (str == "NECKWEAR" || str == "NECK")                 return equipSlot::NECKWEAR;
@@ -25,7 +23,6 @@ equipSlot stringToEquipSlot(const std::string& str)
     if (str == "PIERCING_EAR" || str == "EAR_PIERCING")     return equipSlot::PIERCING_EAR;
     if (str == "PIERCING_NOSE" || str == "NOSE_PIERCING")   return equipSlot::PIERCING_NOSE;
 
-    // Row 3
     if (str == "WRISTS")                                    return equipSlot::WRISTS;
     if (str == "TORSO_UNDER" || str == "TORSO")             return equipSlot::TORSO_UNDER;
     if (str == "CHEST_WEAR" || str == "CHEST")              return equipSlot::CHEST_WEAR;
@@ -33,7 +30,6 @@ equipSlot stringToEquipSlot(const std::string& str)
     if (str == "PIERCING_LIP" || str == "LIP_PIERCING")     return equipSlot::PIERCING_LIP;
     if (str == "PIERCING_TONGUE" || str == "TONGUE_PIERCING") return equipSlot::PIERCING_TONGUE;
 
-    // Row 4
     if (str == "HANDS")                                     return equipSlot::HANDS;
     if (str == "HIPS_WEAR" || str == "HIPS")                return equipSlot::HIPS_WEAR;
     if (str == "STOMACH_WEAR" || str == "STOMACH")          return equipSlot::STOMACH_WEAR;
@@ -41,7 +37,6 @@ equipSlot stringToEquipSlot(const std::string& str)
     if (str == "PIERCING_NIPPLE" || str == "NIPPLE_PIERCING") return equipSlot::PIERCING_NIPPLE;
     if (str == "PIERCING_NAVEL" || str == "NAVEL_PIERCING") return equipSlot::PIERCING_NAVEL;
 
-    // Row 5
     if (str == "ANKLES")                                    return equipSlot::ANKLES;
     if (str == "LEGS_OUTER" || str == "LEGS")               return equipSlot::LEGS_OUTER;
     if (str == "GROIN_OVER" || str == "GROIN" || str == "UNDERWEAR_BOTTOM") return equipSlot::GROIN_OVER;
@@ -49,7 +44,6 @@ equipSlot stringToEquipSlot(const std::string& str)
     if (str == "PIERCING_COCK" || str == "COCK_PIERCING")   return equipSlot::PIERCING_COCK;
     if (str == "PIERCING_VAGINA" || str == "VAGINAL_PIERCING") return equipSlot::PIERCING_VAGINA;
 
-    // Row 6
     if (str == "CALVES")                                    return equipSlot::CALVES;
     if (str == "FEET")                                      return equipSlot::FEET;
     if (str == "ASS_WEAR" || str == "ANUS")                 return equipSlot::ASS_WEAR;
@@ -165,10 +159,14 @@ bool itemDatabase::loadDatabase(const std::string& filePath)
     }
 }
 
-bool itemDatabase::exists(const std::string& id) { return registry.find(id) != registry.end(); }
-
-std::shared_ptr<item> itemDatabase::getItem(const std::string& id)
+bool itemDatabase::exists(std::string_view id)
 {
-    if (exists(id)) return std::make_shared<item>(registry[id]);
+    return registry.find(std::string(id)) != registry.end();
+}
+
+std::shared_ptr<item> itemDatabase::getItem(std::string_view id)
+{
+    auto it = registry.find(std::string(id));
+    if (it != registry.end()) return std::make_shared<item>(it->second);
     return nullptr;
 }

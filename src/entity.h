@@ -2,6 +2,8 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <array>
+#include <optional>
 #include <algorithm>
 #include <memory>
 #include <nlohmann/json.hpp>
@@ -178,7 +180,7 @@ std::string getSlotName(bodySlot slot);
 class anatomyComponent
 {
 private:
-    std::unordered_map<bodySlot, bodyPart> parts;
+    std::array<std::optional<bodyPart>, BODY_SLOT_COUNT> parts{};
     std::unordered_map<tattooSlot, tattoo> tattoos;
 
 public:
@@ -194,7 +196,7 @@ public:
     bool hasGlobalTag(const std::string& tag) const;
     std::vector<std::string> getAllTags() const;
 
-    const std::unordered_map<bodySlot, bodyPart>& getAllParts() const { return parts; }
+    const std::array<std::optional<bodyPart>, BODY_SLOT_COUNT>& getAllParts() const { return parts; }
 
     void setTattoo(tattooSlot slot, const tattoo& tat);
     void removeTattoo(tattooSlot slot);

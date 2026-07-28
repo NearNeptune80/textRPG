@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
-#include <cstdio>
+#include <format>
 #include <algorithm>
 
 enum class TimePhase
@@ -18,9 +18,9 @@ public:
     int minute = 56;
     int hour = 7;
     int day = 30;
-    int month = 6;      // June
+    int month = 6;
     int year = 1;
-    int dayOfWeek = 3;  // 0=Mon, 1=Tue, 2=Wed, 3=Thu, 4=Fri, 5=Sat, 6=Sun
+    int dayOfWeek = 3;
 
     void advanceTime(int mins)
     {
@@ -62,9 +62,7 @@ public:
 
     std::string getFormattedTime() const
     {
-        char buf[16];
-        snprintf(buf, sizeof(buf), "%02d:%02d", hour, minute);
-        return std::string(buf);
+        return std::format("{:02d}:{:02d}", hour, minute);
     }
 
     std::string getFormattedDate() const
@@ -104,6 +102,6 @@ public:
 
     float getDayProgress() const
     {
-        return (float)(hour * 60 + minute) / 1440.0f;
+        return static_cast<float>(hour * 60 + minute) / 1440.0f;
     }
 };

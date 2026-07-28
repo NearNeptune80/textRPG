@@ -1,4 +1,5 @@
 #pragma once
+#include <cstddef>
 
 /**
  * 1. Anatomical Sockets for Body Parts
@@ -13,6 +14,8 @@ enum class bodySlot
     LEGS, FEET,
     WINGS, TENTACLES
 };
+
+constexpr std::size_t BODY_SLOT_COUNT = static_cast<std::size_t>(bodySlot::TENTACLES) + 1;
 
 /**
  * 2. Main UI Equipment Grid Slots (6x6 Grid Mapping)
@@ -39,6 +42,8 @@ enum class equipSlot
 
     NONE
 };
+
+constexpr std::size_t EQUIP_SLOT_COUNT = static_cast<std::size_t>(equipSlot::NONE);
 
 /**
  * 3. Alternate UI Grid Sockets for Body Tattoos

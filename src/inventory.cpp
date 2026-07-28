@@ -1,6 +1,7 @@
 #include "inventory.h"
 #include <iostream>
 #include <algorithm>
+#include <unordered_map>
 
 static bool hasTag(const std::vector<std::string>& tags, const std::string& target)
 {
@@ -84,7 +85,8 @@ bool inventoryComponent::removeItem(const std::string& itemId, int countToRemove
 
 bool inventoryComponent::equipItem(size_t backpackIndex, equipSlot slot, const std::vector<std::string>& bodyPartTags)
 {
-    if (backpackIndex >= backpack.size()) return false;
+    size_t slotIdx = static_cast<size_t>(slot);
+    if (backpackIndex >= backpack.size() || slotIdx >= EQUIP_SLOT_COUNT) return false;
 
     std::shared_ptr<item> itemToEquip = backpack[backpackIndex];
     if (!itemToEquip || !itemToEquip->isEquippable) return false;
@@ -104,27 +106,30 @@ bool inventoryComponent::equipItem(size_t backpackIndex, equipSlot slot, const s
         unequipItem(slot);
     }
 
-    equipped[slot] = itemToEquip;
+    equipped[slotIdx] = itemToEquip;
     backpack.erase(backpack.begin() + backpackIndex);
     return true;
 }
 
 bool inventoryComponent::unequipItem(equipSlot slot)
 {
-    if (!isEquipped(slot)) return false;
+    size_t slotIdx = static_cast<size_t>(slot);
+    if (!isEquipped(slot) || slotIdx >= EQUIP_SLOT_COUNT) return false;
 
-    backpack.push_back(equipped[slot]);
-    equipped.erase(slot);
+    backpack.push_back(equipped[slotIdx]);
+    equipped[slotIdx] = nullptr;
     return true;
 }
 
 bool inventoryComponent::isEquipped(equipSlot slot) const
 {
-    return equipped.find(slot) != equipped.end() && equipped.at(slot) != nullptr;
+    size_t slotIdx = static_cast<size_t>(slot);
+    return slotIdx < EQUIP_SLOT_COUNT && equipped[slotIdx] != nullptr;
 }
 
 std::shared_ptr<item> inventoryComponent::getEquippedItem(equipSlot slot)
 {
-    if (isEquipped(slot)) return equipped.at(slot);
+    size_t slotIdx = static_cast<size_t>(slot);
+    if (isEquipped(slot)) return equipped[slotIdx];
     return nullptr;
 }

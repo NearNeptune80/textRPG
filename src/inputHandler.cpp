@@ -142,7 +142,7 @@ bool InputHandler::handleActionGridClick(game* g, float mouseX, float mouseY)
 
     SDL_FRect gridBounds = UIGridHelper::getActionGridBounds(localBounds);
     auto currentSlots = g->getSlotsForCurrentActionPage();
-    int cols = 5, rows = 3;
+    constexpr int cols = 5, rows = 3;
 
     for (int i = 0; i < cols * rows; i++)
     {
@@ -182,15 +182,16 @@ bool InputHandler::handleMapClick(game* g, float mouseX, float mouseY)
 
 bool InputHandler::handleEquipmentGridClick(game* g, float mouseX, float mouseY)
 {
-    float padding = 12.0f;
     SDL_FRect playerEquipRect = g->layout.equipRect;
     SDL_FRect rightEquipRect = { g->layout.rightStackTop.x, g->layout.mapRect.y, g->layout.rightStackTop.w, g->layout.mapRect.h };
 
-    int cols = 6, rows = 6;
     entity* targetChar = UIGridHelper::contains(playerEquipRect, mouseX, mouseY) ? g->Player :
         (g->activeTargetNPC && UIGridHelper::contains(rightEquipRect, mouseX, mouseY)) ? g->activeTargetNPC : nullptr;
 
     if (!targetChar) return false;
+
+    constexpr float padding = 12.0f;
+    constexpr int cols = 6, rows = 6;
     SDL_FRect targetRect = (targetChar == g->Player) ? playerEquipRect : rightEquipRect;
 
     for (int r = 0; r < rows; r++)
@@ -207,8 +208,10 @@ bool InputHandler::handleEquipmentGridClick(game* g, float mouseX, float mouseY)
 
                 if (targetChar)
                 {
-                    for (const auto& [eSlot, eqItem] : targetChar->inventory.equipped)
+                    for (size_t i = 0; i < EQUIP_SLOT_COUNT; ++i)
                     {
+                        equipSlot eSlot = static_cast<equipSlot>(i);
+                        const auto& eqItem = targetChar->inventory.equipped[i];
                         if (g->getEquipmentGridIndex(eSlot) == slotIdx && eqItem && !eqItem->id.empty())
                         {
                             g->selectedEquipmentSlot = eSlot;
@@ -249,8 +252,8 @@ bool InputHandler::handleInventoryTabClick(game* g, float localMouseX, float loc
 
 bool InputHandler::handleInventorySlotClick(game* g, float localMouseX, float localMouseY, SDL_FRect localBounds)
 {
-    int cols = 6, rows = 5;
-    int itemsPerPage = cols * rows;
+    constexpr int cols = 6, rows = 5;
+    constexpr int itemsPerPage = cols * rows;
 
     for (int side = 0; side < 2; side++)
     {

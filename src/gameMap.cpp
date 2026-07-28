@@ -9,15 +9,9 @@ using json = nlohmann::json;
 gameMap::gameMap() {}
 gameMap::~gameMap() {}
 
-std::string gameMap::getTileKey(int x, int y) const
-{
-    return std::to_string(x) + "_" + std::to_string(y);
-}
-
 TileRuntimeData& gameMap::getRuntimeData(int x, int y)
 {
-    std::string key = getTileKey(x, y);
-    return runtimeData[key];
+    return runtimeData[makeTileKey(x, y)];
 }
 
 bool gameMap::loadFromFile(const std::string& filePath)
@@ -174,7 +168,6 @@ json gameMap::saveStateToJson() const
     json j;
     j["mapId"] = mapId;
 
-    // Save discovery states...
     json discoveryGrid = json::array();
     for (int y = 0; y < height; ++y)
     {
@@ -187,7 +180,6 @@ json gameMap::saveStateToJson() const
     }
     j["discovery"] = discoveryGrid;
 
-    // Save Dropped Tile Items
     json tileItemsMap = json::object();
     for (const auto& [key, runtime] : runtimeData)
     {
@@ -198,7 +190,7 @@ json gameMap::saveStateToJson() const
             {
                 if (itemPtr) itemArray.push_back(itemPtr->id);
             }
-            tileItemsMap[key] = itemArray;
+            tileItemsMap[std::to_string(key)] = itemArray;
         }
     }
     j["tileItems"] = tileItemsMap;
@@ -208,7 +200,6 @@ json gameMap::saveStateToJson() const
 
 void gameMap::loadStateFromJson(const json& j)
 {
-    // Load discovery...
     if (j.contains("discovery"))
     {
         const auto& dGrid = j["discovery"];
@@ -222,11 +213,11 @@ void gameMap::loadStateFromJson(const json& j)
         }
     }
 
-    // Load Dropped Items
     if (j.contains("tileItems"))
     {
-        for (auto& [key, itemsJson] : j["tileItems"].items())
+        for (auto& [keyStr, itemsJson] : j["tileItems"].items())
         {
+            uint64_t key = std::stoull(keyStr);
             runtimeData[key].droppedItems.clear();
             for (const auto& itemId : itemsJson)
             {

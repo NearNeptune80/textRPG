@@ -4,34 +4,54 @@
 
 // --- anatomyComponent Implementation ---
 
-void anatomyComponent::setPart(bodySlot slot, const bodyPart& part) { parts[slot] = part; }
-void anatomyComponent::removePart(bodySlot slot) { parts.erase(slot); }
-bool anatomyComponent::hasPart(bodySlot slot) const { return parts.find(slot) != parts.end(); }
+void anatomyComponent::setPart(bodySlot slot, const bodyPart& part)
+{
+    size_t idx = static_cast<size_t>(slot);
+    if (idx < BODY_SLOT_COUNT) parts[idx] = part;
+}
+
+void anatomyComponent::removePart(bodySlot slot)
+{
+    size_t idx = static_cast<size_t>(slot);
+    if (idx < BODY_SLOT_COUNT) parts[idx].reset();
+}
+
+bool anatomyComponent::hasPart(bodySlot slot) const
+{
+    size_t idx = static_cast<size_t>(slot);
+    return idx < BODY_SLOT_COUNT && parts[idx].has_value();
+}
 
 bodyPart* anatomyComponent::getPart(bodySlot slot)
 {
-    if (hasPart(slot)) return &parts[slot];
+    size_t idx = static_cast<size_t>(slot);
+    if (idx < BODY_SLOT_COUNT && parts[idx].has_value()) return &parts[idx].value();
     return nullptr;
 }
 
 const bodyPart* anatomyComponent::getPart(bodySlot slot) const
 {
-    if (hasPart(slot)) return &parts.at(slot);
+    size_t idx = static_cast<size_t>(slot);
+    if (idx < BODY_SLOT_COUNT && parts[idx].has_value()) return &parts[idx].value();
     return nullptr;
 }
 
 bool anatomyComponent::hasTag(bodySlot slot, const std::string& tag) const
 {
-    if (!hasPart(slot)) return false;
-    const auto& tags = parts.at(slot).tags;
-    return std::find(tags.begin(), tags.end(), tag) != tags.end();
+    const bodyPart* part = getPart(slot);
+    if (!part) return false;
+    return std::find(part->tags.begin(), part->tags.end(), tag) != part->tags.end();
 }
 
 bool anatomyComponent::hasGlobalTag(const std::string& tag) const
 {
-    for (const auto& [slot, part] : parts)
+    for (const auto& optPart : parts)
     {
-        if (std::find(part.tags.begin(), part.tags.end(), tag) != part.tags.end()) return true;
+        if (optPart.has_value())
+        {
+            const auto& tags = optPart.value().tags;
+            if (std::find(tags.begin(), tags.end(), tag) != tags.end()) return true;
+        }
     }
     return false;
 }
@@ -39,11 +59,14 @@ bool anatomyComponent::hasGlobalTag(const std::string& tag) const
 std::vector<std::string> anatomyComponent::getAllTags() const
 {
     std::vector<std::string> allTags;
-    for (const auto& [slot, part] : parts)
+    for (const auto& optPart : parts)
     {
-        for (const auto& t : part.tags)
+        if (optPart.has_value())
         {
-            if (std::find(allTags.begin(), allTags.end(), t) == allTags.end()) allTags.push_back(t);
+            for (const auto& t : optPart.value().tags)
+            {
+                if (std::find(allTags.begin(), allTags.end(), t) == allTags.end()) allTags.push_back(t);
+            }
         }
     }
     return allTags;
@@ -94,9 +117,12 @@ std::string getSlotName(bodySlot slot)
 void anatomyComponent::printDebug() const
 {
     std::cout << "\n=== ANATOMY DEBUG ===\n";
-    for (const auto& pair : parts)
+    for (size_t i = 0; i < BODY_SLOT_COUNT; ++i)
     {
-        std::cout << "[" << getSlotName(pair.first) << "] " << pair.second.name << "\n";
+        if (parts[i].has_value())
+        {
+            std::cout << "[" << getSlotName(static_cast<bodySlot>(i)) << "] " << parts[i].value().name << "\n";
+        }
     }
     std::cout << "=====================\n\n";
 }
@@ -255,22 +281,26 @@ json entity::toJson() const
 
     json anatomyJson = json::object();
     anatomyJson["heightMeters"] = anatomy.heightMeters;
-    for (const auto& [slot, part] : anatomy.getAllParts())
+    for (size_t i = 0; i < BODY_SLOT_COUNT; ++i)
     {
-        json pJson;
-        pJson["id"] = part.id;
-        pJson["name"] = part.name;
-        pJson["race"] = part.race;
-        pJson["count"] = part.count;
-        pJson["covering"] = coveringTypeToString(part.covering);
-        pJson["primaryColor"] = part.primaryColor;
-        pJson["secondaryColor"] = part.secondaryColor;
-        pJson["length"] = part.length;
-        pJson["diameter"] = part.diameter;
-        pJson["cupSize"] = part.cupSize;
-        pJson["style"] = part.style;
-        pJson["tags"] = part.tags;
-        anatomyJson[bodySlotToString(slot)] = pJson;
+        if (anatomy.getAllParts()[i].has_value())
+        {
+            const auto& part = anatomy.getAllParts()[i].value();
+            json pJson;
+            pJson["id"] = part.id;
+            pJson["name"] = part.name;
+            pJson["race"] = part.race;
+            pJson["count"] = part.count;
+            pJson["covering"] = coveringTypeToString(part.covering);
+            pJson["primaryColor"] = part.primaryColor;
+            pJson["secondaryColor"] = part.secondaryColor;
+            pJson["length"] = part.length;
+            pJson["diameter"] = part.diameter;
+            pJson["cupSize"] = part.cupSize;
+            pJson["style"] = part.style;
+            pJson["tags"] = part.tags;
+            anatomyJson[bodySlotToString(static_cast<bodySlot>(i))] = pJson;
+        }
     }
     j["anatomy"] = anatomyJson;
 
@@ -282,9 +312,12 @@ json entity::toJson() const
     j["backpack"] = backpackJson;
 
     json equippedJson = json::object();
-    for (const auto& [slot, itemPtr] : inventory.equipped)
+    for (size_t i = 0; i < EQUIP_SLOT_COUNT; ++i)
     {
-        if (itemPtr) equippedJson[equipSlotToString(slot)] = itemPtr->id;
+        if (inventory.equipped[i])
+        {
+            equippedJson[equipSlotToString(static_cast<equipSlot>(i))] = inventory.equipped[i]->id;
+        }
     }
     j["equipped"] = equippedJson;
 
@@ -386,16 +419,17 @@ void entity::fromJson(const json& j)
         }
     }
 
-    inventory.equipped.clear();
+    inventory.equipped.fill(nullptr);
     if (j.contains("equipped"))
     {
         for (auto& [slotStr, itemId] : j["equipped"].items())
         {
             equipSlot slot = stringToEquipSlot(slotStr);
-            if (slot != equipSlot::NONE)
+            size_t slotIdx = static_cast<size_t>(slot);
+            if (slot != equipSlot::NONE && slotIdx < EQUIP_SLOT_COUNT)
             {
                 auto itemPtr = itemDatabase::getItem(itemId.get<std::string>());
-                if (itemPtr) inventory.equipped[slot] = itemPtr;
+                if (itemPtr) inventory.equipped[slotIdx] = itemPtr;
             }
         }
     }

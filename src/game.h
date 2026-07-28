@@ -7,6 +7,7 @@
 #include <memory>
 #include <array>
 #include <utility>
+#include <inplace_vector>
 
 #include "gameMap.h"
 #include "entity.h"
@@ -42,6 +43,37 @@ struct ColorToken
 {
     std::string text;
     SDL_Color color;
+};
+
+struct TextCacheKey
+{
+    std::string fontId;
+    std::string textStr;
+    SDL_Color color;
+
+    bool operator==(const TextCacheKey& other) const noexcept
+    {
+        return fontId == other.fontId &&
+               textStr == other.textStr &&
+               color.r == other.color.r &&
+               color.g == other.color.g &&
+               color.b == other.color.b &&
+               color.a == other.color.a;
+    }
+};
+
+struct TextCacheKeyHash
+{
+    std::size_t operator()(const TextCacheKey& k) const noexcept
+    {
+        std::size_t h1 = std::hash<std::string>{}(k.fontId);
+        std::size_t h2 = std::hash<std::string>{}(k.textStr);
+        uint32_t colorPacked = (static_cast<uint32_t>(k.color.r) << 24) |
+                               (static_cast<uint32_t>(k.color.g) << 16) |
+                               (static_cast<uint32_t>(k.color.b) << 8)  |
+                                static_cast<uint32_t>(k.color.a);
+        return h1 ^ (h2 << 1) ^ std::hash<uint32_t>{}(colorPacked);
+    }
 };
 
 struct CachedTextTexture
@@ -119,13 +151,12 @@ public:
     float maxDescriptionScrollY = 0.0f;
 
     std::unordered_map<std::string, TTF_Font*> fonts;
-    std::vector<actionButton> activeButtons;
+    std::inplace_vector<actionButton, 15> activeButtons;
     questScene currentScene;
 
     entity* activeTargetNPC = nullptr;
     TargetMode activeTargetMode = TargetMode::NONE;
 
-    // Core State Actions
     bool loadMap(const std::string& mapId, int startX, int startY);
     void movePlayer(int nextX, int nextY);
     void refreshActionGrid();
@@ -143,11 +174,9 @@ public:
     void triggerEncounter(std::shared_ptr<entity> npc);
     std::array<actionButton, 15> getSlotsForCurrentActionPage();
 
-    // Inventory & Equipment Lookup Helpers
     InventorySlotInfo getInventorySlotItem(int side, int absoluteIndex);
     std::pair<equipSlot, std::shared_ptr<item>> getEquippedAtGridIndex(entity* target, int gridIdx);
 
-    // Text & Layout Helpers
     bool loadFont(const std::string& id, const std::string& path, int ptSize);
 
     void renderTextAligned(const std::string& textStr, SDL_FRect destRect,
@@ -167,7 +196,7 @@ public:
     std::string formatEquipSlotName(equipSlot slot);
 
 private:
-    std::unordered_map<std::string, CachedTextTexture> textCache;
+    std::unordered_map<TextCacheKey, CachedTextTexture, TextCacheKeyHash> textCache;
 
     void renderDashboardLayout();
     void renderMainMenuLayout();

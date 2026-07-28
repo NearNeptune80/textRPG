@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <memory>
 #include <algorithm>
+#include <cstdint>
 #include <nlohmann/json.hpp>
 
 #include "quest.h"
@@ -51,10 +52,10 @@ struct TemporarySafetyModifier
 struct TileRuntimeData
 {
     std::shared_ptr<entity> persistentNPC = nullptr;
-    std::vector<std::shared_ptr<item>> droppedItems; // Items dropped on this tile
+    std::vector<std::shared_ptr<item>> droppedItems;
     std::string iconId = "";
     int baseDangerLevel = 0;
-    bool isStorageSafe = false; // Flag for persistent tile storage
+    bool isStorageSafe = false;
 
     std::vector<TemporarySafetyModifier> safetyModifiers;
 
@@ -68,6 +69,11 @@ struct TileRuntimeData
         return std::max(0, effective);
     }
 };
+
+constexpr uint64_t makeTileKey(int32_t x, int32_t y) noexcept
+{
+    return (static_cast<uint64_t>(static_cast<uint32_t>(x)) << 32) | static_cast<uint32_t>(y);
+}
 
 class gameMap
 {
@@ -98,7 +104,6 @@ public:
     void loadStateFromJson(const nlohmann::json& j);
 
     TileRuntimeData& getRuntimeData(int x, int y);
-    std::string getTileKey(int x, int y) const;
     const std::vector<MapTrigger>& getTriggers() const { return triggers; }
 
     int getWidth() const { return width; }
@@ -115,5 +120,5 @@ private:
     std::vector<std::vector<Tile>> grid;
     std::vector<MapWarp> warps;
     std::vector<MapTrigger> triggers;
-    std::unordered_map<std::string, TileRuntimeData> runtimeData;
+    std::unordered_map<uint64_t, TileRuntimeData> runtimeData;
 };

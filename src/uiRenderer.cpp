@@ -41,7 +41,7 @@ void UI::DrawEquipmentGrid(SDL_Renderer* renderer, game* g, SDL_FRect bounds, en
     SDL_FRect panelRect = { 0.0f, 0.0f, bounds.w, bounds.h };
     DrawPanel(renderer, panelRect, Theme::colors.bgPanel, Theme::colors.borderNormal);
 
-    int cols = 6, rows = 6;
+    constexpr int cols = 6, rows = 6;
     SDL_FRect localBounds = { 0.0f, 0.0f, bounds.w, bounds.h };
 
     for (int r = 0; r < rows; r++)
@@ -52,13 +52,16 @@ void UI::DrawEquipmentGrid(SDL_Renderer* renderer, game* g, SDL_FRect bounds, en
             SDL_FRect slot = UIGridHelper::getEquipmentSlotRect(localBounds, c, r, cols, rows, 4.0f, static_cast<float>(padding));
 
             bool isOccupied = false;
-            std::string equippedName = "";
+            std::string equippedName;
             bool isSelectedEquip = false;
 
             if (targetEntity)
             {
-                for (const auto& [eSlot, eqItem] : targetEntity->inventory.equipped)
+                for (size_t i = 0; i < EQUIP_SLOT_COUNT; ++i)
                 {
+                    equipSlot eSlot = static_cast<equipSlot>(i);
+                    const auto& eqItem = targetEntity->inventory.equipped[i];
+
                     if (g->getEquipmentGridIndex(eSlot) == slotIdx && eqItem && !eqItem->id.empty())
                     {
                         isOccupied = true;
@@ -124,8 +127,8 @@ void UI::DrawInventoryGrid(SDL_Renderer* renderer, game* g, SDL_FRect bounds, en
     SDL_SetRenderDrawColor(renderer, Theme::colors.borderNormal.r, Theme::colors.borderNormal.g, Theme::colors.borderNormal.b, 255);
     SDL_RenderLine(renderer, halfW, 10.0f, halfW, bounds.h - 10.0f);
 
-    int cols = 6, rows = 5;
-    int itemsPerPage = cols * rows;
+    constexpr int cols = 6, rows = 5;
+    constexpr int itemsPerPage = cols * rows;
 
     for (int side = 0; side < 2; side++)
     {
@@ -224,9 +227,9 @@ void UI::DrawItemDetailPanel(SDL_Renderer* renderer, game* g, SDL_FRect bounds, 
     }
 
     float descH = bounds.h - currentY - pad;
-    SDL_FRect descClip = { bounds.x + pad, bounds.y + currentY, textW, descH };
 
     {
+        SDL_FRect descClip = { bounds.x + pad, bounds.y + currentY, textW, descH };
         ViewportGuard descGuard(renderer, descClip);
         SDL_FRect descContentRect = { 0.0f, -g->descriptionScrollY, textW, descH };
         std::string descText = selectedItem->description.empty() ? "No description available." : selectedItem->description;
@@ -348,8 +351,13 @@ void UI::DrawAnatomyTooltip(SDL_Renderer* renderer, game* g, entity* targetEntit
         bodySlot::WINGS, bodySlot::TENTACLES, bodySlot::ANTENNAE
     };
 
-    float headerH = screenH * 0.032f, subHeaderH = screenH * 0.024f, lineH = screenH * 0.025f;
-    float fontH = lineH * 0.80f, padding = screenW * 0.008f, bulletSize = fontH * 0.45f;
+    float headerH = static_cast<float>(screenH) * 0.032f;
+    float subHeaderH = static_cast<float>(screenH) * 0.024f;
+    float lineH = static_cast<float>(screenH) * 0.025f;
+
+    float fontH = lineH * 0.80f;
+    float padding = static_cast<float>(screenW) * 0.008f;
+    float bulletSize = fontH * 0.45f;
 
     struct RenderRowData
     {
@@ -359,7 +367,7 @@ void UI::DrawAnatomyTooltip(SDL_Renderer* renderer, game* g, entity* targetEntit
     };
 
     std::vector<RenderRowData> rows;
-    float maxContentW = screenW * 0.18f;
+    float maxContentW = static_cast<float>(screenW) * 0.18f;
 
     for (bodySlot slot : anatomicalOrder)
     {
@@ -371,7 +379,7 @@ void UI::DrawAnatomyTooltip(SDL_Renderer* renderer, game* g, entity* targetEntit
             row.isOccupied = true;
             row.bulletColor = Theme::getColorFromName(part->primaryColor);
 
-            std::string prefixStr = "";
+            std::string prefixStr;
             if (slot == bodySlot::GROIN && part->length > 0.0f)
             {
                 char buf[64]; snprintf(buf, sizeof(buf), "%s (%gcm long, %gcm diameter)", part->name.c_str(), part->length, part->diameter);
@@ -424,11 +432,11 @@ void UI::DrawAnatomyTooltip(SDL_Renderer* renderer, game* g, entity* targetEntit
 
     float textStartXOffset = bulletSize + (padding * 0.8f);
     float boxWidth = maxContentW + textStartXOffset + (padding * 2.5f);
-    float boxHeight = headerH + subHeaderH + padding + (static_cast<int>(rows.size()) * lineH) + padding;
+    float boxHeight = headerH + subHeaderH + padding + (static_cast<float>(rows.size()) * lineH) + padding;
 
     float boxX = mouseX + 15.0f, boxY = mouseY;
-    if (boxX + boxWidth > screenW) boxX = mouseX - boxWidth - 12.0f;
-    if (boxY + boxHeight > screenH) boxY = screenH - boxHeight - 10.0f;
+    if (boxX + boxWidth > static_cast<float>(screenW)) boxX = mouseX - boxWidth - 12.0f;
+    if (boxY + boxHeight > static_cast<float>(screenH)) boxY = static_cast<float>(screenH) - boxHeight - 10.0f;
 
     SDL_FRect tooltipRect = { boxX, boxY, boxWidth, boxHeight };
     SDL_Color borderColor = (targetEntity == g->Player) ? Theme::colors.textAccent : Theme::colors.enemy;
@@ -473,7 +481,7 @@ void UI::DrawMapGrid(SDL_Renderer* renderer, game* g, SDL_FRect bounds, gameMap*
     int mapW = map->getWidth(), mapH = map->getHeight();
     SDL_FRect localBounds = { 0.0f, 0.0f, bounds.w, bounds.h };
 
-    float tileGap = 4.0f;
+    constexpr float tileGap = 4.0f;
 
     for (int y = -2; y <= 2; y++)
     {
@@ -488,46 +496,27 @@ void UI::DrawMapGrid(SDL_Renderer* renderer, game* g, SDL_FRect bounds, gameMap*
             SDL_FRect r = UIGridHelper::getMapTileRect(localBounds, x + 2, y + 2, static_cast<float>(padding), tileGap);
             int danger = map->getRuntimeData(mapX, mapY).getEffectiveDangerLevel();
 
-            // Base color for fully discovered, safe tiles
-            SDL_Color baseCol = Theme::colors.textSecondary; // ~ (220, 225, 235)
+            SDL_Color baseCol = Theme::colors.textSecondary;
 
-            // 1. Calculate Shading Multiplier
             float brightness = 1.0f;
-
-            if (t.discovery == STATE_PARTIAL)
-            {
-                brightness *= 0.65f; // Darken partially discovered tiles until stepped on
-            }
-
-            if (danger > 0)
-            {
-                brightness *= 0.80f; // Darken dangerous tiles relative to safe ones
-            }
+            if (t.discovery == STATE_PARTIAL) brightness *= 0.65f;
+            if (danger > 0) brightness *= 0.80f;
 
             SDL_Color fillCol = {
-                static_cast<Uint8>(baseCol.r * brightness),
-                static_cast<Uint8>(baseCol.g * brightness),
-                static_cast<Uint8>(baseCol.b * brightness),
+                static_cast<Uint8>(static_cast<float>(baseCol.r) * brightness),
+                static_cast<Uint8>(static_cast<float>(baseCol.g) * brightness),
+                static_cast<Uint8>(static_cast<float>(baseCol.b) * brightness),
                 255
             };
 
-            // 2. Calculate Border Color
             SDL_Color borderCol = Theme::colors.borderNormal;
-            if (t.type == TILE_DOOR)
-            {
-                borderCol = Theme::colors.textGold;
-            }
-            else if (danger > 0)
-            {
-                borderCol = Theme::colors.enemy; // Highlight danger tiles with red/accent outline
-            }
+            if (t.type == TILE_DOOR) borderCol = Theme::colors.textGold;
+            else if (danger > 0) borderCol = Theme::colors.enemy;
 
-            // 3. Draw panel with rounded corners (radius 4.0f)
             DrawPanel(renderer, r, fillCol, borderCol, 4.0f);
         }
     }
 
-    // Render Player Tile Marker (Center) with rounded corners
     SDL_FRect p = UIGridHelper::getMapTileRect(localBounds, 2, 2, static_cast<float>(padding), tileGap);
     DrawPanel(renderer, p, Theme::colors.friendly, Theme::colors.textAccent, 4.0f);
 }
@@ -549,7 +538,7 @@ void UI::DrawActionGrid(SDL_Renderer* renderer, game* g, SDL_FRect bounds, const
 
     SDL_FRect gridBounds = UIGridHelper::getActionGridBounds(panelRect);
     auto currentSlots = g->getSlotsForCurrentActionPage();
-    int cols = 5, rows = 3;
+    constexpr int cols = 5, rows = 3;
 
     for (int i = 0; i < cols * rows; i++)
     {
@@ -590,17 +579,17 @@ void UI::DrawTimePanel(SDL_Renderer* renderer, game* g, SDL_FRect bounds, const 
     SDL_FRect dateBox = { leftColX, row1Y, leftColW, row1H };
     g->renderTextAligned(gameTime.getFormattedDate(), dateBox, TextAlignment::CENTER, true, "button_font", Theme::colors.textSecondary);
 
-    const char* days[7] = { "M", "T", "W", "T", "F", "S", "S" };
+    static const char* days[7] = { "M", "T", "W", "T", "F", "S", "S" };
     float daySlotW = leftColW / 7.0f;
 
     for (int i = 0; i < 7; i++)
     {
-        float slotX = leftColX + (i * daySlotW);
+        float slotX = leftColX + (static_cast<float>(i) * daySlotW);
         SDL_FRect textFitRect = { slotX, row2Y, daySlotW, row2H };
 
         if (i == gameTime.dayOfWeek)
         {
-            float pillMargin = 1.0f;
+            constexpr float pillMargin = 1.0f;
             SDL_FRect pillRect = { slotX + pillMargin, row2Y, daySlotW - (pillMargin * 2.0f), row2H };
             DrawPanel(renderer, pillRect, Theme::colors.bgSlotSelected, Theme::colors.textAccent, 3.0f);
             g->renderTextAligned(days[i], textFitRect, TextAlignment::CENTER, true, "button_font", Theme::colors.textPrimary);

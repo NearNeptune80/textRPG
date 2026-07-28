@@ -117,8 +117,10 @@ std::pair<equipSlot, std::shared_ptr<item>> game::getEquippedAtGridIndex(entity*
 {
     if (!target) return { equipSlot::NONE, nullptr };
 
-    for (const auto& [eSlot, eqItem] : target->inventory.equipped)
+    for (size_t i = 0; i < EQUIP_SLOT_COUNT; ++i)
     {
+        equipSlot eSlot = static_cast<equipSlot>(i);
+        const auto& eqItem = target->inventory.equipped[i];
         if (getEquipmentGridIndex(eSlot) == gridIdx && eqItem && !eqItem->id.empty())
         {
             return { eSlot, eqItem };
@@ -348,7 +350,7 @@ void game::processChoice(const dialogueChoice& choice)
         {
             actionButton btn; btn.label = c.label;
             btn.onClick = [this, c]() { processChoice(c); };
-            activeButtons.push_back(btn);
+            if (activeButtons.size() < activeButtons.capacity()) activeButtons.push_back(btn);
         }
         return;
     }
@@ -408,7 +410,7 @@ void game::loadScene(const std::string& sceneId)
             btn.label = currentScene.choices[i].label;
             dialogueChoice choice = currentScene.choices[i];
             btn.onClick = [this, choice]() { processChoice(choice); };
-            activeButtons.push_back(btn);
+            if (activeButtons.size() < activeButtons.capacity()) activeButtons.push_back(btn);
         }
     }
 }
@@ -458,7 +460,7 @@ void game::triggerEncounter(std::shared_ptr<entity> npc)
         actionButton btn;
         btn.label = choice.label;
         btn.onClick = [this, choice]() { processChoice(choice); };
-        activeButtons.push_back(btn);
+        if (activeButtons.size() < activeButtons.capacity()) activeButtons.push_back(btn);
     }
 }
 
@@ -584,7 +586,7 @@ void game::renderDashboardLayout()
     UI::DrawEntitySummaryCard(renderer, this, layout.charRect, Player, false);
     renderCompanionPanel(layout.companionRect);
     UI::DrawTimePanel(renderer, this, layout.timeRect, gameTime);
-    UI::DrawActionGrid(renderer, this, layout.actionGridRect, activeButtons);
+    UI::DrawActionGrid(renderer, this, layout.actionGridRect, std::vector<actionButton>(activeButtons.begin(), activeButtons.end()));
 
     switch (currentState)
     {
@@ -784,14 +786,13 @@ SDL_Texture* game::getOrRenderText(const std::string& textStr, const std::string
 {
     if (textStr.empty()) return nullptr;
 
-    std::string cacheKey = fontId + "_" + textStr + "_" +
-        std::to_string(color.r) + "_" + std::to_string(color.g) + "_" + std::to_string(color.b) + "_" + std::to_string(color.a);
+    TextCacheKey cacheKey{ fontId, textStr, color };
 
     auto it = textCache.find(cacheKey);
     if (it != textCache.end())
     {
-        outW = static_cast<float>(it->second.w);
-        outH = static_cast<float>(it->second.h);
+        outW = it->second.w;
+        outH = it->second.h;
         return it->second.texture;
     }
 

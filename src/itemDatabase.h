@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <memory>
 #include "item.h"
@@ -14,6 +15,6 @@ private:
 
 public:
     static bool loadDatabase(const std::string& filePath);
-    static bool exists(const std::string& id);
-    static std::shared_ptr<item> getItem(const std::string& id);
+    static bool exists(std::string_view id);
+    static std::shared_ptr<item> getItem(std::string_view id);
 };

@@ -55,7 +55,7 @@ inline void renderDrawRoundedRect(SDL_Renderer* renderer, SDL_FRect rect, float 
     if (radius <= 1.0f) { SDL_RenderRect(renderer, &rect); return; }
 
     float rx = std::floor(rect.x), ry = std::floor(rect.y), rw = std::floor(rect.w), rh = std::floor(rect.h);
-    float x2 = rx + rw, y2 = ry + rh; // Fixed: removed -1.0f which caused the bottom pixel offset artifact
+    float x2 = rx + rw, y2 = ry + rh;
 
     SDL_RenderLine(renderer, rx + radius, ry, x2 - radius, ry);
     SDL_RenderLine(renderer, rx + radius, y2, x2 - radius, y2);
@@ -68,7 +68,7 @@ inline void renderDrawRoundedRect(SDL_Renderer* renderer, SDL_FRect rect, float 
             float prevY = cy;
             for (int i = 1; i <= 12; ++i)
             {
-                float rad = (i * (90.0f / 12.0f)) * (3.14159265f / 180.0f);
+                float rad = (static_cast<float>(i) * (90.0f / 12.0f)) * (3.14159265f / 180.0f);
                 float currX = cx + quadX * radius * std::cos(rad);
                 float currY = cy + quadY * radius * std::sin(rad);
                 SDL_RenderLine(renderer, prevX, prevY, currX, currY);

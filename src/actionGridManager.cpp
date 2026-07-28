@@ -3,6 +3,8 @@
 
 static void pushBtn(game* g, const std::string& label, int slotIndex, std::function<void()> onClick = nullptr, bool isEnabled = true, bool pinnedAllPages = false)
 {
+    if (g->activeButtons.size() >= g->activeButtons.capacity()) return;
+
     actionButton btn;
     btn.label = label;
     btn.slotIndex = slotIndex;
@@ -37,7 +39,6 @@ void ActionGridManager::refresh(game* g)
 
 void ActionGridManager::buildInventoryActions(game* g)
 {
-    // Pinned Close Button (Slot 14)
     pushBtn(g, "Close inventory", 14, [g]()
         {
             g->selectedInventoryIndex = -1;
