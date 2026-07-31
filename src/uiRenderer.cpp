@@ -44,6 +44,8 @@ void UI::DrawEquipmentGrid(SDL_Renderer* renderer, game* g, SDL_FRect bounds, en
     constexpr int cols = 6, rows = 6;
     SDL_FRect localBounds = { 0.0f, 0.0f, bounds.w, bounds.h };
 
+    int targetSide = (targetEntity == g->Player) ? 0 : 1;
+
     for (int r = 0; r < rows; r++)
     {
         for (int c = 0; c < cols; c++)
@@ -66,7 +68,10 @@ void UI::DrawEquipmentGrid(SDL_Renderer* renderer, game* g, SDL_FRect bounds, en
                     {
                         isOccupied = true;
                         equippedName = eqItem->name;
-                        if (eSlot == selectedSlot) isSelectedEquip = true;
+                        if (eSlot == selectedSlot && g->selectedInventorySide == targetSide)
+                        {
+                            isSelectedEquip = true;
+                        }
                         break;
                     }
                 }
@@ -98,6 +103,9 @@ void UI::DrawInventoryGrid(SDL_Renderer* renderer, game* g, SDL_FRect bounds, en
     float headerH = bounds.h * 0.08f;
     entity* rightEntity = g->activeTargetNPC ? g->activeTargetNPC : nullptr;
 
+    constexpr int cols = 6, rows = 5;
+    constexpr int itemsPerPage = cols * rows;
+
     for (int side = 0; side < 2; side++)
     {
         int activePage = (side == 0) ? g->currentInventoryPage : g->currentRightInventoryPage;
@@ -109,15 +117,34 @@ void UI::DrawInventoryGrid(SDL_Renderer* renderer, game* g, SDL_FRect bounds, en
         SDL_FRect headerBox = { side * halfW, bounds.h * 0.02f, halfW, headerH };
         g->renderTextAligned(titleStr, headerBox, TextAlignment::CENTER, true, "button_font", Theme::colors.textSecondary);
 
-        // Side-column tabs
+        // Calculate page occupation states
         for (int t = 0; t < 7; t++)
         {
+            bool hasItemsOnPage = false;
+            int pageStart = t * itemsPerPage;
+
+            for (int slotOffset = 0; slotOffset < itemsPerPage; slotOffset++)
+            {
+                InventorySlotInfo slotInfo = g->getInventorySlotItem(side, pageStart + slotOffset);
+                if (slotInfo.isValid && slotInfo.itemPtr)
+                {
+                    hasItemsOnPage = true;
+                    break;
+                }
+            }
+
             SDL_FRect tabRect = UIGridHelper::getInventoryTabRect(panelRect, side, t);
             bool isSelected = (activePage == t);
 
             SDL_Color bgCol = isSelected ? Theme::colors.bgSlotSelected : Theme::colors.bgSlot;
             SDL_Color borderCol = isSelected ? Theme::colors.textAccent : Theme::colors.borderNormal;
-            SDL_Color textCol = isSelected ? Theme::colors.textPrimary : Theme::colors.textMuted;
+            SDL_Color textCol = isSelected ? Theme::colors.textPrimary : (hasItemsOnPage ? Theme::colors.textSecondary : Theme::colors.textMuted);
+
+            if (!hasItemsOnPage && !isSelected)
+            {
+                bgCol = Theme::colors.bgHeader;
+                borderCol = Theme::colors.borderButtonDisabled;
+            }
 
             DrawPanel(renderer, tabRect, bgCol, borderCol, 3.0f);
             g->renderTextAligned(tabLabels[t], tabRect, TextAlignment::CENTER, true, "button_font", textCol);
@@ -126,9 +153,6 @@ void UI::DrawInventoryGrid(SDL_Renderer* renderer, game* g, SDL_FRect bounds, en
 
     SDL_SetRenderDrawColor(renderer, Theme::colors.borderNormal.r, Theme::colors.borderNormal.g, Theme::colors.borderNormal.b, 255);
     SDL_RenderLine(renderer, halfW, 10.0f, halfW, bounds.h - 10.0f);
-
-    constexpr int cols = 6, rows = 5;
-    constexpr int itemsPerPage = cols * rows;
 
     for (int side = 0; side < 2; side++)
     {
@@ -182,9 +206,13 @@ void UI::DrawItemDetailPanel(SDL_Renderer* renderer, game* g, SDL_FRect bounds, 
     {
         selectedItem = g->getInventorySlotItem(g->selectedInventorySide, g->selectedInventoryIndex).itemPtr;
     }
-    else if (g->selectedEquipmentSlot != equipSlot::NONE && targetEntity && targetEntity->inventory.isEquipped(g->selectedEquipmentSlot))
+    else if (g->selectedEquipmentSlot != equipSlot::NONE)
     {
-        selectedItem = targetEntity->inventory.getEquippedItem(g->selectedEquipmentSlot);
+        entity* currentTarget = (g->selectedInventorySide == 1 && g->activeTargetNPC) ? g->activeTargetNPC : targetEntity;
+        if (currentTarget && currentTarget->inventory.isEquipped(g->selectedEquipmentSlot))
+        {
+            selectedItem = currentTarget->inventory.getEquippedItem(g->selectedEquipmentSlot);
+        }
     }
 
     if (!selectedItem)
@@ -530,11 +558,29 @@ void UI::DrawActionGrid(SDL_Renderer* renderer, game* g, SDL_FRect bounds, const
 
     auto [leftArrow, rightArrow] = UIGridHelper::getNavigationArrows(panelRect);
 
-    DrawPanel(renderer, leftArrow, Theme::colors.bgHeader, Theme::colors.borderButtonDisabled);
-    g->renderTextAligned("<", leftArrow, TextAlignment::CENTER, false, "button_font", Theme::colors.textMuted);
+    bool hasPrevPage = (g->actionGridPage > 0);
+    bool hasNextPage = false;
 
-    DrawPanel(renderer, rightArrow, Theme::colors.bgHeader, Theme::colors.borderButtonDisabled);
-    g->renderTextAligned(">", rightArrow, TextAlignment::CENTER, false, "button_font", Theme::colors.textMuted);
+    int totalButtons = static_cast<int>(g->activeButtons.size());
+    int maxButtonsOnCurrentPage = (g->actionGridPage + 1) * 15;
+    if (totalButtons > maxButtonsOnCurrentPage)
+    {
+        hasNextPage = true;
+    }
+
+    SDL_Color leftBg = hasPrevPage ? Theme::colors.bgButton : Theme::colors.bgHeader;
+    SDL_Color leftBorder = hasPrevPage ? Theme::colors.borderButton : Theme::colors.borderButtonDisabled;
+    SDL_Color leftText = hasPrevPage ? Theme::colors.textPrimary : Theme::colors.textMuted;
+
+    DrawPanel(renderer, leftArrow, leftBg, leftBorder, 4.0f);
+    g->renderTextAligned("<", leftArrow, TextAlignment::CENTER, false, "button_font", leftText);
+
+    SDL_Color rightBg = hasNextPage ? Theme::colors.bgButton : Theme::colors.bgHeader;
+    SDL_Color rightBorder = hasNextPage ? Theme::colors.borderButton : Theme::colors.borderButtonDisabled;
+    SDL_Color rightText = hasNextPage ? Theme::colors.textPrimary : Theme::colors.textMuted;
+
+    DrawPanel(renderer, rightArrow, rightBg, rightBorder, 4.0f);
+    g->renderTextAligned(">", rightArrow, TextAlignment::CENTER, false, "button_font", rightText);
 
     SDL_FRect gridBounds = UIGridHelper::getActionGridBounds(panelRect);
     auto currentSlots = g->getSlotsForCurrentActionPage();

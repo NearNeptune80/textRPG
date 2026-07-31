@@ -16,6 +16,9 @@
 #include "timeManager.h"
 #include "viewportGuard.h"
 
+// Include base interface before any concrete state includes
+#include "state/iGameState.h"
+
 enum class GameState
 {
     EXPLORATION,
@@ -127,6 +130,9 @@ public:
     void render();
     void clean();
 
+    void changeState(std::unique_ptr<iGameState> newState);
+    iGameState* getActiveState() const { return activeGameState.get(); }
+
     timeManager gameTime;
     bool isRunning;
     SDL_Window* window;
@@ -196,6 +202,7 @@ public:
     std::string formatEquipSlotName(equipSlot slot);
 
 private:
+    std::unique_ptr<iGameState> activeGameState;
     std::unordered_map<TextCacheKey, CachedTextTexture, TextCacheKeyHash> textCache;
 
     void renderDashboardLayout();
@@ -203,6 +210,5 @@ private:
 
     void renderTitleBar(SDL_FRect t1, SDL_FRect t2, SDL_FRect t3);
     void renderCompanionPanel(SDL_FRect rect);
-    void renderTextPanel(SDL_FRect rect);
     void renderRightColumn(SDL_FRect top, SDL_FRect mid, SDL_FRect bot);
 };

@@ -1,5 +1,7 @@
 #include "actionGridManager.h"
 #include "game.h"
+#include "state/inventoryState.h"
+#include "state/explorationState.h"
 
 static void pushBtn(game* g, const std::string& label, int slotIndex, std::function<void()> onClick = nullptr, bool isEnabled = true, bool pinnedAllPages = false)
 {
@@ -33,8 +35,8 @@ void ActionGridManager::refresh(game* g)
 {
     g->activeButtons.clear();
 
-    if (g->currentState == GameState::INVENTORY) buildInventoryActions(g);
-    else if (g->currentState == GameState::EXPLORATION) buildExplorationActions(g);
+    if (dynamic_cast<inventoryState*>(g->getActiveState())) buildInventoryActions(g);
+    else if (dynamic_cast<explorationState*>(g->getActiveState())) buildExplorationActions(g);
 }
 
 void ActionGridManager::buildInventoryActions(game* g)
@@ -52,8 +54,7 @@ void ActionGridManager::buildInventoryActions(game* g)
             }
             else
             {
-                g->currentState = GameState::EXPLORATION;
-                g->refreshActionGrid();
+                g->changeState(std::make_unique<explorationState>());
             }
         }, true, true);
 

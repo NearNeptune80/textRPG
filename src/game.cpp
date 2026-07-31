@@ -8,7 +8,10 @@
 #include "itemDatabase.h"
 #include "questDatabase.h"
 #include <iostream>
-#include <algorithm>
+#include "state/iGameState.h"
+#include "state/explorationState.h"
+#include "state/eventState.h"
+#include "state/inventoryState.h"
 
 game::game() : isRunning(false), window(nullptr), renderer(nullptr), map(nullptr), Player(nullptr), gridX(1), gridY(1), currentState(GameState::EXPLORATION) {}
 
@@ -16,6 +19,17 @@ game::~game()
 {
     map = nullptr;
     if (Player) delete Player;
+}
+
+void game::changeState(std::unique_ptr<iGameState> newState)
+{
+    if (activeGameState) activeGameState->onExit(this);
+    activeGameState = std::move(newState);
+    if (activeGameState)
+    {
+        activeGameState->initialise(this);
+        activeGameState->onEnter(this);
+    }
 }
 
 void game::init(const char* title, int width, int height, bool fullscreen)
@@ -48,6 +62,7 @@ void game::init(const char* title, int width, int height, bool fullscreen)
         }
     }
     loadMap("overworld", 1, 1);
+    changeState(std::make_unique<explorationState>());
     isRunning = true;
 }
 
@@ -56,7 +71,10 @@ void game::handleEvents()
     InputHandler::handleEvents(this);
 }
 
-void game::update() {}
+void game::update()
+{
+    if (activeGameState) activeGameState->update(this, 0.016f);
+}
 
 void game::render()
 {
@@ -336,6 +354,7 @@ void game::processChoice(const dialogueChoice& choice)
 {
     if (choice.nextSceneId == "ENCOUNTER_FIGHT")
     {
+        changeState(std::make_unique<eventState>());
         currentScene.id = "encounter_victory";
         currentScene.speakerName = activeTargetNPC ? activeTargetNPC->name : "Enemy";
         currentScene.bodyText = "You defeated " + currentScene.speakerName + " in combat!";
@@ -357,10 +376,7 @@ void game::processChoice(const dialogueChoice& choice)
 
     if (choice.nextSceneId == "VICTORY_INVENTORY")
     {
-        currentState = GameState::INVENTORY;
-        selectedInventoryIndex = -1;
-        selectedEquipmentSlot = equipSlot::NONE;
-        refreshActionGrid();
+        changeState(std::make_unique<inventoryState>());
         return;
     }
 
@@ -387,8 +403,7 @@ void game::processChoice(const dialogueChoice& choice)
     {
         activeTargetNPC = nullptr;
         activeTargetMode = TargetMode::NONE;
-        currentState = GameState::EXPLORATION;
-        refreshActionGrid();
+        changeState(std::make_unique<explorationState>());
     }
     else
     {
@@ -398,7 +413,7 @@ void game::processChoice(const dialogueChoice& choice)
 
 void game::loadScene(const std::string& sceneId)
 {
-    currentState = GameState::EVENT;
+    changeState(std::make_unique<eventState>());
     currentScene = questDatabase::getScene(sceneId);
 
     activeButtons.clear();
@@ -443,7 +458,7 @@ void game::triggerEncounter(std::shared_ptr<entity> npc)
 {
     activeTargetNPC = npc.get();
     activeTargetMode = TargetMode::COMBAT_ENEMY;
-    currentState = GameState::EVENT;
+    changeState(std::make_unique<eventState>());
 
     currentScene.id = "encounter_event";
     currentScene.speakerName = npc->name;
@@ -588,24 +603,11 @@ void game::renderDashboardLayout()
     UI::DrawTimePanel(renderer, this, layout.timeRect, gameTime);
     UI::DrawActionGrid(renderer, this, layout.actionGridRect, std::vector<actionButton>(activeButtons.begin(), activeButtons.end()));
 
-    switch (currentState)
+    if (activeGameState)
     {
-        case GameState::EVENT:
-        case GameState::EXPLORATION:
-            UI::DrawMapGrid(renderer, this, layout.mapRect, map, gridX, gridY, 12);
-            renderTextPanel(layout.textMainRect);
-            renderRightColumn(layout.rightStackTop, layout.rightStackMid, layout.rightStackBot);
-            break;
-
-        case GameState::INVENTORY:
-            UI::DrawEquipmentGrid(renderer, this, layout.equipRect, Player, selectedEquipmentSlot, 12);
-            UI::DrawInventoryGrid(renderer, this, layout.inventoryGridRect, Player, selectedInventoryIndex);
-            UI::DrawItemDetailPanel(renderer, this, layout.inventoryDetailRect, Player, selectedInventoryIndex);
-            renderRightColumn(layout.rightStackTop, layout.rightStackMid, layout.rightStackBot);
-            break;
-
-        default: break;
+        activeGameState->render(this);
     }
+    renderRightColumn(layout.rightStackTop, layout.rightStackMid, layout.rightStackBot);
 
     float winX, winY, mouseX, mouseY;
     SDL_GetMouseState(&winX, &winY);
@@ -656,21 +658,6 @@ void game::renderCompanionPanel(SDL_FRect rect)
 {
     ViewportGuard vpGuard(renderer, rect);
     UI::DrawPanel(renderer, { 0.0f, 0.0f, rect.w, rect.h }, Theme::colors.bgPanel, Theme::colors.borderNormal);
-}
-
-void game::renderTextPanel(SDL_FRect rect)
-{
-    ViewportGuard vpGuard(renderer, rect);
-    UI::DrawPanel(renderer, { 0.0f, 0.0f, rect.w, rect.h }, Theme::colors.bgPanel, Theme::colors.borderNormal);
-
-    if (currentState == GameState::EVENT)
-    {
-        SDL_FRect nameRect = { 0.0f, 0.0f, rect.w, 40.0f };
-        renderTextAligned(currentScene.speakerName, nameRect, TextAlignment::CENTER, false, "title_font", Theme::colors.textGold);
-
-        SDL_FRect bodyRect = { 0.0f, 40.0f, rect.w, rect.h - 40.0f };
-        renderTextWrapped(currentScene.bodyText, bodyRect, "button_font", Theme::colors.textSecondary);
-    }
 }
 
 void game::renderRightColumn(SDL_FRect top, SDL_FRect mid, SDL_FRect bot)
