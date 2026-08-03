@@ -108,11 +108,11 @@ void ActionGridManager::buildPlayerItemActions(game* g)
     if (selItem->isEquippable)
     {
         auto stackedView = g->Player->inventory.getStackedView();
-        int firstBackpackIdx = stackedView[idx].firstBackpackIndex;
+        int firstBackpackIndex = stackedView[idx].firstBackpackIndex;
 
-        pushBtn(g, "Equip: " + g->formatEquipSlotName(selItem->targetSlot), 5, [g, firstBackpackIdx]()
+        pushBtn(g, "Equip: " + g->formatEquipSlotName(selItem->targetSlot), 5, [g, firstBackpackIndex]()
             {
-                g->handleEquipAction(firstBackpackIdx);
+                g->handleEquipAction(firstBackpackIndex);
             });
     }
     else if (selItem->isConsumable)
@@ -120,6 +120,7 @@ void ActionGridManager::buildPlayerItemActions(game* g)
         pushBtn(g, "Eat (Self)", 5, [g, selItem]()
             {
                 g->Player->inventory.removeItem(selItem->id, 1);
+                eventBus::getInstance().publishEvent({ gameEvent::itemUsed, 1, selItem->id, g->Player });
                 g->selectedInventoryIndex = -1;
                 g->refreshActionGrid();
             });
@@ -127,6 +128,7 @@ void ActionGridManager::buildPlayerItemActions(game* g)
         pushBtn(g, "Eat all (Self)", 6, [g, selItem, count = slotData.count]()
             {
                 g->Player->inventory.removeItem(selItem->id, count);
+                eventBus::getInstance().publishEvent({ gameEvent::itemUsed, count, selItem->id, g->Player });
                 g->selectedInventoryIndex = -1;
                 g->refreshActionGrid();
             }, (slotData.count >= 1));

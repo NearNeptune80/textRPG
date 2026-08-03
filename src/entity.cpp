@@ -1,6 +1,7 @@
 #include "entity.h"
 #include <iostream>
 #include <cmath>
+#include "eventBus.h"
 
 // --- anatomyComponent Implementation ---
 
@@ -179,7 +180,11 @@ void statsComponent::printDebug() const
 
 // --- questComponent Implementation ---
 
-void questComponent::setQuestStage(const std::string& questId, int stage) { activeQuests[questId] = stage; }
+void questComponent::setQuestStage(const std::string& questId, int stage)
+{
+    activeQuests[questId] = stage;
+    eventBus::getInstance().publishEvent({ gameEvent::questStageChanged, stage, questId, nullptr });
+}
 
 int questComponent::getQuestStage(const std::string& questId) const
 {

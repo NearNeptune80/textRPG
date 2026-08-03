@@ -1,61 +1,53 @@
 #pragma once
+
+#include "conditionNode.h"
 #include <string>
 #include <vector>
 
-/**
- * Mutative effect resulting from dialogue choices or quest events.
- */
-struct gameEffect
-{
-    std::string action; // "GIVE_ITEM", "REMOVE_ITEM", "ADD_STAT", "SET_QUEST", "TELEPORT_MAP"
-    std::string target; // Identifier or parameter string
-    int amount = 0;
-    int extraX = 0;
-    int extraY = 0;
-};
-
-/**
- * Prerequisite condition check for choices, triggers, or map warps.
- */
-struct gameCondition
-{
-    std::string type;   // "HAS_ITEM", "QUEST_STAGE", "TIME_PHASE", "STAT_MIN", "HAS_TAG"
+// Effect struct applied when making a dialogue choice
+struct gameEffect {
+    std::string action; // e.g. "ADD_GOLD", "SET_FLAG"
     std::string target;
-    int requiredValue = 0;
+    int amount{0};
 };
 
-/**
- * Individual choice option presented within a dialogue scene.
- */
-struct dialogueChoice
-{
-    std::string label;
-    std::vector<gameCondition> requirements;
-    std::vector<gameEffect> results;
-    std::string nextSceneId; // "EXIT" or target scene ID
+struct dialogueChoice {
+    std::string text;
+    std::string label;       // <--- Added label
+    std::string nextSceneId; // <--- Added nextSceneId
+    int nextNodeId{-1};
+    std::vector<conditionNode> requirements;
+    std::vector<gameEffect> results; // <--- Added results
 };
 
-/**
- * Full narrative scene block containing dialogue text and choices.
- */
-struct questScene
-{
+// Scene struct for dialogue / quest nodes
+struct questScene {
     std::string id;
     std::string speakerName;
     std::string bodyText;
     std::vector<dialogueChoice> choices;
 };
 
-/**
- * Dynamic trigger bound to a map location.
- */
-struct MapTrigger
-{
+// Trigger placed on map tiles
+struct MapTrigger {
+    std::string id;       // <--- Added id
+    std::string mapId;    // <--- Added mapId
+    std::string triggerId;
+    std::string label;    // <--- Added label
+    std::string sceneId;  // <--- Added sceneId
+    int x{0};             // <--- Added x
+    int y{0};             // <--- Added y
+    std::vector<conditionNode> conditions;
+};
+
+struct QuestStep {
+    int stepId;
+    std::string description;
+    conditionNode completionCondition;
+};
+
+struct Quest {
     std::string id;
-    std::string mapId;
-    int x = 0;
-    int y = 0;
-    std::string label;
-    std::string sceneId;
-    std::vector<gameCondition> conditions;
+    std::string title;
+    std::vector<QuestStep> steps;
 };

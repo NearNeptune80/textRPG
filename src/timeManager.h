@@ -3,6 +3,7 @@
 #include <vector>
 #include <format>
 #include <algorithm>
+#include "eventBus.h"
 
 enum class TimePhase
 {
@@ -24,6 +25,8 @@ public:
 
     void advanceTime(int mins)
     {
+        if (mins <= 0) return;
+
         minute += mins;
         while (minute >= 60)
         {
@@ -46,6 +49,9 @@ public:
                 }
             }
         }
+
+        // Publish event to notify all listening subsystems (mutations, status effects, schedule updates)
+        eventBus::getInstance().publishEvent({ gameEvent::timeAdvanced, mins, "", nullptr });
     }
 
     float getSunriseHour() const

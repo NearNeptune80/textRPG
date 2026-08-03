@@ -50,7 +50,7 @@ bool questDatabase::loadDatabase(const std::string& pathStr)
                                         cond.type = req.at("type").get<std::string>();
                                         cond.target = req.at("target").get<std::string>();
                                         cond.requiredValue = req.value("requiredValue", 0);
-                                        choice.requirements.push_back(cond);
+                                        choice.requirements.push_back(conditionNode{cond});
                                     }
                                 }
 
@@ -92,10 +92,10 @@ bool questDatabase::loadDatabase(const std::string& pathStr)
                                 cond.type = cJson.at("type").get<std::string>();
                                 cond.target = cJson.at("target").get<std::string>();
                                 cond.requiredValue = cJson.value("requiredValue", 0);
-                                trig.conditions.push_back(cond);
+                                trig.conditions.push_back(conditionNode{cond});
                             }
                         }
-                        globalTriggers.push_back(trig);
+                        questDatabase::globalTriggers.push_back(trig);
                     }
                 }
             }

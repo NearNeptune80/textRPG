@@ -60,10 +60,16 @@
       "bodyText": "You channel your arcane energy to safely extract the Arcane Codex of the Forgotten Sun from the bookshelf mechanism!",
       "choices": [
         {
-          "label": "Continue",
-          "requirements": [],
-          "results": [],
-          "nextSceneId": "EXIT"
+          "label": "Pull glowing book (Arcane >= 10)",
+          "requirements": [
+            {
+              "op": "AND",
+              "children": [
+                { "type": "STAT_MIN", "target": "arcane", "requiredValue": 10 }
+              ]
+            }
+          ],
+          "results": []
         }
       ]
     }

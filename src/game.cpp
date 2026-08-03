@@ -162,6 +162,10 @@ bool game::loadMap(const std::string& mapId, int startX, int startY)
 
     map->updateDiscovery(gridX, gridY);
     refreshActionGrid();
+
+    // Publish map entry event
+    eventBus::getInstance().publishEvent({ gameEvent::mapEntered, 0, mapId, nullptr });
+
     return true;
 }
 
@@ -315,37 +319,45 @@ void game::handleUnequipAction(equipSlot slot)
     }
 }
 
-bool game::checkConditions(const std::vector<gameCondition>& conditions)
+bool game::checkSingleCondition(const gameCondition& cond)
 {
-    for (const auto& cond : conditions)
+    if (cond.type == "HAS_ITEM")
     {
-        if (cond.type == "HAS_ITEM")
+        for (const auto& item : Player->inventory.backpack)
         {
-            bool found = false;
-            for (const auto& item : Player->inventory.backpack) if (item && item->id == cond.target) found = true;
-            if (!found && cond.requiredValue > 0) return false;
+            if (item && item->id == cond.target) return true;
         }
-        else if (cond.type == "QUEST_STAGE")
-        {
-            if (Player->quests.getQuestStage(cond.target) != cond.requiredValue) return false;
-        }
-        else if (cond.type == "TIME_PHASE")
-        {
-            TimePhase currentPhase = gameTime.getPhase();
-            std::string phaseStr = "DAY";
-            if (currentPhase == TimePhase::NIGHT) phaseStr = "NIGHT";
-            else if (currentPhase == TimePhase::DAWN) phaseStr = "DAWN";
-            else if (currentPhase == TimePhase::DUSK) phaseStr = "DUSK";
-            if (phaseStr != cond.target) return false;
-        }
-        else if (cond.type == "STAT_MIN")
-        {
-            if (Player->getStat(cond.target) < cond.requiredValue) return false;
-        }
-        else if (cond.type == "HAS_TAG")
-        {
-            if (!Player->anatomy.hasGlobalTag(cond.target)) return false;
-        }
+        return cond.requiredValue <= 0;
+    }
+    else if (cond.type == "QUEST_STAGE")
+    {
+        return Player->quests.getQuestStage(cond.target) == cond.requiredValue;
+    }
+    else if (cond.type == "TIME_PHASE")
+    {
+        TimePhase currentPhase = gameTime.getPhase();
+        std::string phaseStr = "DAY";
+        if (currentPhase == TimePhase::NIGHT) phaseStr = "NIGHT";
+        else if (currentPhase == TimePhase::DAWN) phaseStr = "DAWN";
+        else if (currentPhase == TimePhase::DUSK) phaseStr = "DUSK";
+        return phaseStr == cond.target;
+    }
+    else if (cond.type == "STAT_MIN")
+    {
+        return Player->getStat(cond.target) >= cond.requiredValue;
+    }
+    else if (cond.type == "HAS_TAG")
+    {
+        return Player->anatomy.hasGlobalTag(cond.target);
+    }
+    return true;
+}
+
+bool game::checkConditions(const std::vector<conditionNode>& conditions)
+{
+    for (const auto& node : conditions)
+    {
+        if (!node.evaluate(this)) return false;
     }
     return true;
 }
@@ -354,6 +366,8 @@ void game::processChoice(const dialogueChoice& choice)
 {
     if (choice.nextSceneId == "ENCOUNTER_FIGHT")
     {
+        eventBus::getInstance().publishEvent({ gameEvent::combatEnded, 1, activeTargetNPC ? activeTargetNPC->id : "", activeTargetNPC });
+
         changeState(std::make_unique<eventState>());
         currentScene.id = "encounter_victory";
         currentScene.speakerName = activeTargetNPC ? activeTargetNPC->name : "Enemy";
