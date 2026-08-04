@@ -12,6 +12,10 @@
 #include "state/explorationState.h"
 #include "state/eventState.h"
 #include "state/inventoryState.h"
+#include "textParser.h"
+#include "npcGenerator.h"
+#include "encounterResolver.h"
+#include "saveManager.h"
 
 game::game() : isRunning(false), window(nullptr), renderer(nullptr), map(nullptr), Player(nullptr), gridX(1), gridY(1), currentState(GameState::EXPLORATION) {}
 
@@ -53,16 +57,35 @@ void game::init(const char* title, int width, int height, bool fullscreen)
 
     if (itemDatabase::loadDatabase("data/items.json"))
     {
+        npcGenerator::loadTemplates("data/npc_templates.json");
         questDatabase::loadDatabase("data/quests");
-
-        if (!saveManager::loadGame(this, "data/saves/save_01.json"))
-        {
-            saveManager::createInitialSave(this, "data/saves/save_01.json");
-            saveManager::loadGame(this, "data/saves/save_01.json");
-        }
     }
+
+    // 1. MUST instantiate Player if null before trying to load/save JSON
+    if (!Player)
+    {
+        Player = new entity("player_main", "Hero");
+    }
+
+    // 2. Load map
     loadMap("overworld", 1, 1);
+
+    // 3. Safe Load or Initial Save creation
+    if (!saveManager::loadFromFile(this, "Hero_Initial.json"))
+    {
+        std::cout << "[Init] Initial save not found. Generating default 'Hero_Initial.json'...\n";
+        saveManager::saveNamedGame(this, "Initial");
+    }
+
     changeState(std::make_unique<explorationState>());
+
+    eventBus::getInstance().subscribe(gameEvent::timeAdvanced, [this](const eventData& data) {
+        if (this->Player)
+        {
+            this->Player->anatomy.processMutations(data.numericValue);
+        }
+    });
+
     isRunning = true;
 }
 
@@ -190,7 +213,10 @@ void game::movePlayer(int nextX, int nextY)
         int chance = std::min(100, dangerLevel * 20);
         if ((rand() % 100) < chance)
         {
-            if (!tileData.persistentNPC) tileData.persistentNPC = generateEncounterNPC();
+            // If an NPC hasn't been generated for this tile yet, generate and store it!
+            if (!tileData.persistentNPC) {
+                tileData.persistentNPC = generateEncounterNPC();
+            }
             triggerEncounter(tileData.persistentNPC);
             return;
         }
@@ -319,15 +345,19 @@ void game::handleUnequipAction(equipSlot slot)
     }
 }
 
-bool game::checkSingleCondition(const gameCondition& cond)
+bool game::checkSingleCondition(const gameCondition& cond) const
 {
     if (cond.type == "HAS_ITEM")
     {
+        int count = 0;
         for (const auto& item : Player->inventory.backpack)
         {
-            if (item && item->id == cond.target) return true;
+            if (item && item->id == cond.target)
+            {
+                count += item->isStackable ? item->count : 1;
+            }
         }
-        return cond.requiredValue <= 0;
+        return count >= cond.requiredValue;
     }
     else if (cond.type == "QUEST_STAGE")
     {
@@ -350,6 +380,10 @@ bool game::checkSingleCondition(const gameCondition& cond)
     {
         return Player->anatomy.hasGlobalTag(cond.target);
     }
+    else if (cond.type == "DOMINANT_RACE")
+    {
+        return Player->anatomy.getDominantRace() == cond.target;
+    }
     return true;
 }
 
@@ -364,27 +398,40 @@ bool game::checkConditions(const std::vector<conditionNode>& conditions)
 
 void game::processChoice(const dialogueChoice& choice)
 {
+    // 1. Handle combat victory resolution
     if (choice.nextSceneId == "ENCOUNTER_FIGHT")
     {
-        eventBus::getInstance().publishEvent({ gameEvent::combatEnded, 1, activeTargetNPC ? activeTargetNPC->id : "", activeTargetNPC });
+        std::string currentMapId = map ? map->getId() : "default";
 
-        changeState(std::make_unique<eventState>());
-        currentScene.id = "encounter_victory";
-        currentScene.speakerName = activeTargetNPC ? activeTargetNPC->name : "Enemy";
-        currentScene.bodyText = "You defeated " + currentScene.speakerName + " in combat!";
-        currentScene.choices.clear();
-
-        dialogueChoice contChoice; contChoice.label = "Continue"; contChoice.nextSceneId = "EXIT"; currentScene.choices.push_back(contChoice);
-        dialogueChoice invChoice; invChoice.label = "Inventory"; invChoice.nextSceneId = "VICTORY_INVENTORY"; currentScene.choices.push_back(invChoice);
-        dialogueChoice talkChoice; talkChoice.label = "Talk"; talkChoice.nextSceneId = "VICTORY_TALK"; currentScene.choices.push_back(talkChoice);
-
-        activeButtons.clear();
-        for (const auto& c : currentScene.choices)
+        // Check if activeTargetNPC is null or points to tile persistentNPC directly
+        entity* rawTarget = activeTargetNPC;
+        if (!rawTarget && map)
         {
-            actionButton btn; btn.label = c.label;
-            btn.onClick = [this, c]() { processChoice(c); };
-            if (activeButtons.size() < activeButtons.capacity()) activeButtons.push_back(btn);
+            TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
+            if (tileData.persistentNPC)
+            {
+                rawTarget = tileData.persistentNPC.get();
+            }
         }
+
+        // Safely pass the target (or nullptr if none exists)
+        currentScene = encounterResolver::buildVictoryScene(this, rawTarget, currentMapId);
+
+        // Clear the persistent NPC from the tile AFTER building the scene
+        if (map)
+        {
+            TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
+            tileData.persistentNPC = nullptr;
+        }
+
+        activeTargetNPC = nullptr;
+        activeTargetMode = TargetMode::NONE;
+
+        saveManager::saveAutosave(this);
+
+        // Transition state and refresh UI
+        changeState(std::make_unique<eventState>());
+        refreshActionGrid();
         return;
     }
 
@@ -394,25 +441,13 @@ void game::processChoice(const dialogueChoice& choice)
         return;
     }
 
+    // 2. Process choice result effects
     for (const auto& effect : choice.results)
     {
-        if (effect.action == "GIVE_ITEM") Player->inventory.addItem(itemDatabase::getItem(effect.target));
-        else if (effect.action == "REMOVE_ITEM") Player->inventory.removeItem(effect.target);
-        else if (effect.action == "ADD_STAT") Player->stats.modifyBaseStat(effect.target, static_cast<float>(effect.amount));
-        else if (effect.action == "SET_QUEST") Player->quests.setQuestStage(effect.target, effect.amount);
-        else if (effect.action == "TELEPORT_MAP")
-        {
-            size_t c1 = effect.target.find(','), c2 = effect.target.find(',', c1 + 1);
-            if (c1 != std::string::npos && c2 != std::string::npos)
-            {
-                std::string targetMap = effect.target.substr(0, c1);
-                int targetX = std::stoi(effect.target.substr(c1 + 1, c2 - c1 - 1));
-                int targetY = std::stoi(effect.target.substr(c2 + 1));
-                loadMap(targetMap, targetX, targetY);
-            }
-        }
+        processEffect(effect);
     }
 
+    // 3. Resolve next scene or return to map exploration
     if (choice.nextSceneId == "EXIT" || choice.nextSceneId.empty())
     {
         activeTargetNPC = nullptr;
@@ -425,14 +460,50 @@ void game::processChoice(const dialogueChoice& choice)
     }
 }
 
+void game::processEffect(const gameEffect& eff)
+{
+    if (eff.action == "ADD_ITEM")
+    {
+        // Add item logic / lookup from item database
+    }
+    else if (eff.action == "SET_QUEST_STAGE")
+    {
+        Player->quests.setQuestStage(eff.target, eff.amount);
+    }
+    else if (eff.action == "MODIFY_STAT")
+    {
+        Player->stats.modifyBaseStat(eff.target, eff.amount);
+    }
+    else if (eff.action == "TRANSFORM")
+    {
+        // Example: eff.target could specify slot name, amount = growth magnitude
+        // Queues a 10-minute dynamic mutation on the player's anatomy
+        Player->anatomy.applyTransformation(
+            bodySlot::GROIN,
+            mutationType::GROWTH_LENGTH,
+            static_cast<float>(eff.amount),
+            eff.target,
+            10,
+            "effect_transform"
+        );
+    }
+}
+
 void game::loadScene(const std::string& sceneId)
 {
     changeState(std::make_unique<eventState>());
     currentScene = questDatabase::getScene(sceneId);
 
+    // Interpolate body text & speaker name dynamically
+    currentScene.bodyText = textParser::interpolate(currentScene.bodyText, Player, activeTargetNPC);
+    currentScene.speakerName = textParser::interpolate(currentScene.speakerName, Player, activeTargetNPC);
+
     activeButtons.clear();
     for (size_t i = 0; i < currentScene.choices.size(); i++)
     {
+        // Interpolate choice labels as well
+        currentScene.choices[i].label = textParser::interpolate(currentScene.choices[i].label, Player, activeTargetNPC);
+
         if (checkConditions(currentScene.choices[i].requirements))
         {
             actionButton btn;
@@ -446,26 +517,11 @@ void game::loadScene(const std::string& sceneId)
 
 std::shared_ptr<entity> game::generateEncounterNPC()
 {
-    static int npcCounter = 1;
-    auto npc = std::make_shared<entity>("npc_bandit_" + std::to_string(npcCounter++), "Alleyway Bandit");
+    auto npc = npcGenerator::generateRandomNPC();
+    if (npc) return npc;
 
-    npc->stats.level = 1;
-    npc->stats.setBaseStat("health", 50.0f);
-    npc->stats.setBaseStat("mana", 30.0f);
-    npc->stats.setBaseStat("lust", 100.0f);
-
-    auto shirt = itemDatabase::getItem("item_linen_shirt");
-    auto pants = itemDatabase::getItem("item_leather_trousers");
-    auto boots = itemDatabase::getItem("item_leather_boots");
-    auto potion = itemDatabase::getItem("item_canis_root");
-
-    std::vector<std::string> tags = npc->anatomy.getAllTags();
-    if (shirt) { npc->inventory.addItem(shirt); npc->inventory.equipItem(0, equipSlot::TORSO_UNDER, tags); }
-    if (pants) { npc->inventory.addItem(pants); npc->inventory.equipItem(0, equipSlot::LEGS_OUTER, tags); }
-    if (boots) { npc->inventory.addItem(boots); npc->inventory.equipItem(0, equipSlot::FEET, tags); }
-    if (potion) { potion->count = 3; npc->inventory.addItem(potion); }
-
-    return npc;
+    // Fallback if template loading fails
+    return std::make_shared<entity>("npc_fallback", "Alleyway Stranger");
 }
 
 void game::triggerEncounter(std::shared_ptr<entity> npc)
@@ -898,8 +954,36 @@ std::string game::formatEquipSlotName(equipSlot slot)
     }
 }
 
+bool conditionNode::evaluate(const game* gameContext) const {
+    if (!gameContext) return false;
+
+    switch (op) {
+        case conditionOperator::AND: {
+            for (const auto& child : children) {
+                if (!child.evaluate(gameContext)) return false;
+            }
+            return true;
+        }
+        case conditionOperator::OR: {
+            for (const auto& child : children) {
+                if (child.evaluate(gameContext)) return true;
+            }
+            return children.empty();
+        }
+        case conditionOperator::NOT: {
+            if (children.empty()) return true;
+            return !children.front().evaluate(gameContext);
+        }
+        case conditionOperator::LEAF:
+        default: {
+            return gameContext->checkSingleCondition(condition);
+        }
+    }
+}
+
 void game::clean()
 {
+    eventBus::getInstance().clearAllListeners();
     clearTextCache();
     for (auto const& [id, f] : fonts) TTF_CloseFont(f);
     fonts.clear();

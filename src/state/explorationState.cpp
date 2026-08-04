@@ -6,6 +6,7 @@
 #include "../actionGridManager.h"
 #include "../saveManager.h"
 #include <cmath>
+#include <iostream>
 
 void explorationState::initialise(game* gameContext) {}
 
@@ -34,8 +35,31 @@ void explorationState::handleInput(game* gameContext, const SDL_Event& event)
             return;
         }
 
-        if (event.key.key == SDLK_F5) { saveManager::saveGame(gameContext, "data/saves/save_01.json"); return; }
-        if (event.key.key == SDLK_F9) { saveManager::loadGame(gameContext, "data/saves/save_01.json"); return; }
+        // F5 -> Quick Save
+        if (event.key.scancode == SDL_SCANCODE_F5)
+        {
+            saveManager::saveNamedGame(gameContext, "QuickSave");
+            std::cout << "[Save] QuickSave created successfully!\n";
+            return;
+        }
+
+        // F9 -> Quick Load
+        if (event.key.scancode == SDL_SCANCODE_F9)
+        {
+            std::string charName = (gameContext->Player && !gameContext->Player->name.empty()) ? gameContext->Player->name : "Hero";
+            std::string fileName = charName + "_QuickSave.json";
+
+            if (saveManager::loadFromFile(gameContext, fileName))
+            {
+                std::cout << "[Save] QuickSave loaded successfully!\n";
+                gameContext->refreshActionGrid();
+            }
+            else
+            {
+                std::cout << "[Save] No QuickSave file found to load.\n";
+            }
+            return;
+        }
 
         int nextX = gameContext->gridX;
         int nextY = gameContext->gridY;

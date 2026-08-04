@@ -83,6 +83,53 @@ tattoo* anatomyComponent::getTattoo(tattooSlot slot)
     return nullptr;
 }
 
+void anatomyComponent::addMutation(const anatomyMutation& mut)
+{
+    activeMutations.push_back(mut);
+}
+
+void anatomyComponent::processMutations(int minutesPassed)
+{
+    if (minutesPassed <= 0 || activeMutations.empty()) return;
+
+    for (auto it = activeMutations.begin(); it != activeMutations.end(); )
+    {
+        int tickMins = std::min(minutesPassed, it->minutesRemaining);
+        it->minutesRemaining -= tickMins;
+
+        bodyPart* part = getPart(it->targetSlot);
+
+        // Continuous growth ticks
+        if (part)
+        {
+            if (it->type == mutationType::GROWTH_LENGTH) part->length += (it->amountPerMinute * static_cast<float>(tickMins));
+            else if (it->type == mutationType::GROWTH_DIAMETER) part->diameter += (it->amountPerMinute * static_cast<float>(tickMins));
+        }
+
+        // Final transformations (trigger when timer hits 0)
+        if (it->minutesRemaining <= 0)
+        {
+            if (it->type == mutationType::REMOVE_PART)
+            {
+                removePart(it->targetSlot);
+            }
+            else if (part)
+            {
+                if (it->type == mutationType::CHANGE_RACE) part->race = it->targetValueString;
+                else if (it->type == mutationType::CHANGE_COLOR) part->primaryColor = it->targetValueString;
+                else if (it->type == mutationType::GROWTH_CUP) part->cupSize = static_cast<int>(it->targetValueFloat);
+            }
+
+            // Clean up finished mutation
+            it = activeMutations.erase(it);
+        }
+        else
+        {
+            ++it;
+        }
+    }
+}
+
 std::string getSlotName(bodySlot slot)
 {
     switch (slot)
@@ -128,7 +175,127 @@ void anatomyComponent::printDebug() const
     std::cout << "=====================\n\n";
 }
 
-// --- statsComponent Implementation ---
+std::unordered_map<std::string, float> anatomyComponent::calculateRacePercentages() const
+{
+    std::unordered_map<std::string, float> raceCounts;
+    int totalParts = 0;
+
+    for (const auto& optPart : parts)
+    {
+        if (optPart.has_value())
+        {
+            const std::string& race = optPart->race;
+            if (!race.empty())
+            {
+                raceCounts[race] += 1.0f;
+                totalParts++;
+            }
+        }
+    }
+
+    if (totalParts == 0) return { {"Human", 100.0f} };
+
+    // Convert counts to percentages
+    std::unordered_map<std::string, float> racePercentages;
+    for (const auto& [race, count] : raceCounts)
+    {
+        racePercentages[race] = (count / static_cast<float>(totalParts)) * 100.0f;
+    }
+
+    return racePercentages;
+}
+
+std::string anatomyComponent::getDominantRace() const
+{
+    auto percentages = calculateRacePercentages();
+    std::string dominant = "Human";
+    float maxPercent = -1.0f;
+
+    for (const auto& [race, percent] : percentages)
+    {
+        if (percent > maxPercent)
+        {
+            maxPercent = percent;
+            dominant = race;
+        }
+    }
+    return dominant;
+}
+
+void anatomyComponent::applyTransformation(bodySlot slot, mutationType type, float amountOrVal,
+                                           const std::string& strVal, int durationMinutes, const std::string& mutName)
+{
+    anatomyMutation mut;
+    mut.id = mutName;
+    mut.targetSlot = slot;
+    mut.type = type;
+    mut.targetValueFloat = amountOrVal;
+    mut.targetValueString = strVal;
+    mut.minutesRemaining = durationMinutes;
+
+    // Calculate per-minute tick for continuous values
+    if (durationMinutes > 0 && (type == mutationType::GROWTH_LENGTH || type == mutationType::GROWTH_DIAMETER))
+    {
+        mut.amountPerMinute = amountOrVal / static_cast<float>(durationMinutes);
+    }
+    else
+    {
+        mut.amountPerMinute = 0.0f;
+    }
+
+    addMutation(mut);
+}
+
+BodyPresentation anatomyComponent::getVisualPresentation() const
+{
+    int femininePoints = 0;
+    int masculinePoints = 0;
+
+    // Check Breasts
+    if (const bodyPart* breasts = getPart(bodySlot::BREASTS))
+    {
+        if (breasts->cupSize > 1) femininePoints += 2; // B-cup or higher
+        else if (breasts->cupSize == 1) femininePoints += 1;
+    }
+
+    // Check Groin Anatomy
+    if (const bodyPart* groin = getPart(bodySlot::GROIN))
+    {
+        if (groin->name == "Vagina" || hasTag(bodySlot::GROIN, "female_genitalia"))
+        {
+            femininePoints += 2;
+        }
+        else if (groin->name == "Penis" || groin->length > 0.0f)
+        {
+            masculinePoints += 2;
+        }
+    }
+
+    // Check Global Anatomy Tags
+    if (hasGlobalTag("feminine")) femininePoints += 2;
+    if (hasGlobalTag("masculine")) masculinePoints += 2;
+
+    // Evaluate
+    if (femininePoints > masculinePoints) return BodyPresentation::FEMININE;
+    if (masculinePoints > femininePoints) return BodyPresentation::MASCULINE;
+    return BodyPresentation::ANDROGYNOUS;
+}
+
+float anatomyComponent::getAggregateStatBonus(const std::string& statName) const
+{
+    float totalBonus = 0.0f;
+    for (const auto& optPart : parts)
+    {
+        if (optPart.has_value())
+        {
+            // If body parts grant innate stat bonuses based on length/cup size or tags:
+            const auto& part = optPart.value();
+            if (statName == "physique" && part.race == "Orc") totalBonus += 1.0f;
+            if (statName == "arcane" && part.race == "Elf") totalBonus += 1.0f;
+        }
+    }
+    return totalBonus;
+}
 
 bool statsComponent::addXp(float amount)
 {
@@ -170,6 +337,7 @@ float statsComponent::getEffectiveStat(const std::string& name, const std::vecto
             }
         }
     }
+
     return std::max(0.0f, (base + flatMod) * (1.0f + percentMod));
 }
 
@@ -177,8 +345,6 @@ void statsComponent::printDebug() const
 {
     std::cout << "\n=== STATS DEBUG ===\nLevel: " << level << " | XP: " << currentXp << "\n===================\n\n";
 }
-
-// --- questComponent Implementation ---
 
 void questComponent::setQuestStage(const std::string& questId, int stage)
 {

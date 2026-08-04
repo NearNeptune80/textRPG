@@ -1,0 +1,52 @@
+{
+  "templates": [
+    {
+      "id": "tpl_alley_bandit",
+      "name": "Alleyway Bandit",
+      "levelMin": 1,
+      "levelMax": 3,
+      "baseStats": {
+        "health": 50.0,
+        "mana": 30.0,
+        "lust": 100.0,
+        "physique": 14.0,
+        "arcane": 8.0,
+        "corruption": 10.0
+      },
+      "tags": ["masculine", "hostile"],
+      "possibleRaces": ["Human", "Orc"],
+      "guaranteedItems": [
+        "item_linen_shirt",
+        "item_leather_trousers",
+        "item_leather_boots"
+      ],
+      "randomItems": [
+        "item_canis_root"
+      ]
+    },
+    {
+      "id": "tpl_rogue_mage",
+      "name": "Rogue Mage",
+      "levelMin": 2,
+      "levelMax": 5,
+      "baseStats": {
+        "health": 40.0,
+        "mana": 90.0,
+        "lust": 100.0,
+        "physique": 8.0,
+        "arcane": 18.0,
+        "corruption": 25.0
+      },
+      "tags": ["feminine", "hostile"],
+      "possibleRaces": ["Human", "Elf"],
+      "guaranteedItems": [
+        "item_linen_shirt",
+        "item_leather_trousers"
+      ],
+      "randomItems": [
+        "item_ancient_tome",
+        "item_golden_pendant"
+      ]
+    }
+  ]
+}

@@ -24,15 +24,15 @@ void eventBus::unsubscribe(gameEvent type, callbackID id)
 void eventBus::publishEvent(const eventData& data)
 {
 	auto it = listeners.find(data.type);
-	if (it == listeners.end()) return;
+	if (it == listeners.end() || it->second.empty()) return;
 
-	// Iterate over a copy of the list so callbacks can safely subscribe/unsubscribe during publish
-	const auto subscriberListCopy = it->second;
-	for (const auto& listener : subscriberListCopy)
+	// Iterate by index over size to prevent vector copy memory allocation crashes during dispatch
+	size_t count = it->second.size();
+	for (size_t i = 0; i < count && i < it->second.size(); ++i)
 	{
-		if (listener.callback)
+		if (it->second[i].callback)
 		{
-			listener.callback(data);
+			it->second[i].callback(data);
 		}
 	}
 }

@@ -120,15 +120,20 @@ void gameMap::updateDiscovery(int playerX, int playerY)
 {
     if (playerX < 0 || playerX >= width || playerY < 0 || playerY >= height) return;
 
+    // Fully reveal the standing tile
     if (grid[playerY][playerX].type != TILE_VOID && grid[playerY][playerX].type != TILE_WALL)
     {
         grid[playerY][playerX].discovery = STATE_REVEALED;
     }
 
+    // Check surrounding 3x3 neighborhood
     for (int dy = -1; dy <= 1; ++dy)
     {
         for (int dx = -1; dx <= 1; ++dx)
         {
+            // Skip diagonals for partial discovery (Manhattan distance > 1)
+            if (std::abs(dx) + std::abs(dy) > 1) continue;
+
             int nx = playerX + dx;
             int ny = playerY + dy;
 
@@ -181,8 +186,11 @@ json gameMap::saveStateToJson() const
     j["discovery"] = discoveryGrid;
 
     json tileItemsMap = json::object();
+    json tileNPCsMap = json::object();
+
     for (const auto& [key, runtime] : runtimeData)
     {
+        // Save dropped items on tile
         if (!runtime.droppedItems.empty())
         {
             json itemArray = json::array();
@@ -192,8 +200,16 @@ json gameMap::saveStateToJson() const
             }
             tileItemsMap[std::to_string(key)] = itemArray;
         }
+
+        // Save persistent NPC anchored to tile
+        if (runtime.persistentNPC)
+        {
+            tileNPCsMap[std::to_string(key)] = runtime.persistentNPC->toJson();
+        }
     }
+
     j["tileItems"] = tileItemsMap;
+    j["tileNPCs"] = tileNPCsMap;
 
     return j;
 }
@@ -224,6 +240,17 @@ void gameMap::loadStateFromJson(const json& j)
                 auto itemPtr = itemDatabase::getItem(itemId.get<std::string>());
                 if (itemPtr) runtimeData[key].droppedItems.push_back(itemPtr);
             }
+        }
+    }
+
+    if (j.contains("tileNPCs"))
+    {
+        for (auto& [keyStr, npcJson] : j["tileNPCs"].items())
+        {
+            uint64_t key = std::stoull(keyStr);
+            auto npc = std::make_shared<entity>("npc_temp", "Unknown");
+            npc->fromJson(npcJson);
+            runtimeData[key].persistentNPC = npc;
         }
     }
 }

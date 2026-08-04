@@ -13,6 +13,7 @@
 #include "inventory.h"
 #include "statusEffect.h"
 #include "itemDatabase.h"
+#include "mutation.h"
 
 enum class CoveringType
 {
@@ -177,6 +178,13 @@ struct tattoo
 
 std::string getSlotName(bodySlot slot);
 
+enum class BodyPresentation
+{
+    MASCULINE,
+    FEMININE,
+    ANDROGYNOUS
+};
+
 class anatomyComponent
 {
 private:
@@ -185,6 +193,7 @@ private:
 
 public:
     float heightMeters = 1.75f;
+    std::vector<anatomyMutation> activeMutations;
 
     void setPart(bodySlot slot, const bodyPart& part);
     void removePart(bodySlot slot);
@@ -203,7 +212,29 @@ public:
     bool hasTattoo(tattooSlot slot) const;
     tattoo* getTattoo(tattooSlot slot);
 
+    void addMutation(const anatomyMutation& mut);
+    void processMutations(int minutesPassed);
+
     void printDebug() const;
+
+    // Calculates percentage breakdown of body parts by race
+    std::unordered_map<std::string, float> calculateRacePercentages() const;
+
+    // Returns the primary race (the race with the highest percentage)
+    std::string getDominantRace() const;
+
+    // Helper API to easily queue dynamic mutations
+    void applyTransformation(bodySlot slot, mutationType type, float amountOrVal,
+                             const std::string& strVal, int durationMinutes, const std::string& mutName = "transformation");
+
+    // Calculates visual presentation based on visible body parts and metrics
+    BodyPresentation getVisualPresentation() const;
+
+    // Helper to check if visual presentation is feminine (replaces temporary string parser checks)
+    bool isFeminine() const { return getVisualPresentation() == BodyPresentation::FEMININE; }
+
+    // Aggregates stat modifiers or tags provided across all active body parts
+    float getAggregateStatBonus(const std::string& statName) const;
 };
 
 class statsComponent

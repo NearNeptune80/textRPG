@@ -1,5 +1,6 @@
 #include "actionGridManager.h"
 #include "game.h"
+#include "state/eventState.h"
 #include "state/inventoryState.h"
 #include "state/explorationState.h"
 
@@ -35,8 +36,22 @@ void ActionGridManager::refresh(game* g)
 {
     g->activeButtons.clear();
 
-    if (dynamic_cast<inventoryState*>(g->getActiveState())) buildInventoryActions(g);
-    else if (dynamic_cast<explorationState*>(g->getActiveState())) buildExplorationActions(g);
+    if (dynamic_cast<inventoryState*>(g->getActiveState()))
+        buildInventoryActions(g);
+    else if (dynamic_cast<explorationState*>(g->getActiveState()))
+        buildExplorationActions(g);
+    else if (dynamic_cast<eventState*>(g->getActiveState()))
+    {
+        // Rebuild scene buttons cleanly from currentScene choices
+        for (const auto& c : g->currentScene.choices)
+        {
+            if (g->checkConditions(c.requirements))
+            {
+                dialogueChoice choiceCopy = c;
+                pushBtn(g, c.label, -1, [g, choiceCopy]() { g->processChoice(choiceCopy); });
+            }
+        }
+    }
 }
 
 void ActionGridManager::buildInventoryActions(game* g)

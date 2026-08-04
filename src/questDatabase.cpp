@@ -9,6 +9,35 @@ namespace fs = std::filesystem;
 std::unordered_map<std::string, questScene> questDatabase::registry;
 std::vector<MapTrigger> questDatabase::globalTriggers;
 
+static conditionNode parseConditionNode(const json& j)
+{
+    conditionNode node;
+    if (j.contains("op"))
+    {
+        std::string opStr = j.at("op").get<std::string>();
+        if (opStr == "AND") node.op = conditionOperator::AND;
+        else if (opStr == "OR") node.op = conditionOperator::OR;
+        else if (opStr == "NOT") node.op = conditionOperator::NOT;
+        else node.op = conditionOperator::LEAF;
+
+        if (j.contains("children"))
+        {
+            for (const auto& childJson : j.at("children"))
+            {
+                node.children.push_back(parseConditionNode(childJson));
+            }
+        }
+    }
+    else
+    {
+        node.op = conditionOperator::LEAF;
+        node.condition.type = j.value("type", "");
+        node.condition.target = j.value("target", "");
+        node.condition.requiredValue = j.value("requiredValue", 0);
+    }
+    return node;
+}
+
 bool questDatabase::loadDatabase(const std::string& pathStr)
 {
     registry.clear();
@@ -46,11 +75,7 @@ bool questDatabase::loadDatabase(const std::string& pathStr)
                                 {
                                     for (const auto& req : cJson.at("requirements"))
                                     {
-                                        gameCondition cond;
-                                        cond.type = req.at("type").get<std::string>();
-                                        cond.target = req.at("target").get<std::string>();
-                                        cond.requiredValue = req.value("requiredValue", 0);
-                                        choice.requirements.push_back(conditionNode{cond});
+                                        choice.requirements.push_back(parseConditionNode(req));
                                     }
                                 }
 
@@ -88,11 +113,7 @@ bool questDatabase::loadDatabase(const std::string& pathStr)
                         {
                             for (const auto& cJson : tJson.at("conditions"))
                             {
-                                gameCondition cond;
-                                cond.type = cJson.at("type").get<std::string>();
-                                cond.target = cJson.at("target").get<std::string>();
-                                cond.requiredValue = cJson.value("requiredValue", 0);
-                                trig.conditions.push_back(conditionNode{cond});
+                                trig.conditions.push_back(parseConditionNode(cJson));
                             }
                         }
                         questDatabase::globalTriggers.push_back(trig);

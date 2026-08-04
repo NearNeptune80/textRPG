@@ -171,10 +171,11 @@ public:
     void handlePickupAction(int groundIndex, int quantity);
     void handleEquipAction(int backpackIndex);
     void handleUnequipAction(equipSlot slot);
-    bool checkSingleCondition(const gameCondition &cond);
+    bool checkSingleCondition(const gameCondition &cond) const;
 
     void loadScene(const std::string& sceneId);
     void processChoice(const dialogueChoice& choice);
+    void processEffect(const gameEffect &eff);
     bool checkConditions(const std::vector<conditionNode> &conditions);
 
     std::shared_ptr<entity> generateEncounterNPC();

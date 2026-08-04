@@ -1,193 +1,199 @@
 #include "saveManager.h"
 #include "game.h"
 #include <fstream>
-#include <filesystem>
 #include <iostream>
+#include <filesystem>
+#include <algorithm>
+#include <ctime>
 
 namespace fs = std::filesystem;
 using json = nlohmann::json;
 
-bool saveManager::saveGame(game* g, const std::string& filePath)
+std::string saveManager::sanitizeFilename(const std::string& input)
 {
-    if (!g || !g->Player || !g->map) return false;
-
-    nlohmann::json saveJson;
-
-    nlohmann::json timeJson;
-    timeJson["minute"] = g->gameTime.minute;
-    timeJson["hour"] = g->gameTime.hour;
-    timeJson["day"] = g->gameTime.day;
-    timeJson["month"] = g->gameTime.month;
-    timeJson["year"] = g->gameTime.year;
-    timeJson["dayOfWeek"] = g->gameTime.dayOfWeek;
-    saveJson["time"] = timeJson;
-
-    saveJson["currentMap"] = g->map->getId();
-    saveJson["playerX"] = g->gridX;
-    saveJson["playerY"] = g->gridY;
-    saveJson["player"] = g->Player->toJson();
-
-    nlohmann::json mapsJson = json::object();
-    for (const auto& [mId, gMap] : g->mapCache)
+    std::string clean = input;
+    for (char& c : clean)
     {
-        mapsJson[mId] = gMap.saveStateToJson();
+        if (c == ' ' || c == '/' || c == '\\' || c == ':' || c == '*' || c == '?' || c == '"' || c == '<' || c == '>' || c == '|')
+        {
+            c = '_';
+        }
     }
-    saveJson["maps"] = mapsJson;
+    return clean;
+}
 
-    fs::path p(filePath);
-    if (p.has_parent_path() && !fs::exists(p.parent_path()))
+SaveMetaData saveManager::readMetadata(const std::string& filePath)
+{
+    SaveMetaData meta;
+    meta.fileName = fs::path(filePath).filename().string();
+    std::ifstream file(filePath);
+    if (!file.is_open()) return meta;
+
+    try
     {
-        fs::create_directories(p.parent_path());
+        json j;
+        file >> j;
+        if (j.contains("metadata"))
+        {
+            const auto& m = j["metadata"];
+            meta.saveName = m.value("saveName", "Unnamed Save");
+            meta.characterName = m.value("characterName", "Unknown");
+            meta.characterLevel = m.value("characterLevel", 1);
+            meta.activeQuest = m.value("activeQuest", "None");
+            meta.mapLocation = m.value("mapLocation", "Unknown");
+            meta.timestamp = m.value("timestamp", "");
+            meta.isAutosave = m.value("isAutosave", false);
+        }
+    }
+    catch (...) {}
+
+    return meta;
+}
+
+std::vector<CharacterSaveGroup> saveManager::getSavesGroupedByCharacter()
+{
+    std::unordered_map<std::string, std::vector<SaveMetaData>> grouped;
+
+    if (!fs::exists("saves"))
+    {
+        fs::create_directory("saves");
     }
 
-    std::ofstream file(filePath);
+    for (const auto& entry : fs::directory_iterator("saves"))
+    {
+        if (entry.is_regular_file() && entry.path().extension() == ".json")
+        {
+            SaveMetaData meta = readMetadata(entry.path().string());
+            if (!meta.characterName.empty())
+            {
+                grouped[meta.characterName].push_back(meta);
+            }
+        }
+    }
+
+    std::vector<CharacterSaveGroup> result;
+    for (auto& [charName, saveList] : grouped)
+    {
+        std::sort(saveList.begin(), saveList.end(), [](const SaveMetaData& a, const SaveMetaData& b) {
+            return a.timestamp > b.timestamp;
+        });
+
+        result.push_back({charName, saveList});
+    }
+
+    return result;
+}
+
+json saveManager::buildPayload(game* g, const std::string& customSaveName)
+{
+    json j;
+
+    std::time_t now = std::time(nullptr);
+    char timeBuffer[30];
+    std::strftime(timeBuffer, sizeof(timeBuffer), "%Y-%m-%d %H:%M", std::localtime(&now));
+
+    std::string charName = (g->Player && !g->Player->name.empty()) ? g->Player->name : "Hero";
+    std::string currentQuest = "None"; // Replace with active quest title if implemented
+
+    j["metadata"] = {
+        {"saveName", customSaveName},
+        {"characterName", charName},
+        {"characterLevel", g->Player ? g->Player->stats.level : 1},
+        {"activeQuest", currentQuest},
+        {"mapLocation", g->map ? g->map->getId() : "Unknown"},
+        {"timestamp", std::string(timeBuffer)},
+        {"isAutosave", customSaveName.rfind("Autosave", 0) == 0}
+    };
+
+    if (g->Player) j["player"] = g->Player->toJson();
+    if (g->map) j["map"] = g->map->saveStateToJson();
+
+    return j;
+}
+
+bool saveManager::saveNamedGame(game* g, const std::string& customSaveName)
+{
+    if (!fs::exists("saves")) fs::create_directory("saves");
+
+    std::string charName = (g->Player && !g->Player->name.empty()) ? g->Player->name : "Hero";
+    std::string fileName = "saves/" + sanitizeFilename(charName) + "_" + sanitizeFilename(customSaveName) + ".json";
+
+    std::ofstream file(fileName);
     if (!file.is_open()) return false;
 
-    file << saveJson.dump(4);
+    json payload = buildPayload(g, customSaveName);
+    file << payload.dump(4);
     return true;
 }
 
-bool saveManager::loadGame(game* g, const std::string& filePath)
+bool saveManager::saveAutosave(game* g, int maxAutosaves)
 {
-    if (!g) return false;
+    if (!g->Player) return false;
+    if (!fs::exists("saves")) fs::create_directory("saves");
 
-    std::ifstream file(filePath);
+    std::string charName = sanitizeFilename(!g->Player->name.empty() ? g->Player->name : "Hero");
+
+    // 1. Shift older autosaves back (e.g. 3 gets deleted, 2 -> 3, 1 -> 2)
+    for (int i = maxAutosaves; i >= 1; --i)
+    {
+        std::string currentPath = "saves/" + charName + "_Autosave_" + std::to_string(i) + ".json";
+
+        if (i == maxAutosaves)
+        {
+            if (fs::exists(currentPath)) fs::remove(currentPath);
+        }
+        else
+        {
+            std::string nextPath = "saves/" + charName + "_Autosave_" + std::to_string(i + 1) + ".json";
+            if (fs::exists(currentPath))
+            {
+                fs::rename(currentPath, nextPath);
+            }
+        }
+    }
+
+    // 2. Write newest save as Autosave_1
+    std::string newestPath = "saves/" + charName + "_Autosave_1.json";
+    std::ofstream file(newestPath);
+    if (!file.is_open()) return false;
+
+    json payload = buildPayload(g, "Autosave 1");
+    file << payload.dump(4);
+    return true;
+}
+
+bool saveManager::exists(game* g, const std::string& customSaveName)
+{
+    std::string charName = (g->Player && !g->Player->name.empty()) ? g->Player->name : "Hero";
+    std::string fileName = "saves/" + sanitizeFilename(charName) + "_" + sanitizeFilename(customSaveName) + ".json";
+    return fs::exists(fileName);
+}
+
+bool saveManager::loadFromFile(game* g, const std::string& fileName)
+{
+    std::string path = "saves/" + fileName;
+    std::ifstream file(path);
     if (!file.is_open()) return false;
 
     try
     {
-        nlohmann::json saveJson;
-        file >> saveJson;
+        json j;
+        file >> j;
 
-        if (saveJson.contains("time"))
+        if (j.contains("player") && g->Player)
         {
-            const auto& t = saveJson["time"];
-            g->gameTime.minute = t.value("minute", 0);
-            g->gameTime.hour = t.value("hour", 8);
-            g->gameTime.day = t.value("day", 1);
-            g->gameTime.month = t.value("month", 1);
-            g->gameTime.year = t.value("year", 1);
-            g->gameTime.dayOfWeek = t.value("dayOfWeek", 0);
+            g->Player->fromJson(j["player"]);
         }
 
-        if (!g->Player) g->Player = new entity("player_1", "Oellanix");
-        if (saveJson.contains("player"))
+        if (j.contains("map") && g->map)
         {
-            g->Player->fromJson(saveJson["player"]);
+            g->map->loadStateFromJson(j["map"]);
         }
 
-        std::string activeMap = saveJson.value("currentMap", "overworld");
-        int targetX = saveJson.value("playerX", 1);
-        int targetY = saveJson.value("playerY", 1);
-
-        g->loadMap(activeMap, targetX, targetY);
-
-        if (saveJson.contains("maps"))
-        {
-            for (auto& [mId, mJson] : saveJson["maps"].items())
-            {
-                if (g->mapCache.find(mId) == g->mapCache.end())
-                {
-                    gameMap newMap;
-                    newMap.loadFromFile("data/maps/" + mId + ".json");
-                    g->mapCache[mId] = newMap;
-                }
-                g->mapCache[mId].loadStateFromJson(mJson);
-            }
-        }
-
-        g->refreshActionGrid();
         return true;
     }
-    catch (const std::exception& e)
+    catch (...)
     {
-        std::cerr << "[Save System] Corrupted save file or invalid format: " << e.what() << "\n";
         return false;
     }
-}
-
-void saveManager::createInitialSave(game* g, const std::string& filePath)
-{
-    if (!g) return;
-
-    g->Player = new entity("player_1", "Oellanix");
-
-    g->Player->stats.setBaseStat("level", 1.0f);
-    g->Player->stats.setBaseStat("xp", 0.0f);
-    g->Player->stats.setBaseStat("physique", 12.0f);
-    g->Player->stats.setBaseStat("arcane", 15.0f);
-    g->Player->stats.setBaseStat("corruption", 0.0f);
-
-    g->Player->stats.setBaseStat("health", 68.0f);
-    g->Player->stats.setBaseStat("mana", 91.0f);
-    g->Player->stats.setBaseStat("lust", 100.0f);
-    g->Player->stats.setBaseStat("currency", 150.0f);
-    g->Player->stats.setBaseStat("gems", 10.0f);
-
-    auto createHumanPart = [](const std::string& id, const std::string& name, CoveringType covering, const std::string& color, int count = 1, const std::string& style = "", const std::vector<std::string>& tags = {})
-        {
-            bodyPart part;
-            part.id = id;
-            part.name = name;
-            part.race = "Human";
-            part.count = count;
-            part.covering = covering;
-            part.primaryColor = color;
-            part.style = style;
-            part.tags = tags;
-            return part;
-        };
-
-    g->Player->anatomy.setPart(bodySlot::HAIR, createHumanPart("part_hair_human", "Hair", CoveringType::HAIR_COVERING, "Brown", 1, "Short loose"));
-    g->Player->anatomy.setPart(bodySlot::HEAD, createHumanPart("part_head_human", "Face", CoveringType::SKIN, "Fair"));
-    g->Player->anatomy.setPart(bodySlot::EYES, createHumanPart("part_eyes_human", "Eyes", CoveringType::IRIS, "Blue", 2));
-    g->Player->anatomy.setPart(bodySlot::EARS, createHumanPart("part_ears_human", "Ears", CoveringType::SKIN, "Fair", 2));
-    g->Player->anatomy.setPart(bodySlot::MOUTH, createHumanPart("part_mouth_human", "Tongue", CoveringType::FLESH, "Pink"));
-    g->Player->anatomy.setPart(bodySlot::NECK, createHumanPart("part_neck_human", "Neck", CoveringType::SKIN, "Fair"));
-    g->Player->anatomy.setPart(bodySlot::TORSO, createHumanPart("part_torso_human", "Torso", CoveringType::SKIN, "Fair"));
-
-    bodyPart breasts = createHumanPart("part_breasts_human", "Nipples", CoveringType::SKIN, "Fair");
-    breasts.cupSize = 0;
-    g->Player->anatomy.setPart(bodySlot::BREASTS, breasts);
-
-    g->Player->anatomy.setPart(bodySlot::STOMACH, createHumanPart("part_stomach_human", "Stomach", CoveringType::SKIN, "Fair"));
-    g->Player->anatomy.setPart(bodySlot::BACK, createHumanPart("part_back_human", "Back", CoveringType::SKIN, "Fair"));
-    g->Player->anatomy.setPart(bodySlot::ARMS, createHumanPart("part_arms_human", "Arms", CoveringType::SKIN, "Fair", 2));
-    g->Player->anatomy.setPart(bodySlot::HANDS, createHumanPart("part_hands_human", "Hands", CoveringType::SKIN, "Fair", 2));
-    g->Player->anatomy.setPart(bodySlot::FINGERS, createHumanPart("part_fingers_human", "Fingers", CoveringType::SKIN, "Fair", 10));
-    g->Player->anatomy.setPart(bodySlot::HIPS, createHumanPart("part_hips_human", "Hips", CoveringType::SKIN, "Fair"));
-
-    bodyPart penis = createHumanPart("part_penis_human", "Penis", CoveringType::SKIN, "Fair");
-    penis.length = 14.0f;
-    penis.diameter = 3.5f;
-    g->Player->anatomy.setPart(bodySlot::GROIN, penis);
-
-    bodyPart anus = createHumanPart("part_anus_human", "Anus", CoveringType::SKIN, "Fair");
-    anus.secondaryColor = "Pink";
-    g->Player->anatomy.setPart(bodySlot::ASS, anus);
-
-    g->Player->anatomy.setPart(bodySlot::LEGS, createHumanPart("part_legs_human", "Legs", CoveringType::SKIN, "Fair", 2, "plantigrade", { "plantigrade" }));
-    g->Player->anatomy.setPart(bodySlot::FEET, createHumanPart("part_feet_human", "Feet", CoveringType::SKIN, "Fair", 2, "plantigrade", { "plantigrade" }));
-
-    // Pre-populate multi-page test items
-    std::vector<std::string> initialItems = {
-        "item_linen_shirt", "item_leather_trousers", "item_leather_boots", "item_leather_choker",
-        "item_cloth_gloves", "item_silk_panties", "item_silk_bra", "item_ancient_tome",
-        "item_canis_root", "item_golden_pendant", "item_canis_root", "item_canis_root",
-        "item_linen_shirt", "item_leather_trousers", "item_leather_boots", "item_cloth_gloves",
-        "item_canis_root", "item_canis_root", "item_canis_root", "item_ancient_tome",
-        "item_golden_pendant", "item_silk_panties", "item_silk_bra", "item_leather_choker",
-        "item_canis_root", "item_canis_root", "item_linen_shirt", "item_leather_trousers",
-        "item_leather_boots", "item_cloth_gloves", "item_ancient_tome", "item_golden_pendant",
-        "item_canis_root", "item_canis_root", "item_silk_panties", "item_silk_bra"
-    };
-
-    for (const auto& itemId : initialItems)
-    {
-        auto itemPtr = itemDatabase::getItem(itemId);
-        if (itemPtr) g->Player->inventory.addItem(itemPtr);
-    }
-
-    g->loadMap("overworld", 1, 1);
-    saveGame(g, filePath);
 }
