@@ -50,6 +50,8 @@ file(GLOB_RECURSE PROJECT_SOURCES CONFIGURE_DEPENDS
 
 add_executable(textRPG ${PROJECT_SOURCES})
 
+target_include_directories(textRPG PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+
 target_link_libraries(textRPG PRIVATE
         SDL3::SDL3
         SDL3_image::SDL3_image
@@ -57,14 +59,12 @@ target_link_libraries(textRPG PRIVATE
         nlohmann_json::nlohmann_json
 )
 
-# Global asset copying
 add_custom_command(TARGET textRPG POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/data"
         "$<TARGET_FILE_DIR:textRPG>/data"
 )
 
-# Windows-only runtime DLL copying using target generator expressions
 if(WIN32)
   add_custom_command(TARGET textRPG POST_BUILD
           COMMAND ${CMAKE_COMMAND} -E copy_if_different

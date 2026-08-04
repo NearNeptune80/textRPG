@@ -1,12 +1,12 @@
-#include "explorationState.h"
-#include "inventoryState.h"
-#include "../game.h"
-#include "../uiRenderer.h"
-#include "../uiWidget.h"
-#include "../actionGridManager.h"
-#include "../saveManager.h"
-#include <cmath>
+#include "state/explorationState.h"
+
 #include <iostream>
+#include <memory>
+
+#include "core/game.h"
+#include "save/saveManager.h"
+#include "state/inventoryState.h"
+#include "ui/uiRenderer.h"
 
 void explorationState::initialise(game* gameContext) {}
 
@@ -29,13 +29,6 @@ void explorationState::handleInput(game* gameContext, const SDL_Event& event)
             return;
         }
 
-        if (event.key.key == SDLK_M)
-        {
-            gameContext->currentState = (gameContext->currentState == GameState::MAIN_MENU) ? GameState::EXPLORATION : GameState::MAIN_MENU;
-            return;
-        }
-
-        // F5 -> Quick Save
         if (event.key.scancode == SDL_SCANCODE_F5)
         {
             saveManager::saveNamedGame(gameContext, "QuickSave");
@@ -43,7 +36,6 @@ void explorationState::handleInput(game* gameContext, const SDL_Event& event)
             return;
         }
 
-        // F9 -> Quick Load
         if (event.key.scancode == SDL_SCANCODE_F9)
         {
             std::string charName = (gameContext->Player && !gameContext->Player->name.empty()) ? gameContext->Player->name : "Hero";
@@ -84,8 +76,7 @@ void explorationState::handleInput(game* gameContext, const SDL_Event& event)
 void explorationState::render(game* gameContext)
 {
     UI::DrawMapGrid(gameContext->renderer, gameContext, gameContext->layout.mapRect, gameContext->map, gameContext->gridX, gameContext->gridY, 12);
-    
-    // Central dialogue / text panel
+
     ViewportGuard vpGuard(gameContext->renderer, gameContext->layout.textMainRect);
     UI::DrawPanel(gameContext->renderer, { 0.0f, 0.0f, gameContext->layout.textMainRect.w, gameContext->layout.textMainRect.h }, Theme::colors.bgPanel, Theme::colors.borderNormal);
 }

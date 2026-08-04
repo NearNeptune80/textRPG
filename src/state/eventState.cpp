@@ -1,19 +1,15 @@
-#include "eventState.h"
-#include "../game.h"
-#include "../uiRenderer.h"
-#include "../uiWidget.h"
+#include "state/eventState.h"
+
+#include "core/game.h"
+#include "ui/uiRenderer.h"
 
 eventState::eventState() = default;
 eventState::~eventState() = default;
 
 void eventState::initialise(game* gameContext) {}
-
 void eventState::onEnter(game* gameContext) {}
-
 void eventState::onExit(game* gameContext) {}
-
 void eventState::update(game* gameContext, float deltaTime) {}
-
 void eventState::handleInput(game* gameContext, const SDL_Event& event) {}
 
 void eventState::render(game* gameContext)

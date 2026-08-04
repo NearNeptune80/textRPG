@@ -1,5 +1,6 @@
 #pragma once
-#include "iGameState.h"
+
+#include "state/iGameState.h"
 
 class inventoryState : public iGameState
 {

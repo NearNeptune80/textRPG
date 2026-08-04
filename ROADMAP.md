@@ -75,7 +75,7 @@
 
 ### [ ] Task 1.1: State Machine Controller Architecture
 * **Goal**: Extract UI state logic, event loops, and input handlers from `game.cpp` and `inputHandler.cpp` into distinct state controllers.
-* **Files Impacted**: `src/game.h`, `src/game.cpp`, `src/inputHandler.cpp`
+* **Files Impacted**: `src/core/game.h`, `src/core/game.cpp`, `src/input/inputHandler.cpp`
 * **New Files**: `src/state/IGameState.h`, `src/state/ExplorationState.h/.cpp`, `src/state/InventoryState.h/.cpp`, `src/state/EventState.h/.cpp`
 * **Implementation Summary**:
     1. Define `IGameState` interface (`handleInput`, `update`, `render`, `onEnter`, `onExit`).
@@ -84,23 +84,23 @@
 
 ### [ ] Task 1.4: Dynamic Scene Parsing & String Interpolation Engine
 * **Goal**: Replace dialogue placeholders with dynamic text based on current entity stats, pronouns, and anatomy.
-* **Files Impacted**: `src/game.cpp`, `src/quest.h`
-* **New Files**: `src/textParser.h`, `src/textParser.cpp`
+* **Files Impacted**: `src/core/game.cpp`, `src/quest/quest.h`
+* **New Files**: `src/core/textParser.h`, `src/core/textParser.cpp`
 * **Implementation Summary**:
     1. Build a string parsing function that replaces tokens like `{player.name}`, `{player.he/she}`, or `{target.race}`.
     2. Add helper functions for grammatical agreement (e.g., `a/an` selection, singular/plural verbs).
 
 ### [ ] Task 3.1: JSON Template-Based NPC Generator
 * **Goal**: Procedurally construct NPCs from templates in `data/npc_templates.json`.
-* **Files Impacted**: `src/entity.h`, `src/game.cpp`
-* **New Files**: `src/npcGenerator.h`, `src/npcGenerator.cpp`
+* **Files Impacted**: `src/entities/entity.h`, `src/core/game.cpp`
+* **New Files**: `src/entities/npcGenerator.h`, `src/entities/npcGenerator.cpp`
 * **Implementation Summary**:
     1. Define `NPCTemplate` structure with stat ranges, body part probability tables, and equipment lists.
     2. Instantiate customized `entity` pointers on demand during encounters.
 
 ### [ ] Task 3.3: Multi-Slot Save & Autosave Manager
 * **Goal**: Support unlimited save slots, save file management, and automated background saving.
-* **Files Impacted**: `src/saveManager.h`, `src/saveManager.cpp`, `src/game.cpp`
+* **Files Impacted**: `src/save/saveManager.h`, `src/save/saveManager.cpp`, `src/core/game.cpp`
 * **Implementation Summary**:
     1. Implement a directory scanner for `data/saves/` returning save metadata (timestamp, play time, player level).
     2. Implement an `autosave()` trigger method called on map changes or major story choices.

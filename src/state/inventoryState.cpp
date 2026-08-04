@@ -1,10 +1,12 @@
-#include "inventoryState.h"
-#include "explorationState.h"
-#include "../game.h"
-#include "../uiRenderer.h"
-#include "../uiWidget.h"
-#include "../actionGridManager.h"
+#include "state/inventoryState.h"
+
 #include <algorithm>
+#include <memory>
+
+#include "core/game.h"
+#include "state/explorationState.h"
+#include "ui/uiRenderer.h"
+#include "ui/uiWidget.h"
 
 void inventoryState::initialise(game* gameContext) {}
 
