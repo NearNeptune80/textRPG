@@ -9,6 +9,11 @@
 
 class game;
 
+/**
+ * Headless state controller for combat execution.
+ * Manages combat turn resolution, target selection, and action dispatching.
+ * Contains ZERO UI/SDL rendering calls.
+ */
 class CombatState : public iGameState
 {
 public:
@@ -25,24 +30,22 @@ public:
 	void onEnter(game* gameContext) override;
 	void onExit(game* gameContext) override;
 
-	// Expose handlers so ActionGridManager can bind buttons to them
+	// Action Handlers
 	void handleEndTurn(game* gameContext);
 	void handleRunAttempt(game* gameContext);
 	void handleSurrender(game* gameContext);
+
+	// Data Snapshot API for UI View Layer
+	const combatEngine& getEngine() const { return m_engine; }
+	int getSelectedTargetIndex() const { return m_selectedTargetIndex; }
+	bool isTargetEnemy() const { return m_targetIsEnemy; }
+	bool isShowingSecondaryTab() const { return m_showingSecondaryTab; }
 
 private:
 	combatEngine m_engine;
 
 	int m_selectedTargetIndex = 0;
 	bool m_targetIsEnemy = true;
-
 	bool m_showingSecondaryTab = false;
 	int m_secondaryPage = 0;
-
-	void renderPartyCards(game* gameContext);
-	void renderCombatLog(game* gameContext);
-	void renderActionGrid(game* gameContext);
-
-	void handleGridClick(game* gameContext, int slotIndex);
-	std::vector<CombatAction> getAvailableSecondaryActions();
 };

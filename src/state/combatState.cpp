@@ -5,14 +5,13 @@
 #include <memory>
 #include <random>
 
-#include "eventState.h"
 #include "core/eventBus.h"
 #include "core/game.h"
 #include "entities/entity.h"
 #include "events/gameEvents.h"
 #include "map/encounterResolver.h"
+#include "state/eventState.h"
 #include "state/explorationState.h"
-#include "ui/uiRenderer.h"
 
 CombatState::CombatState(const std::vector<std::shared_ptr<entity>>& playerParty,
                          const std::vector<std::shared_ptr<entity>>& enemyParty)
@@ -34,12 +33,7 @@ void CombatState::onExit(game* gameContext) {}
 
 void CombatState::handleInput(game* gameContext, const SDL_Event& event)
 {
-    if (!gameContext) return;
-
-    if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN && event.button.button == SDL_BUTTON_LEFT)
-    {
-        // Target selection & action grid click interactions
-    }
+    // Input handling will dispatch pure UI intents to m_engine
 }
 
 void CombatState::update(game* gameContext, float deltaTime)
@@ -63,7 +57,6 @@ void CombatState::update(game* gameContext, float deltaTime)
             TileRuntimeData& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
             tileData.persistentNPC = nullptr;
 
-            // Transition to eventState and refresh grid immediately
             gameContext->changeState(std::make_unique<eventState>());
             return;
         }
@@ -82,7 +75,6 @@ void CombatState::update(game* gameContext, float deltaTime)
 
             eventBus::getInstance().publishEvent({ gameEvent::combatEnded, data.numericValue, "DEFEAT", nullptr });
 
-            // Construct defeat scene
             questScene defeatScene;
             defeatScene.id = "scene_combat_defeat";
             defeatScene.speakerName = "Defeated";
@@ -97,7 +89,6 @@ void CombatState::update(game* gameContext, float deltaTime)
             gameContext->activeTargetNPC = nullptr;
             gameContext->activeTargetMode = TargetMode::NONE;
 
-            // Transition to eventState
             gameContext->changeState(std::make_unique<eventState>());
             return;
         }
@@ -106,72 +97,7 @@ void CombatState::update(game* gameContext, float deltaTime)
 
 void CombatState::render(game* gameContext)
 {
-    if (!gameContext) return;
-
-    renderPartyCards(gameContext);
-    renderCombatLog(gameContext);
-    renderActionGrid(gameContext);
-}
-
-void CombatState::renderPartyCards(game* gameContext)
-{
-}
-
-void CombatState::renderCombatLog(game* gameContext)
-{
-    if (!gameContext) return;
-
-    ViewportGuard vpGuard(gameContext->renderer, gameContext->layout.textMainRect);
-    UI::DrawPanel(gameContext->renderer,
-                  { 0.0f, 0.0f, gameContext->layout.textMainRect.w, gameContext->layout.textMainRect.h },
-                  Theme::colors.bgPanel, Theme::colors.borderNormal);
-
-    std::string fullLogText = "";
-    for (const auto& line : m_engine.getCombatLog())
-    {
-        fullLogText += line + "\n";
-    }
-
-    SDL_FRect logTextRect = { 12.0f, 12.0f, gameContext->layout.textMainRect.w - 24.0f, gameContext->layout.textMainRect.h - 24.0f };
-    gameContext->renderTextWrapped(fullLogText, logTextRect, "button_font", Theme::colors.textPrimary);
-}
-
-void CombatState::renderActionGrid(game* gameContext)
-{
-}
-
-void CombatState::handleGridClick(game* gameContext, int slotIndex)
-{
-    if (slotIndex < 10)
-    {
-        entity* target = nullptr;
-
-        if (m_targetIsEnemy && m_selectedTargetIndex < m_engine.getEnemyParty().size())
-        {
-            target = m_engine.getEnemyParty()[m_selectedTargetIndex].character.get();
-        }
-        else if (!m_targetIsEnemy && m_selectedTargetIndex < m_engine.getPlayerParty().size())
-        {
-            target = m_engine.getPlayerParty()[m_selectedTargetIndex].character.get();
-        }
-
-        if (!target) return;
-
-        CombatAction selectedAction;
-        m_engine.queuePlayerAction(0, selectedAction, target, m_showingSecondaryTab);
-    }
-    else if (slotIndex == 10)
-    {
-        handleEndTurn(gameContext);
-    }
-    else if (slotIndex == 11)
-    {
-        handleRunAttempt(gameContext);
-    }
-    else if (slotIndex == 12)
-    {
-        handleSurrender(gameContext);
-    }
+    // No-op: Pure state controller. Render layer handles all drawing independently.
 }
 
 void CombatState::handleEndTurn(game* gameContext)
@@ -236,9 +162,4 @@ void CombatState::handleSurrender(game* gameContext)
 
     eventBus::getInstance().publishEvent({ gameEvent::combatEnded, outcomeVal, "SURRENDER", nullptr });
     gameContext->changeState(std::make_unique<explorationState>());
-}
-
-std::vector<CombatAction> CombatState::getAvailableSecondaryActions()
-{
-    return {};
 }

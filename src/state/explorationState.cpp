@@ -6,7 +6,6 @@
 #include "core/game.h"
 #include "save/saveManager.h"
 #include "state/inventoryState.h"
-#include "ui/uiRenderer.h"
 
 void explorationState::initialise(game* gameContext) {}
 
@@ -75,8 +74,5 @@ void explorationState::handleInput(game* gameContext, const SDL_Event& event)
 
 void explorationState::render(game* gameContext)
 {
-    UI::DrawMapGrid(gameContext->renderer, gameContext, gameContext->layout.mapRect, gameContext->map, gameContext->gridX, gameContext->gridY, 12);
-
-    ViewportGuard vpGuard(gameContext->renderer, gameContext->layout.textMainRect);
-    UI::DrawPanel(gameContext->renderer, { 0.0f, 0.0f, gameContext->layout.textMainRect.w, gameContext->layout.textMainRect.h }, Theme::colors.bgPanel, Theme::colors.borderNormal);
+    // No-op: Pure state controller. Render layer handles all drawing independently.
 }

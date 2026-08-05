@@ -2,6 +2,11 @@
 
 #include "state/iGameState.h"
 
+/**
+ * Headless state controller for narrative text scenes and dialogue choices.
+ * Manages active scene choices and state transitions.
+ * Contains ZERO UI/SDL rendering calls.
+ */
 class eventState : public iGameState
 {
 public:

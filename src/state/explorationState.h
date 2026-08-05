@@ -2,6 +2,11 @@
 
 #include "state/iGameState.h"
 
+/**
+ * Headless state controller for overworld exploration.
+ * Manages movement input, tile transitions, and key shortcuts.
+ * Contains ZERO UI/SDL rendering calls.
+ */
 class explorationState : public iGameState
 {
 public:

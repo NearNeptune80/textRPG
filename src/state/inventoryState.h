@@ -2,6 +2,11 @@
 
 #include "state/iGameState.h"
 
+/**
+ * Headless state controller for inventory management and item interaction.
+ * Tracks selected slots, inventory sides, and item interaction state.
+ * Contains ZERO UI/SDL rendering calls.
+ */
 class inventoryState : public iGameState
 {
 public:
@@ -15,9 +20,4 @@ public:
 
 	void onEnter(game* gameContext) override;
 	void onExit(game* gameContext) override;
-
-private:
-	bool handleEquipmentClick(game* gameContext, float mouseX, float mouseY);
-	bool handleTabClick(game* gameContext, float localMouseX, float localMouseY, SDL_FRect localBounds);
-	bool handleSlotClick(game* gameContext, float localMouseX, float localMouseY, SDL_FRect localBounds);
 };

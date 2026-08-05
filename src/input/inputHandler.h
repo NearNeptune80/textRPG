@@ -1,14 +1,46 @@
 #pragma once
 
-#include <SDL3/SDL.h>
+#include <unordered_map>
+#include <cstdint>
 
-class game;
+// Logical input actions mapped away from raw hardware keys
+enum class keyAction {
+    moveUp,
+    moveDown,
+    moveLeft,
+    moveRight,
+    interact,
+    confirm,
+    back,
+    pause
+};
 
-class inputHandler
-{
+enum class buttonState {
+    released,
+    pressed,
+    held
+};
+
+class inputHandler {
 public:
-    static void handleEvents(game* g);
+    inputHandler() = default;
+    ~inputHandler() = default;
+
+    // Process raw window events without engine rendering logic
+    void update();
+
+    // Query states by logical action
+    [[nodiscard]] bool isActionActive(keyAction action) const;
+    [[nodiscard]] bool isActionJustPressed(keyAction action) const;
+
+    // Mouse details in purely logical screen coordinates
+    struct mousePosition {
+        int x{0};
+        int y{0};
+    };
+    [[nodiscard]] mousePosition getMousePosition() const { return m_mousePosition; }
 
 private:
-    static bool handleActionGridClick(game* g, float mouseX, float mouseY);
+    std::unordered_map<keyAction, buttonState> m_actionStates;
+    mousePosition m_mousePosition;
 };
