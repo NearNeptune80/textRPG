@@ -12,6 +12,8 @@ struct item
     std::string name;
     std::string description;
 
+    int baseValue = 0;
+
     bool isConsumable = false;
     bool isEquippable = false;
     bool isStackable = false;

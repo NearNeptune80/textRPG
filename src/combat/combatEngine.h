@@ -40,7 +40,7 @@ public:
 	std::vector<CombatParticipant>& getPlayerParty() { return m_playerParty; }
 	std::vector<CombatParticipant>& getEnemyParty() { return m_enemyParty; }
 	const std::vector<std::string>& getCombatLog() const { return m_combatLog; }
-	void appendLog(const std::string& message);
+	void appendLog(const std::string& message); // Public access for combat log writing
 
 	bool isCombatOver() const;
 	bool isPlayerVictory() const;

@@ -18,6 +18,7 @@
 #include "ui/uiRenderer.h"
 #include "ui/uiWidget.h"
 #include "events/gameEvents.h"
+#include "state/combatState.h"
 
 game::game() : isRunning(false), window(nullptr), renderer(nullptr), map(nullptr), Player(nullptr), gridX(1), gridY(1) {}
 
@@ -66,6 +67,14 @@ void game::init(const char* title, int width, int height, bool fullscreen)
     if (!Player)
     {
         Player = new entity("player_main", "Hero");
+
+        // Give hero starting combat stats for testing combat resolution
+        Player->stats.setBaseStat("health", 100.0f);
+        Player->stats.setBaseStat("mana", 50.0f);
+        Player->stats.setBaseStat("lust", 0.0f);
+        Player->stats.setBaseStat("physique", 25.0f); // High physique so basic attacks hit hard
+        Player->stats.setBaseStat("agility", 15.0f);
+        Player->stats.setBaseStat("currency", 150.0f);
     }
 
     loadMap("overworld", 1, 1);
@@ -195,6 +204,12 @@ std::pair<equipSlot, std::shared_ptr<item>> game::getEquippedAtGridIndex(entity*
 
 bool game::loadMap(const std::string& mapId, int startX, int startY)
 {
+    // Clear unsafe dropped items on current tile before transitioning to new map
+    if (map)
+    {
+        map->clearUnsafeItems(gridX, gridY);
+    }
+
     if (mapCache.find(mapId) == mapCache.end())
     {
         gameMap newMap;
@@ -419,38 +434,65 @@ bool game::checkConditions(const std::vector<conditionNode>& conditions)
 
 void game::processChoice(const dialogueChoice& choice)
 {
+    // 1. Player chooses to start tactical combat
     if (choice.nextSceneId == "ENCOUNTER_FIGHT")
     {
-        std::string currentMapId = map ? map->getId() : "default";
-
-        entity* rawTarget = activeTargetNPC;
-        if (!rawTarget && map)
+        std::vector<std::shared_ptr<entity>> playerParty;
+        if (Player)
         {
-            TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
-            if (tileData.persistentNPC)
-            {
-                rawTarget = tileData.persistentNPC.get();
-            }
+            playerParty.push_back(std::shared_ptr<entity>(std::shared_ptr<entity>(), Player));
         }
 
-        currentScene = encounterResolver::buildVictoryScene(this, rawTarget, currentMapId);
+        std::vector<std::shared_ptr<entity>> enemyParty;
+        TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
 
-        if (map)
+        if (tileData.persistentNPC)
         {
+            enemyParty.push_back(tileData.persistentNPC);
+        }
+        else if (activeTargetNPC)
+        {
+            enemyParty.push_back(std::shared_ptr<entity>(std::shared_ptr<entity>(), activeTargetNPC));
+        }
+
+        changeState(std::make_unique<CombatState>(playerParty, enemyParty));
+        return;
+    }
+
+    // 2. Player chooses Bribe
+    if (choice.nextSceneId == "ENCOUNTER_BRIBE")
+    {
+        if (Player && Player->getStat("currency") >= 25.0f)
+        {
+            Player->stats.modifyBaseStat("currency", -25.0f);
+
+            // Clear persistent encounter NPC from current tile
             TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
             tileData.persistentNPC = nullptr;
         }
 
         activeTargetNPC = nullptr;
         activeTargetMode = TargetMode::NONE;
-
-        saveManager::saveAutosave(this);
-
-        changeState(std::make_unique<eventState>());
-        refreshActionGrid();
+        changeState(std::make_unique<explorationState>());
         return;
     }
 
+    // 3. Player chooses Surrender pre-combat
+    if (choice.nextSceneId == "ENCOUNTER_SURRENDER")
+    {
+        if (Player)
+        {
+            float currentMoney = Player->getStat("currency");
+            Player->stats.modifyBaseStat("currency", -(currentMoney * 0.15f));
+        }
+
+        activeTargetNPC = nullptr;
+        activeTargetMode = TargetMode::NONE;
+        changeState(std::make_unique<explorationState>());
+        return;
+    }
+
+    // 4. Player chooses Loot from post-combat victory screen
     if (choice.nextSceneId == "VICTORY_INVENTORY")
     {
         changeState(std::make_unique<inventoryState>());
@@ -534,27 +576,34 @@ std::shared_ptr<entity> game::generateEncounterNPC()
 
 void game::triggerEncounter(std::shared_ptr<entity> npc)
 {
+    if (!npc) return;
+
     activeTargetNPC = npc.get();
     activeTargetMode = TargetMode::COMBAT_ENEMY;
-    changeState(std::make_unique<eventState>());
 
+    // Load initial encounter choices into eventState
     currentScene.id = "encounter_event";
     currentScene.speakerName = npc->name;
     currentScene.bodyText = "A " + npc->name + " steps out of the shadows and demands your attention! What will you do?";
     currentScene.choices.clear();
 
-    dialogueChoice fightChoice; fightChoice.label = "Fight"; fightChoice.nextSceneId = "ENCOUNTER_FIGHT"; currentScene.choices.push_back(fightChoice);
-    dialogueChoice payChoice; payChoice.label = "Bribe (25¤)"; payChoice.nextSceneId = "ENCOUNTER_PAY"; currentScene.choices.push_back(payChoice);
-    dialogueChoice surrenderChoice; surrenderChoice.label = "Surrender"; surrenderChoice.nextSceneId = "ENCOUNTER_SURRENDER"; currentScene.choices.push_back(surrenderChoice);
+    dialogueChoice fightChoice;
+    fightChoice.label = "Fight";
+    fightChoice.nextSceneId = "ENCOUNTER_FIGHT";
+    currentScene.choices.push_back(fightChoice);
 
-    activeButtons.clear();
-    for (const auto& choice : currentScene.choices)
-    {
-        actionButton btn;
-        btn.label = choice.label;
-        btn.onClick = [this, choice]() { processChoice(choice); };
-        if (activeButtons.size() < activeButtons.capacity()) activeButtons.push_back(btn);
-    }
+    dialogueChoice payChoice;
+    payChoice.label = "Bribe (25¤)";
+    payChoice.nextSceneId = "ENCOUNTER_BRIBE";
+    currentScene.choices.push_back(payChoice);
+
+    dialogueChoice surrenderChoice;
+    surrenderChoice.label = "Surrender";
+    surrenderChoice.nextSceneId = "ENCOUNTER_SURRENDER";
+    currentScene.choices.push_back(surrenderChoice);
+
+    changeState(std::make_unique<eventState>());
+    refreshActionGrid();
 }
 
 std::array<actionButton, 15> game::getSlotsForCurrentActionPage()

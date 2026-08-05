@@ -56,6 +56,18 @@ struct TileRuntimeData
 
 	std::vector<TemporarySafetyModifier> safetyModifiers;
 
+	bool getIsEffectiveStorageSafe() const
+	{
+		if (isStorageSafe) return true;
+
+		// Check if any active modifier grants temporary safety (e.g., negative danger delta)
+		for (const auto& mod : safetyModifiers)
+		{
+			if (mod.dangerDelta < 0) return true;
+		}
+		return false;
+	}
+
 	int getEffectiveDangerLevel() const
 	{
 		int effective = baseDangerLevel;

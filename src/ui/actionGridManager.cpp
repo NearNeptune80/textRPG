@@ -3,6 +3,7 @@
 #include "core/eventBus.h"
 #include "core/game.h"
 #include "quest/questDatabase.h"
+#include "state/combatState.h"
 #include "state/eventState.h"
 #include "state/explorationState.h"
 #include "state/inventoryState.h"
@@ -43,6 +44,15 @@ void ActionGridManager::refresh(game* g)
         buildInventoryActions(g);
     else if (dynamic_cast<explorationState*>(g->getActiveState()))
         buildExplorationActions(g);
+    else if (dynamic_cast<CombatState*>(g->getActiveState()))
+    {
+        auto* cs = dynamic_cast<CombatState*>(g->getActiveState());
+
+        // Pinned Bottom Row Buttons (Slots 10, 11, 12)
+        pushBtn(g, "End Turn", 10, [cs, g]() { if (cs) cs->handleEndTurn(g); }, true, true);
+        pushBtn(g, "Run", 11, [cs, g]() { if (cs) cs->handleRunAttempt(g); }, true, true);
+        pushBtn(g, "Surrender", 12, [cs, g]() { if (cs) cs->handleSurrender(g); }, true, true);
+    }
     else if (dynamic_cast<eventState*>(g->getActiveState()))
     {
         for (const auto& c : g->currentScene.choices)

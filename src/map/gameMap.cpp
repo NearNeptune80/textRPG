@@ -170,7 +170,7 @@ bool gameMap::checkWarp(int x, int y, MapWarp& outWarp) const
     return false;
 }
 
-json gameMap::saveStateToJson() const
+nlohmann::json gameMap::saveStateToJson() const
 {
     json j;
     j["mapId"] = mapId;
@@ -197,7 +197,13 @@ json gameMap::saveStateToJson() const
             json itemArray = json::array();
             for (const auto& itemPtr : runtime.droppedItems)
             {
-                if (itemPtr) itemArray.push_back(itemPtr->id);
+                if (itemPtr)
+                {
+                    json itemEntry;
+                    itemEntry["id"] = itemPtr->id;
+                    itemEntry["count"] = itemPtr->count;
+                    itemArray.push_back(itemEntry);
+                }
             }
             tileItemsMap[std::to_string(key)] = itemArray;
         }
@@ -235,10 +241,17 @@ void gameMap::loadStateFromJson(const json& j)
         {
             uint64_t key = std::stoull(keyStr);
             runtimeData[key].droppedItems.clear();
-            for (const auto& itemId : itemsJson)
+            for (const auto& itemEntry : itemsJson)
             {
-                auto itemPtr = itemDatabase::getItem(itemId.get<std::string>());
-                if (itemPtr) runtimeData[key].droppedItems.push_back(itemPtr);
+                std::string itemId = itemEntry.is_string() ? itemEntry.get<std::string>() : itemEntry.value("id", "");
+                int count = itemEntry.is_object() ? itemEntry.value("count", 1) : 1;
+
+                auto itemPtr = itemDatabase::getItem(itemId);
+                if (itemPtr)
+                {
+                    itemPtr->count = count;
+                    runtimeData[key].droppedItems.push_back(itemPtr);
+                }
             }
         }
     }

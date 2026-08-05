@@ -28,7 +28,7 @@ public:
     nlohmann::json saveStateToJson() const;
     void loadStateFromJson(const nlohmann::json& j);
 
-    bool isStorageSafe(int x, int y) { return getRuntimeData(x, y).isStorageSafe; }
+    bool isStorageSafe(int x, int y) { return getRuntimeData(x, y).getIsEffectiveStorageSafe(); }
     void clearUnsafeItems(int x, int y)
     {
         if (!isStorageSafe(x, y))

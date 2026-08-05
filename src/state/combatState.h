@@ -1,5 +1,3 @@
-// src/state/combatState.h
-
 #pragma once
 
 #include <memory>
@@ -19,7 +17,6 @@ public:
 
 	~CombatState() override = default;
 
-	// Interface Lifecycle Overrides
 	void initialise(game* gameContext) override;
 	void handleInput(game* gameContext, const SDL_Event& event) override;
 	void update(game* gameContext, float deltaTime) override;
@@ -27,6 +24,11 @@ public:
 
 	void onEnter(game* gameContext) override;
 	void onExit(game* gameContext) override;
+
+	// Expose handlers so ActionGridManager can bind buttons to them
+	void handleEndTurn(game* gameContext);
+	void handleRunAttempt(game* gameContext);
+	void handleSurrender(game* gameContext);
 
 private:
 	combatEngine m_engine;
@@ -42,8 +44,5 @@ private:
 	void renderActionGrid(game* gameContext);
 
 	void handleGridClick(game* gameContext, int slotIndex);
-	void handleEndTurn(game* gameContext);
-	void handleRunAttempt(game* gameContext);
-	void handleSurrender(game* gameContext);
 	std::vector<CombatAction> getAvailableSecondaryActions();
 };

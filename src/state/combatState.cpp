@@ -2,12 +2,17 @@
 
 #include <algorithm>
 #include <format>
-#include <random> // Added for std::random_device, std::mt19937, std::uniform_real_distribution
+#include <memory>
+#include <random>
 
+#include "eventState.h"
+#include "core/eventBus.h"
 #include "core/game.h"
 #include "entities/entity.h"
-#include "core/eventBus.h"
 #include "events/gameEvents.h"
+#include "map/encounterResolver.h"
+#include "state/explorationState.h"
+#include "ui/uiRenderer.h"
 
 CombatState::CombatState(const std::vector<std::shared_ptr<entity>>& playerParty,
                          const std::vector<std::shared_ptr<entity>>& enemyParty)
@@ -15,17 +20,17 @@ CombatState::CombatState(const std::vector<std::shared_ptr<entity>>& playerParty
     m_engine.initialiseCombat(playerParty, enemyParty);
 }
 
-void CombatState::initialise(game* gameContext)
-{
-}
+void CombatState::initialise(game* gameContext) {}
 
 void CombatState::onEnter(game* gameContext)
 {
+    if (gameContext)
+    {
+        gameContext->refreshActionGrid();
+    }
 }
 
-void CombatState::onExit(game* gameContext)
-{
-}
+void CombatState::onExit(game* gameContext) {}
 
 void CombatState::handleInput(game* gameContext, const SDL_Event& event)
 {
@@ -33,7 +38,7 @@ void CombatState::handleInput(game* gameContext, const SDL_Event& event)
 
     if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN && event.button.button == SDL_BUTTON_LEFT)
     {
-        // Handle input click logic for action grid & target selection
+        // Target selection & action grid click interactions
     }
 }
 
@@ -47,25 +52,55 @@ void CombatState::update(game* gameContext, float deltaTime)
 
         if (m_engine.isPlayerVictory())
         {
-            data.numericValue = static_cast<float>(CombatOutcome::VICTORY);
-            eventBus::getInstance().publish(gameEvent::combatEnded, data);
+            data.numericValue = static_cast<int>(CombatOutcome::VICTORY);
+            eventBus::getInstance().publishEvent({ gameEvent::combatEnded, data.numericValue, "VICTORY", nullptr });
+
+            std::string currentMapId = gameContext->map ? gameContext->map->getId() : "overworld";
+            entity* defeatedNPC = gameContext->activeTargetNPC;
+
+            gameContext->currentScene = encounterResolver::buildVictoryScene(gameContext, defeatedNPC, currentMapId);
+
+            TileRuntimeData& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
+            tileData.persistentNPC = nullptr;
+
+            // Transition to eventState and refresh grid immediately
+            gameContext->changeState(std::make_unique<eventState>());
+            return;
         }
         else
         {
-            data.numericValue = static_cast<float>(CombatOutcome::DEFEAT);
+            data.numericValue = static_cast<int>(CombatOutcome::DEFEAT);
 
             auto& playerParty = m_engine.getPlayerParty();
+            int currencyLost = 0;
             if (!playerParty.empty() && playerParty[0].character)
             {
                 float currentMoney = playerParty[0].character->getStat("currency");
-                float penalty = currentMoney * 0.15f;
-                playerParty[0].character->stats.modifyBaseStat("currency", -penalty);
+                currencyLost = static_cast<int>(currentMoney * 0.15f);
+                playerParty[0].character->stats.modifyBaseStat("currency", -static_cast<float>(currencyLost));
             }
 
-            eventBus::getInstance().publish(gameEvent::combatEnded, data);
-        }
+            eventBus::getInstance().publishEvent({ gameEvent::combatEnded, data.numericValue, "DEFEAT", nullptr });
 
-        gameContext->popState();
+            // Construct defeat scene
+            questScene defeatScene;
+            defeatScene.id = "scene_combat_defeat";
+            defeatScene.speakerName = "Defeated";
+            defeatScene.bodyText = std::format("You were overwhelmed in combat and collapsed! You managed to escape later, but lost {}¤ in the process.", currencyLost);
+
+            dialogueChoice continueChoice;
+            continueChoice.label = "Continue";
+            continueChoice.nextSceneId = "EXIT";
+            defeatScene.choices.push_back(continueChoice);
+
+            gameContext->currentScene = defeatScene;
+            gameContext->activeTargetNPC = nullptr;
+            gameContext->activeTargetMode = TargetMode::NONE;
+
+            // Transition to eventState
+            gameContext->changeState(std::make_unique<eventState>());
+            return;
+        }
     }
 }
 
@@ -84,6 +119,21 @@ void CombatState::renderPartyCards(game* gameContext)
 
 void CombatState::renderCombatLog(game* gameContext)
 {
+    if (!gameContext) return;
+
+    ViewportGuard vpGuard(gameContext->renderer, gameContext->layout.textMainRect);
+    UI::DrawPanel(gameContext->renderer,
+                  { 0.0f, 0.0f, gameContext->layout.textMainRect.w, gameContext->layout.textMainRect.h },
+                  Theme::colors.bgPanel, Theme::colors.borderNormal);
+
+    std::string fullLogText = "";
+    for (const auto& line : m_engine.getCombatLog())
+    {
+        fullLogText += line + "\n";
+    }
+
+    SDL_FRect logTextRect = { 12.0f, 12.0f, gameContext->layout.textMainRect.w - 24.0f, gameContext->layout.textMainRect.h - 24.0f };
+    gameContext->renderTextWrapped(fullLogText, logTextRect, "button_font", Theme::colors.textPrimary);
 }
 
 void CombatState::renderActionGrid(game* gameContext)
@@ -158,11 +208,10 @@ void CombatState::handleRunAttempt(game* gameContext)
 
     if (dist(gen) <= fleeChance)
     {
-        eventData data;
-        data.numericValue = static_cast<float>(CombatOutcome::ESCAPE);
-        eventBus::getInstance().publish(gameEvent::combatEnded, data);
+        int outcomeVal = static_cast<int>(CombatOutcome::ESCAPE);
+        eventBus::getInstance().publishEvent({ gameEvent::combatEnded, outcomeVal, "ESCAPE", nullptr });
 
-        gameContext->popState();
+        gameContext->changeState(std::make_unique<explorationState>());
     }
     else
     {
@@ -175,8 +224,7 @@ void CombatState::handleSurrender(game* gameContext)
 {
     if (!gameContext) return;
 
-    eventData data;
-    data.numericValue = static_cast<float>(CombatOutcome::SURRENDER);
+    int outcomeVal = static_cast<int>(CombatOutcome::SURRENDER);
 
     auto& playerParty = m_engine.getPlayerParty();
     if (!playerParty.empty() && playerParty[0].character)
@@ -186,8 +234,8 @@ void CombatState::handleSurrender(game* gameContext)
         playerParty[0].character->stats.modifyBaseStat("currency", -penalty);
     }
 
-    eventBus::getInstance().publish(gameEvent::combatEnded, data);
-    gameContext->popState();
+    eventBus::getInstance().publishEvent({ gameEvent::combatEnded, outcomeVal, "SURRENDER", nullptr });
+    gameContext->changeState(std::make_unique<explorationState>());
 }
 
 std::vector<CombatAction> CombatState::getAvailableSecondaryActions()

@@ -104,6 +104,7 @@ void from_json(const json& j, item& itemObj)
     j.at("id").get_to(itemObj.id);
     j.at("name").get_to(itemObj.name);
     itemObj.description = j.value("description", "");
+    itemObj.baseValue = j.value("baseValue", 0); // Read base value
 
     itemObj.isConsumable = j.value("isConsumable", false);
     itemObj.isEquippable = j.value("isEquippable", false);
