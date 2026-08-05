@@ -17,6 +17,7 @@
 #include "ui/theme.h"
 #include "ui/uiRenderer.h"
 #include "ui/uiWidget.h"
+#include "events/gameEvents.h"
 
 game::game() : isRunning(false), window(nullptr), renderer(nullptr), map(nullptr), Player(nullptr), gridX(1), gridY(1) {}
 
@@ -77,10 +78,35 @@ void game::init(const char* title, int width, int height, bool fullscreen)
 
     changeState(std::make_unique<explorationState>());
 
+    // Existing time advancement subscription
     eventBus::getInstance().subscribe(gameEvent::timeAdvanced, [this](const eventData& data) {
         if (this->Player)
         {
             this->Player->anatomy.processMutations(data.numericValue);
+        }
+    });
+
+    // New combat outcome listener
+    eventBus::getInstance().subscribe(gameEvent::combatEnded, [this](const eventData& data) {
+        // Depending on your eventData structure:
+        switch (static_cast<CombatOutcome>(data.numericValue))
+        {
+            case CombatOutcome::VICTORY:
+                std::cout << "[Combat] Victory achieved!\n";
+                // Optionally push text to your central log or update quest kills
+                break;
+
+            case CombatOutcome::DEFEAT:
+                std::cout << "[Combat] Defeated! Applied currency penalty.\n";
+                break;
+
+            case CombatOutcome::ESCAPE:
+                std::cout << "[Combat] Successfully escaped.\n";
+                break;
+
+            case CombatOutcome::SURRENDER:
+                std::cout << "[Combat] Surrendered to the enemy.\n";
+                break;
         }
     });
 

@@ -27,6 +27,8 @@ public:
     std::vector<StatusEffect> statusEffects;
 
     entity(std::string entityId, std::string entityName);
+    
+    std::array<std::string, 10> preparedCombatSlots; // Holds action/spell IDs for the Primary Tab
 
     void addStatusEffect(const StatusEffect& effect);
     void removeStatusEffect(const std::string& effectId);
