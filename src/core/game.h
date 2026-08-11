@@ -1,15 +1,13 @@
 #pragma once
 
-#include <inplace_vector>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-#include <SDL3/SDL.h>
-
 #include "core/timeManager.h"
 #include "entities/entity.h"
+#include "input/inputHandler.h"
 #include "map/gameMap.h"
 #include "quest/questDatabase.h"
 #include "state/iGameState.h"
@@ -32,8 +30,8 @@ struct InventorySlotInfo
 
 /**
  * Headless Core Engine Controller.
- * Manages simulation state, active maps, entities, and state transitions.
- * Stripped of all UI layout math, grid pagination, and pixel helpers.
+ * Manages game simulation, active map states, entities, and state transitions.
+ * Contains ZERO rendering pointers, window contexts, or UI presentation variables.
  */
 class game
 {
@@ -41,22 +39,21 @@ public:
     game();
     ~game();
 
-    void init(const char* title, int width, int height, bool fullscreen);
+    void init();
     void handleEvents();
-    void update();
-    void render();
+    void update(float deltaTime);
     void clean();
 
     void changeState(std::unique_ptr<iGameState> newState);
     iGameState* getActiveState() const { return activeGameState.get(); }
 
     timeManager gameTime;
-    bool isRunning;
-    SDL_Window* window = nullptr;
-    SDL_Renderer* renderer = nullptr;
+    inputHandler input;
+    bool isRunning{false};
 
-    // Headless Item Selection State
+    // Headless Simulation Selection State
     int selectedInventoryIndex = -1;
+    int selectedInventorySide = 0;
     equipSlot selectedEquipmentSlot = equipSlot::NONE;
 
     gameMap* map = nullptr;

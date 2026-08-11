@@ -6,7 +6,6 @@
 #include "core/textParser.h"
 #include "entities/npcGenerator.h"
 #include "events/gameEvents.h"
-#include "input/inputHandler.h"
 #include "items/itemDatabase.h"
 #include "map/encounterResolver.h"
 #include "quest/questDatabase.h"
@@ -16,9 +15,8 @@
 #include "state/explorationState.h"
 #include "state/inventoryState.h"
 #include "ui/actionGridManager.h"
-#include "ui/theme.h"
 
-game::game() : isRunning(false), window(nullptr), renderer(nullptr), map(nullptr), Player(nullptr), gridX(1), gridY(1) {}
+game::game() : isRunning(false), map(nullptr), Player(nullptr), gridX(1), gridY(1) {}
 
 game::~game()
 {
@@ -37,17 +35,8 @@ void game::changeState(std::unique_ptr<iGameState> newState)
     }
 }
 
-void game::init(const char* title, int width, int height, bool fullscreen)
+void game::init()
 {
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) return;
-
-    window = SDL_CreateWindow(title, width, height, (fullscreen ? SDL_WINDOW_FULLSCREEN : SDL_WINDOW_RESIZABLE));
-    renderer = SDL_CreateRenderer(window, NULL);
-    SDL_SetRenderVSync(renderer, 1);
-    SDL_SetRenderLogicalPresentation(renderer, width, height, SDL_LOGICAL_PRESENTATION_STRETCH);
-
-    Theme::loadFromFile("data/theme.json");
-
     if (itemDatabase::loadDatabase("data/items.json"))
     {
         npcGenerator::loadTemplates("data/npc_templates.json");
@@ -106,26 +95,12 @@ void game::init(const char* title, int width, int height, bool fullscreen)
 
 void game::handleEvents()
 {
-    inputHandler::handleEvents(this);
+    input.update(this);
 }
 
-void game::update()
+void game::update(float deltaTime)
 {
-    if (activeGameState) activeGameState->update(this, 0.016f);
-}
-
-void game::render()
-{
-    // Headless Render Pass: Clears screen, delegates to active state
-    SDL_SetRenderDrawColor(renderer, Theme::colors.bgDark.r, Theme::colors.bgDark.g, Theme::colors.bgDark.b, 255);
-    SDL_RenderClear(renderer);
-
-    if (activeGameState)
-    {
-        activeGameState->render(this);
-    }
-
-    SDL_RenderPresent(renderer);
+    if (activeGameState) activeGameState->update(this, deltaTime);
 }
 
 void game::refreshActionGrid()
@@ -601,7 +576,4 @@ std::string game::formatEquipSlotName(equipSlot slot)
 void game::clean()
 {
     eventBus::getInstance().clearAllListeners();
-    SDL_DestroyWindow(window);
-    SDL_DestroyRenderer(renderer);
-    SDL_Quit();
 }

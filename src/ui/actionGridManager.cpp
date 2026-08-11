@@ -1,235 +1,125 @@
 #include "ui/actionGridManager.h"
 
-#include "core/eventBus.h"
 #include "core/game.h"
-#include "quest/questDatabase.h"
+#include "entities/entity.h"
 #include "state/combatState.h"
-#include "state/eventState.h"
 #include "state/explorationState.h"
 #include "state/inventoryState.h"
 
-static void pushBtn(game* g, const std::string& label, int slotIndex, std::function<void()> onClick = nullptr, bool isEnabled = true, bool pinnedAllPages = false)
+void ActionGridManager::refresh(game* gameContext)
 {
-    if (g->activeButtons.size() >= g->activeButtons.capacity()) return;
+    if (!gameContext) return;
 
-    actionButton btn;
-    btn.label = label;
-    btn.slotIndex = slotIndex;
-    btn.onClick = onClick;
-    btn.isEnabled = isEnabled;
-    btn.pinnedAllPages = pinnedAllPages;
-    g->activeButtons.push_back(btn);
-}
+    gameContext->activeButtons.clear();
 
-static void addQuantityButtons(game* g, const std::string& verb, int totalCount, int startSlot, std::function<void(int)> onAction)
-{
-    struct QConfig { std::string label; int count; int slotOffset; };
-    QConfig configs[] = {
-        { verb + " (1)", 1, 0 },
-        { verb + " (5)", 5, 1 },
-        { verb + " (All)", totalCount, 2 }
-    };
+    iGameState* currentState = gameContext->getActiveState();
+    if (!currentState) return;
 
-    for (const auto& cfg : configs)
+    // 1. Inventory State Actions
+    if (dynamic_cast<inventoryState*>(currentState))
     {
-        pushBtn(g, cfg.label, startSlot + cfg.slotOffset, [onAction, cfg]() { onAction(cfg.count); }, (totalCount >= cfg.count));
-    }
-}
-
-void ActionGridManager::refresh(game* g)
-{
-    g->activeButtons.clear();
-
-    if (dynamic_cast<inventoryState*>(g->getActiveState()))
-        buildInventoryActions(g);
-    else if (dynamic_cast<explorationState*>(g->getActiveState()))
-        buildExplorationActions(g);
-    else if (dynamic_cast<CombatState*>(g->getActiveState()))
-    {
-        auto* cs = dynamic_cast<CombatState*>(g->getActiveState());
-
-        // Pinned Bottom Row Buttons (Slots 10, 11, 12)
-        pushBtn(g, "End Turn", 10, [cs, g]() { if (cs) cs->handleEndTurn(g); }, true, true);
-        pushBtn(g, "Run", 11, [cs, g]() { if (cs) cs->handleRunAttempt(g); }, true, true);
-        pushBtn(g, "Surrender", 12, [cs, g]() { if (cs) cs->handleSurrender(g); }, true, true);
-    }
-    else if (dynamic_cast<eventState*>(g->getActiveState()))
-    {
-        for (const auto& c : g->currentScene.choices)
-        {
-            if (g->checkConditions(c.requirements))
-            {
-                dialogueChoice choiceCopy = c;
-                pushBtn(g, c.label, -1, [g, choiceCopy]() { g->processChoice(choiceCopy); });
-            }
-        }
-    }
-}
-
-void ActionGridManager::buildInventoryActions(game* g)
-{
-    pushBtn(g, "Close inventory", 14, [g]()
-        {
-            g->selectedInventoryIndex = -1;
-            g->selectedEquipmentSlot = equipSlot::NONE;
-
-            if (g->activeTargetNPC)
-            {
-                dialogueChoice fightSim;
-                fightSim.nextSceneId = "ENCOUNTER_FIGHT";
-                g->processChoice(fightSim);
-            }
-            else
-            {
-                g->changeState(std::make_unique<explorationState>());
-            }
-        }, true, true);
-
-    if (g->selectedEquipmentSlot != equipSlot::NONE)
-    {
-        buildEquipmentActions(g);
-    }
-    else if (g->selectedInventorySide == 0 && g->selectedInventoryIndex >= 0 && g->Player)
-    {
-        buildPlayerItemActions(g);
-    }
-    else if (g->selectedInventorySide == 1 && g->selectedInventoryIndex >= 0)
-    {
-        buildRightInventoryActions(g);
-    }
-}
-
-void ActionGridManager::buildEquipmentActions(game* g)
-{
-    entity* targetChar = (g->selectedInventorySide == 1 && g->activeTargetNPC) ? g->activeTargetNPC : g->Player;
-    if (!targetChar || !targetChar->inventory.isEquipped(g->selectedEquipmentSlot)) return;
-
-    auto unequipCb = [g, targetChar]()
-        {
-            if (targetChar->inventory.unequipItem(g->selectedEquipmentSlot))
-            {
-                g->selectedEquipmentSlot = equipSlot::NONE;
-                g->refreshActionGrid();
-            }
+        actionButton closeBtn;
+        closeBtn.label = "Close Inventory (I)";
+        closeBtn.onClick = [gameContext]() {
+            gameContext->changeState(std::make_unique<explorationState>());
         };
+        gameContext->activeButtons.push_back(closeBtn);
 
-    pushBtn(g, (targetChar == g->Player) ? "Drop" : "Take (1)", 0, unequipCb);
-    pushBtn(g, "Dye", 3);
-    pushBtn(g, "Enchant", 4);
-    pushBtn(g, "Unequip", 5, unequipCb);
-    pushBtn(g, "Pull down", 10);
-    pushBtn(g, "Shift aside", 11);
-}
-
-void ActionGridManager::buildPlayerItemActions(game* g)
-{
-    InventorySlotInfo slotData = g->getInventorySlotItem(0, g->selectedInventoryIndex);
-    if (!slotData.isValid) return;
-
-    int idx = g->selectedInventoryIndex;
-    auto selItem = slotData.itemPtr;
-
-    addQuantityButtons(g, "Drop", slotData.count, 0, [g, idx](int qty) { g->handleDropAction(idx, qty); });
-    pushBtn(g, "Enchant", 4);
-
-    if (selItem->isEquippable)
-    {
-        auto stackedView = g->Player->inventory.getStackedView();
-        int firstBackpackIndex = stackedView[idx].firstBackpackIndex;
-
-        pushBtn(g, "Equip: " + g->formatEquipSlotName(selItem->targetSlot), 5, [g, firstBackpackIndex]()
-            {
-                g->handleEquipAction(firstBackpackIndex);
-            });
-    }
-    else if (selItem->isConsumable)
-    {
-        pushBtn(g, "Eat (Self)", 5, [g, selItem]()
-            {
-                g->Player->inventory.removeItem(selItem->id, 1);
-                eventBus::getInstance().publishEvent({ gameEvent::itemUsed, 1, selItem->id, g->Player });
-                g->selectedInventoryIndex = -1;
-                g->refreshActionGrid();
-            });
-
-        pushBtn(g, "Eat all (Self)", 6, [g, selItem, count = slotData.count]()
-            {
-                g->Player->inventory.removeItem(selItem->id, count);
-                eventBus::getInstance().publishEvent({ gameEvent::itemUsed, count, selItem->id, g->Player });
-                g->selectedInventoryIndex = -1;
-                g->refreshActionGrid();
-            }, (slotData.count >= 1));
-    }
-}
-
-void ActionGridManager::buildRightInventoryActions(game* g)
-{
-    InventorySlotInfo slotData = g->getInventorySlotItem(1, g->selectedInventoryIndex);
-    if (!slotData.isValid) return;
-
-    auto selItem = slotData.itemPtr;
-    int idx = g->selectedInventoryIndex;
-
-    if (g->activeTargetNPC)
-    {
-        addQuantityButtons(g, "Take", slotData.count, 0, [g, selItem](int qty)
-            {
-                if (g->activeTargetNPC && g->activeTargetNPC->inventory.removeItem(selItem->id, qty))
-                {
-                    auto copy = std::make_shared<item>(*selItem); copy->count = qty;
-                    g->Player->inventory.addItem(copy);
-                    g->selectedInventoryIndex = -1; g->refreshActionGrid();
-                }
-            });
-
-        if (selItem->isEquippable)
+        if (gameContext->selectedInventoryIndex != -1)
         {
-            pushBtn(g, "Equip: " + g->formatEquipSlotName(selItem->targetSlot), 5, [g, selItem]()
-                {
-                    if (g->activeTargetNPC && g->activeTargetNPC->inventory.removeItem(selItem->id, 1))
-                    {
-                        auto copy = std::make_shared<item>(*selItem); copy->count = 1;
-                        g->Player->inventory.addItem(copy);
-                        g->handleEquipAction(static_cast<int>(g->Player->inventory.backpack.size()) - 1);
-                    }
-                });
-        }
-    }
-    else
-    {
-        addQuantityButtons(g, "Take", slotData.count, 0, [g, idx](int qty) { g->handlePickupAction(idx, qty); });
+            if (gameContext->selectedInventorySide == 0) // Backpack Item
+            {
+                actionButton equipBtn;
+                equipBtn.label = "Equip";
+                equipBtn.onClick = [gameContext]() {
+                    gameContext->handleEquipAction(gameContext->selectedInventoryIndex);
+                };
+                gameContext->activeButtons.push_back(equipBtn);
 
-        if (selItem->isEquippable)
+                actionButton dropBtn;
+                dropBtn.label = "Drop 1";
+                dropBtn.onClick = [gameContext]() {
+                    gameContext->handleDropAction(gameContext->selectedInventoryIndex, 1);
+                };
+                gameContext->activeButtons.push_back(dropBtn);
+            }
+            else if (gameContext->selectedInventorySide == 1) // Ground Item
+            {
+                actionButton pickBtn;
+                pickBtn.label = "Pickup 1";
+                pickBtn.onClick = [gameContext]() {
+                    gameContext->handlePickupAction(gameContext->selectedInventoryIndex, 1);
+                };
+                gameContext->activeButtons.push_back(pickBtn);
+            }
+        }
+        else if (gameContext->selectedEquipmentSlot != equipSlot::NONE)
         {
-            pushBtn(g, "Equip: " + g->formatEquipSlotName(selItem->targetSlot), 5, [g, idx]()
-                {
-                    TileRuntimeData& tData = g->map->getRuntimeData(g->gridX, g->gridY);
-                    if (idx < static_cast<int>(tData.droppedItems.size()))
-                    {
-                        auto groundItem = tData.droppedItems[idx];
-                        tData.droppedItems.erase(tData.droppedItems.begin() + idx);
-                        g->Player->inventory.addItem(groundItem);
-                        g->handleEquipAction(static_cast<int>(g->Player->inventory.backpack.size()) - 1);
-                    }
-                });
+            actionButton unequipBtn;
+            unequipBtn.label = "Unequip";
+            unequipBtn.onClick = [gameContext]() {
+                gameContext->handleUnequipAction(gameContext->selectedEquipmentSlot);
+            };
+            gameContext->activeButtons.push_back(unequipBtn);
         }
-    }
-}
-
-void ActionGridManager::buildExplorationActions(game* g)
-{
-    for (const auto& trig : questDatabase::getTriggersForLocation(g->map->getId(), g->gridX, g->gridY))
-    {
-        if (g->checkConditions(trig.conditions))
-        {
-            std::string sId = trig.sceneId;
-            pushBtn(g, trig.label, -1, [g, sId]() { g->loadScene(sId); });
-        }
+        return;
     }
 
-    MapWarp w;
-    if (g->map->checkWarp(g->gridX, g->gridY, w))
+    // 2. Combat State Actions
+    if (auto combat = dynamic_cast<CombatState*>(currentState))
     {
-        pushBtn(g, "Enter Door", -1, [g, w]() { g->loadMap(w.targetMap, w.targetX, w.targetY); });
+        actionButton endTurnBtn;
+        endTurnBtn.label = "End Turn";
+        endTurnBtn.onClick = [combat, gameContext]() {
+            combat->handleEndTurn(gameContext);
+        };
+        gameContext->activeButtons.push_back(endTurnBtn);
+
+        actionButton fleeBtn;
+        fleeBtn.label = "Attempt Run";
+        fleeBtn.onClick = [combat, gameContext]() {
+            combat->handleRunAttempt(gameContext);
+        };
+        gameContext->activeButtons.push_back(fleeBtn);
+
+        actionButton surrenderBtn;
+        surrenderBtn.label = "Surrender";
+        surrenderBtn.onClick = [combat, gameContext]() {
+            combat->handleSurrender(gameContext);
+        };
+        gameContext->activeButtons.push_back(surrenderBtn);
+        return;
+    }
+
+    // 3. Exploration Movement Shortcuts
+    if (dynamic_cast<explorationState*>(currentState))
+    {
+        actionButton northBtn;
+        northBtn.label = "Move North (W)";
+        northBtn.onClick = [gameContext]() {
+            gameContext->movePlayer(gameContext->gridX, gameContext->gridY - 1);
+        };
+        gameContext->activeButtons.push_back(northBtn);
+
+        actionButton southBtn;
+        southBtn.label = "Move South (S)";
+        southBtn.onClick = [gameContext]() {
+            gameContext->movePlayer(gameContext->gridX, gameContext->gridY + 1);
+        };
+        gameContext->activeButtons.push_back(southBtn);
+
+        actionButton westBtn;
+        westBtn.label = "Move West (A)";
+        westBtn.onClick = [gameContext]() {
+            gameContext->movePlayer(gameContext->gridX - 1, gameContext->gridY);
+        };
+        gameContext->activeButtons.push_back(westBtn);
+
+        actionButton eastBtn;
+        eastBtn.label = "Move East (D)";
+        eastBtn.onClick = [gameContext]() {
+            gameContext->movePlayer(gameContext->gridX + 1, gameContext->gridY);
+        };
+        gameContext->activeButtons.push_back(eastBtn);
     }
 }

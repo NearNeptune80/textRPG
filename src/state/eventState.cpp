@@ -11,7 +11,6 @@ void eventState::onEnter(game* gameContext)
 {
 	if (gameContext)
 	{
-		// Force action grid to regenerate buttons for eventState choices
 		gameContext->refreshActionGrid();
 	}
 }
@@ -22,7 +21,16 @@ void eventState::update(game* gameContext, float deltaTime) {}
 
 void eventState::handleInput(game* gameContext, const SDL_Event& event) {}
 
-void eventState::render(game* gameContext)
+void eventState::handleCommand(game* gameContext, const UICommand& cmd)
 {
-	// No-op: Pure state controller. Render layer handles all drawing independently.
+	if (!gameContext) return;
+
+	if (cmd.type == CommandType::SELECT_DIALOGUE_CHOICE)
+	{
+		int choiceIdx = cmd.intPayload1;
+		if (choiceIdx >= 0 && static_cast<size_t>(choiceIdx) < gameContext->currentScene.choices.size())
+		{
+			gameContext->processChoice(gameContext->currentScene.choices[choiceIdx]);
+		}
+	}
 }

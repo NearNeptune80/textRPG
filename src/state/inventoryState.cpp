@@ -31,16 +31,27 @@ void inventoryState::handleInput(game* gameContext, const SDL_Event& event)
         gameContext->changeState(std::make_unique<explorationState>());
         return;
     }
-
-    if (event.type == SDL_EVENT_MOUSE_WHEEL)
-    {
-        gameContext->descriptionScrollY -= event.wheel.y * 18.0f;
-        gameContext->descriptionScrollY = std::clamp(gameContext->descriptionScrollY, 0.0f, gameContext->maxDescriptionScrollY);
-        return;
-    }
 }
 
-void inventoryState::render(game* gameContext)
+void inventoryState::handleCommand(game* gameContext, const UICommand& cmd)
 {
-    // No-op: Pure state controller. Render layer handles all drawing independently.
+    if (!gameContext) return;
+
+    if (cmd.type == CommandType::CLOSE_MENU)
+    {
+        gameContext->changeState(std::make_unique<explorationState>());
+    }
+    else if (cmd.type == CommandType::SELECT_INVENTORY_SLOT)
+    {
+        gameContext->selectedInventorySide = cmd.intPayload1;
+        gameContext->selectedInventoryIndex = cmd.intPayload2;
+        gameContext->selectedEquipmentSlot = equipSlot::NONE;
+        gameContext->refreshActionGrid();
+    }
+    else if (cmd.type == CommandType::SELECT_EQUIPMENT_SLOT)
+    {
+        gameContext->selectedEquipmentSlot = static_cast<equipSlot>(cmd.intPayload1);
+        gameContext->selectedInventoryIndex = -1;
+        gameContext->refreshActionGrid();
+    }
 }

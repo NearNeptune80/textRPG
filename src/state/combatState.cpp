@@ -31,9 +31,26 @@ void CombatState::onEnter(game* gameContext)
 
 void CombatState::onExit(game* gameContext) {}
 
-void CombatState::handleInput(game* gameContext, const SDL_Event& event)
+void CombatState::handleInput(game* gameContext, const SDL_Event& event) {}
+
+void CombatState::handleCommand(game* gameContext, const UICommand& cmd)
 {
-    // Input handling will dispatch pure UI intents to m_engine
+    if (!gameContext) return;
+
+    switch (cmd.type)
+    {
+        case CommandType::END_TURN:
+            handleEndTurn(gameContext);
+            break;
+        case CommandType::RUN_ATTEMPT:
+            handleRunAttempt(gameContext);
+            break;
+        case CommandType::SURRENDER:
+            handleSurrender(gameContext);
+            break;
+        default:
+            break;
+    }
 }
 
 void CombatState::update(game* gameContext, float deltaTime)
@@ -93,11 +110,6 @@ void CombatState::update(game* gameContext, float deltaTime)
             return;
         }
     }
-}
-
-void CombatState::render(game* gameContext)
-{
-    // No-op: Pure state controller. Render layer handles all drawing independently.
 }
 
 void CombatState::handleEndTurn(game* gameContext)

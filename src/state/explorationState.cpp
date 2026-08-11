@@ -11,7 +11,10 @@ void explorationState::initialise(game* gameContext) {}
 
 void explorationState::onEnter(game* gameContext)
 {
-    gameContext->refreshActionGrid();
+    if (gameContext)
+    {
+        gameContext->refreshActionGrid();
+    }
 }
 
 void explorationState::onExit(game* gameContext) {}
@@ -20,7 +23,9 @@ void explorationState::update(game* gameContext, float deltaTime) {}
 
 void explorationState::handleInput(game* gameContext, const SDL_Event& event)
 {
-    if (event.type == SDL_EVENT_KEY_DOWN)
+    if (!gameContext) return;
+
+    if (event.type == SDL_EVENT_KEY_DOWN && !event.key.repeat)
     {
         if (event.key.key == SDLK_I)
         {
@@ -58,9 +63,13 @@ void explorationState::handleInput(game* gameContext, const SDL_Event& event)
 
         switch (event.key.key)
         {
+            case SDLK_W:
             case SDLK_UP:    nextY--; break;
+            case SDLK_S:
             case SDLK_DOWN:  nextY++; break;
+            case SDLK_A:
             case SDLK_LEFT:  nextX--; break;
+            case SDLK_D:
             case SDLK_RIGHT: nextX++; break;
             default: isMoveKey = false; break;
         }
@@ -72,7 +81,12 @@ void explorationState::handleInput(game* gameContext, const SDL_Event& event)
     }
 }
 
-void explorationState::render(game* gameContext)
+void explorationState::handleCommand(game* gameContext, const UICommand& cmd)
 {
-    // No-op: Pure state controller. Render layer handles all drawing independently.
+    if (!gameContext) return;
+
+    if (cmd.type == CommandType::MOVE_PLAYER)
+    {
+        gameContext->movePlayer(cmd.intPayload1, cmd.intPayload2);
+    }
 }

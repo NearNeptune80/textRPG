@@ -1,20 +1,14 @@
 #pragma once
 
-#include <vector>
-
-#include "ui/actionButton.h"
-
 class game;
 
+/**
+ * Pure Logical Action Grid Manager.
+ * Populates active action buttons and UI commands based on game state.
+ * Contains ZERO rendering calls or screen coordinate logic.
+ */
 class ActionGridManager
 {
 public:
-    static void refresh(game* g);
-
-private:
-    static void buildInventoryActions(game* g);
-    static void buildExplorationActions(game* g);
-    static void buildEquipmentActions(game* g);
-    static void buildPlayerItemActions(game* g);
-    static void buildRightInventoryActions(game* g);
+    static void refresh(game* gameContext);
 };

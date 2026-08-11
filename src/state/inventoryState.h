@@ -3,9 +3,8 @@
 #include "state/iGameState.h"
 
 /**
- * Headless state controller for inventory management and item interaction.
- * Tracks selected slots, inventory sides, and item interaction state.
- * Contains ZERO UI/SDL rendering calls.
+ * Headless state controller for inventory interactions.
+ * Tracks item selection indices and manages state toggles.
  */
 class inventoryState : public iGameState
 {
@@ -15,8 +14,8 @@ public:
 
 	void initialise(game* gameContext) override;
 	void handleInput(game* gameContext, const SDL_Event& event) override;
+	void handleCommand(game* gameContext, const UICommand& cmd) override;
 	void update(game* gameContext, float deltaTime) override;
-	void render(game* gameContext) override;
 
 	void onEnter(game* gameContext) override;
 	void onExit(game* gameContext) override;

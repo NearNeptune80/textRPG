@@ -10,9 +10,8 @@
 class game;
 
 /**
- * Headless state controller for combat execution.
- * Manages combat turn resolution, target selection, and action dispatching.
- * Contains ZERO UI/SDL rendering calls.
+ * Headless state controller for turn-based combat execution.
+ * Manages turn queue updates, party lifecycle, and combat victory/defeat rules.
  */
 class CombatState : public iGameState
 {
@@ -24,8 +23,8 @@ public:
 
 	void initialise(game* gameContext) override;
 	void handleInput(game* gameContext, const SDL_Event& event) override;
+	void handleCommand(game* gameContext, const UICommand& cmd) override;
 	void update(game* gameContext, float deltaTime) override;
-	void render(game* gameContext) override;
 
 	void onEnter(game* gameContext) override;
 	void onExit(game* gameContext) override;
@@ -35,17 +34,14 @@ public:
 	void handleRunAttempt(game* gameContext);
 	void handleSurrender(game* gameContext);
 
-	// Data Snapshot API for UI View Layer
+	// Snapshot APIs for UI View Layer
 	const combatEngine& getEngine() const { return m_engine; }
 	int getSelectedTargetIndex() const { return m_selectedTargetIndex; }
 	bool isTargetEnemy() const { return m_targetIsEnemy; }
-	bool isShowingSecondaryTab() const { return m_showingSecondaryTab; }
 
 private:
 	combatEngine m_engine;
 
 	int m_selectedTargetIndex = 0;
 	bool m_targetIsEnemy = true;
-	bool m_showingSecondaryTab = false;
-	int m_secondaryPage = 0;
 };
