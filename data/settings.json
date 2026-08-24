@@ -1,0 +1,31 @@
+{
+    "demographics": {
+        "percentHetero": 40.0,
+        "percentBi": 30.0,
+        "percentHomo": 20.0,
+        "percentAsexual": 10.0,
+        "percentMale": 30.0,
+        "percentFemale": 40.0,
+        "percentHermaphrodite": 15.0,
+        "percentGynomorph": 7.0,
+        "percentAndromorph": 5.0,
+        "percentNull": 3.0
+    },
+    "content": {
+        "pregnancyEnabled": true,
+        "lactationEnabled": true,
+        "fluidMultiplier": 1.0,
+        "transformationSpeedMultiplier": 1.0
+    },
+    "gameplay": {
+        "difficultyMultiplier": 1.0,
+        "currencyLossOnDefeatPercent": 0.15,
+        "autoSaveOnMapChange": true,
+        "autoSaveOnSceneExit": true,
+        "maxAutoSaves": 3
+    },
+    "display": {
+        "descriptionVerbosity": 0,
+        "activeTheme": "default"
+    }
+}

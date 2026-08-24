@@ -10,6 +10,7 @@
 #include "map/encounterResolver.h"
 #include "quest/questDatabase.h"
 #include "save/saveManager.h"
+#include "settings/settingsManager.h"
 #include "state/combatState.h"
 #include "state/eventState.h"
 #include "state/explorationState.h"
@@ -38,6 +39,8 @@ void game::changeState(std::unique_ptr<iGameState> newState)
 
 void game::init()
 {
+    settingsManager::loadFromFile(settings, "data/settings.json");
+
     if (itemDatabase::loadDatabase("data/items.json"))
     {
         npcGenerator::loadTemplates("data/npc_templates.json");

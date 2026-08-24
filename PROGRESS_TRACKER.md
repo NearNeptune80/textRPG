@@ -9,8 +9,8 @@
 | Milestone | Area | Status | Progress |
 | :--- | :--- | :---: | :---: |
 | **Milestone 1** | Architectural Decoupling & CLI Test Harness | 🟢 COMPLETED | 4 / 4 |
-| **Milestone 2** | Settings Engine & Demographic Config | 🟡 IN PROGRESS | 0 / 3 |
-| **Milestone 3** | Anatomy, Fluids, Gestation & Transformations | ⚪ PENDING | 0 / 5 |
+| **Milestone 2** | Settings Engine & Demographic Config | 🟢 COMPLETED | 3 / 3 |
+| **Milestone 3** | Anatomy, Fluids, Gestation & Transformations | 🟡 IN PROGRESS | 0 / 5 |
 | **Milestone 4** | Items, Layering, Displacement & Economy | ⚪ PENDING | 0 / 3 |
 | **Milestone 5** | All-Powerful JSON Scripting & Dialogue | ⚪ PENDING | 0 / 3 |
 | **Milestone 6** | World Map, Navigation & Tile Runtime | ⚪ PENDING | 0 / 3 |
@@ -31,9 +31,9 @@
 - [x] **Task 1.4**: Headless CLI Test Runner Target (`src/main_cli.cpp`, `CMakeLists.txt`)
 
 ### Milestone 2: Settings Engine & Demographic Configuration
-- [ ] **Task 2.1**: Game Settings Data Structure (`src/settings/gameSettings.h`)
-- [ ] **Task 2.2**: Settings Manager & JSON Persistence (`src/settings/settingsManager.cpp`, `data/settings.json`)
-- [ ] **Task 2.3**: Integrate Settings with Engine & Generation (`src/core/game.cpp`)
+- [x] **Task 2.1**: Game Settings Data Structure (`src/settings/gameSettings.h`)
+- [x] **Task 2.2**: Settings Manager & JSON Persistence (`src/settings/settingsManager.cpp`, `data/settings.json`)
+- [x] **Task 2.3**: Integrate Settings with Engine & Generation (`src/core/game.cpp`)
 
 ### Milestone 3: Comprehensive Anatomy, Fluids, Gestation & Transformations
 - [ ] **Task 3.1**: Complete Sockets & Gender Archetype Engine (`src/entities/anatomyComponent.cpp`)

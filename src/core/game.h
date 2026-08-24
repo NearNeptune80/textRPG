@@ -10,6 +10,7 @@
 #include "input/inputHandler.h"
 #include "map/gameMap.h"
 #include "quest/questDatabase.h"
+#include "settings/gameSettings.h"
 #include "state/iGameState.h"
 #include "ui/actionButton.h"
 
@@ -47,6 +48,7 @@ public:
     void changeState(std::unique_ptr<iGameState> newState);
     iGameState* getActiveState() const { return activeGameState.get(); }
 
+    GameSettings settings;
     timeManager gameTime;
     inputHandler input;
     bool isRunning{false};
