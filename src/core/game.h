@@ -57,7 +57,8 @@ public:
     equipSlot selectedEquipmentSlot = equipSlot::NONE;
 
     gameMap* map = nullptr;
-    entity* Player = nullptr;
+    std::shared_ptr<entity> playerEntity = nullptr;
+    entity* Player = nullptr; // Pointer convenience alias to playerEntity.get()
     int gridX = 1, gridY = 1;
 
     std::unordered_map<std::string, gameMap> mapCache;
@@ -66,6 +67,19 @@ public:
 
     entity* activeTargetNPC = nullptr;
     TargetMode activeTargetMode = TargetMode::NONE;
+
+    // Command Dispatch
+    void handleCommand(const UICommand& cmd);
+
+    // Universal Snapshot & Read-Only Getters
+    const questScene& getCurrentScene() const { return currentScene; }
+    entity* getPlayer() const { return playerEntity.get(); }
+    std::shared_ptr<entity> getPlayerShared() const { return playerEntity; }
+    const gameMap* getActiveMap() const { return map; }
+    const std::vector<actionButton>& getActiveActionButtons() const { return activeButtons; }
+    const timeManager& getTime() const { return gameTime; }
+    std::vector<InventorySlot> getPlayerInventoryStacked() const;
+    std::vector<InventorySlot> getTileInventoryStacked() const;
 
     bool loadMap(const std::string& mapId, int startX, int startY);
     void movePlayer(int nextX, int nextY);

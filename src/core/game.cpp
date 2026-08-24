@@ -16,12 +16,13 @@
 #include "state/inventoryState.h"
 #include "ui/actionGridManager.h"
 
-game::game() : isRunning(false), map(nullptr), Player(nullptr), gridX(1), gridY(1) {}
+game::game() : isRunning(false), map(nullptr), playerEntity(nullptr), Player(nullptr), gridX(1), gridY(1) {}
 
 game::~game()
 {
     map = nullptr;
-    if (Player) delete Player;
+    playerEntity = nullptr;
+    Player = nullptr;
 }
 
 void game::changeState(std::unique_ptr<iGameState> newState)
@@ -43,9 +44,10 @@ void game::init()
         questDatabase::loadDatabase("data/quests");
     }
 
-    if (!Player)
+    if (!playerEntity)
     {
-        Player = new entity("player_main", "Hero");
+        playerEntity = std::make_shared<entity>("player_main", "Hero");
+        Player = playerEntity.get();
 
         Player->stats.setBaseStat("health", 100.0f);
         Player->stats.setBaseStat("mana", 50.0f);
@@ -53,6 +55,10 @@ void game::init()
         Player->stats.setBaseStat("physique", 25.0f);
         Player->stats.setBaseStat("agility", 15.0f);
         Player->stats.setBaseStat("currency", 150.0f);
+    }
+    else
+    {
+        Player = playerEntity.get();
     }
 
     loadMap("overworld", 1, 1);
@@ -378,9 +384,9 @@ void game::processChoice(const dialogueChoice& choice)
     if (choice.nextSceneId == "ENCOUNTER_FIGHT")
     {
         std::vector<std::shared_ptr<entity>> playerParty;
-        if (Player)
+        if (playerEntity)
         {
-            playerParty.push_back(std::shared_ptr<entity>(std::shared_ptr<entity>(), Player));
+            playerParty.push_back(playerEntity);
         }
 
         std::vector<std::shared_ptr<entity>> enemyParty;
@@ -576,4 +582,32 @@ std::string game::formatEquipSlotName(equipSlot slot)
 void game::clean()
 {
     eventBus::getInstance().clearAllListeners();
+}
+
+void game::handleCommand(const UICommand& cmd)
+{
+    if (activeGameState)
+    {
+        activeGameState->handleCommand(this, cmd);
+    }
+}
+
+std::vector<InventorySlot> game::getPlayerInventoryStacked() const
+{
+    if (!playerEntity) return {};
+    return playerEntity->inventory.getStackedView();
+}
+
+std::vector<InventorySlot> game::getTileInventoryStacked() const
+{
+    if (!map) return {};
+    const TileRuntimeData& tileData = const_cast<gameMap*>(map)->getRuntimeData(gridX, gridY);
+    std::vector<InventorySlot> view;
+    for (size_t i = 0; i < tileData.droppedItems.size(); ++i)
+    {
+        const auto& itm = tileData.droppedItems[i];
+        if (!itm) continue;
+        view.push_back(InventorySlot{itm, itm->isStackable ? itm->count : 1, static_cast<int>(i)});
+    }
+    return view;
 }

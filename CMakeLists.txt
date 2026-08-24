@@ -1,4 +1,4 @@
-﻿cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.11)
 
 set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -43,15 +43,18 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(json)
 
-file(GLOB_RECURSE PROJECT_SOURCES CONFIGURE_DEPENDS
+file(GLOB_RECURSE ALL_SOURCES CONFIGURE_DEPENDS
         "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
 )
 
-add_executable(textRPG ${PROJECT_SOURCES})
+# Filter out main.cpp and main_cli.cpp for the shared engine files
+set(ENGINE_SOURCES ${ALL_SOURCES})
+list(FILTER ENGINE_SOURCES EXCLUDE REGEX ".*/main(_cli)?\\.cpp$")
 
+# Target 1: GUI Executable (textRPG)
+add_executable(textRPG ${ENGINE_SOURCES} "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
 target_include_directories(textRPG PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
-
 target_link_libraries(textRPG PRIVATE
         SDL3::SDL3
         SDL3_image::SDL3_image
@@ -59,10 +62,27 @@ target_link_libraries(textRPG PRIVATE
         nlohmann_json::nlohmann_json
 )
 
+# Target 2: Headless CLI Executable (textRPG_cli)
+add_executable(textRPG_cli ${ENGINE_SOURCES} "${CMAKE_CURRENT_SOURCE_DIR}/src/main_cli.cpp")
+target_include_directories(textRPG_cli PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+target_link_libraries(textRPG_cli PRIVATE
+        SDL3::SDL3
+        SDL3_image::SDL3_image
+        SDL3_ttf::SDL3_ttf
+        nlohmann_json::nlohmann_json
+)
+
+# Post-Build Data Directory Copy
 add_custom_command(TARGET textRPG POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/data"
         "$<TARGET_FILE_DIR:textRPG>/data"
+)
+
+add_custom_command(TARGET textRPG_cli POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/data"
+        "$<TARGET_FILE_DIR:textRPG_cli>/data"
 )
 
 if(WIN32)
