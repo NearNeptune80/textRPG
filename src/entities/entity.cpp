@@ -115,10 +115,29 @@ json entity::toJson() const
             pJson["cupSize"] = part.cupSize;
             pJson["style"] = part.style;
             pJson["tags"] = part.tags;
+            pJson["currentFluidMl"] = part.currentFluidMl;
+            pJson["maxFluidMl"] = part.maxFluidMl;
+            pJson["fluidRegenPerHour"] = part.fluidRegenPerHour;
+            pJson["isLactating"] = part.isLactating;
+
+            if (part.orifice.exists)
+            {
+                json orfJson;
+                orfJson["exists"] = part.orifice.exists;
+                orfJson["elasticity"] = part.orifice.elasticity;
+                orfJson["currentStretch"] = part.orifice.currentStretch;
+                orfJson["maxCapacityMl"] = part.orifice.maxCapacityMl;
+                orfJson["depthCm"] = part.orifice.depthCm;
+                orfJson["wetnessLevel"] = part.orifice.wetnessLevel;
+                orfJson["storedFluids"] = part.orifice.storedFluids;
+                pJson["orifice"] = orfJson;
+            }
+
             anatomyJson[bodySlotToString(static_cast<bodySlot>(i))] = pJson;
         }
     }
     j["anatomy"] = anatomyJson;
+    j["gestation"] = gestation.toJson();
 
     json backpackJson = json::array();
     for (const auto& itemPtr : inventory.backpack)
@@ -144,6 +163,11 @@ void entity::fromJson(const json& j)
 {
     id = j.value("id", "entity_unknown");
     name = j.value("name", "Unknown");
+
+    if (j.contains("gestation"))
+    {
+        gestation.fromJson(j["gestation"]);
+    }
 
     if (j.contains("stats"))
     {
@@ -221,6 +245,27 @@ void entity::fromJson(const json& j)
             part.cupSize = pJson.value("cupSize", 0);
             part.style = pJson.value("style", "");
             part.tags = pJson.value("tags", std::vector<std::string>{});
+
+            part.currentFluidMl = pJson.value("currentFluidMl", 0.0f);
+            part.maxFluidMl = pJson.value("maxFluidMl", 0.0f);
+            part.fluidRegenPerHour = pJson.value("fluidRegenPerHour", 0.0f);
+            part.isLactating = pJson.value("isLactating", false);
+
+            if (pJson.contains("orifice"))
+            {
+                const auto& orfJson = pJson["orifice"];
+                part.orifice.exists = orfJson.value("exists", true);
+                part.orifice.elasticity = orfJson.value("elasticity", 50.0f);
+                part.orifice.currentStretch = orfJson.value("currentStretch", 0.0f);
+                part.orifice.maxCapacityMl = orfJson.value("maxCapacityMl", 100.0f);
+                part.orifice.depthCm = orfJson.value("depthCm", 15.0f);
+                part.orifice.wetnessLevel = orfJson.value("wetnessLevel", 1);
+                if (orfJson.contains("storedFluids"))
+                {
+                    part.orifice.storedFluids = orfJson["storedFluids"].get<std::unordered_map<std::string, float>>();
+                }
+            }
+
             anatomy.setPart(slot, part);
         }
     }

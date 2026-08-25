@@ -123,6 +123,17 @@ inline std::string coveringTypeToString(CoveringType cov)
     }
 }
 
+struct OrificeData
+{
+    bool exists = false;
+    float elasticity = 50.0f;     // 0 (rigid) to 100 (infinitely elastic)
+    float currentStretch = 0.0f;   // 0 (tight) to 100 (gaping)
+    float maxCapacityMl = 100.0f;
+    float depthCm = 15.0f;
+    int wetnessLevel = 1;          // 0 = dry, 1 = slightly moist, 2 = wet, 3 = very wet, 4 = dripping, 5 = soaked
+    std::unordered_map<std::string, float> storedFluids; // fluidType ("cum", "milk", "girlcum") -> ml
+};
+
 struct bodyPart
 {
     std::string id;
@@ -139,13 +150,22 @@ struct bodyPart
     int cupSize = 0;
     std::string style = "";
 
+    // Fluid Production & Storage
+    float currentFluidMl = 0.0f;
+    float maxFluidMl = 0.0f;
+    float fluidRegenPerHour = 0.0f;
+    bool isLactating = false;
+
+    // Attached Orifice (e.g., Throat on MOUTH, Nipple on BREASTS, Vagina on GROIN, Anus on ASS)
+    OrificeData orifice;
+
     std::vector<std::string> tags;
 
     static std::string getCupSizeName(int size)
     {
-        static const std::vector<std::string> cups = { "A", "B", "C", "D", "DD", "F", "FF", "G", "H" };
+        static const std::vector<std::string> cups = { "Flat", "A", "B", "C", "D", "DD", "E", "F", "FF", "G", "GG", "H", "HH", "J" };
         if (size >= 0 && size < static_cast<int>(cups.size())) return cups[size];
-        return "Flat";
+        return (size >= static_cast<int>(cups.size())) ? "Enormous" : "Flat";
     }
 };
 

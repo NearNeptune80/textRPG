@@ -10,12 +10,30 @@
 #include "entities/bodyPart.h"
 #include "entities/mutation.h"
 #include "entities/tattoo.h"
+#include "settings/gameSettings.h"
 
 enum class BodyPresentation
 {
 	MASCULINE,
 	FEMININE,
 	ANDROGYNOUS
+};
+
+enum class RacialTier
+{
+	DOMINANT_MORPH,
+	DUAL_HYBRID,
+	CHAOTIC_CHIMERA
+};
+
+struct RacialClassification
+{
+	RacialTier tier = RacialTier::DOMINANT_MORPH;
+	std::string primaryRace = "Human";
+	std::string secondaryRace = "";
+	std::string title = "Human";
+	float primaryPercentage = 100.0f;
+	float secondaryPercentage = 0.0f;
 };
 
 class anatomyComponent
@@ -35,6 +53,14 @@ public:
 	std::vector<std::string> getAllTags() const;
 	const std::array<std::optional<bodyPart>, BODY_SLOT_COUNT>& getAllParts() const { return parts; }
 
+	// Orifices and Fluids
+	bool hasOrifice(bodySlot slot) const;
+	OrificeData* getOrifice(bodySlot slot);
+	const OrificeData* getOrifice(bodySlot slot) const;
+	void transferFluidToOrifice(bodySlot slot, const std::string& fluidType, float amount);
+	void stretchOrifice(bodySlot slot, float diameter);
+	void processBiologicalRecovery(int minutesPassed);
+
 	void setTattoo(tattooSlot slot, const tattoo& tat);
 	void removeTattoo(tattooSlot slot);
 	bool hasTattoo(tattooSlot slot) const;
@@ -45,12 +71,23 @@ public:
 	void applyTransformation(bodySlot slot, mutationType type, float amountOrVal,
 							 const std::string& strVal, int durationMinutes, const std::string& mutName = "transformation");
 
+	// 3-Tier Racial Classification & Archetype
 	std::unordered_map<std::string, float> calculateRacePercentages() const;
+	std::unordered_map<std::string, float> calculateWeightedRacePercentages() const;
+	RacialClassification getRacialClassification() const;
 	std::string getDominantRace() const;
+	std::string getRacialTitle() const;
+	bool isDualHybrid() const;
+	bool isChaoticChimera() const;
+
+	GenderArchetype getGenderArchetype() const;
 	BodyPresentation getVisualPresentation() const;
 	bool isFeminine() const { return getVisualPresentation() == BodyPresentation::FEMININE; }
-	float getAggregateStatBonus(const std::string& statName) const;
+	bool hasPenis() const;
+	bool hasVagina() const;
+	bool hasBreasts() const;
 
+	float getAggregateStatBonus(const std::string& statName) const;
 	void printDebug() const;
 
 private:

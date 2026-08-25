@@ -4,6 +4,7 @@
 #include <vector>
 #include <memory>
 
+#include "core/characterDescription.h"
 #include "core/game.h"
 #include "core/uiCommand.h"
 #include "save/saveManager.h"
@@ -249,6 +250,15 @@ int main(int argc, char* argv[])
                 std::cout << "Usage: time <minutes>\n";
             }
         }
+        else if (cmd == "desc" || cmd == "inspect")
+        {
+            if (const entity* p = engine.getPlayer())
+            {
+                std::cout << "\n================ [CHARACTER INSPECT] ================\n"
+                          << characterDescription::generateFullDescription(p)
+                          << "======================================================\n";
+            }
+        }
         else if (cmd == "stats")
         {
             if (const entity* p = engine.getPlayer())
@@ -259,6 +269,8 @@ int main(int argc, char* argv[])
                     std::cout << "  " << stat << ": " << val << " (effective: " << p->getStat(stat) << ")\n";
                 }
                 std::cout << "\n--- Racial Composition ---\n";
+                std::cout << " Archetype: " << genderArchetypeToString(p->anatomy.getGenderArchetype()) << "\n";
+                std::cout << " Title: " << p->anatomy.getRacialTitle() << "\n";
                 for (const auto& [race, pct] : p->anatomy.calculateRacePercentages())
                 {
                     std::cout << "  " << race << ": " << pct << "%\n";

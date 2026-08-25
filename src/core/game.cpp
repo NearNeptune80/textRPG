@@ -58,6 +58,50 @@ void game::init()
         Player->stats.setBaseStat("physique", 25.0f);
         Player->stats.setBaseStat("agility", 15.0f);
         Player->stats.setBaseStat("currency", 150.0f);
+
+        // Default Human Anatomy
+        bodyPart hair; hair.id = "hair_human"; hair.name = "Hair"; hair.race = "Human"; hair.primaryColor = "brown"; hair.style = "short"; hair.covering = CoveringType::HAIR_COVERING;
+        Player->anatomy.setPart(bodySlot::HAIR, hair);
+
+        bodyPart head; head.id = "head_human"; head.name = "Head"; head.race = "Human"; head.primaryColor = "fair"; head.covering = CoveringType::SKIN;
+        Player->anatomy.setPart(bodySlot::HEAD, head);
+
+        bodyPart eyes; eyes.id = "eyes_human"; eyes.name = "Eyes"; eyes.race = "Human"; eyes.primaryColor = "blue"; eyes.covering = CoveringType::IRIS;
+        Player->anatomy.setPart(bodySlot::EYES, eyes);
+
+        bodyPart ears; ears.id = "ears_human"; ears.name = "Ears"; ears.race = "Human"; ears.primaryColor = "fair"; ears.covering = CoveringType::SKIN;
+        Player->anatomy.setPart(bodySlot::EARS, ears);
+
+        bodyPart mouth; mouth.id = "mouth_human"; mouth.name = "Mouth"; mouth.race = "Human"; mouth.covering = CoveringType::FLESH;
+        mouth.orifice.exists = true; mouth.orifice.elasticity = 70.0f; mouth.orifice.maxCapacityMl = 50.0f; mouth.orifice.depthCm = 15.0f;
+        Player->anatomy.setPart(bodySlot::MOUTH, mouth);
+
+        bodyPart torso; torso.id = "torso_human"; torso.name = "Torso"; torso.race = "Human"; torso.primaryColor = "fair"; torso.covering = CoveringType::SKIN;
+        Player->anatomy.setPart(bodySlot::TORSO, torso);
+
+        bodyPart breasts; breasts.id = "breasts_human"; breasts.name = "Breasts"; breasts.race = "Human"; breasts.cupSize = 0; breasts.primaryColor = "fair";
+        Player->anatomy.setPart(bodySlot::BREASTS, breasts);
+
+        bodyPart arms; arms.id = "arms_human"; arms.name = "Arms"; arms.race = "Human"; arms.primaryColor = "fair"; arms.covering = CoveringType::SKIN;
+        Player->anatomy.setPart(bodySlot::ARMS, arms);
+
+        bodyPart hands; hands.id = "hands_human"; hands.name = "Hands"; hands.race = "Human"; hands.primaryColor = "fair"; hands.covering = CoveringType::SKIN;
+        Player->anatomy.setPart(bodySlot::HANDS, hands);
+
+        bodyPart groin; groin.id = "penis_human"; groin.name = "Penis"; groin.race = "Human"; groin.length = 16.0f; groin.diameter = 3.8f;
+        groin.currentFluidMl = 10.0f; groin.maxFluidMl = 20.0f; groin.fluidRegenPerHour = 2.0f;
+        groin.tags.push_back("penis");
+        Player->anatomy.setPart(bodySlot::GROIN, groin);
+
+        bodyPart ass; ass.id = "ass_human"; ass.name = "Ass"; ass.race = "Human"; ass.primaryColor = "fair"; ass.covering = CoveringType::SKIN;
+        ass.orifice.exists = true; ass.orifice.elasticity = 60.0f; ass.orifice.maxCapacityMl = 80.0f; ass.orifice.depthCm = 18.0f;
+        Player->anatomy.setPart(bodySlot::ASS, ass);
+
+        bodyPart legs; legs.id = "legs_human"; legs.name = "Legs"; legs.race = "Human"; legs.primaryColor = "fair"; legs.covering = CoveringType::SKIN;
+        Player->anatomy.setPart(bodySlot::LEGS, legs);
+
+        bodyPart feet; feet.id = "feet_human"; feet.name = "Feet"; feet.race = "Human"; feet.primaryColor = "fair"; feet.covering = CoveringType::SKIN;
+        Player->anatomy.setPart(bodySlot::FEET, feet);
     }
     else
     {
@@ -78,6 +122,13 @@ void game::init()
         if (this->Player)
         {
             this->Player->anatomy.processMutations(data.numericValue);
+            this->Player->anatomy.processBiologicalRecovery(data.numericValue);
+            if (this->Player->gestation.isPregnant)
+            {
+                // Advance daily gestation if minutes cross days
+                int days = data.numericValue / 1440;
+                if (days > 0) this->Player->gestation.processGestation(days);
+            }
         }
     });
 

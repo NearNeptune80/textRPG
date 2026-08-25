@@ -7,6 +7,7 @@
 #include <nlohmann/json.hpp>
 
 #include "entities/anatomyComponent.h"
+#include "entities/gestationComponent.h"
 #include "entities/questComponent.h"
 #include "entities/statsComponent.h"
 #include "entities/statusEffect.h"
@@ -22,6 +23,7 @@ public:
     anatomyComponent anatomy;
     inventoryComponent inventory;
     statsComponent stats;
+    gestationComponent gestation;
 
     std::unordered_map<std::string, int> essences;
     std::vector<StatusEffect> statusEffects;

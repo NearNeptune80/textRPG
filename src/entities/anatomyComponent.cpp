@@ -157,50 +157,227 @@ void anatomyComponent::processMutations(int minutesPassed)
     }
 }
 
+// Orifices and Bodily Fluids
+bool anatomyComponent::hasOrifice(bodySlot slot) const
+{
+    const bodyPart* part = getPart(slot);
+    return part && part->orifice.exists;
+}
+
+OrificeData* anatomyComponent::getOrifice(bodySlot slot)
+{
+    bodyPart* part = getPart(slot);
+    if (part && part->orifice.exists) return &part->orifice;
+    return nullptr;
+}
+
+const OrificeData* anatomyComponent::getOrifice(bodySlot slot) const
+{
+    const bodyPart* part = getPart(slot);
+    if (part && part->orifice.exists) return &part->orifice;
+    return nullptr;
+}
+
+void anatomyComponent::transferFluidToOrifice(bodySlot slot, const std::string& fluidType, float amount)
+{
+    OrificeData* orf = getOrifice(slot);
+    if (!orf || amount <= 0.0f) return;
+
+    float currentTotal = 0.0f;
+    for (const auto& [f, amt] : orf->storedFluids) currentTotal += amt;
+
+    float spaceAvailable = std::max(0.0f, orf->maxCapacityMl - currentTotal);
+    float actualTransfer = std::min(amount, spaceAvailable);
+    orf->storedFluids[fluidType] += actualTransfer;
+}
+
+void anatomyComponent::stretchOrifice(bodySlot slot, float diameter)
+{
+    OrificeData* orf = getOrifice(slot);
+    if (!orf || diameter <= 0.0f) return;
+
+    if (diameter > orf->currentStretch)
+    {
+        float excess = diameter - orf->currentStretch;
+        float stretchGain = excess * (1.0f - (orf->elasticity / 150.0f));
+        orf->currentStretch = std::clamp(orf->currentStretch + stretchGain, 0.0f, 100.0f);
+    }
+}
+
+void anatomyComponent::processBiologicalRecovery(int minutesPassed)
+{
+    if (minutesPassed <= 0) return;
+    float hours = static_cast<float>(minutesPassed) / 60.0f;
+
+    // Orifice Stretch Recovery & Fluid Production
+    for (auto& optPart : parts)
+    {
+        if (!optPart.has_value()) continue;
+        bodyPart& part = optPart.value();
+
+        // 1. Orifice stretch recovery
+        if (part.orifice.exists && part.orifice.currentStretch > 0.0f)
+        {
+            float recoveryRate = (part.orifice.elasticity / 20.0f) * hours;
+            part.orifice.currentStretch = std::max(0.0f, part.orifice.currentStretch - recoveryRate);
+        }
+
+        // 2. Fluid regeneration (Milk, Cum, Girlcum)
+        if (part.fluidRegenPerHour > 0.0f && part.maxFluidMl > 0.0f)
+        {
+            part.currentFluidMl = std::min(part.maxFluidMl, part.currentFluidMl + (part.fluidRegenPerHour * hours));
+        }
+    }
+}
+
+// 3-Tier Weighted Racial Classification
 std::unordered_map<std::string, float> anatomyComponent::calculateRacePercentages() const
 {
-    std::unordered_map<std::string, float> raceCounts;
-    int totalParts = 0;
+    return calculateWeightedRacePercentages();
+}
 
-    for (const auto& optPart : parts)
+std::unordered_map<std::string, float> anatomyComponent::calculateWeightedRacePercentages() const
+{
+    std::unordered_map<std::string, float> raceScores;
+    float totalWeight = 0.0f;
+
+    for (size_t i = 0; i < BODY_SLOT_COUNT; ++i)
     {
-        if (optPart.has_value())
+        if (parts[i].has_value())
         {
-            const std::string& race = optPart->race;
-            if (!race.empty())
-            {
-                raceCounts[race] += 1.0f;
-                totalParts++;
-            }
+            const std::string& race = parts[i]->race;
+            if (race.empty()) continue;
+
+            bodySlot slot = static_cast<bodySlot>(i);
+            float weight = 1.0f;
+            if (slot == bodySlot::HEAD || slot == bodySlot::TORSO || slot == bodySlot::GROIN) weight = 3.0f;
+            else if (slot == bodySlot::TAIL || slot == bodySlot::EARS || slot == bodySlot::WINGS || slot == bodySlot::HORNS) weight = 2.0f;
+
+            raceScores[race] += weight;
+            totalWeight += weight;
         }
     }
 
-    if (totalParts == 0) return { {"Human", 100.0f} };
+    if (totalWeight <= 0.0f) return { {"Human", 100.0f} };
 
-    std::unordered_map<std::string, float> racePercentages;
-    for (const auto& [race, count] : raceCounts)
+    std::unordered_map<std::string, float> percentages;
+    for (const auto& [race, score] : raceScores)
     {
-        racePercentages[race] = (count / static_cast<float>(totalParts)) * 100.0f;
+        percentages[race] = (score / totalWeight) * 100.0f;
+    }
+    return percentages;
+}
+
+RacialClassification anatomyComponent::getRacialClassification() const
+{
+    auto percentages = calculateWeightedRacePercentages();
+    std::vector<std::pair<std::string, float>> sorted(percentages.begin(), percentages.end());
+    std::sort(sorted.begin(), sorted.end(), [](const auto& a, const auto& b) { return a.second > b.second; });
+
+    RacialClassification result;
+    if (sorted.empty()) return result;
+
+    result.primaryRace = sorted[0].first;
+    result.primaryPercentage = sorted[0].second;
+
+    if (sorted.size() > 1)
+    {
+        result.secondaryRace = sorted[1].first;
+        result.secondaryPercentage = sorted[1].second;
     }
 
-    return racePercentages;
+    // Tier 1: Dominant Morph (>= 50%)
+    if (result.primaryPercentage >= 50.0f)
+    {
+        result.tier = RacialTier::DOMINANT_MORPH;
+        if (result.primaryPercentage >= 99.0f)
+        {
+            result.title = (result.primaryRace == "Human") ? "Human" : "Pure " + result.primaryRace;
+        }
+        else
+        {
+            result.title = result.primaryRace + "-Morph";
+        }
+    }
+    // Tier 2: Dual-Hybrid (Top 2 both >= 40%)
+    else if (sorted.size() >= 2 && sorted[0].second >= 40.0f && sorted[1].second >= 40.0f)
+    {
+        result.tier = RacialTier::DUAL_HYBRID;
+        result.title = sorted[0].first + "-" + sorted[1].first + " Hybrid";
+    }
+    // Tier 3: Chaotic Chimera (< 40% across 3+ species)
+    else
+    {
+        result.tier = RacialTier::CHAOTIC_CHIMERA;
+        result.title = "Chaotic Chimera";
+    }
+
+    return result;
 }
 
 std::string anatomyComponent::getDominantRace() const
 {
-    auto percentages = calculateRacePercentages();
-    std::string dominant = "Human";
-    float maxPercent = -1.0f;
+    return getRacialClassification().primaryRace;
+}
 
-    for (const auto& [race, percent] : percentages)
+std::string anatomyComponent::getRacialTitle() const
+{
+    return getRacialClassification().title;
+}
+
+bool anatomyComponent::isDualHybrid() const
+{
+    return getRacialClassification().tier == RacialTier::DUAL_HYBRID;
+}
+
+bool anatomyComponent::isChaoticChimera() const
+{
+    return getRacialClassification().tier == RacialTier::CHAOTIC_CHIMERA;
+}
+
+// Gender Archetypes
+bool anatomyComponent::hasPenis() const
+{
+    const bodyPart* groin = getPart(bodySlot::GROIN);
+    if (!groin) return false;
+    return groin->name == "Penis" || groin->length > 0.0f || hasTag(bodySlot::GROIN, "penis") || hasTag(bodySlot::GROIN, "has_penis");
+}
+
+bool anatomyComponent::hasVagina() const
+{
+    const bodyPart* groin = getPart(bodySlot::GROIN);
+    if (!groin) return false;
+    return groin->name == "Vagina" || groin->orifice.exists || hasTag(bodySlot::GROIN, "vagina") || hasTag(bodySlot::GROIN, "has_vagina") || hasTag(bodySlot::GROIN, "female_genitalia");
+}
+
+bool anatomyComponent::hasBreasts() const
+{
+    const bodyPart* breasts = getPart(bodySlot::BREASTS);
+    return breasts && breasts->cupSize > 0;
+}
+
+GenderArchetype anatomyComponent::getGenderArchetype() const
+{
+    bool penis = hasPenis();
+    bool vagina = hasVagina();
+    bool breasts = hasBreasts();
+    BodyPresentation pres = getVisualPresentation();
+
+    if (penis && vagina)
     {
-        if (percent > maxPercent)
-        {
-            maxPercent = percent;
-            dominant = race;
-        }
+        return GenderArchetype::HERMAPHRODITE;
     }
-    return dominant;
+    if (penis && !vagina)
+    {
+        if (breasts || pres == BodyPresentation::FEMININE) return GenderArchetype::GYNOMORPH;
+        return GenderArchetype::MALE;
+    }
+    if (vagina && !penis)
+    {
+        if (!breasts && pres == BodyPresentation::MASCULINE) return GenderArchetype::ANDROMORPH;
+        return GenderArchetype::FEMALE;
+    }
+    return GenderArchetype::ASEXUAL_NULL;
 }
 
 void anatomyComponent::applyTransformation(bodySlot slot, mutationType type, float amountOrVal,
@@ -237,17 +414,8 @@ BodyPresentation anatomyComponent::getVisualPresentation() const
         else if (breasts->cupSize == 1) femininePoints += 1;
     }
 
-    if (const bodyPart* groin = getPart(bodySlot::GROIN))
-    {
-        if (groin->name == "Vagina" || hasTag(bodySlot::GROIN, "female_genitalia"))
-        {
-            femininePoints += 2;
-        }
-        else if (groin->name == "Penis" || groin->length > 0.0f)
-        {
-            masculinePoints += 2;
-        }
-    }
+    if (hasVagina()) femininePoints += 2;
+    if (hasPenis()) masculinePoints += 2;
 
     if (hasGlobalTag("feminine")) femininePoints += 2;
     if (hasGlobalTag("masculine")) masculinePoints += 2;
@@ -275,11 +443,13 @@ float anatomyComponent::getAggregateStatBonus(const std::string& statName) const
 void anatomyComponent::printDebug() const
 {
     std::cout << "\n=== ANATOMY DEBUG ===\n";
+    std::cout << " Archetype: " << genderArchetypeToString(getGenderArchetype()) << " | Title: " << getRacialTitle() << "\n";
     for (size_t i = 0; i < BODY_SLOT_COUNT; ++i)
     {
         if (parts[i].has_value())
         {
-            std::cout << "[" << getSlotName(static_cast<bodySlot>(i)) << "] " << parts[i].value().name << "\n";
+            const auto& p = parts[i].value();
+            std::cout << "[" << getSlotName(static_cast<bodySlot>(i)) << "] " << p.name << " (" << p.race << ")\n";
         }
     }
     std::cout << "=====================\n\n";
