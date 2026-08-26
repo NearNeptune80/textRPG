@@ -1,6 +1,6 @@
 # PROGRESS_TRACKER.md - Active Implementation Progress
 > **Project**: textRPG (C++26 Decoupled Headless Simulation)
-> **Active Milestone**: Milestone 6 (World Map, Navigation & Tile Runtime Mechanics)
+> **Active Milestone**: Milestone 8 (Dedicated CYOA Interactive Sex Engine)
 ---
 
 ## Milestone Status Overview
@@ -12,9 +12,9 @@
 | **Milestone 3** | Anatomy, Fluids, Gestation & Transformations | 🟢 COMPLETED | 5 / 5 |
 | **Milestone 4** | Items, Layering, Displacement & Economy | 🟢 COMPLETED | 3 / 3 |
 | **Milestone 5** | All-Powerful JSON Scripting & Dialogue | 🟢 COMPLETED | 3 / 3 |
-| **Milestone 6** | World Map, Navigation & Tile Runtime | 🟡 IN PROGRESS | 0 / 3 |
-| **Milestone 7** | Combat: Multi-Party & Resolution Hub | ⚪ PENDING | 0 / 4 |
-| **Milestone 8** | Dedicated CYOA Interactive Sex Engine | ⚪ PENDING | 0 / 4 |
+| **Milestone 6** | World Map, Navigation & Tile Runtime | 🟢 COMPLETED | 3 / 3 |
+| **Milestone 7** | Combat: Multi-Party & Resolution Hub | 🟢 COMPLETED | 4 / 4 |
+| **Milestone 8** | Dedicated CYOA Interactive Sex Engine | 🟡 IN PROGRESS | 0 / 4 |
 | **Milestone 9** | World Simulation & Time Biological Decay | ⚪ PENDING | 0 / 3 |
 | **Milestone 10** | Save System Hardening & JSON World Serialization | ⚪ PENDING | 0 / 3 |
 | **Milestone 11** | Decoupled UI Frontend & Themeable Presentation | ⚪ PENDING | 0 / 3 |
@@ -52,9 +52,9 @@
 - [x] **Task 5.3**: Quest & Scene Database Registry (`src/quest/questDatabase.cpp`)
 
 ### Milestone 6: World Map, Navigation & Tile Runtime Mechanics
-- [ ] **Task 6.1**: Map Grid & Fog-of-War Discovery (`src/map/gameMap.cpp`)
-- [ ] **Task 6.2**: Tile Runtime Storage & Unsafe Decay (`src/map/gameMap.cpp`)
-- [ ] **Task 6.3**: NPC Encounter Generation (`src/map/encounterResolver.cpp`)
+- [x] **Task 6.1**: Map Grid & Fog-of-War Discovery (`src/map/gameMap.cpp`)
+- [x] **Task 6.2**: Tile Runtime Storage & Unsafe Decay (`src/map/gameMap.cpp`)
+- [x] **Task 6.3**: NPC Encounter Generation (`src/map/encounterResolver.cpp`)
 
 ### Milestone 7: Combat System: Multi-Party Encounters & Resolution Hub
 - [ ] **Task 7.1**: Multi-Party Participant Queue & AP Engine (`src/combat/combatEngine.cpp`)

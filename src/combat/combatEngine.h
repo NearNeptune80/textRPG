@@ -30,7 +30,7 @@ public:
 						  const std::vector<std::shared_ptr<entity>>& enemyParty);
 
 	void startNewRound();
-	bool queuePlayerAction(size_t participantIndex, const CombatAction& action, entity* target, bool isFromSecondaryGrid);
+	bool queuePlayerAction(size_t participantIndex, const CombatAction& action, entity* target, bool isFromSecondaryGrid = false);
 	void clearPlayerQueue(size_t participantIndex);
 
 	void resolveTurn(game* g);
@@ -38,12 +38,16 @@ public:
 	int calculateParticipantMaxAp(const entity* ent) const;
 
 	std::vector<CombatParticipant>& getPlayerParty() { return m_playerParty; }
+	const std::vector<CombatParticipant>& getPlayerParty() const { return m_playerParty; }
 	std::vector<CombatParticipant>& getEnemyParty() { return m_enemyParty; }
+	const std::vector<CombatParticipant>& getEnemyParty() const { return m_enemyParty; }
+
 	const std::vector<std::string>& getCombatLog() const { return m_combatLog; }
-	void appendLog(const std::string& message); // Public access for combat log writing
+	void appendLog(const std::string& message);
 
 	bool isCombatOver() const;
 	bool isPlayerVictory() const;
+	int getCurrentRound() const { return m_currentRound; }
 
 private:
 	std::vector<CombatParticipant> m_playerParty;

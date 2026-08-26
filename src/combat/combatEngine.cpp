@@ -11,12 +11,11 @@ int combatEngine::calculateParticipantMaxAp(const entity* ent) const
 {
     if (!ent) return 3;
 
-    // Base AP is 3. Modifiers can be derived from Physique/Agility or Status Effects
     float physique = ent->getStat("physique");
-    int bonusAp = static_cast<int>(physique / 10.0f); // +1 AP for every 10 Physique
+    float agility = ent->getStat("agility");
+    int bonusAp = static_cast<int>((physique + agility) / 20.0f);
 
-    int maxAp = std::max(1, 3 + bonusAp);
-    return maxAp;
+    return std::clamp(3 + bonusAp, 1, 6);
 }
 
 void combatEngine::initialiseCombat(const std::vector<std::shared_ptr<entity>>& playerParty,
@@ -27,8 +26,11 @@ void combatEngine::initialiseCombat(const std::vector<std::shared_ptr<entity>>& 
     m_combatLog.clear();
     m_currentRound = 0;
 
-    for (const auto& ent : playerParty)
+    size_t maxPartySize = 4; // Multi-party combat setup (up to 4v4)
+
+    for (size_t i = 0; i < playerParty.size() && i < maxPartySize; ++i)
     {
+        const auto& ent = playerParty[i];
         if (!ent) continue;
         CombatParticipant p;
         p.character = ent;
@@ -38,8 +40,9 @@ void combatEngine::initialiseCombat(const std::vector<std::shared_ptr<entity>>& 
         m_playerParty.push_back(p);
     }
 
-    for (const auto& ent : enemyParty)
+    for (size_t i = 0; i < enemyParty.size() && i < maxPartySize; ++i)
     {
+        const auto& ent = enemyParty[i];
         if (!ent) continue;
         CombatParticipant p;
         p.character = ent;
@@ -49,7 +52,8 @@ void combatEngine::initialiseCombat(const std::vector<std::shared_ptr<entity>>& 
         m_enemyParty.push_back(p);
     }
 
-    appendLog("=== COMBAT STARTED ===");
+    appendLog(std::format("=== COMBAT INITIALISED ({} Player(s) vs {} Enemy(ies)) ===",
+                          m_playerParty.size(), m_enemyParty.size()));
     startNewRound();
 }
 
@@ -80,7 +84,7 @@ bool combatEngine::queuePlayerAction(size_t participantIndex, const CombatAction
     auto& p = m_playerParty[participantIndex];
     int apCost = action.baseApCost + (isFromSecondaryGrid ? 1 : 0);
 
-    if (p.currentAp < apCost) return false; // Not enough AP
+    if (p.currentAp < apCost) return false;
 
     QueuedAction qa;
     qa.action = action;
@@ -103,7 +107,6 @@ void combatEngine::clearPlayerQueue(size_t participantIndex)
 
 void combatEngine::generateNpcQueues()
 {
-    // Basic AI loop for enemies: pick basic attacks on player until AP is depleted
     for (auto& enemyP : m_enemyParty)
     {
         if (!enemyP.character || enemyP.character->getStat("health") <= 0) continue;
@@ -140,7 +143,6 @@ void combatEngine::resolveTurn(game* g)
 {
     generateNpcQueues();
 
-    // Aggregate all queued actions into a flat timeline
     std::vector<QueuedAction> allActions;
 
     for (const auto& p : m_playerParty)
@@ -152,7 +154,13 @@ void combatEngine::resolveTurn(game* g)
         allActions.insert(allActions.end(), p.turnQueue.begin(), p.turnQueue.end());
     }
 
-    // Process queued actions
+    // Sort queued actions by user Agility descending
+    std::sort(allActions.begin(), allActions.end(), [](const QueuedAction& a, const QueuedAction& b) {
+        float agiA = a.user ? a.user->getStat("agility") : 0.0f;
+        float agiB = b.user ? b.user->getStat("agility") : 0.0f;
+        return agiA > agiB;
+    });
+
     for (const auto& qa : allActions)
     {
         if (qa.user && qa.user->getStat("health") > 0)

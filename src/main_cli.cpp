@@ -12,13 +12,14 @@
 #include "state/inventoryState.h"
 #include "state/eventState.h"
 #include "state/combatState.h"
+#include "state/encounterResolutionState.h"
 
 void printHeader(const game& engine)
 {
     std::cout << "\n======================================================================\n";
     std::cout << " [textRPG Headless CLI Test Harness]\n";
     std::cout << " Time: " << engine.getTime().getFormattedTime() << " (" << engine.getTime().getFormattedDate() << ")\n";
-    
+
     if (const entity* p = engine.getPlayer())
     {
         std::cout << " Player: " << p->name << " | Race: " << p->anatomy.getDominantRace() << "\n";
@@ -67,7 +68,7 @@ void printStateDetails(game& engine)
         {
             if (backpack[i].itemPtr)
             {
-                std::cout << "   [" << i << "] " << backpack[i].itemPtr->name 
+                std::cout << "   [" << i << "] " << backpack[i].itemPtr->name
                           << " (x" << backpack[i].totalCount << ")"
                           << (backpack[i].itemPtr->isEquippable ? " [Equippable]" : "") << "\n";
             }
@@ -79,10 +80,32 @@ void printStateDetails(game& engine)
         {
             if (ground[i].itemPtr)
             {
-                std::cout << "   [" << i << "] " << ground[i].itemPtr->name 
+                std::cout << "   [" << i << "] " << ground[i].itemPtr->name
                           << " (x" << ground[i].totalCount << ")\n";
             }
         }
+    }
+    else if (auto resState = dynamic_cast<encounterResolutionState*>(state))
+    {
+        std::cout << " [ENCOUNTER RESOLUTION HUB]\n";
+        std::cout << " Log: " << resState->getResolutionLog() << "\n\n";
+
+        const auto& records = resState->getDefeatedRecords();
+        size_t selected = resState->getSelectedIndex();
+
+        std::cout << " Defeated Enemies (" << records.size() << "):\n";
+        for (size_t i = 0; i < records.size(); ++i)
+        {
+            const auto& rec = records[i];
+            std::cout << "  " << (i == selected ? "-> " : "   ")
+                      << "[" << i << "] " << (rec.npc ? rec.npc->name : "Enemy")
+                      << " | Looted: " << (rec.isLooted ? "Yes" : "No")
+                      << " | Stripped: " << (rec.isStripped ? "Yes" : "No")
+                      << " | Sex: " << (rec.hadSex ? "Yes" : "No")
+                      << " | Subjugated: " << (rec.isSubjugated ? "Yes" : "No")
+                      << " | Released: " << (rec.isReleased ? "Yes" : "No") << "\n";
+        }
+        std::cout << " Resolution Commands: loot, strip, sex, subjugate, release, target <idx>, leave\n";
     }
     else if (dynamic_cast<explorationState*>(state))
     {
@@ -145,7 +168,7 @@ int main(int argc, char* argv[])
                       << "  <number>          - Select dialogue choice index\n"
                       << "  inv               - Toggle inventory state\n"
                       << "  equip <index>     - Equip item from backpack index\n"
-                      << "  unequip <slot>    - Unequip slot (e.g., TORSO_OVER, WEAPON_MAIN)\n"
+                      << "  unequip <slot>    - Unequip slot\n"
                       << "  drop <index> <qty>- Drop item from backpack to ground\n"
                       << "  pickup <idx> <qty>- Pickup item from ground to backpack\n"
                       << "  time <minutes>    - Advance in-game time\n"
@@ -153,6 +176,8 @@ int main(int argc, char* argv[])
                       << "  save <name>       - Save named game\n"
                       << "  load <name>       - Load named save\n"
                       << "  win / defeat      - Simulate combat outcome if in combat\n"
+                      << "  loot / strip / sex / subjugate / release - Resolution hub sub-actions\n"
+                      << "  leave             - Leave resolution hub\n"
                       << "  quit              - Exit test harness\n";
         }
         else if (cmd == "w")
@@ -328,6 +353,42 @@ int main(int argc, char* argv[])
         else if (cmd == "defeat")
         {
             engine.handleCommand({CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "DEFEAT"});
+        }
+        else if (cmd == "loot")
+        {
+            engine.handleCommand({CommandType::LOOT_ENEMY, 0, 0, ""});
+        }
+        else if (cmd == "strip")
+        {
+            engine.handleCommand({CommandType::STRIP_ENEMY, 0, 0, ""});
+        }
+        else if (cmd == "sex")
+        {
+            engine.handleCommand({CommandType::INTERACTIVE_SEX, 0, 0, ""});
+        }
+        else if (cmd == "subjugate")
+        {
+            engine.handleCommand({CommandType::SUBJUGATE_ENEMY, 0, 0, ""});
+        }
+        else if (cmd == "release")
+        {
+            engine.handleCommand({CommandType::RELEASE_ENEMY, 0, 0, ""});
+        }
+        else if (cmd == "target")
+        {
+            int idx;
+            if (iss >> idx)
+            {
+                engine.handleCommand({CommandType::SELECT_RESOLUTION_TARGET, idx, 0, ""});
+            }
+            else
+            {
+                std::cout << "Usage: target <index>\n";
+            }
+        }
+        else if (cmd == "leave")
+        {
+            engine.handleCommand({CommandType::CLOSE_MENU, 0, 0, ""});
         }
         else
         {

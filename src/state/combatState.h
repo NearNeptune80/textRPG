@@ -11,7 +11,7 @@ class game;
 
 /**
  * Headless state controller for turn-based combat execution.
- * Manages turn queue updates, party lifecycle, and combat victory/defeat rules.
+ * Manages turn queue updates, party lifecycle, debug stubs, and sexuality-driven defeat resolution.
  */
 class CombatState : public iGameState
 {
@@ -33,6 +33,9 @@ public:
 	void handleEndTurn(game* gameContext);
 	void handleRunAttempt(game* gameContext);
 	void handleSurrender(game* gameContext);
+
+	// Defeat Resolution
+	void resolveDefeat(game* gameContext);
 
 	// Snapshot APIs for UI View Layer
 	const combatEngine& getEngine() const { return m_engine; }
