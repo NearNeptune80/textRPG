@@ -12,12 +12,16 @@
 #include "entities/statsComponent.h"
 #include "entities/statusEffect.h"
 #include "items/inventory.h"
+#include "settings/gameSettings.h"
 
 class entity
 {
 public:
     std::string id;
     std::string name;
+
+    SexualOrientation orientation = SexualOrientation::HETEROSEXUAL;
+    GenderArchetype genderArchetype = GenderArchetype::MALE;
 
     questComponent quests;
     anatomyComponent anatomy;
@@ -30,12 +34,12 @@ public:
 
     entity(std::string entityId, std::string entityName);
 
-    std::array<std::string, 10> preparedCombatSlots; // Holds action/spell IDs for the Primary Tab
+    std::array<std::string, 10> preparedCombatSlots; // Holds action/spell IDs for Primary Tab
 
-    float buyMarkup = 1.25f;       // Merchant markup ratio (e.g., 1.25 = 125% of base value)
-    float sellMarkdown = 0.50f;     // Merchant markdown ratio (e.g., 0.50 = 50% of base value)
-    float tradePerkModifier = 0.0f;// Player trade discount/bonus (e.g., 0.10 = 10% better prices)
-    float merchantAffinity = 1.0f; // Merchant affinity modifier (1.0 = neutral)
+    float buyMarkup = 1.25f;       // Merchant markup ratio
+    float sellMarkdown = 0.50f;     // Merchant markdown ratio
+    float tradePerkModifier = 0.0f;// Player trade discount
+    float merchantAffinity = 1.0f; // Merchant affinity modifier
     int lastRestockDay = -1;       // Last day merchant restocked gold/inventory
     float baseMerchantGold = 500.0f;// Base gold stock
 

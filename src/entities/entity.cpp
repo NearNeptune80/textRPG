@@ -55,6 +55,8 @@ json entity::toJson() const
     json j;
     j["id"] = id;
     j["name"] = name;
+    j["orientation"] = sexualOrientationToString(orientation);
+    j["genderArchetype"] = genderArchetypeToString(genderArchetype);
     j["merchantAffinity"] = merchantAffinity;
     j["lastRestockDay"] = lastRestockDay;
     j["baseMerchantGold"] = baseMerchantGold;
@@ -173,6 +175,10 @@ void entity::fromJson(const json& j)
 {
     id = j.value("id", "entity_unknown");
     name = j.value("name", "Unknown");
+
+    if (j.contains("orientation")) orientation = stringToSexualOrientation(j["orientation"].get<std::string>());
+    if (j.contains("genderArchetype")) genderArchetype = stringToGenderArchetype(j["genderArchetype"].get<std::string>());
+
     merchantAffinity = j.value("merchantAffinity", 1.0f);
     lastRestockDay = j.value("lastRestockDay", -1);
     baseMerchantGold = j.value("baseMerchantGold", 500.0f);

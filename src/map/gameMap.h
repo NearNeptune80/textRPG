@@ -21,7 +21,8 @@ public:
 
     bool loadFromFile(const std::string& filePath);
     bool isWalkable(int x, int y) const;
-    void updateDiscovery(int playerX, int playerY);
+    bool isOpaque(int x, int y) const;
+    void updateDiscovery(int playerX, int playerY, int visionRadius = 3);
     Tile getTile(int x, int y) const;
     bool checkWarp(int x, int y, MapWarp& outWarp) const;
 
@@ -37,8 +38,11 @@ public:
         }
     }
 
+    void processTimePassage(int minutesPassed);
+
     TileRuntimeData& getRuntimeData(int x, int y);
     const std::vector<MapTrigger>& getTriggers() const { return triggers; }
+    std::vector<MapTrigger> getTriggersAt(int x, int y) const;
 
     int getWidth() const { return width; }
     int getHeight() const { return height; }

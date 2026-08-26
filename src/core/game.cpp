@@ -121,13 +121,20 @@ void game::init()
     changeState(std::make_unique<explorationState>());
 
     eventBus::getInstance().subscribe(gameEvent::timeAdvanced, [this](const eventData& data) {
+        int mins = data.numericValue;
+
+        if (this->map)
+        {
+            this->map->processTimePassage(mins);
+        }
+
         if (this->Player)
         {
-            this->Player->anatomy.processMutations(data.numericValue);
-            this->Player->anatomy.processBiologicalRecovery(data.numericValue);
+            this->Player->anatomy.processMutations(mins);
+            this->Player->anatomy.processBiologicalRecovery(mins);
             if (this->Player->gestation.isPregnant)
             {
-                int days = data.numericValue / 1440;
+                int days = mins / 1440;
                 if (days > 0) this->Player->gestation.processGestation(days);
             }
         }
@@ -205,8 +212,8 @@ InventorySlotInfo game::getInventorySlotItem(int side, int absoluteIndex)
         }
         else if (absoluteIndex >= 0 && static_cast<size_t>(absoluteIndex) < static_cast<int>(tileData.droppedItems.size()))
         {
-            info.itemPtr = tileData.droppedItems[absoluteIndex];
-            info.count = info.itemPtr->isStackable ? info.itemPtr->count : 1;
+            info.itemPtr = tileData.droppedItems[absoluteIndex].itemPtr;
+            info.count = (info.itemPtr && info.itemPtr->isStackable) ? info.itemPtr->count : 1;
             info.isValid = true;
         }
     }
@@ -232,7 +239,7 @@ bool game::loadMap(const std::string& mapId, int startX, int startY)
     gridX = startX;
     gridY = startY;
 
-    map->updateDiscovery(gridX, gridY);
+    map->updateDiscovery(gridX, gridY, 3);
     refreshActionGrid();
 
     eventBus::getInstance().publishEvent({ gameEvent::mapEntered, 0, mapId, nullptr });
@@ -250,23 +257,42 @@ void game::movePlayer(int nextX, int nextY)
     gridY = nextY;
 
     gameTime.advanceTime(2);
-    map->updateDiscovery(gridX, gridY);
+    map->updateDiscovery(gridX, gridY, 3);
 
+    // 1. Check Map Warps
+    MapWarp warp;
+    if (map->checkWarp(gridX, gridY, warp))
+    {
+        loadMap(warp.targetMap, warp.targetX, warp.targetY);
+        return;
+    }
+
+    // 2. Check Map Triggers
+    auto tileTriggers = map->getTriggersAt(gridX, gridY);
+    for (const auto& trig : tileTriggers)
+    {
+        if (checkConditions(trig.conditions))
+        {
+            loadScene(trig.sceneId);
+            return;
+        }
+    }
+
+    // 3. Check Dynamic Encounters
     TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
     int bonusDanger = (gameTime.getPhase() == TimePhase::NIGHT) ? 1 : 0;
     int dangerLevel = tileData.getEffectiveDangerLevel() + bonusDanger;
 
-    if (dangerLevel > 0)
+    float playerStealth = Player ? Player->getStat("agility") : 0.0f;
+
+    if (dangerLevel > 0 && encounterResolver::shouldTriggerEncounter(dangerLevel, gameTime.getPhase(), playerStealth))
     {
-        int chance = std::min(100, dangerLevel * 20);
-        if ((rand() % 100) < chance)
+        if (!tileData.persistentNPC)
         {
-            if (!tileData.persistentNPC) {
-                tileData.persistentNPC = generateEncounterNPC();
-            }
-            triggerEncounter(tileData.persistentNPC);
-            return;
+            tileData.persistentNPC = encounterResolver::createEncounterNPC(dangerLevel, settings);
         }
+        triggerEncounter(tileData.persistentNPC);
+        return;
     }
 
     activeTargetNPC = nullptr;
@@ -276,7 +302,7 @@ void game::movePlayer(int nextX, int nextY)
 
 void game::handleDropAction(int stackedIndex, int quantity)
 {
-    if (!Player) return;
+    if (!Player || !map) return;
 
     auto stackedView = Player->inventory.getStackedView();
     if (stackedIndex < 0 || static_cast<size_t>(stackedIndex) >= stackedView.size()) return;
@@ -290,11 +316,12 @@ void game::handleDropAction(int stackedIndex, int quantity)
     bool merged = false;
     if (slotData.itemPtr->isStackable)
     {
-        for (auto& gItem : tileData.droppedItems)
+        for (auto& entry : tileData.droppedItems)
         {
-            if (gItem && gItem->id == targetItemId)
+            if (entry.itemPtr && entry.itemPtr->id == targetItemId)
             {
-                gItem->count += actualDropCount;
+                entry.itemPtr->count += actualDropCount;
+                entry.minutesRemaining = 120; // Refresh decay timer on merge
                 merged = true;
                 break;
             }
@@ -305,7 +332,7 @@ void game::handleDropAction(int stackedIndex, int quantity)
     {
         auto droppedCopy = std::make_shared<item>(*slotData.itemPtr);
         droppedCopy->count = actualDropCount;
-        tileData.droppedItems.push_back(droppedCopy);
+        tileData.addDroppedItem(droppedCopy, 120);
     }
 
     Player->inventory.removeItem(targetItemId, actualDropCount);
@@ -315,12 +342,12 @@ void game::handleDropAction(int stackedIndex, int quantity)
 
 void game::handlePickupAction(int groundIndex, int quantity)
 {
-    if (!Player) return;
+    if (!Player || !map) return;
 
     TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
     if (groundIndex < 0 || static_cast<size_t>(groundIndex) >= tileData.droppedItems.size()) return;
 
-    auto groundItem = tileData.droppedItems[groundIndex];
+    auto groundItem = tileData.droppedItems[groundIndex].itemPtr;
     if (!groundItem) return;
 
     int totalGroundCount = groundItem->isStackable ? groundItem->count : 1;
@@ -770,7 +797,7 @@ void game::processEffect(const gameEffect& eff)
     {
         int spawnX = eff.x != 0 ? eff.x : gridX;
         int spawnY = eff.y != 0 ? eff.y : gridY;
-        auto npc = npcGenerator::generateFromTemplate(eff.target);
+        auto npc = npcGenerator::generateFromTemplate(eff.target, &settings);
         if (npc && map)
         {
             map->getRuntimeData(spawnX, spawnY).persistentNPC = npc;
@@ -815,7 +842,7 @@ void game::loadScene(const std::string& sceneId)
 
 std::shared_ptr<entity> game::generateEncounterNPC()
 {
-    auto npc = npcGenerator::generateRandomNPC();
+    auto npc = npcGenerator::generateRandomNPC(&settings);
     if (npc) return npc;
 
     return std::make_shared<entity>("npc_fallback", "Alleyway Stranger");
@@ -828,26 +855,7 @@ void game::triggerEncounter(std::shared_ptr<entity> npc)
     activeTargetNPC = npc.get();
     activeTargetMode = TargetMode::COMBAT_ENEMY;
 
-    currentScene.id = "encounter_event";
-    currentScene.speakerName = npc->name;
-    currentScene.bodyText = "A " + npc->name + " steps out of the shadows and demands your attention! What will you do?";
-    currentScene.choices.clear();
-
-    dialogueChoice fightChoice;
-    fightChoice.label = "Fight";
-    fightChoice.nextSceneId = "ENCOUNTER_FIGHT";
-    currentScene.choices.push_back(fightChoice);
-
-    dialogueChoice payChoice;
-    payChoice.label = "Bribe (25¤)";
-    payChoice.nextSceneId = "ENCOUNTER_BRIBE";
-    currentScene.choices.push_back(payChoice);
-
-    dialogueChoice surrenderChoice;
-    surrenderChoice.label = "Surrender";
-    surrenderChoice.nextSceneId = "ENCOUNTER_SURRENDER";
-    currentScene.choices.push_back(surrenderChoice);
-
+    currentScene = encounterResolver::buildEncounterScene(this, npc);
     changeState(std::make_unique<eventState>());
     refreshActionGrid();
 }
@@ -913,9 +921,9 @@ std::vector<InventorySlot> game::getTileInventoryStacked() const
     std::vector<InventorySlot> view;
     for (size_t i = 0; i < tileData.droppedItems.size(); ++i)
     {
-        const auto& itm = tileData.droppedItems[i];
-        if (!itm) continue;
-        view.push_back(InventorySlot{itm, itm->isStackable ? itm->count : 1, static_cast<int>(i)});
+        const auto& entry = tileData.droppedItems[i];
+        if (!entry.itemPtr) continue;
+        view.push_back(InventorySlot{ entry.itemPtr, entry.itemPtr->isStackable ? entry.itemPtr->count : 1, static_cast<int>(i) });
     }
     return view;
 }

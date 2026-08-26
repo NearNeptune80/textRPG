@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "settings/gameSettings.h"
+
 class entity;
 
 struct NPCTemplate
@@ -25,9 +27,10 @@ class npcGenerator
 {
 public:
 	static bool loadTemplates(const std::string& filePath);
-	static std::shared_ptr<entity> generateFromTemplate(const std::string& templateId);
-	static std::shared_ptr<entity> generateRandomNPC();
+	static std::shared_ptr<entity> generateFromTemplate(const std::string& templateId, const GameSettings* settings = nullptr);
+	static std::shared_ptr<entity> generateRandomNPC(const GameSettings* settings = nullptr);
 
 private:
 	static std::unordered_map<std::string, NPCTemplate> registry;
+	static void applyDemographicConfiguration(entity* npc, const GameSettings* settings);
 };

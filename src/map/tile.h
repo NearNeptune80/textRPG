@@ -26,41 +26,46 @@ enum DiscoveryState
 
 struct Tile
 {
-	TileType type;
-	DiscoveryState discovery;
+	TileType type{ TILE_VOID };
+	DiscoveryState discovery{ STATE_HIDDEN };
 };
 
 struct MapWarp
 {
-	int x;
-	int y;
+	int x{ 0 };
+	int y{ 0 };
 	std::string targetMap;
-	int targetX;
-	int targetY;
+	int targetX{ 0 };
+	int targetY{ 0 };
 };
 
 struct TemporarySafetyModifier
 {
 	std::string sourceId;
-	int dangerDelta;
-	int durationTurns;
+	int dangerDelta{ 0 };
+	int durationTurns{ 0 };
+};
+
+struct DroppedItemEntry
+{
+	std::shared_ptr<item> itemPtr{ nullptr };
+	int minutesRemaining{ 120 }; // Minutes until despawn on unsafe tile (default 2 hours)
 };
 
 struct TileRuntimeData
 {
-	std::shared_ptr<entity> persistentNPC = nullptr;
-	std::vector<std::shared_ptr<item>> droppedItems;
+	std::shared_ptr<entity> persistentNPC{ nullptr };
+	std::vector<DroppedItemEntry> droppedItems;
 	std::string iconId = "";
-	int baseDangerLevel = 0;
-	bool isStorageSafe = false;
+	int baseDangerLevel{ 0 };
+	bool isStorageSafe{ false };
 
 	std::vector<TemporarySafetyModifier> safetyModifiers;
 
-	bool getIsEffectiveStorageSafe() const
+	[[nodiscard]] bool getIsEffectiveStorageSafe() const
 	{
 		if (isStorageSafe) return true;
 
-		// Check if any active modifier grants temporary safety (e.g., negative danger delta)
 		for (const auto& mod : safetyModifiers)
 		{
 			if (mod.dangerDelta < 0) return true;
@@ -68,7 +73,7 @@ struct TileRuntimeData
 		return false;
 	}
 
-	int getEffectiveDangerLevel() const
+	[[nodiscard]] int getEffectiveDangerLevel() const
 	{
 		int effective = baseDangerLevel;
 		for (const auto& mod : safetyModifiers)
@@ -76,6 +81,30 @@ struct TileRuntimeData
 			effective += mod.dangerDelta;
 		}
 		return std::max(0, effective);
+	}
+
+	void addDroppedItem(std::shared_ptr<item> itemPtr, int lifespanMinutes = 120)
+	{
+		if (!itemPtr) return;
+		droppedItems.push_back({ itemPtr, lifespanMinutes });
+	}
+
+	void processItemDecay(int minutesPassed)
+	{
+		if (getIsEffectiveStorageSafe() || minutesPassed <= 0) return;
+
+		for (auto it = droppedItems.begin(); it != droppedItems.end(); )
+		{
+			it->minutesRemaining -= minutesPassed;
+			if (it->minutesRemaining <= 0)
+			{
+				it = droppedItems.erase(it);
+			}
+			else
+			{
+				++it;
+			}
+		}
 	}
 };
 

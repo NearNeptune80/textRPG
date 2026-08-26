@@ -121,33 +121,113 @@ bool gameMap::isWalkable(int x, int y) const
     return (t == TILE_FLOOR || t == TILE_DOOR);
 }
 
-void gameMap::updateDiscovery(int playerX, int playerY)
+bool gameMap::isOpaque(int x, int y) const
+{
+    if (x < 0 || x >= width || y < 0 || y >= height) return true;
+    TileType t = grid[y][x].type;
+    return (t == TILE_WALL || t == TILE_VOID);
+}
+
+void gameMap::updateDiscovery(int playerX, int playerY, int visionRadius)
 {
     if (playerX < 0 || playerX >= width || playerY < 0 || playerY >= height) return;
 
-    if (grid[playerY][playerX].type != TILE_VOID && grid[playerY][playerX].type != TILE_WALL)
+    if (grid[playerY][playerX].type != TILE_VOID)
     {
         grid[playerY][playerX].discovery = STATE_REVEALED;
     }
 
-    for (int dy = -1; dy <= 1; ++dy)
+    // Radius-based line-of-sight raycasting
+    for (int ty = playerY - visionRadius; ty <= playerY + visionRadius; ++ty)
     {
-        for (int dx = -1; dx <= 1; ++dx)
+        for (int tx = playerX - visionRadius; tx <= playerX + visionRadius; ++tx)
         {
-            if (std::abs(dx) + std::abs(dy) > 1) continue;
+            if (tx < 0 || tx >= width || ty < 0 || ty >= height) continue;
 
-            int nx = playerX + dx;
-            int ny = playerY + dy;
+            float distSq = static_cast<float>((tx - playerX) * (tx - playerX) + (ty - playerY) * (ty - playerY));
+            if (distSq > (visionRadius * visionRadius) + 0.5f) continue;
 
-            if (nx >= 0 && nx < width && ny >= 0 && ny < height)
+            // Raycast line from (playerX, playerY) to (tx, ty)
+            int dx = std::abs(tx - playerX);
+            int dy = std::abs(ty - playerY);
+            int sx = (playerX < tx) ? 1 : -1;
+            int sy = (playerY < ty) ? 1 : -1;
+            int err = dx - dy;
+
+            int cx = playerX;
+            int cy = playerY;
+
+            bool blocked = false;
+            while (cx != tx || cy != ty)
             {
-                TileType type = grid[ny][nx].type;
-                if (type != TILE_VOID && type != TILE_WALL && grid[ny][nx].discovery == STATE_HIDDEN)
+                if (grid[cy][cx].type != TILE_VOID)
                 {
-                    grid[ny][nx].discovery = STATE_PARTIAL;
+                    grid[cy][cx].discovery = STATE_REVEALED;
+                }
+
+                if (isOpaque(cx, cy) && (cx != playerX || cy != playerY))
+                {
+                    blocked = true;
+                    break; // Wall blocks vision ray
+                }
+
+                int e2 = 2 * err;
+                if (e2 > -dy)
+                {
+                    err -= dy;
+                    cx += sx;
+                }
+                if (e2 < dx)
+                {
+                    err += dx;
+                    cy += sy;
+                }
+            }
+
+            if (!blocked && tx >= 0 && tx < width && ty >= 0 && ty < height)
+            {
+                if (grid[ty][tx].type != TILE_VOID)
+                {
+                    grid[ty][tx].discovery = STATE_REVEALED;
                 }
             }
         }
+    }
+
+    // Secondary pass for fringe awareness (adjacent hidden tiles set to STATE_PARTIAL)
+    for (int y = 0; y < height; ++y)
+    {
+        for (int x = 0; x < width; ++x)
+        {
+            if (grid[y][x].discovery == STATE_REVEALED)
+            {
+                for (int dy = -1; dy <= 1; ++dy)
+                {
+                    for (int dx = -1; dx <= 1; ++dx)
+                    {
+                        int nx = x + dx;
+                        int ny = y + dy;
+                        if (nx >= 0 && nx < width && ny >= 0 && ny < height)
+                        {
+                            if (grid[ny][nx].discovery == STATE_HIDDEN && grid[ny][nx].type != TILE_VOID)
+                            {
+                                grid[ny][nx].discovery = STATE_PARTIAL;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+void gameMap::processTimePassage(int minutesPassed)
+{
+    if (minutesPassed <= 0) return;
+
+    for (auto& [key, runtime] : runtimeData)
+    {
+        runtime.processItemDecay(minutesPassed);
     }
 }
 
@@ -168,6 +248,19 @@ bool gameMap::checkWarp(int x, int y, MapWarp& outWarp) const
         }
     }
     return false;
+}
+
+std::vector<MapTrigger> gameMap::getTriggersAt(int x, int y) const
+{
+    std::vector<MapTrigger> result;
+    for (const auto& trig : triggers)
+    {
+        if (trig.x == x && trig.y == y)
+        {
+            result.push_back(trig);
+        }
+    }
+    return result;
 }
 
 nlohmann::json gameMap::saveStateToJson() const
@@ -195,13 +288,14 @@ nlohmann::json gameMap::saveStateToJson() const
         if (!runtime.droppedItems.empty())
         {
             json itemArray = json::array();
-            for (const auto& itemPtr : runtime.droppedItems)
+            for (const auto& entry : runtime.droppedItems)
             {
-                if (itemPtr)
+                if (entry.itemPtr)
                 {
                     json itemEntry;
-                    itemEntry["id"] = itemPtr->id;
-                    itemEntry["count"] = itemPtr->count;
+                    itemEntry["id"] = entry.itemPtr->id;
+                    itemEntry["count"] = entry.itemPtr->count;
+                    itemEntry["minutesRemaining"] = entry.minutesRemaining;
                     itemArray.push_back(itemEntry);
                 }
             }
@@ -245,12 +339,13 @@ void gameMap::loadStateFromJson(const json& j)
             {
                 std::string itemId = itemEntry.is_string() ? itemEntry.get<std::string>() : itemEntry.value("id", "");
                 int count = itemEntry.is_object() ? itemEntry.value("count", 1) : 1;
+                int mins = itemEntry.is_object() ? itemEntry.value("minutesRemaining", 120) : 120;
 
                 auto itemPtr = itemDatabase::getItem(itemId);
                 if (itemPtr)
                 {
                     itemPtr->count = count;
-                    runtimeData[key].droppedItems.push_back(itemPtr);
+                    runtimeData[key].droppedItems.push_back({ itemPtr, mins });
                 }
             }
         }
