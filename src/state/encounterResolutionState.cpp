@@ -8,6 +8,7 @@
 #include "entities/entity.h"
 #include "state/eventState.h"
 #include "state/explorationState.h"
+#include "state/sexState.h"
 
 encounterResolutionState::encounterResolutionState(const std::vector<std::shared_ptr<entity>>& defeatedEnemies)
 {
@@ -145,23 +146,9 @@ void encounterResolutionState::handleInteractiveSex(game* gameContext)
     if (!rec.npc) return;
 
     rec.hadSex = true;
+    m_resolutionLog = std::format("Entered interactive sex encounter with {}.", rec.npc->name);
 
-    questScene sexScene;
-    sexScene.id = "scene_resolution_sex";
-    sexScene.speakerName = rec.npc->name;
-
-    std::string desc = characterDescription::generateFullDescription(rec.npc.get(), gameContext->getPlayer());
-    sexScene.bodyText = std::format("You claim your victory over {}.\n\n{}", rec.npc->name, desc);
-
-    dialogueChoice returnChoice;
-    returnChoice.label = "Return to Resolution Hub";
-    returnChoice.nextSceneId = "POP_SCENE";
-    sexScene.choices.push_back(returnChoice);
-
-    gameContext->activeTargetNPC = rec.npc.get();
-    gameContext->pushScene("scene_resolution_sex");
-    gameContext->currentScene = sexScene;
-    gameContext->changeState(std::make_unique<eventState>());
+    gameContext->changeState(std::make_unique<sexState>(rec.npc));
 }
 
 void encounterResolutionState::handleSubjugateEnemy(game* gameContext)

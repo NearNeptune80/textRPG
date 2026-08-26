@@ -13,6 +13,7 @@
 #include "state/eventState.h"
 #include "state/combatState.h"
 #include "state/encounterResolutionState.h"
+#include "state/sexState.h"
 
 void printHeader(const game& engine)
 {
@@ -45,7 +46,30 @@ void printStateDetails(game& engine)
         return;
     }
 
-    if (dynamic_cast<eventState*>(state))
+    if (auto sex = dynamic_cast<sexState*>(state))
+    {
+        std::cout << " [INTERACTIVE CYOA SEX ENGINE]\n";
+        std::cout << " Partner: " << (sex->getPartner() ? sex->getPartner()->name : "Partner")
+                  << " | Stance: " << sexStanceToString(sex->getStance()) << "\n";
+        std::cout << " Player Arousal: " << sex->getPlayerArousal() << "/100"
+                  << " | Partner Arousal: " << sex->getPartnerArousal() << "/100\n";
+        std::cout << " Dominance: " << sex->getPlayerDominance()
+                  << " (" << (sex->isPlayerDominant() ? "Dominant" : "Submissive") << ")\n\n";
+
+        std::cout << " Narrative Log:\n" << sex->getNarrativeLog() << "\n\n";
+
+        const auto& buttons = engine.getActiveActionButtons();
+        if (!buttons.empty())
+        {
+            std::cout << " Sex Actions & Commands:\n";
+            for (size_t i = 0; i < buttons.size(); ++i)
+            {
+                std::cout << "   [" << i << "] " << buttons[i].label << "\n";
+            }
+            std::cout << "\n";
+        }
+    }
+    else if (dynamic_cast<eventState*>(state))
     {
         const questScene& scene = engine.getCurrentScene();
         std::cout << " [SCENE: " << scene.id << "]\n";
@@ -165,7 +189,9 @@ int main(int argc, char* argv[])
             std::cout << "\nAvailable Commands:\n"
                       << "  w, a, s, d        - Move player on the grid\n"
                       << "  move <x> <y>      - Move to specific coordinate\n"
-                      << "  <number>          - Select dialogue choice index\n"
+                      << "  <number>          - Select dialogue / sex action choice index\n"
+                      << "  stance <name>     - Change sex stance\n"
+                      << "  endsex            - End current sex encounter\n"
                       << "  inv               - Toggle inventory state\n"
                       << "  equip <index>     - Equip item from backpack index\n"
                       << "  unequip <slot>    - Unequip slot\n"
@@ -211,7 +237,32 @@ int main(int argc, char* argv[])
         else if (isdigit(cmd[0]))
         {
             int choiceIdx = std::stoi(cmd);
-            engine.handleCommand({CommandType::SELECT_DIALOGUE_CHOICE, choiceIdx, 0, ""});
+            if (dynamic_cast<sexState*>(engine.getActiveState()))
+            {
+                engine.handleCommand({CommandType::EXECUTE_SEX_ACTION, choiceIdx, 0, ""});
+            }
+            else
+            {
+                engine.handleCommand({CommandType::SELECT_DIALOGUE_CHOICE, choiceIdx, 0, ""});
+            }
+        }
+        else if (cmd == "stance")
+        {
+            std::string stanceStr;
+            if (std::getline(iss, stanceStr))
+            {
+                if (!stanceStr.empty() && stanceStr[0] == ' ') stanceStr.erase(0, 1);
+                SexStance st = stringToSexStance(stanceStr);
+                engine.handleCommand({CommandType::CHANGE_SEX_STANCE, static_cast<int>(st), 0, ""});
+            }
+            else
+            {
+                std::cout << "Usage: stance <Missionary|From Behind|Kneeling|Standing|Lap Sitting>\n";
+            }
+        }
+        else if (cmd == "endsex")
+        {
+            engine.handleCommand({CommandType::END_SEX_SCENE, 0, 0, ""});
         }
         else if (cmd == "inv")
         {

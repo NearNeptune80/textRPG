@@ -9,6 +9,7 @@
 #include "state/encounterResolutionState.h"
 #include "state/explorationState.h"
 #include "state/inventoryState.h"
+#include "state/sexState.h"
 
 void ActionGridManager::refresh(game* gameContext)
 {
@@ -18,6 +19,49 @@ void ActionGridManager::refresh(game* gameContext)
 
     iGameState* currentState = gameContext->getActiveState();
     if (!currentState) return;
+
+    // 0. Dedicated Interactive Sex State Actions
+    if (auto sex = dynamic_cast<sexState*>(currentState))
+    {
+        const auto& actions = sex->getAvailableActions();
+        for (size_t i = 0; i < actions.size(); ++i)
+        {
+            actionButton btn;
+            btn.label = actions[i].name;
+            SexAction act = actions[i];
+            btn.onClick = [gameContext, i]() {
+                gameContext->handleCommand({ CommandType::EXECUTE_SEX_ACTION, static_cast<int>(i), 0, "" });
+            };
+            gameContext->activeButtons.push_back(btn);
+        }
+
+        if (sex->isPlayerDominant())
+        {
+            static const std::vector<SexStance> stances = {
+                SexStance::MISSIONARY, SexStance::FROM_BEHIND, SexStance::KNEELING, SexStance::STANDING, SexStance::LAP_SITTING
+            };
+            for (SexStance st : stances)
+            {
+                if (st != sex->getStance())
+                {
+                    actionButton stanceBtn;
+                    stanceBtn.label = std::format("Stance: {}", sexStanceToString(st));
+                    stanceBtn.onClick = [gameContext, st]() {
+                        gameContext->handleCommand({ CommandType::CHANGE_SEX_STANCE, static_cast<int>(st), 0, "" });
+                    };
+                    gameContext->activeButtons.push_back(stanceBtn);
+                }
+            }
+        }
+
+        actionButton endBtn;
+        endBtn.label = "End Scene";
+        endBtn.onClick = [gameContext]() {
+            gameContext->handleCommand({ CommandType::END_SEX_SCENE, 0, 0, "" });
+        };
+        gameContext->activeButtons.push_back(endBtn);
+        return;
+    }
 
     // 1. Encounter Resolution Hub Actions
     if (auto resState = dynamic_cast<encounterResolutionState*>(currentState))

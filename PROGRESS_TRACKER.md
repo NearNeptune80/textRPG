@@ -14,7 +14,7 @@
 | **Milestone 5** | All-Powerful JSON Scripting & Dialogue | 🟢 COMPLETED | 3 / 3 |
 | **Milestone 6** | World Map, Navigation & Tile Runtime | 🟢 COMPLETED | 3 / 3 |
 | **Milestone 7** | Combat: Multi-Party & Resolution Hub | 🟢 COMPLETED | 4 / 4 |
-| **Milestone 8** | Dedicated CYOA Interactive Sex Engine | 🟡 IN PROGRESS | 0 / 4 |
+| **Milestone 8** | Dedicated CYOA Interactive Sex Engine | 🟢 COMPLETED | 4 / 4 |
 | **Milestone 9** | World Simulation & Time Biological Decay | ⚪ PENDING | 0 / 3 |
 | **Milestone 10** | Save System Hardening & JSON World Serialization | ⚪ PENDING | 0 / 3 |
 | **Milestone 11** | Decoupled UI Frontend & Themeable Presentation | ⚪ PENDING | 0 / 3 |
@@ -57,16 +57,16 @@
 - [x] **Task 6.3**: NPC Encounter Generation (`src/map/encounterResolver.cpp`)
 
 ### Milestone 7: Combat System: Multi-Party Encounters & Resolution Hub
-- [ ] **Task 7.1**: Multi-Party Participant Queue & AP Engine (`src/combat/combatEngine.cpp`)
-- [ ] **Task 7.2**: Combat Debug Simulation Stub (`src/state/combatState.cpp`)
-- [ ] **Task 7.3**: Post-Combat Resolution Hub (`src/state/encounterResolutionState.cpp`)
-- [ ] **Task 7.4**: Sexuality-Driven Defeat Resolution (`src/state/combatState.cpp`)
+- [x] **Task 7.1**: Multi-Party Participant Queue & AP Engine (`src/combat/combatEngine.cpp`)
+- [x] **Task 7.2**: Combat Debug Simulation Stub (`src/state/combatState.cpp`)
+- [x] **Task 7.3**: Post-Combat Resolution Hub (`src/state/encounterResolutionState.cpp`)
+- [x] **Task 7.4**: Sexuality-Driven Defeat Resolution (`src/state/combatState.cpp`)
 
 ### Milestone 8: Dedicated CYOA Interactive Sex Engine (`sexState`)
-- [ ] **Task 8.1**: Sex State Core & Positional Proximity System (`src/state/sexState.cpp`)
-- [ ] **Task 8.2**: Dynamic Dominance Continuum & Initiative (`src/state/sexState.cpp`)
-- [ ] **Task 8.3**: Arousal, Orifice Engagement & Fluid Transfer (`src/state/sexState.cpp`)
-- [ ] **Task 8.4**: Narrative Text Generation & Clothing Reversion (`src/state/sexState.cpp`)
+- [x] **Task 8.1**: Sex State Core & Positional Proximity System (`src/state/sexState.cpp`)
+- [x] **Task 8.2**: Dynamic Dominance Continuum & Initiative (`src/state/sexState.cpp`)
+- [x] **Task 8.3**: Arousal, Orifice Engagement & Fluid Transfer (`src/state/sexState.cpp`)
+- [x] **Task 8.4**: Narrative Text Generation & Clothing Reversion (`src/state/sexState.cpp`)
 
 ### Milestone 9: World Simulation & Time-Driven Biological Decay
 - [ ] **Task 9.1**: Comprehensive Clock & Calendar System (`src/core/timeManager.cpp`)
