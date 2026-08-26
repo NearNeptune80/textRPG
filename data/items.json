@@ -11,7 +11,15 @@
       "count": 1,
       "targetSlot": "TORSO_UNDER",
       "requiredTags": [],
-      "forbiddenTags": []
+      "forbiddenTags": [],
+      "statModifiers": [
+        { "statName": "physique", "flatValue": 1.0, "percentValue": 0.0 }
+      ],
+      "supportedDisplacements": {
+        "UNBUTTON": ["TORSO", "BREASTS"],
+        "LIFT_UP": ["TORSO", "BREASTS", "STOMACH"],
+        "OPEN": ["TORSO", "BREASTS"]
+      }
     },
     {
       "id": "item_leather_trousers",
@@ -24,7 +32,14 @@
       "count": 1,
       "targetSlot": "LEGS_OUTER",
       "requiredTags": [],
-      "forbiddenTags": []
+      "forbiddenTags": [],
+      "statModifiers": [
+        { "statName": "physique", "flatValue": 2.0, "percentValue": 0.0 }
+      ],
+      "supportedDisplacements": {
+        "UNBUTTON": ["GROIN"],
+        "PULL_DOWN": ["LEGS", "GROIN", "ASS"]
+      }
     },
     {
       "id": "item_leather_boots",
@@ -37,7 +52,11 @@
       "count": 1,
       "targetSlot": "FEET",
       "requiredTags": [],
-      "forbiddenTags": []
+      "forbiddenTags": [],
+      "statModifiers": [
+        { "statName": "agility", "flatValue": 1.0, "percentValue": 0.0 }
+      ],
+      "supportedDisplacements": {}
     },
     {
       "id": "item_leather_choker",
@@ -50,7 +69,11 @@
       "count": 1,
       "targetSlot": "NECKWEAR",
       "requiredTags": [],
-      "forbiddenTags": []
+      "forbiddenTags": [],
+      "statModifiers": [],
+      "supportedDisplacements": {
+        "UNBUTTON": ["NECK"]
+      }
     },
     {
       "id": "item_cloth_gloves",
@@ -63,7 +86,9 @@
       "count": 1,
       "targetSlot": "HANDS",
       "requiredTags": [],
-      "forbiddenTags": []
+      "forbiddenTags": [],
+      "statModifiers": [],
+      "supportedDisplacements": {}
     },
     {
       "id": "item_silk_panties",
@@ -76,7 +101,12 @@
       "count": 1,
       "targetSlot": "GROIN_OVER",
       "requiredTags": [],
-      "forbiddenTags": []
+      "forbiddenTags": [],
+      "statModifiers": [],
+      "supportedDisplacements": {
+        "PULL_ASIDE": ["GROIN", "ASS"],
+        "PULL_DOWN": ["GROIN", "ASS"]
+      }
     },
     {
       "id": "item_silk_bra",
@@ -89,7 +119,13 @@
       "count": 1,
       "targetSlot": "CHEST_WEAR",
       "requiredTags": [],
-      "forbiddenTags": []
+      "forbiddenTags": [],
+      "statModifiers": [],
+      "supportedDisplacements": {
+        "PULL_ASIDE": ["BREASTS", "NIPPLES"],
+        "UNBUTTON": ["BREASTS", "NIPPLES"],
+        "LIFT_UP": ["BREASTS", "NIPPLES"]
+      }
     },
     {
       "id": "item_ancient_tome",
@@ -102,7 +138,9 @@
       "count": 1,
       "targetSlot": "NONE",
       "requiredTags": [],
-      "forbiddenTags": []
+      "forbiddenTags": [],
+      "statModifiers": [],
+      "supportedDisplacements": {}
     },
     {
       "id": "item_canis_root",
@@ -115,7 +153,9 @@
       "count": 1,
       "targetSlot": "NONE",
       "requiredTags": [],
-      "forbiddenTags": []
+      "forbiddenTags": [],
+      "statModifiers": [],
+      "supportedDisplacements": {}
     },
     {
       "id": "item_golden_pendant",
@@ -128,7 +168,11 @@
       "count": 1,
       "targetSlot": "NECKWEAR",
       "requiredTags": [],
-      "forbiddenTags": []
+      "forbiddenTags": [],
+      "statModifiers": [
+        { "statName": "arcane", "flatValue": 3.0, "percentValue": 0.05 }
+      ],
+      "supportedDisplacements": {}
     }
   ]
 }

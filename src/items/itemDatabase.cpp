@@ -5,6 +5,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include "entities/anatomyComponent.h"
+
 using json = nlohmann::json;
 
 std::unordered_map<std::string, item> itemDatabase::registry;
@@ -104,7 +106,7 @@ void from_json(const json& j, item& itemObj)
     j.at("id").get_to(itemObj.id);
     j.at("name").get_to(itemObj.name);
     itemObj.description = j.value("description", "");
-    itemObj.baseValue = j.value("baseValue", 0); // Read base value
+    itemObj.baseValue = j.value("baseValue", 0);
 
     itemObj.isConsumable = j.value("isConsumable", false);
     itemObj.isEquippable = j.value("isEquippable", false);
@@ -129,6 +131,37 @@ void from_json(const json& j, item& itemObj)
     if (j.contains("forbiddenTags"))
     {
         itemObj.forbiddenTags = j.at("forbiddenTags").get<std::vector<std::string>>();
+    }
+
+    if (j.contains("statModifiers"))
+    {
+        itemObj.statModifiers.clear();
+        for (const auto& modJson : j["statModifiers"])
+        {
+            StatModifier mod;
+            mod.statName = modJson.value("statName", "");
+            mod.flatValue = modJson.value("flatValue", 0.0f);
+            mod.percentValue = modJson.value("percentValue", 0.0f);
+            itemObj.statModifiers.push_back(mod);
+        }
+    }
+
+    if (j.contains("supportedDisplacements"))
+    {
+        itemObj.supportedDisplacements.clear();
+        for (auto& [modeStr, slotsJson] : j["supportedDisplacements"].items())
+        {
+            DisplacementMode mode = stringToDisplacementMode(modeStr);
+            if (mode != DisplacementMode::NONE)
+            {
+                std::vector<bodySlot> slots;
+                for (const auto& sItem : slotsJson)
+                {
+                    slots.push_back(stringToBodySlot(sItem.get<std::string>()));
+                }
+                itemObj.supportedDisplacements[mode] = slots;
+            }
+        }
     }
 }
 

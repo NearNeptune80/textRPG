@@ -7,6 +7,7 @@
 #include "entities/npcGenerator.h"
 #include "events/gameEvents.h"
 #include "items/itemDatabase.h"
+#include "items/merchantValuation.h"
 #include "map/encounterResolver.h"
 #include "quest/questDatabase.h"
 #include "save/saveManager.h"
@@ -59,7 +60,6 @@ void game::init()
         Player->stats.setBaseStat("agility", 15.0f);
         Player->stats.setBaseStat("currency", 150.0f);
 
-        // Default Human Anatomy
         bodyPart hair; hair.id = "hair_human"; hair.name = "Hair"; hair.race = "Human"; hair.primaryColor = "brown"; hair.style = "short"; hair.covering = CoveringType::HAIR_COVERING;
         Player->anatomy.setPart(bodySlot::HAIR, hair);
 
@@ -125,9 +125,15 @@ void game::init()
             this->Player->anatomy.processBiologicalRecovery(data.numericValue);
             if (this->Player->gestation.isPregnant)
             {
-                // Advance daily gestation if minutes cross days
                 int days = data.numericValue / 1440;
                 if (days > 0) this->Player->gestation.processGestation(days);
+            }
+        }
+        if (this->gameTime.hour == 6 && this->gameTime.minute == 0)
+        {
+            if (this->activeTargetNPC)
+            {
+                merchantValuation::merchantRestock(this->activeTargetNPC, this->gameTime.day);
             }
         }
     });

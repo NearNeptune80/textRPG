@@ -10,9 +10,9 @@
 | :--- | :--- | :---: | :---: |
 | **Milestone 1** | Architectural Decoupling & CLI Test Harness | 🟢 COMPLETED | 4 / 4 |
 | **Milestone 2** | Settings Engine & Demographic Config | 🟢 COMPLETED | 3 / 3 |
-| **Milestone 3** | Anatomy, Fluids, Gestation & Transformations | 🟡 IN PROGRESS | 0 / 5 |
-| **Milestone 4** | Items, Layering, Displacement & Economy | ⚪ PENDING | 0 / 3 |
-| **Milestone 5** | All-Powerful JSON Scripting & Dialogue | ⚪ PENDING | 0 / 3 |
+| **Milestone 3** | Anatomy, Fluids, Gestation & Transformations | 🟢 COMPLETED | 5 / 5 |
+| **Milestone 4** | Items, Layering, Displacement & Economy | 🟢 COMPLETED | 3 / 3 |
+| **Milestone 5** | All-Powerful JSON Scripting & Dialogue | 🟡 IN PROGRESS | 0 / 3 |
 | **Milestone 6** | World Map, Navigation & Tile Runtime | ⚪ PENDING | 0 / 3 |
 | **Milestone 7** | Combat: Multi-Party & Resolution Hub | ⚪ PENDING | 0 / 4 |
 | **Milestone 8** | Dedicated CYOA Interactive Sex Engine | ⚪ PENDING | 0 / 4 |
@@ -36,16 +36,16 @@
 - [x] **Task 2.3**: Integrate Settings with Engine & Generation (`src/core/game.cpp`)
 
 ### Milestone 3: Comprehensive Anatomy, Fluids, Gestation & Transformations
-- [ ] **Task 3.1**: Complete Sockets & Gender Archetype Engine (`src/entities/anatomyComponent.cpp`)
-- [ ] **Task 3.2**: Bodily Fluids & Orifice Mechanics (`src/entities/anatomyComponent.cpp`)
-- [ ] **Task 3.3**: Pregnancy & Gestation Component (`src/entities/gestationComponent.cpp`)
-- [ ] **Task 3.4**: 3-Tier Racial Transformation & Hybrid Model (`src/entities/anatomyComponent.cpp`)
-- [ ] **Task 3.5**: Modular Procedural Character Description Engine (`src/core/characterDescription.cpp`)
+- [x] **Task 3.1**: Complete Sockets & Gender Archetype Engine (`src/entities/anatomyComponent.cpp`)
+- [x] **Task 3.2**: Bodily Fluids & Orifice Mechanics (`src/entities/anatomyComponent.cpp`)
+- [x] **Task 3.3**: Pregnancy & Gestation Component (`src/entities/gestationComponent.cpp`)
+- [x] **Task 3.4**: 3-Tier Racial Transformation & Hybrid Model (`src/entities/anatomyComponent.cpp`)
+- [x] **Task 3.5**: Modular Procedural Character Description Engine (`src/core/characterDescription.cpp`)
 
 ### Milestone 4: Items, Layering, Granular Partial Displacement & Economy
-- [ ] **Task 4.1**: Clothing Partial Displacement Engine (`src/items/inventory.cpp`)
-- [ ] **Task 4.2**: Data-Driven Item Database & JSON Overhaul (`src/items/itemDatabase.cpp`, `data/items.json`)
-- [ ] **Task 4.3**: Deep Merchant Economy & Daily Restock (`src/items/merchantValuation.cpp`)
+- [x] **Task 4.1**: Clothing Partial Displacement Engine (`src/items/inventory.cpp`)
+- [x] **Task 4.2**: Data-Driven Item Database & JSON Overhaul (`src/items/itemDatabase.cpp`, `data/items.json`)
+- [x] **Task 4.3**: Deep Merchant Economy & Daily Restock (`src/items/merchantValuation.cpp`)
 
 ### Milestone 5: "All-Powerful" JSON Scene Scripting & Dialogue Engine
 - [ ] **Task 5.1**: Universal Condition Evaluation Tree (`src/quest/conditionNode.cpp`)

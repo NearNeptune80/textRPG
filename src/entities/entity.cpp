@@ -55,6 +55,9 @@ json entity::toJson() const
     json j;
     j["id"] = id;
     j["name"] = name;
+    j["merchantAffinity"] = merchantAffinity;
+    j["lastRestockDay"] = lastRestockDay;
+    j["baseMerchantGold"] = baseMerchantGold;
 
     json statsJson;
     statsJson["level"] = stats.level;
@@ -156,6 +159,13 @@ json entity::toJson() const
     }
     j["equipped"] = equippedJson;
 
+    json dispJson = json::object();
+    for (const auto& [slot, mode] : inventory.activeDisplacements)
+    {
+        dispJson[equipSlotToString(slot)] = displacementModeToString(mode);
+    }
+    j["activeDisplacements"] = dispJson;
+
     return j;
 }
 
@@ -163,6 +173,9 @@ void entity::fromJson(const json& j)
 {
     id = j.value("id", "entity_unknown");
     name = j.value("name", "Unknown");
+    merchantAffinity = j.value("merchantAffinity", 1.0f);
+    lastRestockDay = j.value("lastRestockDay", -1);
+    baseMerchantGold = j.value("baseMerchantGold", 500.0f);
 
     if (j.contains("gestation"))
     {
@@ -291,6 +304,20 @@ void entity::fromJson(const json& j)
             {
                 auto itemPtr = itemDatabase::getItem(itemId.get<std::string>());
                 if (itemPtr) inventory.equipped[slotIdx] = itemPtr;
+            }
+        }
+    }
+
+    inventory.activeDisplacements.clear();
+    if (j.contains("activeDisplacements"))
+    {
+        for (auto& [slotStr, modeStr] : j["activeDisplacements"].items())
+        {
+            equipSlot slot = stringToEquipSlot(slotStr);
+            DisplacementMode mode = stringToDisplacementMode(modeStr.get<std::string>());
+            if (slot != equipSlot::NONE && mode != DisplacementMode::NONE)
+            {
+                inventory.activeDisplacements[slot] = mode;
             }
         }
     }

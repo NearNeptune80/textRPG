@@ -32,9 +32,12 @@ public:
 
     std::array<std::string, 10> preparedCombatSlots; // Holds action/spell IDs for the Primary Tab
 
-    float buyMarkup = 1.25f;    // Merchant markup ratio (e.g., 1.25 = 125% of base value)
-    float sellMarkdown = 0.50f;  // Merchant markdown ratio (e.g., 0.50 = 50% of base value)
-    float tradePerkModifier = 0.0f; // Player trade discount/bonus (e.g., 0.10 = 10% better prices)
+    float buyMarkup = 1.25f;       // Merchant markup ratio (e.g., 1.25 = 125% of base value)
+    float sellMarkdown = 0.50f;     // Merchant markdown ratio (e.g., 0.50 = 50% of base value)
+    float tradePerkModifier = 0.0f;// Player trade discount/bonus (e.g., 0.10 = 10% better prices)
+    float merchantAffinity = 1.0f; // Merchant affinity modifier (1.0 = neutral)
+    int lastRestockDay = -1;       // Last day merchant restocked gold/inventory
+    float baseMerchantGold = 500.0f;// Base gold stock
 
     void addStatusEffect(const StatusEffect& effect);
     void removeStatusEffect(const std::string& effectId);
