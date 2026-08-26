@@ -109,6 +109,15 @@ json saveManager::buildPayload(game* g, const std::string& customSaveName)
         {"isAutosave", customSaveName.rfind("Autosave", 0) == 0}
     };
 
+    j["time"] = {
+        {"minute", g->gameTime.minute},
+        {"hour", g->gameTime.hour},
+        {"day", g->gameTime.day},
+        {"month", g->gameTime.month},
+        {"year", g->gameTime.year},
+        {"dayOfWeek", g->gameTime.dayOfWeek}
+    };
+
     if (g->Player) j["player"] = g->Player->toJson();
     if (g->map) j["map"] = g->map->saveStateToJson();
 
@@ -181,6 +190,17 @@ bool saveManager::loadFromFile(game* g, const std::string& fileName)
     {
         json j;
         file >> j;
+
+        if (j.contains("time"))
+        {
+            const auto& t = j["time"];
+            g->gameTime.minute = t.value("minute", 0);
+            g->gameTime.hour = t.value("hour", 8);
+            g->gameTime.day = t.value("day", 1);
+            g->gameTime.month = t.value("month", 1);
+            g->gameTime.year = t.value("year", 1);
+            g->gameTime.dayOfWeek = t.value("dayOfWeek", 1);
+        }
 
         if (j.contains("player"))
         {

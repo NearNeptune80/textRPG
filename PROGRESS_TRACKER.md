@@ -15,7 +15,7 @@
 | **Milestone 6** | World Map, Navigation & Tile Runtime | 🟢 COMPLETED | 3 / 3 |
 | **Milestone 7** | Combat: Multi-Party & Resolution Hub | 🟢 COMPLETED | 4 / 4 |
 | **Milestone 8** | Dedicated CYOA Interactive Sex Engine | 🟢 COMPLETED | 4 / 4 |
-| **Milestone 9** | World Simulation & Time Biological Decay | ⚪ PENDING | 0 / 3 |
+| **Milestone 9** | World Simulation & Time Biological Decay | 🟢 COMPLETED | 3 / 3 |
 | **Milestone 10** | Save System Hardening & JSON World Serialization | ⚪ PENDING | 0 / 3 |
 | **Milestone 11** | Decoupled UI Frontend & Themeable Presentation | ⚪ PENDING | 0 / 3 |
 
@@ -69,9 +69,9 @@
 - [x] **Task 8.4**: Narrative Text Generation & Clothing Reversion (`src/state/sexState.cpp`)
 
 ### Milestone 9: World Simulation & Time-Driven Biological Decay
-- [ ] **Task 9.1**: Comprehensive Clock & Calendar System (`src/core/timeManager.cpp`)
-- [ ] **Task 9.2**: Time Advancement Biological Pipeline (`src/core/game.cpp`)
-- [ ] **Task 9.3**: Scheduled World Maintenance (`src/core/game.cpp`)
+- [x] **Task 9.1**: Comprehensive Clock & Calendar System (`src/core/timeManager.cpp`)
+- [x] **Task 9.2**: Time Advancement Biological Pipeline (`src/core/game.cpp`)
+- [x] **Task 9.3**: Scheduled World Maintenance (`src/core/game.cpp`)
 
 ### Milestone 10: Save System Hardening & JSON World Serialization
 - [ ] **Task 10.1**: Versioned Save Payload Schema (`src/save/saveManager.cpp`)

@@ -120,29 +120,89 @@ void game::init()
 
     changeState(std::make_unique<explorationState>());
 
+    // Milestone 9: Time Advancement Biological Pipeline & Scheduled Maintenance
     eventBus::getInstance().subscribe(gameEvent::timeAdvanced, [this](const eventData& data) {
         int mins = data.numericValue;
+        if (mins <= 0) return;
 
+        // 1. Unsafe tile dropped item decay & map tile runtime updates
         if (this->map)
         {
             this->map->processTimePassage(mins);
         }
 
+        // 2. Player Biological Pipeline
         if (this->Player)
         {
+            // Advance active mutations
             this->Player->anatomy.processMutations(mins);
+
+            // Regenerate bodily fluids (milk, cum, girlcum) & recover orifice stretch
             this->Player->anatomy.processBiologicalRecovery(mins);
+
+            // Natural arousal (lust) decay out of combat
+            float currentLust = this->Player->getStat("lust");
+            if (currentLust > 0.0f)
+            {
+                float lustDecayPerHour = 5.0f;
+                float decayAmount = (lustDecayPerHour * static_cast<float>(mins)) / 60.0f;
+                this->Player->stats.modifyBaseStat("lust", -std::min(currentLust, decayAmount));
+            }
+
+            // Status effect expiration ticks
+            int turnTicks = std::max(1, mins / 5);
+            for (int t = 0; t < turnTicks; ++t)
+            {
+                this->Player->updateStatusEffectsOnTurn();
+            }
+
+            // Advance active pregnancy & process birth
             if (this->Player->gestation.isPregnant)
             {
-                int days = mins / 1440;
-                if (days > 0) this->Player->gestation.processGestation(days);
+                bool readyToGiveBirth = this->Player->gestation.processGestationMinutes(mins);
+                if (readyToGiveBirth || this->Player->gestation.gestationDaysRemaining <= 0)
+                {
+                    auto offspring = this->Player->gestation.giveBirth(this->Player->id);
+                    if (!offspring.empty())
+                    {
+                        std::cout << "[Biological Pipeline] " << this->Player->name
+                                  << " has given birth to " << offspring.size() << " offspring!\n";
+                    }
+                }
             }
         }
-        if (this->gameTime.hour == 6 && this->gameTime.minute == 0)
+
+        // 3. Target NPC Biological Pipeline
+        if (this->activeTargetNPC)
+        {
+            this->activeTargetNPC->anatomy.processMutations(mins);
+            this->activeTargetNPC->anatomy.processBiologicalRecovery(mins);
+            if (this->activeTargetNPC->gestation.isPregnant)
+            {
+                this->activeTargetNPC->gestation.processGestationMinutes(mins);
+            }
+        }
+
+        // 4. Scheduled World Maintenance (Daily 06:00 Restock)
+        if (this->gameTime.hour >= 6)
         {
             if (this->activeTargetNPC)
             {
                 merchantValuation::merchantRestock(this->activeTargetNPC, this->gameTime.day);
+            }
+            if (this->map)
+            {
+                for (int y = 0; y < this->map->getHeight(); ++y)
+                {
+                    for (int x = 0; x < this->map->getWidth(); ++x)
+                    {
+                        auto& tileData = this->map->getRuntimeData(x, y);
+                        if (tileData.persistentNPC)
+                        {
+                            merchantValuation::merchantRestock(tileData.persistentNPC.get(), this->gameTime.day);
+                        }
+                    }
+                }
             }
         }
     });

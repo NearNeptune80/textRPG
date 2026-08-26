@@ -22,6 +22,7 @@ bool gestationComponent::impregnate(const std::string& fId, const std::string& f
 
     totalGestationDays = 30;
     gestationDaysRemaining = totalGestationDays;
+    accumulatedMinutes = 0;
 
     if (customLitterSize > 0)
     {
@@ -77,6 +78,20 @@ bool gestationComponent::processGestation(int daysPassed)
     return (gestationDaysRemaining <= 0);
 }
 
+bool gestationComponent::processGestationMinutes(int minutesPassed)
+{
+    if (!isPregnant || minutesPassed <= 0) return false;
+
+    accumulatedMinutes += minutesPassed;
+    if (accumulatedMinutes >= 1440)
+    {
+        int days = accumulatedMinutes / 1440;
+        accumulatedMinutes %= 1440;
+        return processGestation(days);
+    }
+    return (gestationDaysRemaining <= 0);
+}
+
 std::vector<OffspringInfo> gestationComponent::giveBirth(const std::string& motherId)
 {
     if (!isPregnant) return {};
@@ -99,6 +114,7 @@ std::vector<OffspringInfo> gestationComponent::giveBirth(const std::string& moth
     fatherId = "";
     fatherName = "";
     gestationDaysRemaining = 0;
+    accumulatedMinutes = 0;
     litterSize = 0;
     incubatedOffspringRaces.clear();
 
@@ -117,6 +133,7 @@ nlohmann::json gestationComponent::toJson() const
         {"gestationDaysRemaining", gestationDaysRemaining},
         {"totalGestationDays", totalGestationDays},
         {"litterSize", litterSize},
+        {"accumulatedMinutes", accumulatedMinutes},
         {"incubatedOffspringRaces", incubatedOffspringRaces}
     };
 }
@@ -132,5 +149,6 @@ void gestationComponent::fromJson(const nlohmann::json& j)
     if (j.contains("gestationDaysRemaining")) gestationDaysRemaining = j["gestationDaysRemaining"].get<int>();
     if (j.contains("totalGestationDays")) totalGestationDays = j["totalGestationDays"].get<int>();
     if (j.contains("litterSize")) litterSize = j["litterSize"].get<int>();
+    if (j.contains("accumulatedMinutes")) accumulatedMinutes = j["accumulatedMinutes"].get<int>();
     if (j.contains("incubatedOffspringRaces")) incubatedOffspringRaces = j["incubatedOffspringRaces"].get<std::vector<std::string>>();
 }
