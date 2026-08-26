@@ -10,8 +10,39 @@
 #include "entities/entity.h"
 #include "events/gameEvents.h"
 #include "map/encounterResolver.h"
+#include "state/encounterResolutionState.h"
 #include "state/eventState.h"
 #include "state/explorationState.h"
+
+static bool isSexuallyCompatible(const entity* npc, const entity* player)
+{
+    if (!npc || !player) return false;
+    if (npc->orientation == SexualOrientation::ASEXUAL) return false;
+
+    GenderArchetype playerArch = player->anatomy.getGenderArchetype();
+    BodyPresentation playerPres = player->anatomy.getVisualPresentation();
+
+    if (npc->orientation == SexualOrientation::BISEXUAL)
+    {
+        return playerArch != GenderArchetype::ASEXUAL_NULL;
+    }
+
+    bool playerIsFeminine = (playerArch == GenderArchetype::FEMALE || playerArch == GenderArchetype::GYNOMORPH || playerPres == BodyPresentation::FEMININE);
+    bool playerIsMasculine = (playerArch == GenderArchetype::MALE || playerArch == GenderArchetype::ANDROMORPH || playerPres == BodyPresentation::MASCULINE);
+
+    if (npc->genderArchetype == GenderArchetype::MALE || npc->genderArchetype == GenderArchetype::ANDROMORPH)
+    {
+        if (npc->orientation == SexualOrientation::HETEROSEXUAL) return playerIsFeminine;
+        if (npc->orientation == SexualOrientation::HOMOSEXUAL) return playerIsMasculine;
+    }
+    else if (npc->genderArchetype == GenderArchetype::FEMALE || npc->genderArchetype == GenderArchetype::GYNOMORPH)
+    {
+        if (npc->orientation == SexualOrientation::HETEROSEXUAL) return playerIsMasculine;
+        if (npc->orientation == SexualOrientation::HOMOSEXUAL) return playerIsFeminine;
+    }
+
+    return true;
+}
 
 CombatState::CombatState(const std::vector<std::shared_ptr<entity>>& playerParty,
                          const std::vector<std::shared_ptr<entity>>& enemyParty)
@@ -37,19 +68,81 @@ void CombatState::handleCommand(game* gameContext, const UICommand& cmd)
 {
     if (!gameContext) return;
 
-    switch (cmd.type)
+    if (cmd.type == CommandType::EXECUTE_COMBAT_ACTION)
     {
-        case CommandType::END_TURN:
-            handleEndTurn(gameContext);
-            break;
-        case CommandType::RUN_ATTEMPT:
-            handleRunAttempt(gameContext);
-            break;
-        case CommandType::SURRENDER:
+        if (cmd.stringPayload == "WIN")
+        {
+            for (auto& enemyP : m_engine.getEnemyParty())
+            {
+                if (enemyP.character)
+                {
+                    enemyP.character->stats.setBaseStat("health", 0.0f);
+                }
+            }
+            m_engine.appendLog("[Debug] Simulated Combat Victory!");
+            update(gameContext, 0.0f);
+            return;
+        }
+        else if (cmd.stringPayload == "DEFEAT")
+        {
+            for (auto& playerP : m_engine.getPlayerParty())
+            {
+                if (playerP.character)
+                {
+                    playerP.character->stats.setBaseStat("health", 0.0f);
+                }
+            }
+            m_engine.appendLog("[Debug] Simulated Combat Defeat!");
+            resolveDefeat(gameContext);
+            return;
+        }
+        else if (cmd.stringPayload == "ESCAPE")
+        {
+            m_engine.appendLog("[Debug] Simulated Combat Escape!");
+            int outcomeVal = static_cast<int>(CombatOutcome::ESCAPE);
+            eventBus::getInstance().publishEvent({ gameEvent::combatEnded, outcomeVal, "ESCAPE", nullptr });
+            gameContext->changeState(std::make_unique<explorationState>());
+            return;
+        }
+        else if (cmd.stringPayload == "SURRENDER")
+        {
+            m_engine.appendLog("[Debug] Simulated Combat Surrender!");
             handleSurrender(gameContext);
-            break;
-        default:
-            break;
+            return;
+        }
+        else if (cmd.stringPayload == "STRIKE")
+        {
+            if (!m_engine.getPlayerParty().empty() && !m_engine.getEnemyParty().empty())
+            {
+                entity* target = m_engine.getEnemyParty()[0].character.get();
+                CombatAction strike;
+                strike.id = "action_basic_strike";
+                strike.name = "Strike";
+                strike.baseApCost = 1;
+
+                SpellEffectNode dmgNode;
+                dmgNode.effectType = "DAMAGE";
+                dmgNode.element = "Physical";
+                dmgNode.baseMagnitude = m_engine.getPlayerParty()[0].character ? m_engine.getPlayerParty()[0].character->getStat("physique") : 10.0f;
+                strike.effectNodes.push_back(dmgNode);
+
+                m_engine.queuePlayerAction(0, strike, target);
+                m_engine.resolveTurn(gameContext);
+            }
+            return;
+        }
+    }
+    else if (cmd.type == CommandType::END_TURN)
+    {
+        handleEndTurn(gameContext);
+    }
+    else if (cmd.type == CommandType::RUN_ATTEMPT)
+    {
+        handleRunAttempt(gameContext);
+    }
+    else if (cmd.type == CommandType::SURRENDER)
+    {
+        handleSurrender(gameContext);
     }
 }
 
@@ -59,56 +152,112 @@ void CombatState::update(game* gameContext, float deltaTime)
 
     if (m_engine.isCombatOver())
     {
-        eventData data;
-
         if (m_engine.isPlayerVictory())
         {
+            eventData data;
             data.numericValue = static_cast<int>(CombatOutcome::VICTORY);
             eventBus::getInstance().publishEvent({ gameEvent::combatEnded, data.numericValue, "VICTORY", nullptr });
 
-            std::string currentMapId = gameContext->map ? gameContext->map->getId() : "overworld";
-            entity* defeatedNPC = gameContext->activeTargetNPC;
+            std::vector<std::shared_ptr<entity>> defeatedEnemies;
+            for (const auto& enemyP : m_engine.getEnemyParty())
+            {
+                if (enemyP.character)
+                {
+                    defeatedEnemies.push_back(enemyP.character);
+                }
+            }
 
-            gameContext->currentScene = encounterResolver::buildVictoryScene(gameContext, defeatedNPC, currentMapId);
+            if (gameContext->map)
+            {
+                TileRuntimeData& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
+                tileData.persistentNPC = nullptr;
+            }
 
-            TileRuntimeData& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
-            tileData.persistentNPC = nullptr;
-
-            gameContext->changeState(std::make_unique<eventState>());
+            gameContext->changeState(std::make_unique<encounterResolutionState>(defeatedEnemies));
             return;
         }
         else
         {
-            data.numericValue = static_cast<int>(CombatOutcome::DEFEAT);
-
-            auto& playerParty = m_engine.getPlayerParty();
-            int currencyLost = 0;
-            if (!playerParty.empty() && playerParty[0].character)
-            {
-                float currentMoney = playerParty[0].character->getStat("currency");
-                currencyLost = static_cast<int>(currentMoney * 0.15f);
-                playerParty[0].character->stats.modifyBaseStat("currency", -static_cast<float>(currencyLost));
-            }
-
-            eventBus::getInstance().publishEvent({ gameEvent::combatEnded, data.numericValue, "DEFEAT", nullptr });
-
-            questScene defeatScene;
-            defeatScene.id = "scene_combat_defeat";
-            defeatScene.speakerName = "Defeated";
-            defeatScene.bodyText = std::format("You were overwhelmed in combat and collapsed! You managed to escape later, but lost {}¤ in the process.", currencyLost);
-
-            dialogueChoice continueChoice;
-            continueChoice.label = "Continue";
-            continueChoice.nextSceneId = "EXIT";
-            defeatScene.choices.push_back(continueChoice);
-
-            gameContext->currentScene = defeatScene;
-            gameContext->activeTargetNPC = nullptr;
-            gameContext->activeTargetMode = TargetMode::NONE;
-
-            gameContext->changeState(std::make_unique<eventState>());
+            resolveDefeat(gameContext);
             return;
         }
+    }
+}
+
+void CombatState::resolveDefeat(game* gameContext)
+{
+    if (!gameContext) return;
+
+    entity* defeatingNPC = nullptr;
+    for (const auto& enemyP : m_engine.getEnemyParty())
+    {
+        if (enemyP.character)
+        {
+            defeatingNPC = enemyP.character.get();
+            break;
+        }
+    }
+
+    entity* player = gameContext->getPlayer();
+    bool sexuallyCompatible = defeatingNPC && player && isSexuallyCompatible(defeatingNPC, player);
+    float npcLust = defeatingNPC ? defeatingNPC->getStat("lust") : 0.0f;
+
+    eventData data;
+    data.numericValue = static_cast<int>(CombatOutcome::DEFEAT);
+
+    if (defeatingNPC && sexuallyCompatible && npcLust >= 20.0f)
+    {
+        eventBus::getInstance().publishEvent({ gameEvent::combatEnded, data.numericValue, "DEFEAT_SEDUCTION", nullptr });
+
+        questScene defeatScene;
+        defeatScene.id = "scene_combat_seduction";
+        defeatScene.speakerName = defeatingNPC->name;
+
+        std::string npcArchetype = genderArchetypeToString(defeatingNPC->genderArchetype);
+        std::string npcRace = defeatingNPC->anatomy.getDominantRace();
+
+        defeatScene.bodyText = std::format("With your strength exhausted, you collapse to the ground. "
+                                          "{} ({}, {}) stands over your helpless body with a hungry, aroused glare. "
+                                          "Rather than finishing you off, they claim their erotic prize before leaving you thoroughly spent.",
+                                          defeatingNPC->name, npcArchetype, npcRace);
+
+        dialogueChoice continueChoice;
+        continueChoice.label = "Recover and Continue";
+        continueChoice.nextSceneId = "EXIT";
+        defeatScene.choices.push_back(continueChoice);
+
+        gameContext->currentScene = defeatScene;
+        gameContext->activeTargetNPC = nullptr;
+        gameContext->activeTargetMode = TargetMode::NONE;
+        gameContext->changeState(std::make_unique<eventState>());
+    }
+    else
+    {
+        float lossPercent = gameContext->settings.gameplay.currencyLossOnDefeatPercent;
+        float currentMoney = player ? player->getStat("currency") : 0.0f;
+        int currencyLost = static_cast<int>(currentMoney * lossPercent);
+
+        if (player)
+        {
+            player->stats.modifyBaseStat("currency", -static_cast<float>(currencyLost));
+        }
+
+        eventBus::getInstance().publishEvent({ gameEvent::combatEnded, data.numericValue, "DEFEAT_ROBBERY", nullptr });
+
+        questScene defeatScene;
+        defeatScene.id = "scene_combat_defeat";
+        defeatScene.speakerName = defeatingNPC ? defeatingNPC->name : "System";
+        defeatScene.bodyText = std::format("You were defeated in combat! Your opponent looted {}¤ from your purse before departing.", currencyLost);
+
+        dialogueChoice continueChoice;
+        continueChoice.label = "Continue";
+        continueChoice.nextSceneId = "EXIT";
+        defeatScene.choices.push_back(continueChoice);
+
+        gameContext->currentScene = defeatScene;
+        gameContext->activeTargetNPC = nullptr;
+        gameContext->activeTargetMode = TargetMode::NONE;
+        gameContext->changeState(std::make_unique<eventState>());
     }
 }
 
