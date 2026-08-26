@@ -11,6 +11,10 @@ struct gameCondition {
 	std::string type;
 	std::string target;
 	int requiredValue{0};
+	float floatValue{0.0f};
+	std::string stringValue;
+	int minValue{0};
+	int maxValue{0};
 };
 
 struct conditionNode {

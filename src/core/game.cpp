@@ -1,5 +1,7 @@
 #include "core/game.h"
 
+#include <algorithm>
+#include <cstdlib>
 #include <iostream>
 
 #include "core/eventBus.h"
@@ -390,6 +392,8 @@ void game::handleUnequipAction(equipSlot slot)
 
 bool game::checkSingleCondition(const gameCondition& cond) const
 {
+    if (!Player) return false;
+
     if (cond.type == "HAS_ITEM")
     {
         int count = 0;
@@ -400,9 +404,10 @@ bool game::checkSingleCondition(const gameCondition& cond) const
                 count += item->isStackable ? item->count : 1;
             }
         }
-        return count >= cond.requiredValue;
+        int req = cond.requiredValue > 0 ? cond.requiredValue : 1;
+        return count >= req;
     }
-    else if (cond.type == "QUEST_STAGE")
+    else if (cond.type == "QUEST_STAGE" || cond.type == "QUEST_FLAG")
     {
         return Player->quests.getQuestStage(cond.target) == cond.requiredValue;
     }
@@ -415,18 +420,77 @@ bool game::checkSingleCondition(const gameCondition& cond) const
         else if (currentPhase == TimePhase::DUSK) phaseStr = "DUSK";
         return phaseStr == cond.target;
     }
+    else if (cond.type == "TIME_HOUR_BETWEEN")
+    {
+        int start = cond.minValue;
+        int end = cond.maxValue;
+        int currentHour = gameTime.hour;
+        if (start <= end) return currentHour >= start && currentHour <= end;
+        else return currentHour >= start || currentHour <= end;
+    }
     else if (cond.type == "STAT_MIN")
     {
-        return Player->getStat(cond.target) >= cond.requiredValue;
+        float reqVal = cond.floatValue != 0.0f ? cond.floatValue : static_cast<float>(cond.requiredValue);
+        return Player->getStat(cond.target) >= reqVal;
+    }
+    else if (cond.type == "STAT_MAX")
+    {
+        float reqVal = cond.floatValue != 0.0f ? cond.floatValue : static_cast<float>(cond.requiredValue);
+        return Player->getStat(cond.target) <= reqVal;
+    }
+    else if (cond.type == "STAT_CHECK")
+    {
+        float val = Player->getStat(cond.target);
+        if (cond.minValue != 0 || cond.maxValue != 0)
+        {
+            return val >= cond.minValue && val <= cond.maxValue;
+        }
+        float reqVal = cond.floatValue != 0.0f ? cond.floatValue : static_cast<float>(cond.requiredValue);
+        return val >= reqVal;
+    }
+    else if (cond.type == "EQUIPPED_SLOT")
+    {
+        equipSlot slot = stringToEquipSlot(cond.target);
+        if (slot == equipSlot::NONE) return false;
+        if (!cond.stringValue.empty())
+        {
+            auto itemPtr = Player->inventory.getEquippedItem(slot);
+            return itemPtr && itemPtr->id == cond.stringValue;
+        }
+        return Player->inventory.isEquipped(slot);
     }
     else if (cond.type == "HAS_TAG")
     {
         return Player->anatomy.hasGlobalTag(cond.target);
     }
-    else if (cond.type == "DOMINANT_RACE")
+    else if (cond.type == "HAS_MUTATION")
     {
-        return Player->anatomy.getDominantRace() == cond.target;
+        for (const auto& mut : Player->anatomy.activeMutations)
+        {
+            if (mut.id == cond.target) return true;
+        }
+        return false;
     }
+    else if (cond.type == "IS_PREGNANT")
+    {
+        return Player->gestation.isPregnant;
+    }
+    else if (cond.type == "GENDER_IS")
+    {
+        std::string archStr = genderArchetypeToString(Player->anatomy.getGenderArchetype());
+        return (archStr == cond.target || archStr == cond.stringValue);
+    }
+    else if (cond.type == "RACE_IS" || cond.type == "DOMINANT_RACE")
+    {
+        std::string domRace = Player->anatomy.getDominantRace();
+        return (domRace == cond.target || domRace == cond.stringValue);
+    }
+    else if (cond.type == "DOMINANCE_BETWEEN")
+    {
+        float dom = Player->getStat("dominance");
+        return dom >= cond.minValue && dom <= cond.maxValue;
+    }
+
     return true;
 }
 
@@ -439,15 +503,37 @@ bool game::checkConditions(const std::vector<conditionNode>& conditions)
     return true;
 }
 
+void game::pushScene(const std::string& sceneId)
+{
+    if (!currentScene.id.empty())
+    {
+        sceneStack.push_back(currentScene.id);
+    }
+    loadScene(sceneId);
+}
+
+void game::popScene()
+{
+    if (!sceneStack.empty())
+    {
+        std::string prevSceneId = sceneStack.back();
+        sceneStack.pop_back();
+        loadScene(prevSceneId);
+    }
+    else
+    {
+        activeTargetNPC = nullptr;
+        activeTargetMode = TargetMode::NONE;
+        changeState(std::make_unique<explorationState>());
+    }
+}
+
 void game::processChoice(const dialogueChoice& choice)
 {
     if (choice.nextSceneId == "ENCOUNTER_FIGHT")
     {
         std::vector<std::shared_ptr<entity>> playerParty;
-        if (playerEntity)
-        {
-            playerParty.push_back(playerEntity);
-        }
+        if (playerEntity) playerParty.push_back(playerEntity);
 
         std::vector<std::shared_ptr<entity>> enemyParty;
         TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
@@ -470,7 +556,6 @@ void game::processChoice(const dialogueChoice& choice)
         if (Player && Player->getStat("currency") >= 25.0f)
         {
             Player->stats.modifyBaseStat("currency", -25.0f);
-
             TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
             tileData.persistentNPC = nullptr;
         }
@@ -506,8 +591,13 @@ void game::processChoice(const dialogueChoice& choice)
         processEffect(effect);
     }
 
-    if (choice.nextSceneId == "EXIT" || choice.nextSceneId.empty())
+    if (choice.nextSceneId == "POP_SCENE" || choice.nextSceneId == "RETURN")
     {
+        popScene();
+    }
+    else if (choice.nextSceneId == "EXIT" || choice.nextSceneId.empty())
+    {
+        sceneStack.clear();
         activeTargetNPC = nullptr;
         activeTargetMode = TargetMode::NONE;
         changeState(std::make_unique<explorationState>());
@@ -520,24 +610,182 @@ void game::processChoice(const dialogueChoice& choice)
 
 void game::processEffect(const gameEffect& eff)
 {
-    if (eff.action == "SET_QUEST_STAGE")
+    if (!Player) return;
+
+    if (eff.action == "TELEPORT")
+    {
+        std::string targetMapId = eff.target.empty() ? (map ? map->getId() : "overworld") : eff.target;
+        int targetX = eff.x != 0 ? eff.x : eff.amount;
+        int targetY = eff.y;
+        loadMap(targetMapId, targetX, targetY);
+    }
+    else if (eff.action == "GIVE_ITEM")
+    {
+        int count = eff.amount > 0 ? eff.amount : 1;
+        auto itemPtr = itemDatabase::getItem(eff.target);
+        if (itemPtr)
+        {
+            itemPtr->count = count;
+            Player->inventory.addItem(itemPtr);
+        }
+    }
+    else if (eff.action == "REMOVE_ITEM")
+    {
+        int count = eff.amount > 0 ? eff.amount : 1;
+        Player->inventory.removeItem(eff.target, count);
+    }
+    else if (eff.action == "TRANSFER_CURRENCY")
+    {
+        float amount = eff.floatAmount != 0.0f ? eff.floatAmount : static_cast<float>(eff.amount);
+        if (eff.target == "player" || eff.target.empty())
+        {
+            Player->stats.modifyBaseStat("currency", -amount);
+            if (activeTargetNPC) activeTargetNPC->stats.modifyBaseStat("currency", amount);
+        }
+        else if (eff.target == "target" || eff.target == "npc")
+        {
+            if (activeTargetNPC) activeTargetNPC->stats.modifyBaseStat("currency", -amount);
+            Player->stats.modifyBaseStat("currency", amount);
+        }
+    }
+    else if (eff.action == "MODIFY_STAT" || eff.action == "ADD_STAT")
+    {
+        float delta = eff.floatAmount != 0.0f ? eff.floatAmount : static_cast<float>(eff.amount);
+        Player->stats.modifyBaseStat(eff.target, delta);
+    }
+    else if (eff.action == "TRANSFORM_PART" || eff.action == "TRANSFORM")
+    {
+        bodySlot slot = stringToBodySlot(eff.target);
+        float sizeDelta = eff.floatAmount != 0.0f ? eff.floatAmount : static_cast<float>(eff.amount);
+        std::string race = !eff.stringVal.empty() ? eff.stringVal : eff.secondaryTarget;
+
+        Player->anatomy.applyTransformation(slot, mutationType::GROWTH_LENGTH, sizeDelta, race, 10, "effect_transform");
+
+        bodyPart* part = Player->anatomy.getPart(slot);
+        if (part)
+        {
+            if (!race.empty()) part->race = race;
+            if (!eff.extraString.empty()) part->covering = stringToCoveringType(eff.extraString);
+        }
+    }
+    else if (eff.action == "FILL_FLUID")
+    {
+        float amount = eff.floatAmount != 0.0f ? eff.floatAmount : static_cast<float>(eff.amount);
+        bodySlot slot = stringToBodySlot(eff.secondaryTarget.empty() ? "BREASTS" : eff.secondaryTarget);
+
+        if (Player->anatomy.hasOrifice(slot))
+        {
+            Player->anatomy.transferFluidToOrifice(slot, eff.target, amount);
+        }
+        else
+        {
+            bodyPart* part = Player->anatomy.getPart(slot);
+            if (part) part->currentFluidMl = std::min(part->maxFluidMl, part->currentFluidMl + amount);
+        }
+    }
+    else if (eff.action == "DRAIN_FLUID")
+    {
+        float amount = eff.floatAmount != 0.0f ? eff.floatAmount : static_cast<float>(eff.amount);
+        bodySlot slot = stringToBodySlot(eff.secondaryTarget.empty() ? "BREASTS" : eff.secondaryTarget);
+
+        bodyPart* part = Player->anatomy.getPart(slot);
+        if (part) part->currentFluidMl = std::max(0.0f, part->currentFluidMl - amount);
+    }
+    else if (eff.action == "STRETCH_ORIFICE")
+    {
+        float delta = eff.floatAmount != 0.0f ? eff.floatAmount : static_cast<float>(eff.amount);
+        bodySlot slot = stringToBodySlot(eff.target);
+        Player->anatomy.stretchOrifice(slot, delta);
+    }
+    else if (eff.action == "IMPREGNATE")
+    {
+        entity* mother = (eff.target == "player" || eff.target.empty()) ? Player : activeTargetNPC;
+        std::string fatherId = !eff.secondaryTarget.empty() ? eff.secondaryTarget : "stranger";
+        std::string fatherRace = !eff.stringVal.empty() ? eff.stringVal : "Human";
+        int litter = eff.amount > 0 ? eff.amount : 1;
+
+        if (mother && mother->anatomy.hasVagina())
+        {
+            mother->gestation.impregnate(fatherId, fatherId, fatherRace, mother->anatomy.getDominantRace(), litter);
+        }
+    }
+    else if (eff.action == "INDUCE_BIRTH")
+    {
+        entity* mother = (eff.target == "player" || eff.target.empty()) ? Player : activeTargetNPC;
+        if (mother && mother->gestation.isPregnant)
+        {
+            mother->gestation.giveBirth(mother->id);
+        }
+    }
+    else if (eff.action == "DISPLACE_CLOTHING")
+    {
+        equipSlot slot = stringToEquipSlot(eff.target);
+        DisplacementMode mode = stringToDisplacementMode(eff.stringVal);
+        Player->inventory.setDisplacement(slot, mode);
+    }
+    else if (eff.action == "RESTORE_CLOTHING")
+    {
+        Player->inventory.resetAllDisplacements();
+    }
+    else if (eff.action == "SET_FLAG" || eff.action == "SET_QUEST" || eff.action == "SET_QUEST_STAGE")
     {
         Player->quests.setQuestStage(eff.target, eff.amount);
     }
-    else if (eff.action == "MODIFY_STAT")
+    else if (eff.action == "CALL_SUB_SCENE")
     {
-        Player->stats.modifyBaseStat(eff.target, eff.amount);
+        std::string subScene = !eff.target.empty() ? eff.target : eff.stringVal;
+        if (!subScene.empty())
+        {
+            pushScene(subScene);
+        }
     }
-    else if (eff.action == "TRANSFORM")
+    else if (eff.action == "RANDOM_BRANCH")
     {
-        Player->anatomy.applyTransformation(
-            bodySlot::GROIN,
-            mutationType::GROWTH_LENGTH,
-            static_cast<float>(eff.amount),
-            eff.target,
-            10,
-            "effect_transform"
-        );
+        if (!eff.branches.empty())
+        {
+            int totalWeight = 0;
+            std::vector<int> activeWeights = eff.weights;
+            if (activeWeights.size() < eff.branches.size())
+            {
+                activeWeights.resize(eff.branches.size(), 1);
+            }
+            for (int w : activeWeights) totalWeight += w;
+
+            int roll = (totalWeight > 0) ? (rand() % totalWeight) : 0;
+            int accum = 0;
+            size_t chosenIdx = 0;
+            for (size_t i = 0; i < eff.branches.size(); ++i)
+            {
+                accum += activeWeights[i];
+                if (roll < accum)
+                {
+                    chosenIdx = i;
+                    break;
+                }
+            }
+            loadScene(eff.branches[chosenIdx]);
+        }
+    }
+    else if (eff.action == "SPAWN_NPC")
+    {
+        int spawnX = eff.x != 0 ? eff.x : gridX;
+        int spawnY = eff.y != 0 ? eff.y : gridY;
+        auto npc = npcGenerator::generateFromTemplate(eff.target);
+        if (npc && map)
+        {
+            map->getRuntimeData(spawnX, spawnY).persistentNPC = npc;
+        }
+    }
+    else if (eff.action == "DESPAWN_NPC")
+    {
+        if (map)
+        {
+            map->getRuntimeData(gridX, gridY).persistentNPC = nullptr;
+        }
+        if (activeTargetNPC && activeTargetNPC->id == eff.target)
+        {
+            activeTargetNPC = nullptr;
+        }
     }
 }
 

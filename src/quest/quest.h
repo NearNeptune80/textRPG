@@ -9,6 +9,14 @@ struct gameEffect {
     std::string action;
     std::string target;
     int amount{0};
+    int x{0};
+    int y{0};
+    float floatAmount{0.0f};
+    std::string secondaryTarget;
+    std::string stringVal;
+    std::string extraString;
+    std::vector<int> weights;
+    std::vector<std::string> branches;
 };
 
 struct dialogueChoice {

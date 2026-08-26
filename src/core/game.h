@@ -67,6 +67,11 @@ public:
     std::vector<actionButton> activeButtons;
     questScene currentScene;
 
+    // Scene Subroutine Stack Management
+    std::vector<std::string> sceneStack;
+    void pushScene(const std::string& sceneId);
+    void popScene();
+
     entity* activeTargetNPC = nullptr;
     TargetMode activeTargetMode = TargetMode::NONE;
 
