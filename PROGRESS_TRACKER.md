@@ -1,6 +1,6 @@
 # PROGRESS_TRACKER.md - Active Implementation Progress
 > **Project**: textRPG (C++26 Decoupled Headless Simulation)
-> **Active Milestone**: Milestone 8 (Dedicated CYOA Interactive Sex Engine)
+> **Active Milestone**: Milestone 11 (Decoupled UI Frontend & Themeable Presentation)
 ---
 
 ## Milestone Status Overview
@@ -16,7 +16,7 @@
 | **Milestone 7** | Combat: Multi-Party & Resolution Hub | 🟢 COMPLETED | 4 / 4 |
 | **Milestone 8** | Dedicated CYOA Interactive Sex Engine | 🟢 COMPLETED | 4 / 4 |
 | **Milestone 9** | World Simulation & Time Biological Decay | 🟢 COMPLETED | 3 / 3 |
-| **Milestone 10** | Save System Hardening & JSON World Serialization | ⚪ PENDING | 0 / 3 |
+| **Milestone 10** | Save System Hardening & JSON World Serialization | 🟢 COMPLETED | 3 / 3 |
 | **Milestone 11** | Decoupled UI Frontend & Themeable Presentation | ⚪ PENDING | 0 / 3 |
 
 ---
@@ -74,9 +74,9 @@
 - [x] **Task 9.3**: Scheduled World Maintenance (`src/core/game.cpp`)
 
 ### Milestone 10: Save System Hardening & JSON World Serialization
-- [ ] **Task 10.1**: Versioned Save Payload Schema (`src/save/saveManager.cpp`)
-- [ ] **Task 10.2**: Atomic File Writing & Multi-Slot Organization (`src/save/saveManager.cpp`)
-- [ ] **Task 10.3**: Auto-Save Triggers (`src/save/saveManager.cpp`)
+- [x] **Task 10.1**: Versioned Save Payload Schema (`src/save/saveManager.cpp`)
+- [x] **Task 10.2**: Atomic File Writing & Multi-Slot Organization (`src/save/saveManager.cpp`)
+- [x] **Task 10.3**: Auto-Save Triggers (`src/save/saveManager.cpp`)
 
 ### Milestone 11: Decoupled UI Frontend & Themeable Presentation
 - [ ] **Task 11.1**: UI Theme Engine (`src/ui/theme.cpp`)

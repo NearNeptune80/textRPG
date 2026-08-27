@@ -304,6 +304,12 @@ bool game::loadMap(const std::string& mapId, int startX, int startY)
 
     eventBus::getInstance().publishEvent({ gameEvent::mapEntered, 0, mapId, nullptr });
 
+    // Task 10.3: Auto-save trigger on map transitions
+    if (settings.gameplay.autoSaveOnMapChange && playerEntity)
+    {
+        saveManager::saveAutosave(this, settings.gameplay.maxAutoSaves);
+    }
+
     return true;
 }
 
@@ -609,6 +615,12 @@ void game::popScene()
     }
     else
     {
+        // Task 10.3: Auto-save trigger on scene exit
+        if (settings.gameplay.autoSaveOnSceneExit && playerEntity)
+        {
+            saveManager::saveAutosave(this, settings.gameplay.maxAutoSaves);
+        }
+
         activeTargetNPC = nullptr;
         activeTargetMode = TargetMode::NONE;
         changeState(std::make_unique<explorationState>());
@@ -685,6 +697,13 @@ void game::processChoice(const dialogueChoice& choice)
     else if (choice.nextSceneId == "EXIT" || choice.nextSceneId.empty())
     {
         sceneStack.clear();
+
+        // Task 10.3: Auto-save trigger on scene exit
+        if (settings.gameplay.autoSaveOnSceneExit && playerEntity)
+        {
+            saveManager::saveAutosave(this, settings.gameplay.maxAutoSaves);
+        }
+
         activeTargetNPC = nullptr;
         activeTargetMode = TargetMode::NONE;
         changeState(std::make_unique<explorationState>());
