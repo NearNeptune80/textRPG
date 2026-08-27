@@ -7,6 +7,7 @@
 #include "entities/entity.h"
 #include "state/combatState.h"
 #include "state/encounterResolutionState.h"
+#include "state/eventState.h"
 #include "state/explorationState.h"
 #include "state/inventoryState.h"
 #include "state/sexState.h"
@@ -15,10 +16,16 @@ void ActionGridManager::refresh(game* gameContext)
 {
     if (!gameContext) return;
 
-    gameContext->activeButtons.clear();
-
     iGameState* currentState = gameContext->getActiveState();
     if (!currentState) return;
+
+    // Preserve existing choice buttons if in eventState and choices are already populated
+    if (dynamic_cast<eventState*>(currentState) && !gameContext->activeButtons.empty())
+    {
+        return;
+    }
+
+    gameContext->activeButtons.clear();
 
     // 0. Dedicated Interactive Sex State Actions
     if (auto sex = dynamic_cast<sexState*>(currentState))
@@ -190,7 +197,6 @@ void ActionGridManager::refresh(game* gameContext)
     // 3. Combat State Actions
     if (auto combat = dynamic_cast<CombatState*>(currentState))
     {
-        // Debug Simulation Buttons
         actionButton winBtn;
         winBtn.label = "[Simulate Win]";
         winBtn.onClick = [gameContext]() {
@@ -219,7 +225,6 @@ void ActionGridManager::refresh(game* gameContext)
         };
         gameContext->activeButtons.push_back(surrBtn);
 
-        // Standard Combat Actions
         actionButton strikeBtn;
         strikeBtn.label = "Strike";
         strikeBtn.onClick = [gameContext]() {

@@ -1,6 +1,5 @@
 #include "ui/theme.h"
 
-#include <algorithm>
 #include <fstream>
 #include <iostream>
 
@@ -23,7 +22,16 @@ static SDL_Color parseJsonColor(const nlohmann::json& j, const std::string& key,
 bool Theme::loadFromFile(const std::string& filePath)
 {
     std::ifstream file(filePath);
-    if (!file.is_open()) return false;
+    if (!file.is_open())
+    {
+        std::ifstream altFile("data/themes/theme.json");
+        if (!altFile.is_open())
+        {
+            std::cout << "[Theme] Could not initialise theme from " << filePath << " or data/themes/theme.json. Using default palette.\n";
+            return false;
+        }
+        return loadFromFile("data/themes/theme.json");
+    }
 
     try
     {
@@ -63,30 +71,12 @@ bool Theme::loadFromFile(const std::string& filePath)
         colors.friendly = parseJsonColor(j, "friendly", colors.friendly);
         colors.companion = parseJsonColor(j, "companion", colors.companion);
 
+        std::cout << "[Theme] Initialised UI colour palette successfully.\n";
         return true;
     }
     catch (const std::exception& e)
     {
-        std::cerr << "[Theme System] Warning: Failed to parse theme file (" << e.what() << "). Using defaults.\n";
+        std::cerr << "[Theme] JSON parse error in " << filePath << ": " << e.what() << "\n";
         return false;
     }
-}
-
-SDL_Color Theme::getColorFromName(const std::string& colorName)
-{
-    std::string lower = colorName;
-    std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
-
-    if (lower == "fair" || lower == "flesh") return { 240, 190, 170, 255 };
-    if (lower == "brown") return { 160, 90, 44, 255 };
-    if (lower == "blue") return { 80, 160, 255, 255 };
-    if (lower == "pink") return { 255, 130, 180, 255 };
-    if (lower == "scarlet" || lower == "red") return colors.health;
-    if (lower == "yellow") return colors.textGold;
-    if (lower == "purple") return colors.arcane;
-    if (lower == "green") return { 60, 200, 80, 255 };
-    if (lower == "black" || lower == "dark") return { 100, 100, 110, 255 };
-    if (lower == "white") return colors.textPrimary;
-
-    return colors.textSecondary;
 }

@@ -46,10 +46,16 @@ public:
         float y{0.0f};
     };
     [[nodiscard]] mousePosition getMousePosition() const { return m_mousePosition; }
+    [[nodiscard]] bool isLeftMouseDown() const { return m_leftMouseDown; }
+    [[nodiscard]] bool isLeftMouseJustClicked() const { return m_leftMouseJustClicked; }
+
+    void consumeMouseClick() { m_leftMouseJustClicked = false; }
 
 private:
     std::unordered_map<keyAction, buttonState> m_actionStates;
     mousePosition m_mousePosition{0.0f, 0.0f};
+    bool m_leftMouseDown{false};
+    bool m_leftMouseJustClicked{false};
 
     void processKeyEvent(const SDL_Event& event);
 };

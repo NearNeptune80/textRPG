@@ -7,6 +7,8 @@ void inputHandler::update(game* g)
 {
     if (!g) return;
 
+    m_leftMouseJustClicked = false;
+
     SDL_Event event;
     while (SDL_PollEvent(&event))
     {
@@ -16,9 +18,17 @@ void inputHandler::update(game* g)
         }
         else if (event.type == SDL_EVENT_MOUSE_MOTION)
         {
-            // Store raw window coordinates; UI view layer handles logical grid scaling
             m_mousePosition.x = event.motion.x;
             m_mousePosition.y = event.motion.y;
+        }
+        else if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN && event.button.button == SDL_BUTTON_LEFT)
+        {
+            m_leftMouseDown = true;
+            m_leftMouseJustClicked = true;
+        }
+        else if (event.type == SDL_EVENT_MOUSE_BUTTON_UP && event.button.button == SDL_BUTTON_LEFT)
+        {
+            m_leftMouseDown = false;
         }
 
         processKeyEvent(event);
