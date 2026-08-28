@@ -5,13 +5,16 @@
 #include <unordered_set>
 
 #include "core/game.h"
-#include "entities/entity.h"
 #include "state/combatState.h"
 #include "state/encounterResolutionState.h"
 #include "state/eventState.h"
 #include "state/explorationState.h"
 #include "state/inventoryState.h"
+#include "state/mainMenuState.h"
+#include "state/optionsState.h"
 #include "state/sexState.h"
+#include "state/shopState.h"
+#include "state/transformationState.h"
 
 void ActionGridManager::refresh(game* gameContext)
 {
@@ -26,7 +29,100 @@ void ActionGridManager::refresh(game* gameContext)
         return;
     }
 
-    gameContext->activeButtons.clear();
+    // Main Menu State Actions
+    if (auto menu = dynamic_cast<mainMenuState*>(currentState))
+    {
+        actionButton newGameBtn;
+        newGameBtn.label = "New Game";
+        newGameBtn.onClick = [gameContext]() {
+            gameContext->handleCommand({ CommandType::START_NEW_GAME, 0, 0, "" });
+        };
+        gameContext->activeButtons.push_back(newGameBtn);
+
+        actionButton loadBtn;
+        loadBtn.label = "Load Game";
+        loadBtn.onClick = [gameContext]() {
+            gameContext->handleCommand({ CommandType::CONTINUE_GAME, 0, 0, "" });
+        };
+        gameContext->activeButtons.push_back(loadBtn);
+
+        actionButton optBtn;
+        optBtn.label = "Options";
+        optBtn.onClick = [gameContext]() {
+            gameContext->handleCommand({ CommandType::OPEN_SETTINGS, 0, 0, "" });
+        };
+        gameContext->activeButtons.push_back(optBtn);
+
+        actionButton quitBtn;
+        quitBtn.label = "Quit Game";
+        quitBtn.onClick = [gameContext]() {
+            gameContext->handleCommand({ CommandType::QUIT_GAME, 0, 0, "" });
+        };
+        gameContext->activeButtons.push_back(quitBtn);
+        return;
+    }
+
+    // Options / Settings State Actions
+    if (auto opt = dynamic_cast<optionsState*>(currentState))
+    {
+        actionButton pregBtn;
+        pregBtn.label = std::format("Pregnancy: {}", gameContext->settings.content.pregnancyEnabled ? "ON" : "OFF");
+        pregBtn.onClick = [gameContext]() {
+            gameContext->handleCommand({ CommandType::CYCLE_SETTING_OPTION, 0, 0, "pregnancy" });
+        };
+        gameContext->activeButtons.push_back(pregBtn);
+
+        actionButton lactBtn;
+        lactBtn.label = std::format("Lactation: {}", gameContext->settings.content.lactationEnabled ? "ON" : "OFF");
+        lactBtn.onClick = [gameContext]() {
+            gameContext->handleCommand({ CommandType::CYCLE_SETTING_OPTION, 0, 0, "lactation" });
+        };
+        gameContext->activeButtons.push_back(lactBtn);
+
+        actionButton backBtn;
+        backBtn.label = "Back / Close (ESC)";
+        backBtn.onClick = [gameContext]() {
+            gameContext->handleCommand({ CommandType::CLOSE_MENU, 0, 0, "" });
+        };
+        gameContext->activeButtons.push_back(backBtn);
+        return;
+    }
+
+    // Shop / Merchant State Actions
+    if (auto shop = dynamic_cast<shopState*>(currentState))
+    {
+        const auto& catalog = shop->getCatalog();
+        for (size_t i = 0; i < catalog.size(); ++i)
+        {
+            actionButton buyBtn;
+            buyBtn.label = std::format("Buy {} ({}¤)", catalog[i].name, catalog[i].price);
+            buyBtn.isEnabled = (catalog[i].stock > 0);
+            buyBtn.onClick = [gameContext, i]() {
+                gameContext->handleCommand({ CommandType::BUY_SHOP_ITEM, static_cast<int>(i), 0, "" });
+            };
+            gameContext->activeButtons.push_back(buyBtn);
+        }
+
+        actionButton closeBtn;
+        closeBtn.label = "Leave Shop (ESC)";
+        closeBtn.onClick = [gameContext]() {
+            gameContext->handleCommand({ CommandType::CLOSE_MENU, 0, 0, "" });
+        };
+        gameContext->activeButtons.push_back(closeBtn);
+        return;
+    }
+
+    // Transformation / Mutation State Actions
+    if (auto tf = dynamic_cast<transformationState*>(currentState))
+    {
+        actionButton closeBtn;
+        closeBtn.label = "Close (ESC)";
+        closeBtn.onClick = [gameContext]() {
+            gameContext->handleCommand({ CommandType::CLOSE_MENU, 0, 0, "" });
+        };
+        gameContext->activeButtons.push_back(closeBtn);
+        return;
+    }
 
     // 0. Dedicated Interactive Sex State Actions
     if (auto sex = dynamic_cast<sexState*>(currentState))
@@ -348,5 +444,33 @@ void ActionGridManager::refresh(game* gameContext)
             gameContext->movePlayer(gameContext->gridX + 1, gameContext->gridY);
         };
         gameContext->activeButtons.push_back(eastBtn);
+
+        actionButton invBtn;
+        invBtn.label = "Inventory (I)";
+        invBtn.onClick = [gameContext]() {
+            gameContext->changeState(std::make_unique<inventoryState>());
+        };
+        gameContext->activeButtons.push_back(invBtn);
+
+        actionButton shopBtn;
+        shopBtn.label = "Visit Shop";
+        shopBtn.onClick = [gameContext]() {
+            gameContext->changeState(std::make_unique<shopState>());
+        };
+        gameContext->activeButtons.push_back(shopBtn);
+
+        actionButton tfBtn;
+        tfBtn.label = "Mutations & TF";
+        tfBtn.onClick = [gameContext]() {
+            gameContext->changeState(std::make_unique<transformationState>());
+        };
+        gameContext->activeButtons.push_back(tfBtn);
+
+        actionButton optBtn;
+        optBtn.label = "Settings";
+        optBtn.onClick = [gameContext]() {
+            gameContext->changeState(std::make_unique<optionsState>());
+        };
+        gameContext->activeButtons.push_back(optBtn);
     }
 }

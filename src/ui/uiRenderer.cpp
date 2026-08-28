@@ -13,7 +13,11 @@
 #include "state/eventState.h"
 #include "state/explorationState.h"
 #include "state/inventoryState.h"
+#include "state/mainMenuState.h"
+#include "state/optionsState.h"
 #include "state/sexState.h"
+#include "state/shopState.h"
+#include "state/transformationState.h"
 #include "settings/settingsManager.h"
 #include "ui/actionGridManager.h"
 #include "ui/fontManager.h"
@@ -160,6 +164,14 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
                 {
                     curY += renderWidgetAnatomy(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
                 }
+                else if (wId == "widget_paperdoll_equipment")
+                {
+                    curY += renderWidgetPaperdoll(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
+                }
+                else if (wId == "widget_item_details_inspector")
+                {
+                    curY += renderWidgetItemInspector(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
+                }
                 else if (wId == "widget_minimap_radar" || wId == "MINIMAP_RADAR")
                 {
                     curY += renderWidgetRadar(renderer, gameContext, p.rect, curY, uiScale);
@@ -179,6 +191,22 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
                 else if (wId == "widget_tactical_combat" || wId == "COMBAT_VIEW")
                 {
                     curY += renderCombatView(renderer, gameContext, p.rect, curY, uiScale);
+                }
+                else if (wId == "widget_main_menu_hero" || wId == "widget_main_menu_actions" || wId == "widget_save_slot_list")
+                {
+                    curY += renderMainMenu(renderer, gameContext, p.rect, curY, uiScale);
+                }
+                else if (wId == "widget_options_content" || wId == "widget_options_demographics" || wId == "widget_options_display_audio")
+                {
+                    curY += renderOptionsView(renderer, gameContext, p.rect, curY, uiScale);
+                }
+                else if (wId == "widget_merchant_dialog" || wId == "widget_merchant_catalog" || wId == "widget_player_sell_grid" || wId == "widget_transaction_cart")
+                {
+                    curY += renderShopView(renderer, gameContext, p.rect, curY, uiScale);
+                }
+                else if (wId == "widget_body_mutations_tree" || wId == "widget_active_enchantments_list" || wId == "widget_enchanting_altar")
+                {
+                    curY += renderTransformationView(renderer, gameContext, p.rect, curY, uiScale);
                 }
             }
 
@@ -247,7 +275,23 @@ float uiRenderer::renderCenterPane(SDL_Renderer* renderer, game* gameContext, co
     iGameState* state = gameContext->getActiveState();
     if (!state) return 0.0f;
 
-    if (dynamic_cast<sexState*>(state))
+    if (dynamic_cast<mainMenuState*>(state))
+    {
+        return renderMainMenu(renderer, gameContext, rect, curY, uiScale);
+    }
+    else if (dynamic_cast<optionsState*>(state))
+    {
+        return renderOptionsView(renderer, gameContext, rect, curY, uiScale);
+    }
+    else if (dynamic_cast<shopState*>(state))
+    {
+        return renderShopView(renderer, gameContext, rect, curY, uiScale);
+    }
+    else if (dynamic_cast<transformationState*>(state))
+    {
+        return renderTransformationView(renderer, gameContext, rect, curY, uiScale);
+    }
+    else if (dynamic_cast<sexState*>(state))
     {
         return renderSexView(renderer, gameContext, rect, curY, uiScale);
     }
@@ -732,6 +776,202 @@ float uiRenderer::renderWidgetTarget(SDL_Renderer* renderer, game* gameContext, 
     else
     {
         UIWidget::drawText(renderer, "No active target.", padX, curY, Theme::colors.textMuted, uiScale); curY += lineH;
+    }
+
+    return (curY - startY);
+}
+
+float uiRenderer::renderWidgetPaperdoll(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
+{
+    float startY = curY;
+    float padX = curX + (10.0f * uiScale);
+
+    UIWidget::drawText(renderer, "EQUIPMENT PAPERDOLL", padX, curY, Theme::colors.textGold, uiScale);
+    curY += (18.0f * uiScale);
+
+    static const std::vector<std::pair<std::string, equipSlot>> slots = {
+        { "HEAD", equipSlot::HEADWEAR }, { "CHEST", equipSlot::TORSO_OVER }, { "HANDS", equipSlot::HANDS },
+        { "MAIN", equipSlot::WEAPON_MAIN }, { "OFF", equipSlot::WEAPON_OFF }, { "LEGS", equipSlot::LEGS_OUTER },
+        { "FEET", equipSlot::FEET }, { "NECK", equipSlot::NECKWEAR }, { "RING", equipSlot::FINGER_PRIMARY }
+    };
+
+    float slotW = (innerW - (28.0f * uiScale)) / 3.0f;
+    float slotH = 34.0f * uiScale;
+
+    for (size_t i = 0; i < slots.size(); ++i)
+    {
+        int col = i % 3;
+        int row = i / 3;
+        float slotX = padX + (col * (slotW + 4.0f * uiScale));
+        float slotY = curY + (row * (slotH + 4.0f * uiScale));
+
+        SDL_FRect sRect = { slotX, slotY, slotW, slotH };
+        bool isSelected = (gameContext->selectedEquipmentSlot == slots[i].second);
+        UIWidget::drawPanel(renderer, sRect, isSelected ? Theme::colors.bgHeader : Theme::colors.bgSlot, isSelected ? Theme::colors.borderButton : Theme::colors.borderNormal);
+
+        UIWidget::drawText(renderer, slots[i].first, slotX + 4.0f * uiScale, slotY + 3.0f * uiScale, Theme::colors.textSecondary, uiScale * 0.8f);
+
+        std::string equippedName = "---";
+        if (entity* player = gameContext->getPlayer())
+        {
+            if (auto eq = player->inventory.getEquippedItem(slots[i].second))
+            {
+                equippedName = eq->name;
+            }
+        }
+        UIWidget::drawText(renderer, equippedName, slotX + 4.0f * uiScale, slotY + 16.0f * uiScale, Theme::colors.textPrimary, uiScale * 0.85f);
+    }
+
+    curY += (3 * (slotH + 4.0f * uiScale)) + (6.0f * uiScale);
+    return (curY - startY);
+}
+
+float uiRenderer::renderWidgetItemInspector(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
+{
+    float startY = curY;
+    float padX = curX + (10.0f * uiScale);
+    float availableW = innerW - (20.0f * uiScale);
+
+    UIWidget::drawText(renderer, "ITEM DETAILS & LORE", padX, curY, Theme::colors.textGold, uiScale);
+    curY += (18.0f * uiScale);
+
+    if (gameContext->selectedInventoryIndex >= 0)
+    {
+        auto items = (gameContext->selectedInventorySide == 0)
+            ? gameContext->getPlayerInventoryStacked()
+            : gameContext->getTileInventoryStacked();
+
+        if (gameContext->selectedInventoryIndex < static_cast<int>(items.size()))
+        {
+            const auto& slot = items[gameContext->selectedInventoryIndex];
+            if (slot.itemPtr)
+            {
+                UIWidget::drawText(renderer, std::format("Name: {} (x{})", slot.itemPtr->name, slot.totalCount), padX, curY, Theme::colors.textGold, uiScale);
+                curY += (16.0f * uiScale);
+                UIWidget::drawText(renderer, std::format("Type: Item | Value: {}¤", slot.itemPtr->baseValue), padX, curY, Theme::colors.textSecondary, uiScale);
+                curY += (16.0f * uiScale);
+
+                float descH = UIWidget::drawTextWrapped(renderer, slot.itemPtr->description, padX, curY, availableW, Theme::colors.textPrimary, uiScale);
+                curY += descH + (6.0f * uiScale);
+                return (curY - startY);
+            }
+        }
+    }
+
+    UIWidget::drawText(renderer, "No item selected. Select an item from inventory to inspect details.", padX, curY, Theme::colors.textMuted, uiScale);
+    curY += (16.0f * uiScale);
+    return (curY - startY);
+}
+
+float uiRenderer::renderMainMenu(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)
+{
+    float startY = curY;
+    float padX = rect.x + (16.0f * uiScale);
+    float availableW = rect.w - (32.0f * uiScale);
+
+    float headerH = 28.0f * uiScale;
+    SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
+    UIWidget::drawHeader(renderer, headerRect, "CHRONICLES OF LILITH • MAIN MENU", Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
+    curY += headerH + (12.0f * uiScale);
+
+    UIWidget::drawText(renderer, "Welcome to textRPG", padX, curY, Theme::colors.textGold, uiScale * 1.3f);
+    curY += (24.0f * uiScale);
+
+    float descH = UIWidget::drawTextWrapped(renderer, "A modular, rich text-based RPG featuring dynamic corruption, deep anatomy mutations, and CYOA tactical combat. Choose an option from the Action Commands below to begin.", padX, curY, availableW, Theme::colors.textPrimary, uiScale);
+    curY += descH + (16.0f * uiScale);
+
+    UIWidget::drawText(renderer, "AVAILABLE SAVE PROFILES:", padX, curY, Theme::colors.textAccent, uiScale);
+    curY += (18.0f * uiScale);
+
+    for (int i = 1; i <= 3; ++i)
+    {
+        SDL_FRect slotRect = { padX, curY, availableW, 28.0f * uiScale };
+        UIWidget::drawPanel(renderer, slotRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+        UIWidget::drawText(renderer, std::format("Profile Slot {}: [Save Data]", i), padX + 8.0f * uiScale, curY + 6.0f * uiScale, Theme::colors.textSecondary, uiScale);
+        curY += (32.0f * uiScale);
+    }
+
+    return (curY - startY);
+}
+
+float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)
+{
+    float startY = curY;
+    float padX = rect.x + (16.0f * uiScale);
+    float availableW = rect.w - (32.0f * uiScale);
+
+    float headerH = 28.0f * uiScale;
+    SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
+    UIWidget::drawHeader(renderer, headerRect, "GAME SETTINGS & CONFIGURATION", Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
+    curY += headerH + (12.0f * uiScale);
+
+    UIWidget::drawText(renderer, "CONTENT & MECHANICS:", padX, curY, Theme::colors.textGold, uiScale);
+    curY += (18.0f * uiScale);
+
+    UIWidget::drawText(renderer, std::format("Pregnancy Simulation: {}", gameContext->settings.content.pregnancyEnabled ? "ENABLED" : "DISABLED"), padX, curY, Theme::colors.textPrimary, uiScale);
+    curY += (16.0f * uiScale);
+    UIWidget::drawText(renderer, std::format("Lactation System: {}", gameContext->settings.content.lactationEnabled ? "ENABLED" : "DISABLED"), padX, curY, Theme::colors.textPrimary, uiScale);
+    curY += (16.0f * uiScale);
+
+    curY += (10.0f * uiScale);
+    UIWidget::drawText(renderer, "DISPLAY & THEME:", padX, curY, Theme::colors.textAccent, uiScale);
+    curY += (18.0f * uiScale);
+    UIWidget::drawText(renderer, std::format("Active Layout: {}", gameContext->settings.display.activeLayout.empty() ? "Default" : gameContext->settings.display.activeLayout), padX, curY, Theme::colors.textSecondary, uiScale);
+    curY += (16.0f * uiScale);
+
+    return (curY - startY);
+}
+
+float uiRenderer::renderShopView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)
+{
+    float startY = curY;
+    float padX = rect.x + (16.0f * uiScale);
+    float availableW = rect.w - (32.0f * uiScale);
+
+    float headerH = 28.0f * uiScale;
+    SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
+    UIWidget::drawHeader(renderer, headerRect, "ENCHANTED APOTHECARY & SHOP", Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
+    curY += headerH + (12.0f * uiScale);
+
+    float greetH = UIWidget::drawTextWrapped(renderer, "\"Welcome, traveler. Browse my finest potions, mystical essences, and enchanted wares. Select an item from the command grid to purchase.\"", padX, curY, availableW, Theme::colors.textAccent, uiScale);
+    curY += greetH + (14.0f * uiScale);
+
+    if (auto shop = dynamic_cast<shopState*>(gameContext->getActiveState()))
+    {
+        const auto& catalog = shop->getCatalog();
+        for (size_t i = 0; i < catalog.size(); ++i)
+        {
+            SDL_FRect itemRect = { padX, curY, availableW, 30.0f * uiScale };
+            UIWidget::drawPanel(renderer, itemRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+
+            UIWidget::drawText(renderer, std::format("[{}] {} ({})", i, catalog[i].name, catalog[i].type), padX + 8.0f * uiScale, curY + 6.0f * uiScale, Theme::colors.textPrimary, uiScale);
+            UIWidget::drawText(renderer, std::format("Price: {}¤ | Stock: {}", catalog[i].price, catalog[i].stock), padX + availableW - 130.0f * uiScale, curY + 6.0f * uiScale, Theme::colors.textGold, uiScale);
+            curY += (34.0f * uiScale);
+        }
+    }
+
+    return (curY - startY);
+}
+
+float uiRenderer::renderTransformationView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)
+{
+    float startY = curY;
+    float padX = rect.x + (16.0f * uiScale);
+    float availableW = rect.w - (32.0f * uiScale);
+
+    float headerH = 28.0f * uiScale;
+    SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
+    UIWidget::drawHeader(renderer, headerRect, "BODY TRANSFORMATIONS & ANATOMY", Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
+    curY += headerH + (12.0f * uiScale);
+
+    if (entity* player = gameContext->getPlayer())
+    {
+        UIWidget::drawText(renderer, std::format("Current Dominant Archetype: {}", player->anatomy.getDominantRace()), padX, curY, Theme::colors.textGold, uiScale);
+        curY += (18.0f * uiScale);
+
+        std::string anatDesc = characterDescription::generateFullDescription(player);
+        float descH = UIWidget::drawTextWrapped(renderer, anatDesc, padX, curY, availableW, Theme::colors.textPrimary, uiScale);
+        curY += descH + (14.0f * uiScale);
     }
 
     return (curY - startY);
