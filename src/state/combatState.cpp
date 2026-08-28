@@ -72,15 +72,30 @@ void CombatState::handleCommand(game* gameContext, const UICommand& cmd)
     {
         if (cmd.stringPayload == "WIN")
         {
+            std::vector<std::shared_ptr<entity>> defeatedEnemies;
             for (auto& enemyP : m_engine.getEnemyParty())
             {
                 if (enemyP.character)
                 {
                     enemyP.character->stats.setBaseStat("health", 0.0f);
+                    defeatedEnemies.push_back(enemyP.character);
                 }
             }
+            if (defeatedEnemies.empty())
+            {
+                defeatedEnemies.push_back(std::make_shared<entity>("npc_bandit", "Rogue Bandit"));
+            }
+
+            if (gameContext->map)
+            {
+                TileRuntimeData& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
+                tileData.persistentNPC = nullptr;
+            }
+
             m_engine.appendLog("[Debug] Simulated Combat Victory!");
-            update(gameContext, 0.0f);
+            int outcomeVal = static_cast<int>(CombatOutcome::VICTORY);
+            eventBus::getInstance().publishEvent({ gameEvent::combatEnded, outcomeVal, "VICTORY", nullptr });
+            gameContext->changeState(std::make_unique<encounterResolutionState>(defeatedEnemies));
             return;
         }
         else if (cmd.stringPayload == "DEFEAT")

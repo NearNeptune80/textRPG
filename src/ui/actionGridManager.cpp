@@ -295,35 +295,28 @@ void ActionGridManager::refresh(game* gameContext)
     if (auto combat = dynamic_cast<CombatState*>(currentState))
     {
         actionButton winBtn;
-        winBtn.label = "[Simulate Win]";
+        winBtn.label = "Victory (Simulate Win)";
         winBtn.onClick = [gameContext]() {
             gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "WIN" });
         };
         gameContext->activeButtons.push_back(winBtn);
 
         actionButton lossBtn;
-        lossBtn.label = "[Simulate Defeat]";
+        lossBtn.label = "Defeat (Simulate Loss)";
         lossBtn.onClick = [gameContext]() {
             gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "DEFEAT" });
         };
         gameContext->activeButtons.push_back(lossBtn);
 
         actionButton escBtn;
-        escBtn.label = "[Simulate Escape]";
+        escBtn.label = "Escape (Flee Combat)";
         escBtn.onClick = [gameContext]() {
             gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "ESCAPE" });
         };
         gameContext->activeButtons.push_back(escBtn);
 
-        actionButton surrBtn;
-        surrBtn.label = "[Simulate Surrender]";
-        surrBtn.onClick = [gameContext]() {
-            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SURRENDER" });
-        };
-        gameContext->activeButtons.push_back(surrBtn);
-
         actionButton strikeBtn;
-        strikeBtn.label = "Strike";
+        strikeBtn.label = "Strike (Attack)";
         strikeBtn.onClick = [gameContext]() {
             gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "STRIKE" });
         };
@@ -335,20 +328,6 @@ void ActionGridManager::refresh(game* gameContext)
             combat->handleEndTurn(gameContext);
         };
         gameContext->activeButtons.push_back(endTurnBtn);
-
-        actionButton fleeBtn;
-        fleeBtn.label = "Attempt Run";
-        fleeBtn.onClick = [combat, gameContext]() {
-            combat->handleRunAttempt(gameContext);
-        };
-        gameContext->activeButtons.push_back(fleeBtn);
-
-        actionButton surrenderBtn;
-        surrenderBtn.label = "Surrender";
-        surrenderBtn.onClick = [combat, gameContext]() {
-            combat->handleSurrender(gameContext);
-        };
-        gameContext->activeButtons.push_back(surrenderBtn);
         return;
     }
 
