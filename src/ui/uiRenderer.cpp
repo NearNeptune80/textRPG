@@ -367,7 +367,7 @@ void uiRenderer::renderRightPane(SDL_Renderer* renderer, game* gameContext)
     float curY = 350.0f;
     UIWidget::drawText(renderer, "PROXIMITY TARGET", 980.0f, curY, Theme::colors.textGold, 1.0f); curY += 20.0f;
 
-    if (entity* npc = gameContext->activeTargetNPC)
+    if (entity* npc = gameContext->getActiveTargetNPC())
     {
         UIWidget::drawText(renderer, std::format("Name: {}", npc->name), 980.0f, curY, Theme::colors.textPrimary, 1.0f); curY += 16.0f;
         UIWidget::drawText(renderer, std::format("Level: {} | Race: {}", npc->stats.level, npc->anatomy.getDominantRace()), 980.0f, curY, Theme::colors.textSecondary, 1.0f); curY += 16.0f;

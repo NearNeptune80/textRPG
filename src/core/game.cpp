@@ -188,7 +188,7 @@ void game::init()
         {
             if (this->activeTargetNPC)
             {
-                merchantValuation::merchantRestock(this->activeTargetNPC, this->gameTime.day);
+                merchantValuation::merchantRestock(this->activeTargetNPC.get(), this->gameTime.day);
             }
             if (this->map)
             {
@@ -653,7 +653,7 @@ void game::processChoice(const dialogueChoice& choice)
         }
         else if (activeTargetNPC)
         {
-            enemyParty.push_back(std::shared_ptr<entity>(std::shared_ptr<entity>(), activeTargetNPC));
+            enemyParty.push_back(activeTargetNPC);
         }
 
         changeState(std::make_unique<CombatState>(playerParty, enemyParty));
@@ -815,7 +815,7 @@ void game::processEffect(const gameEffect& eff)
     }
     else if (eff.action == "IMPREGNATE")
     {
-        entity* mother = (eff.target == "player" || eff.target.empty()) ? Player : activeTargetNPC;
+        entity* mother = (eff.target == "player" || eff.target.empty()) ? Player : activeTargetNPC.get();
         std::string fatherId = !eff.secondaryTarget.empty() ? eff.secondaryTarget : "stranger";
         std::string fatherRace = !eff.stringVal.empty() ? eff.stringVal : "Human";
         int litter = eff.amount > 0 ? eff.amount : 1;
@@ -827,7 +827,7 @@ void game::processEffect(const gameEffect& eff)
     }
     else if (eff.action == "INDUCE_BIRTH")
     {
-        entity* mother = (eff.target == "player" || eff.target.empty()) ? Player : activeTargetNPC;
+        entity* mother = (eff.target == "player" || eff.target.empty()) ? Player : activeTargetNPC.get();
         if (mother && mother->gestation.isPregnant)
         {
             mother->gestation.giveBirth(mother->id);
@@ -896,13 +896,13 @@ void game::loadScene(const std::string& sceneId)
     changeState(std::make_unique<eventState>());
     currentScene = questDatabase::getScene(sceneId);
 
-    currentScene.bodyText = textParser::interpolate(currentScene.bodyText, Player, activeTargetNPC);
-    currentScene.speakerName = textParser::interpolate(currentScene.speakerName, Player, activeTargetNPC);
+    currentScene.bodyText = textParser::interpolate(currentScene.bodyText, Player, activeTargetNPC.get());
+    currentScene.speakerName = textParser::interpolate(currentScene.speakerName, Player, activeTargetNPC.get());
 
     activeButtons.clear();
     for (size_t i = 0; i < currentScene.choices.size(); i++)
     {
-        currentScene.choices[i].label = textParser::interpolate(currentScene.choices[i].label, Player, activeTargetNPC);
+        currentScene.choices[i].label = textParser::interpolate(currentScene.choices[i].label, Player, activeTargetNPC.get());
 
         if (checkConditions(currentScene.choices[i].requirements))
         {
@@ -927,7 +927,7 @@ void game::triggerEncounter(std::shared_ptr<entity> npc)
 {
     if (!npc) return;
 
-    activeTargetNPC = npc.get();
+    activeTargetNPC = npc;
     activeTargetMode = TargetMode::COMBAT_ENEMY;
 
     currentScene = encounterResolver::buildEncounterScene(this, npc);

@@ -79,40 +79,28 @@ void inventoryComponent::addItem(std::shared_ptr<item> newItem)
 
 bool inventoryComponent::removeItem(const std::string& itemId, int countToRemove)
 {
+    if (countToRemove <= 0) return false;
     int remaining = countToRemove;
 
-    for (auto it = backpack.begin(); it != backpack.end(); )
-    {
-        if (*it && (*it)->id == itemId)
+    std::erase_if(backpack, [&](std::shared_ptr<item>& itemPtr) {
+        if (remaining <= 0 || !itemPtr || itemPtr->id != itemId) return false;
+
+        if (itemPtr->isStackable)
         {
-            if ((*it)->isStackable)
+            if (itemPtr->count > remaining)
             {
-                if ((*it)->count > remaining)
-                {
-                    (*it)->count -= remaining;
-                    return true;
-                }
-                else
-                {
-                    remaining -= (*it)->count;
-                    it = backpack.erase(it);
-                    if (remaining <= 0) return true;
-                    continue;
-                }
+                itemPtr->count -= remaining;
+                remaining = 0;
+                return false;
             }
-            else
-            {
-                it = backpack.erase(it);
-                remaining--;
-                if (remaining <= 0) return true;
-                continue;
-            }
+            remaining -= itemPtr->count;
+            return true;
         }
-        else
-        {
-            ++it;
-        }
-    }
+
+        remaining--;
+        return true;
+    });
+
     return remaining < countToRemove;
 }
 

@@ -72,7 +72,7 @@ public:
     void pushScene(const std::string& sceneId);
     void popScene();
 
-    entity* activeTargetNPC = nullptr;
+    std::shared_ptr<entity> activeTargetNPC = nullptr;
     TargetMode activeTargetMode = TargetMode::NONE;
 
     // Command Dispatch
@@ -82,6 +82,8 @@ public:
     const questScene& getCurrentScene() const { return currentScene; }
     entity* getPlayer() const { return playerEntity.get(); }
     std::shared_ptr<entity> getPlayerShared() const { return playerEntity; }
+    entity* getActiveTargetNPC() const { return activeTargetNPC.get(); }
+    std::shared_ptr<entity> getActiveTargetNPCShared() const { return activeTargetNPC; }
     const gameMap* getActiveMap() const { return map; }
     const std::vector<actionButton>& getActiveActionButtons() const { return activeButtons; }
     const timeManager& getTime() const { return gameTime; }
