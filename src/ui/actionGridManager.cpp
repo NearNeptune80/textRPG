@@ -2,6 +2,7 @@
 
 #include <format>
 #include <memory>
+#include <unordered_set>
 
 #include "core/game.h"
 #include "entities/entity.h"
@@ -255,9 +256,71 @@ void ActionGridManager::refresh(game* gameContext)
         return;
     }
 
-    // 4. Exploration Movement Shortcuts
+    // 4. Exploration Movement & Interaction Shortcuts
     if (dynamic_cast<explorationState*>(currentState))
     {
+        if (gameContext->map)
+        {
+            std::unordered_set<std::string> seenScenes;
+
+            // A. Map-specific triggers at current coordinates
+            auto mapTrigs = gameContext->map->getTriggersAt(gameContext->gridX, gameContext->gridY);
+            for (const auto& trig : mapTrigs)
+            {
+                if (seenScenes.find(trig.sceneId) == seenScenes.end() && gameContext->checkConditions(trig.conditions))
+                {
+                    seenScenes.insert(trig.sceneId);
+                    actionButton trigBtn;
+                    trigBtn.label = trig.label.empty() ? "Interact" : trig.label;
+                    std::string sId = trig.sceneId;
+                    trigBtn.onClick = [gameContext, sId]() {
+                        gameContext->loadScene(sId);
+                    };
+                    gameContext->activeButtons.push_back(trigBtn);
+                }
+            }
+
+            // B. Global quest triggers at current coordinates
+            auto questTrigs = questDatabase::getTriggersForLocation(gameContext->map->getId(), gameContext->gridX, gameContext->gridY);
+            for (const auto& trig : questTrigs)
+            {
+                if (seenScenes.find(trig.sceneId) == seenScenes.end() && gameContext->checkConditions(trig.conditions))
+                {
+                    seenScenes.insert(trig.sceneId);
+                    actionButton trigBtn;
+                    trigBtn.label = trig.label.empty() ? "Interact" : trig.label;
+                    std::string sId = trig.sceneId;
+                    trigBtn.onClick = [gameContext, sId]() {
+                        gameContext->loadScene(sId);
+                    };
+                    gameContext->activeButtons.push_back(trigBtn);
+                }
+            }
+
+            // C. Persistent NPC at current tile
+            auto& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
+            if (tileData.persistentNPC)
+            {
+                actionButton npcBtn;
+                npcBtn.label = std::format("Talk to {}", tileData.persistentNPC->name);
+                npcBtn.onClick = [gameContext, npc = tileData.persistentNPC]() {
+                    gameContext->triggerEncounter(npc);
+                };
+                gameContext->activeButtons.push_back(npcBtn);
+            }
+
+            // D. Ground items at current tile
+            if (!tileData.droppedItems.empty())
+            {
+                actionButton groundBtn;
+                groundBtn.label = std::format("Examine Ground ({} items)", tileData.droppedItems.size());
+                groundBtn.onClick = [gameContext]() {
+                    gameContext->changeState(std::make_unique<inventoryState>());
+                };
+                gameContext->activeButtons.push_back(groundBtn);
+            }
+        }
+
         actionButton northBtn;
         northBtn.label = "Move North (W)";
         northBtn.onClick = [gameContext]() {

@@ -24,6 +24,9 @@ bool gestationComponent::impregnate(const std::string& fId, const std::string& f
     gestationDaysRemaining = totalGestationDays;
     accumulatedMinutes = 0;
 
+    std::random_device rd;
+    std::mt19937 gen(rd());
+
     if (customLitterSize > 0)
     {
         litterSize = customLitterSize;
@@ -31,8 +34,6 @@ bool gestationComponent::impregnate(const std::string& fId, const std::string& f
     else
     {
         // 70% chance 1, 20% chance 2, 10% chance 3
-        std::random_device rd;
-        std::mt19937 gen(rd());
         std::uniform_int_distribution<int> dist(1, 100);
         int roll = dist(gen);
         if (roll <= 70) litterSize = 1;
@@ -41,8 +42,6 @@ bool gestationComponent::impregnate(const std::string& fId, const std::string& f
     }
 
     incubatedOffspringRaces.clear();
-    std::random_device rd;
-    std::mt19937 gen(rd());
     std::uniform_int_distribution<int> raceDist(1, 100);
 
     for (int i = 0; i < litterSize; ++i)

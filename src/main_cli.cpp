@@ -7,6 +7,7 @@
 #include "core/characterDescription.h"
 #include "core/game.h"
 #include "core/uiCommand.h"
+#include "entities/npcGenerator.h"
 #include "save/saveManager.h"
 #include "state/explorationState.h"
 #include "state/inventoryState.h"
@@ -189,7 +190,12 @@ int main(int argc, char* argv[])
             std::cout << "\nAvailable Commands:\n"
                       << "  w, a, s, d        - Move player on the grid\n"
                       << "  move <x> <y>      - Move to specific coordinate\n"
-                      << "  <number>          - Select dialogue / sex action choice index\n"
+                      << "  <number>          - Select action/choice index\n"
+                      << "  scene <sceneId>   - Load and start a dialogue/quest scene\n"
+                      << "  spawn <template>  - Spawn NPC on current tile (e.g. tpl_alley_bandit)\n"
+                      << "  startsex <tpl>    - Start interactive CYOA sex state with NPC\n"
+                      << "  fight <tpl>       - Start turn-based combat with NPC\n"
+                      << "  teleport <m> <x><y>- Warp to map (e.g. overworld 1 1)\n"
                       << "  stance <name>     - Change sex stance\n"
                       << "  endsex            - End current sex encounter\n"
                       << "  inv               - Toggle inventory state\n"
@@ -199,6 +205,7 @@ int main(int argc, char* argv[])
                       << "  pickup <idx> <qty>- Pickup item from ground to backpack\n"
                       << "  time <minutes>    - Advance in-game time\n"
                       << "  stats             - Display full player stats and race percentages\n"
+                      << "  desc / inspect    - Procedural head-to-toe character inspect\n"
                       << "  save <name>       - Save named game\n"
                       << "  load <name>       - Load named save\n"
                       << "  win / defeat      - Simulate combat outcome if in combat\n"
@@ -234,6 +241,89 @@ int main(int argc, char* argv[])
                 std::cout << "Usage: move <x> <y>\n";
             }
         }
+        else if (cmd == "scene")
+        {
+            std::string sceneId;
+            if (iss >> sceneId)
+            {
+                engine.loadScene(sceneId);
+            }
+            else
+            {
+                std::cout << "Usage: scene <sceneId>\n";
+            }
+        }
+        else if (cmd == "spawn")
+        {
+            std::string tplId;
+            if (iss >> tplId)
+            {
+                auto npc = npcGenerator::generateFromTemplate(tplId, &engine.settings);
+                if (npc && engine.map)
+                {
+                    engine.map->getRuntimeData(engine.gridX, engine.gridY).persistentNPC = npc;
+                    std::cout << "Spawned " << npc->name << " at [" << engine.gridX << ", " << engine.gridY << "].\n";
+                    engine.refreshActionGrid();
+                }
+                else
+                {
+                    std::cout << "Template not found: " << tplId << "\n";
+                }
+            }
+            else
+            {
+                std::cout << "Usage: spawn <templateId>\n";
+            }
+        }
+        else if (cmd == "startsex")
+        {
+            std::string tplId;
+            std::shared_ptr<entity> partner = nullptr;
+            if (iss >> tplId)
+            {
+                partner = npcGenerator::generateFromTemplate(tplId, &engine.settings);
+            }
+            if (!partner)
+            {
+                partner = npcGenerator::generateRandomNPC(&engine.settings);
+            }
+            if (partner)
+            {
+                engine.changeState(std::make_unique<sexState>(partner, SexStance::MISSIONARY, 20.0f));
+            }
+        }
+        else if (cmd == "fight")
+        {
+            std::string tplId;
+            std::shared_ptr<entity> enemy = nullptr;
+            if (iss >> tplId)
+            {
+                enemy = npcGenerator::generateFromTemplate(tplId, &engine.settings);
+            }
+            if (!enemy)
+            {
+                enemy = npcGenerator::generateRandomNPC(&engine.settings);
+            }
+            if (enemy)
+            {
+                std::vector<std::shared_ptr<entity>> playerParty = { engine.getPlayerShared() };
+                std::vector<std::shared_ptr<entity>> enemyParty = { enemy };
+                engine.changeState(std::make_unique<CombatState>(playerParty, enemyParty));
+            }
+        }
+        else if (cmd == "teleport")
+        {
+            std::string mId;
+            int x = 1, y = 1;
+            if (iss >> mId >> x >> y)
+            {
+                engine.loadMap(mId, x, y);
+            }
+            else
+            {
+                std::cout << "Usage: teleport <mapId> <x> <y>\n";
+            }
+        }
         else if (isdigit(cmd[0]))
         {
             int choiceIdx = std::stoi(cmd);
@@ -241,9 +331,17 @@ int main(int argc, char* argv[])
             {
                 engine.handleCommand({CommandType::EXECUTE_SEX_ACTION, choiceIdx, 0, ""});
             }
-            else
+            else if (dynamic_cast<eventState*>(engine.getActiveState()))
             {
                 engine.handleCommand({CommandType::SELECT_DIALOGUE_CHOICE, choiceIdx, 0, ""});
+            }
+            else
+            {
+                const auto& btns = engine.getActiveActionButtons();
+                if (choiceIdx >= 0 && static_cast<size_t>(choiceIdx) < btns.size() && btns[choiceIdx].onClick)
+                {
+                    btns[choiceIdx].onClick();
+                }
             }
         }
         else if (cmd == "stance")

@@ -333,9 +333,19 @@ void game::movePlayer(int nextX, int nextY)
         return;
     }
 
-    // 2. Check Map Triggers
+    // 2. Check Map Triggers & Global Quest Triggers
     auto tileTriggers = map->getTriggersAt(gridX, gridY);
     for (const auto& trig : tileTriggers)
+    {
+        if (checkConditions(trig.conditions))
+        {
+            loadScene(trig.sceneId);
+            return;
+        }
+    }
+
+    auto questTriggers = questDatabase::getTriggersForLocation(map->getId(), gridX, gridY);
+    for (const auto& trig : questTriggers)
     {
         if (checkConditions(trig.conditions))
         {
