@@ -64,6 +64,15 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
     // Dispatch panel renderers matching calculated layout bounds
     for (const auto& p : panels)
     {
+        // Set Scissor Clip Rect so content never overflows its panel bounds
+        SDL_Rect clipRect = {
+            static_cast<int>(p.rect.x),
+            static_cast<int>(p.rect.y),
+            static_cast<int>(p.rect.w),
+            static_cast<int>(p.rect.h)
+        };
+        SDL_SetRenderClipRect(renderer, &clipRect);
+
         const bool hasTopBar = hasWidgetTag(p.widgets, "widget_top_bar_full") ||
                                hasWidgetTag(p.widgets, "TOP_STATUS_BAR") ||
                                p.id == "top_bar";
@@ -108,6 +117,9 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
         {
             UIWidget::drawPanel(renderer, p.rect);
         }
+
+        // Reset clip rect
+        SDL_SetRenderClipRect(renderer, nullptr);
     }
 
     SDL_RenderPresent(renderer);
@@ -418,10 +430,17 @@ void uiRenderer::renderRightPane(SDL_Renderer* renderer, game* gameContext, cons
     const gameMap* m = gameContext->getActiveMap();
     if (!m) return;
 
-    float padX = rect.x + (10.0f * uiScale);
-    float startY = rect.y + headerH + (12.0f * uiScale);
-    float tileSize = std::clamp((rect.w - (20.0f * uiScale)) / 9.0f, 16.0f * uiScale, 36.0f * uiScale);
-    int radius = 4;
+    // Calculate dynamic radar size that strictly fits both box width and available height
+    const int radius = 3; // 7x7 grid matching studio radar
+    const int gridSize = (radius * 2) + 1; // 7
+    const float availableW = std::max(20.0f, rect.w - (20.0f * uiScale));
+    const float availableH = std::max(20.0f, (rect.h - headerH - (80.0f * uiScale)));
+    const float maxDimension = std::min(availableW, availableH);
+    const float tileSize = std::max(4.0f, maxDimension / static_cast<float>(gridSize));
+    const float totalGridW = tileSize * static_cast<float>(gridSize);
+
+    const float padX = rect.x + ((rect.w - totalGridW) / 2.0f);
+    const float startY = rect.y + headerH + (8.0f * uiScale);
 
     for (int dy = -radius; dy <= radius; ++dy)
     {
@@ -430,7 +449,12 @@ void uiRenderer::renderRightPane(SDL_Renderer* renderer, game* gameContext, cons
             int mapX = gameContext->gridX + dx;
             int mapY = gameContext->gridY + dy;
 
-            SDL_FRect tileRect = { padX + (dx + radius) * tileSize, startY + (dy + radius) * tileSize, tileSize - (2.0f * uiScale), tileSize - (2.0f * uiScale) };
+            SDL_FRect tileRect = {
+                padX + static_cast<float>(dx + radius) * tileSize,
+                startY + static_cast<float>(dy + radius) * tileSize,
+                std::max(1.0f, tileSize - (1.5f * uiScale)),
+                std::max(1.0f, tileSize - (1.5f * uiScale))
+            };
 
             Tile t = m->getTile(mapX, mapY);
             SDL_Color tileColor = Theme::colors.bgDark;
@@ -456,28 +480,37 @@ void uiRenderer::renderRightPane(SDL_Renderer* renderer, game* gameContext, cons
             SDL_SetRenderDrawColor(renderer, tileColor.r, tileColor.g, tileColor.b, tileColor.a);
             SDL_RenderFillRect(renderer, &tileRect);
 
-            if (!label.empty())
+            if (!label.empty() && tileSize >= 14.0f * uiScale)
             {
-                UIWidget::drawText(renderer, label, tileRect.x + (6.0f * uiScale), tileRect.y + (4.0f * uiScale), Theme::colors.textGold, uiScale);
+                UIWidget::drawText(renderer, label, tileRect.x + (tileSize * 0.25f), tileRect.y + (tileSize * 0.1f), Theme::colors.textGold, uiScale * (tileSize / 24.0f));
             }
         }
     }
 
     // Target NPC Inspector Section
-    float curY = startY + (9.0f * tileSize) + (15.0f * uiScale);
-    UIWidget::drawText(renderer, "PROXIMITY TARGET", padX, curY, Theme::colors.textGold, uiScale); curY += (20.0f * uiScale);
-
-    if (entity* npc = gameContext->getActiveTargetNPC())
+    float curY = startY + (gridSize * tileSize) + (10.0f * uiScale);
+    if (curY < rect.y + rect.h - (20.0f * uiScale))
     {
-        UIWidget::drawText(renderer, std::format("Name: {}", npc->name), padX, curY, Theme::colors.textPrimary, uiScale); curY += (18.0f * uiScale);
-        UIWidget::drawText(renderer, std::format("Level: {} | Race: {}", npc->stats.level, npc->anatomy.getDominantRace()), padX, curY, Theme::colors.textSecondary, uiScale); curY += (18.0f * uiScale);
+        UIWidget::drawText(renderer, "PROXIMITY TARGET", rect.x + (10.0f * uiScale), curY, Theme::colors.textGold, uiScale);
+        curY += (18.0f * uiScale);
 
-        float hp = npc->getStat("health");
-        UIWidget::drawProgressBar(renderer, { padX, curY, rect.w - (20.0f * uiScale), 18.0f * uiScale }, hp, 100.0f, Theme::colors.enemy, Theme::colors.bgDark, std::format("HP: {:.0f}", hp), uiScale);
-    }
-    else
-    {
-        UIWidget::drawText(renderer, "No active target in range.", padX, curY, Theme::colors.textMuted, uiScale);
+        if (entity* npc = gameContext->getActiveTargetNPC())
+        {
+            UIWidget::drawText(renderer, std::format("Name: {}", npc->name), rect.x + (10.0f * uiScale), curY, Theme::colors.textPrimary, uiScale);
+            curY += (16.0f * uiScale);
+            UIWidget::drawText(renderer, std::format("Level: {} | {}", npc->stats.level, npc->anatomy.getDominantRace()), rect.x + (10.0f * uiScale), curY, Theme::colors.textSecondary, uiScale);
+            curY += (16.0f * uiScale);
+
+            if (curY + (16.0f * uiScale) <= rect.y + rect.h - (4.0f * uiScale))
+            {
+                float hp = npc->getStat("health");
+                UIWidget::drawProgressBar(renderer, { rect.x + (10.0f * uiScale), curY, rect.w - (20.0f * uiScale), 16.0f * uiScale }, hp, 100.0f, Theme::colors.enemy, Theme::colors.bgDark, std::format("HP: {:.0f}", hp), uiScale);
+            }
+        }
+        else
+        {
+            UIWidget::drawText(renderer, "No active target.", rect.x + (10.0f * uiScale), curY, Theme::colors.textMuted, uiScale);
+        }
     }
 }
 
