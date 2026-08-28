@@ -14,14 +14,19 @@
 #include "state/explorationState.h"
 #include "state/inventoryState.h"
 #include "state/sexState.h"
+#include "settings/settingsManager.h"
 #include "ui/actionGridManager.h"
 #include "ui/fontManager.h"
 #include "ui/uiWidget.h"
 
 uiRenderer::uiRenderer()
 {
-    // Attempt loading custom layout from data/layouts/default_layout.json
-    if (!m_layoutEngine.loadFromFile("data/layouts/default_layout.json"))
+    // Attempt loading custom layout from active settings or fallback
+    GameSettings settings;
+    settingsManager::loadFromFile(settings);
+    std::string layoutPath = settings.display.activeLayout.empty() ? "data/layouts/default_layout.json" : settings.display.activeLayout;
+
+    if (!m_layoutEngine.loadFromFile(layoutPath))
     {
         m_layoutEngine.loadDefaultLayout();
     }
@@ -51,28 +56,53 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
     SDL_SetRenderDrawColor(renderer, Theme::colors.bgDark.r, Theme::colors.bgDark.g, Theme::colors.bgDark.b, Theme::colors.bgDark.a);
     SDL_RenderClear(renderer);
 
+    // Helper lambda to check if a widget id or tag is present in a panel
+    auto hasWidgetTag = [](const std::vector<std::string>& widgets, const std::string& target) {
+        return std::ranges::find(widgets, target) != widgets.end();
+    };
+
     // Dispatch panel renderers matching calculated layout bounds
     for (const auto& p : panels)
     {
-        if (p.id == "top_bar")
+        const bool hasTopBar = hasWidgetTag(p.widgets, "widget_top_bar_full") ||
+                               hasWidgetTag(p.widgets, "TOP_STATUS_BAR") ||
+                               p.id == "top_bar";
+
+        const bool hasActionGrid = hasWidgetTag(p.widgets, "widget_action_commands") ||
+                                   hasWidgetTag(p.widgets, "ACTION_GRID") ||
+                                   p.id == "bottom_action_grid";
+
+        const bool hasLeftStats = hasWidgetTag(p.widgets, "widget_char_overview") ||
+                                  hasWidgetTag(p.widgets, "CHARACTER_OVERVIEW") ||
+                                  p.id == "left_pane" || p.id == "left_sidebar";
+
+        const bool hasRadar = hasWidgetTag(p.widgets, "widget_minimap_radar") ||
+                              hasWidgetTag(p.widgets, "MINIMAP_RADAR") ||
+                              p.id == "right_pane" || p.id == "right_sidebar";
+
+        const bool hasCenter = hasWidgetTag(p.widgets, "widget_narrative_story") ||
+                               hasWidgetTag(p.widgets, "SCENE_NARRATIVE") ||
+                               p.id == "center_pane" || p.id == "center_story";
+
+        if (hasTopBar)
         {
             renderTopBar(renderer, gameContext, p.rect, uiScale);
         }
-        else if (p.id == "left_pane")
+        else if (hasActionGrid)
+        {
+            renderBottomActionGrid(renderer, gameContext, p.rect, uiScale);
+        }
+        else if (hasLeftStats)
         {
             renderLeftPane(renderer, gameContext, p.rect, uiScale);
         }
-        else if (p.id == "center_pane")
-        {
-            renderCenterPane(renderer, gameContext, p.rect, uiScale);
-        }
-        else if (p.id == "right_pane")
+        else if (hasRadar)
         {
             renderRightPane(renderer, gameContext, p.rect, uiScale);
         }
-        else if (p.id == "bottom_action_grid")
+        else if (hasCenter)
         {
-            renderBottomActionGrid(renderer, gameContext, p.rect, uiScale);
+            renderCenterPane(renderer, gameContext, p.rect, uiScale);
         }
         else
         {

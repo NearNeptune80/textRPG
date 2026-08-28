@@ -35,59 +35,88 @@ std::string layoutEngine::anchorToString(PanelAnchor anchor)
     }
 }
 
+void layoutEngine::parseStudioNode(const json& j, StudioLayoutNode& node)
+{
+    node.id = j.value("id", "box_" + std::to_string(rand() % 1000));
+    node.type = j.value("type", "LEAF");
+    node.name = j.value("name", "");
+    node.direction = j.value("direction", "ROW");
+
+    if (j.contains("sizes") && j["sizes"].is_array())
+    {
+        node.sizes = j["sizes"].get<std::vector<float>>();
+    }
+
+    if (j.contains("widgets") && j["widgets"].is_array())
+    {
+        node.widgets = j["widgets"].get<std::vector<std::string>>();
+    }
+
+    if (j.contains("children") && j["children"].is_array())
+    {
+        for (const auto& cJson : j["children"])
+        {
+            StudioLayoutNode childNode;
+            parseStudioNode(cJson, childNode);
+            node.children.push_back(childNode);
+        }
+    }
+}
+
 void layoutEngine::loadDefaultLayout()
 {
     m_layoutName = "Default Responsive 5-Pane";
     m_globalMargin = 6.0f;
+    m_hasRootNode = false;
     m_panels.clear();
 
-    // 1. Top Header Bar (Full width, fixed 38px height)
+    // 1. Top Header Bar
     PanelConfig topBar;
     topBar.id = "top_bar";
     topBar.anchor = PanelAnchor::TOP_BAR;
     topBar.fixedHeight = 38.0f;
     topBar.backgroundColor = "bgHeader";
     topBar.borderColor = "borderNormal";
-    topBar.widgets = { "TOP_STATUS_BAR" };
+    topBar.widgets = { "TOP_STATUS_BAR", "widget_top_bar_full" };
     m_panels.push_back(topBar);
 
-    // 2. Bottom Action Grid (Full width, fixed 140px height)
+    // 2. Bottom Action Grid
     PanelConfig bottomGrid;
     bottomGrid.id = "bottom_action_grid";
     bottomGrid.anchor = PanelAnchor::BOTTOM_BAR;
     bottomGrid.fixedHeight = 140.0f;
     bottomGrid.backgroundColor = "bgPanel";
     bottomGrid.borderColor = "borderNormal";
-    bottomGrid.widgets = { "ACTION_GRID" };
+    bottomGrid.widgets = { "ACTION_GRID", "widget_action_commands" };
     m_panels.push_back(bottomGrid);
 
-    // 3. Left Character & Stats Sidebar (Fixed 320px width)
+    // 3. Left Character & Stats Sidebar
     PanelConfig leftPane;
     leftPane.id = "left_pane";
     leftPane.anchor = PanelAnchor::LEFT_SIDEBAR;
     leftPane.fixedWidth = 320.0f;
     leftPane.backgroundColor = "bgPanel";
     leftPane.borderColor = "borderNormal";
-    leftPane.widgets = { "CHARACTER_OVERVIEW", "STAT_BARS", "PAPERDOLL_SOCKETS" };
+    leftPane.widgets = { "CHARACTER_OVERVIEW", "STAT_BARS", "PAPERDOLL_SOCKETS", "widget_char_overview", "widget_vitals_gauges", "widget_attributes_table" };
     m_panels.push_back(leftPane);
 
-    // 4. Right Target & Minimap Sidebar (Fixed 300px width)
+    // 4. Right Target & Minimap Sidebar
     PanelConfig rightPane;
     rightPane.id = "right_pane";
     rightPane.anchor = PanelAnchor::RIGHT_SIDEBAR;
     rightPane.fixedWidth = 300.0f;
     rightPane.backgroundColor = "bgPanel";
     rightPane.borderColor = "borderNormal";
-    rightPane.widgets = { "MINIMAP_RADAR", "TARGET_INSPECTOR" };
+    rightPane.widgets = { "MINIMAP_RADAR", "TARGET_INSPECTOR", "widget_minimap_radar" };
     m_panels.push_back(rightPane);
 
-    // 5. Center Dynamic View (Auto-Flex: Takes all remaining width and height)
+    // 5. Center Dynamic View
     PanelConfig centerPane;
     centerPane.id = "center_pane";
     centerPane.anchor = PanelAnchor::CENTER_FLEX;
     centerPane.backgroundColor = "bgPanel";
     centerPane.borderColor = "borderNormal";
-    centerPane.widgets = { "SCENE_NARRATIVE", "INTERACTIVE_SEX", "COMBAT_VIEW", "BACKPACK_INVENTORY", "RESOLUTION_HUB" };
+    centerPane.widgets = { "SCENE_NARRATIVE", "INTERACTIVE_SEX", "COMBAT_VIEW", "BACKPACK_INVENTORY", "RESOLUTION_HUB", "widget_narrative_story" };
     m_panels.push_back(centerPane);
 }
 
@@ -104,7 +133,17 @@ bool layoutEngine::loadFromFile(const std::string& filePath)
         m_layoutName = j.value("layoutName", "Custom Layout");
         m_globalMargin = j.value("margin", 6.0f);
         m_panels.clear();
+        m_hasRootNode = false;
 
+        // Check for textRPG-studio N-way container format
+        if (j.contains("rootNode") && j["rootNode"].is_object())
+        {
+            m_hasRootNode = true;
+            parseStudioNode(j["rootNode"], m_rootNode);
+            return true;
+        }
+
+        // Legacy panels format
         if (j.contains("panels"))
         {
             for (const auto& pJson : j["panels"])
@@ -123,8 +162,9 @@ bool layoutEngine::loadFromFile(const std::string& filePath)
                 p.visibleInStates = pJson.value("visibleInStates", std::vector<std::string>{});
                 m_panels.push_back(p);
             }
+            return true;
         }
-        return true;
+        return false;
     }
     catch (const std::exception& e)
     {
@@ -142,17 +182,78 @@ const PanelConfig* layoutEngine::getPanelConfig(const std::string& id) const
     return nullptr;
 }
 
+void layoutEngine::computeStudioNode(const StudioLayoutNode& node, const SDL_FRect& bounds, float margin, std::vector<PanelComputedBounds>& out) const
+{
+    if (node.type == "LEAF" || node.children.empty())
+    {
+        PanelComputedBounds leafBounds;
+        leafBounds.id = node.id;
+        leafBounds.rect = {
+            bounds.x + (margin / 2.0f),
+            bounds.y + (margin / 2.0f),
+            std::max(10.0f, bounds.w - margin),
+            std::max(10.0f, bounds.h - margin)
+        };
+        leafBounds.backgroundColor = "bgPanel";
+        leafBounds.borderColor = "borderNormal";
+        leafBounds.widgets = node.widgets;
+        out.push_back(leafBounds);
+        return;
+    }
+
+    // Container node: split bounds among children
+    const bool isRow = (node.direction == "ROW");
+    const size_t numChildren = node.children.size();
+    float totalSize = 0.0f;
+    for (size_t i = 0; i < numChildren; ++i)
+    {
+        totalSize += (i < node.sizes.size()) ? node.sizes[i] : (100.0f / numChildren);
+    }
+    if (totalSize <= 0.0f) totalSize = 100.0f;
+
+    float currentOffset = 0.0f;
+    for (size_t i = 0; i < numChildren; ++i)
+    {
+        const float sizePercent = (i < node.sizes.size()) ? node.sizes[i] : (100.0f / numChildren);
+        const float fraction = sizePercent / totalSize;
+
+        SDL_FRect childBounds;
+        if (isRow)
+        {
+            const float childWidth = bounds.w * fraction;
+            childBounds = { bounds.x + currentOffset, bounds.y, childWidth, bounds.h };
+            currentOffset += childWidth;
+        }
+        else
+        {
+            const float childHeight = bounds.h * fraction;
+            childBounds = { bounds.x, bounds.y + currentOffset, bounds.w, childHeight };
+            currentOffset += childHeight;
+        }
+
+        computeStudioNode(node.children[i], childBounds, margin, out);
+    }
+}
+
 std::vector<PanelComputedBounds> layoutEngine::computeLayout(float windowWidth, float windowHeight, float uiScale) const
 {
     std::vector<PanelComputedBounds> results;
     float margin = m_globalMargin * uiScale;
 
+    // Handle Studio RootNode format
+    if (m_hasRootNode)
+    {
+        SDL_FRect rootBounds = { margin / 2.0f, margin / 2.0f, windowWidth - margin, windowHeight - margin };
+        computeStudioNode(m_rootNode, rootBounds, margin, results);
+        return results;
+    }
+
+    // Legacy Panel Anchor calculation
     float topBarHeight = 0.0f;
     float bottomBarHeight = 0.0f;
     float leftSidebarWidth = 0.0f;
     float rightSidebarWidth = 0.0f;
 
-    // Step 1: Query dimensions of fixed/anchored bars
     for (const auto& p : m_panels)
     {
         if (p.anchor == PanelAnchor::TOP_BAR)
@@ -201,7 +302,6 @@ std::vector<PanelComputedBounds> layoutEngine::computeLayout(float windowWidth, 
 
     float centerWidth = std::max(100.0f, contentRightX - contentLeftX);
 
-    // Step 2: Compute bounding rectangles for every panel
     for (const auto& p : m_panels)
     {
         PanelComputedBounds bounds;
@@ -229,12 +329,8 @@ std::vector<PanelComputedBounds> layoutEngine::computeLayout(float windowWidth, 
                 break;
 
             case PanelAnchor::CENTER_FLEX:
-                bounds.rect = { contentLeftX, contentTopY, centerWidth, contentHeight };
-                break;
-
-            case PanelAnchor::FLOATING_RECT:
             default:
-                bounds.rect = { margin, contentTopY, centerWidth, contentHeight };
+                bounds.rect = { contentLeftX, contentTopY, centerWidth, contentHeight };
                 break;
         }
 

@@ -77,6 +77,7 @@ struct DisplaySettings
 {
     int descriptionVerbosity = 0; // 0 = Full, 1 = Condensed, 2 = Minimal
     std::string activeTheme = "default";
+    std::string activeLayout = "data/layouts/default_layout.json";
 };
 
 struct GameSettings
@@ -116,7 +117,8 @@ struct GameSettings
             }},
             {"display", {
                 {"descriptionVerbosity", display.descriptionVerbosity},
-                {"activeTheme", display.activeTheme}
+                {"activeTheme", display.activeTheme},
+                {"activeLayout", display.activeLayout}
             }}
         };
     }
@@ -162,6 +164,7 @@ struct GameSettings
             const auto& disp = j["display"];
             if (disp.contains("descriptionVerbosity")) display.descriptionVerbosity = disp["descriptionVerbosity"].get<int>();
             if (disp.contains("activeTheme")) display.activeTheme = disp["activeTheme"].get<std::string>();
+            if (disp.contains("activeLayout")) display.activeLayout = disp["activeLayout"].get<std::string>();
         }
     }
 };
