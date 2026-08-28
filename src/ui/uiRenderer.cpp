@@ -130,14 +130,6 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
         {
             renderBottomActionGrid(renderer, gameContext, p.rect, uiScale);
         }
-        else if (p.widgets.size() == 1 && (p.widgets[0] == "widget_narrative_story" || p.widgets[0] == "SCENE_NARRATIVE" || p.id == "center_pane"))
-        {
-            renderCenterPane(renderer, gameContext, p.rect, uiScale);
-        }
-        else if (p.widgets.size() == 1 && (p.widgets[0] == "widget_inventory_dual" || p.widgets[0] == "BACKPACK_INVENTORY"))
-        {
-            renderInventoryView(renderer, gameContext, p.rect, uiScale);
-        }
         else if (p.widgets.empty())
         {
             UIWidget::drawPanel(renderer, p.rect);
@@ -147,9 +139,7 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
             // General Multi-Widget Box Container
             UIWidget::drawPanel(renderer, p.rect);
 
-            float maxScroll = m_panelMaxScrollY.contains(p.id) ? m_panelMaxScrollY[p.id] : 0.0f;
-            m_panelScrollY[p.id] = std::clamp(m_panelScrollY[p.id], 0.0f, maxScroll);
-            float scrollY = m_panelScrollY[p.id];
+            float scrollY = m_panelScrollY.contains(p.id) ? m_panelScrollY[p.id] : 0.0f;
             float curY = p.rect.y + (10.0f * uiScale) - scrollY;
 
             for (const auto& wId : p.widgets)
@@ -180,22 +170,23 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
                 }
                 else if (wId == "widget_narrative_story" || wId == "SCENE_NARRATIVE")
                 {
-                    SDL_FRect subRect = { p.rect.x, curY, p.rect.w, std::max(50.0f, p.rect.h - (curY - p.rect.y)) };
-                    renderCenterPane(renderer, gameContext, subRect, uiScale);
-                    curY += subRect.h;
+                    curY += renderCenterPane(renderer, gameContext, p.rect, curY, uiScale);
                 }
                 else if (wId == "widget_inventory_dual" || wId == "BACKPACK_INVENTORY")
                 {
-                    SDL_FRect subRect = { p.rect.x, curY, p.rect.w, std::max(50.0f, p.rect.h - (curY - p.rect.y)) };
-                    renderInventoryView(renderer, gameContext, subRect, uiScale);
-                    curY += subRect.h;
+                    curY += renderInventoryView(renderer, gameContext, p.rect, curY, uiScale);
+                }
+                else if (wId == "widget_tactical_combat" || wId == "COMBAT_VIEW")
+                {
+                    curY += renderCombatView(renderer, gameContext, p.rect, curY, uiScale);
                 }
             }
 
             float totalContentH = (curY + scrollY) - p.rect.y + (10.0f * uiScale);
             float calculatedMaxScroll = std::max(0.0f, totalContentH - p.rect.h);
             m_panelMaxScrollY[p.id] = calculatedMaxScroll;
-            drawScrollbar(renderer, p.rect, totalContentH, scrollY, uiScale);
+            m_panelScrollY[p.id] = std::clamp(m_panelScrollY[p.id], 0.0f, calculatedMaxScroll);
+            drawScrollbar(renderer, p.rect, totalContentH, m_panelScrollY[p.id], uiScale);
         }
 
         // Reset clip rect
@@ -219,15 +210,13 @@ void uiRenderer::drawScrollbar(SDL_Renderer* renderer, const SDL_FRect& panelRec
     SDL_SetRenderDrawColor(renderer, 20, 20, 28, 140);
     SDL_RenderFillRect(renderer, &trackRect);
 
-    // Thumb indicator
-    float ratio = panelRect.h / contentHeight;
-    float thumbH = std::max(16.0f * uiScale, trackH * ratio);
+    // Scroll thumb
+    float thumbH = std::max(16.0f * uiScale, (panelRect.h / contentHeight) * trackH);
     float maxScroll = contentHeight - panelRect.h;
-    float scrollFraction = (maxScroll > 0.0f) ? std::clamp(currentScroll / maxScroll, 0.0f, 1.0f) : 0.0f;
-    float thumbY = trackY + scrollFraction * (trackH - thumbH);
+    float thumbY = trackY + (maxScroll > 0.0f ? (currentScroll / maxScroll) * (trackH - thumbH) : 0.0f);
 
     SDL_FRect thumbRect = { trackX, thumbY, barW, thumbH };
-    SDL_SetRenderDrawColor(renderer, Theme::colors.borderSelected.r, Theme::colors.borderSelected.g, Theme::colors.borderSelected.b, 200);
+    SDL_SetRenderDrawColor(renderer, Theme::colors.textGold.r, Theme::colors.textGold.g, Theme::colors.textGold.b, 220);
     SDL_RenderFillRect(renderer, &thumbRect);
 }
 
@@ -235,12 +224,8 @@ void uiRenderer::renderTopBar(SDL_Renderer* renderer, game* gameContext, const S
 {
     UIWidget::drawPanel(renderer, rect, Theme::colors.bgHeader, Theme::colors.borderNormal);
 
-    // Left: Time & Phase
-    std::string timeStr = std::format("{} | {}, {}",
-                                      gameContext->getTime().getFormattedTime(),
-                                      gameContext->getTime().getFormattedDate(),
-                                      gameContext->getTime().getPhaseString());
-    UIWidget::drawText(renderer, timeStr, rect.x + (12.0f * uiScale), rect.y + ((rect.h - (10.0f * uiScale)) / 2.0f), Theme::colors.textSecondary, uiScale);
+    // Left: Game Title
+    UIWidget::drawText(renderer, "textRPG v0.4.0-DEV", rect.x + (12.0f * uiScale), rect.y + ((rect.h - (10.0f * uiScale)) / 2.0f), Theme::colors.textGold, uiScale);
 
     // Center: Currency
     if (entity* p = gameContext->getPlayer())
@@ -257,132 +242,75 @@ void uiRenderer::renderTopBar(SDL_Renderer* renderer, game* gameContext, const S
     }
 }
 
-void uiRenderer::renderLeftPane(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale)
+float uiRenderer::renderCenterPane(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)
 {
-    UIWidget::drawPanel(renderer, rect);
-
-    float headerH = 28.0f * uiScale;
-    SDL_FRect headerRect = { rect.x, rect.y, rect.w, headerH };
-    UIWidget::drawHeader(renderer, headerRect, "CHARACTER STATUS", Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
-
-    entity* p = gameContext->getPlayer();
-    if (!p) return;
-
-    float scrollY = m_panelScrollY["left_pane"];
-    float padX = rect.x + (10.0f * uiScale);
-    float startY = rect.y + headerH + (10.0f * uiScale);
-    float curY = startY - scrollY;
-    float innerW = rect.w - (20.0f * uiScale);
-    float lineH = 18.0f * uiScale;
-    float barH = 18.0f * uiScale;
-
-    UIWidget::drawText(renderer, std::format("Name: {}", p->name), padX, curY, Theme::colors.textPrimary, uiScale); curY += lineH;
-    UIWidget::drawText(renderer, std::format("Title: {}", p->anatomy.getRacialTitle()), padX, curY, Theme::colors.textAccent, uiScale); curY += lineH;
-    UIWidget::drawText(renderer, std::format("Gender: {}", genderArchetypeToString(p->anatomy.getGenderArchetype())), padX, curY, Theme::colors.textSecondary, uiScale); curY += (lineH + 4.0f * uiScale);
-
-    // Resource Bars
-    float hp = p->getStat("health");
-    UIWidget::drawProgressBar(renderer, { padX, curY, innerW, barH }, hp, 100.0f, Theme::colors.health, Theme::colors.bgDark, std::format("HP: {:.0f}/100", hp), uiScale); curY += (barH + 6.0f * uiScale);
-
-    float mana = p->getStat("mana");
-    UIWidget::drawProgressBar(renderer, { padX, curY, innerW, barH }, mana, 50.0f, Theme::colors.mana, Theme::colors.bgDark, std::format("Mana: {:.0f}/50", mana), uiScale); curY += (barH + 6.0f * uiScale);
-
-    float lust = p->getStat("lust");
-    UIWidget::drawProgressBar(renderer, { padX, curY, innerW, barH }, lust, 100.0f, Theme::colors.lust, Theme::colors.bgDark, std::format("Lust: {:.0f}/100", lust), uiScale); curY += (barH + 10.0f * uiScale);
-
-    // Attributes
-    UIWidget::drawText(renderer, "ATTRIBUTES", padX, curY, Theme::colors.textGold, uiScale); curY += (lineH + 2.0f * uiScale);
-    UIWidget::drawText(renderer, std::format("Physique:   {:.0f}", p->getStat("physique")), padX, curY, Theme::colors.physique, uiScale); curY += lineH;
-    UIWidget::drawText(renderer, std::format("Agility:    {:.0f}", p->getStat("agility")), padX, curY, Theme::colors.textSecondary, uiScale); curY += lineH;
-    UIWidget::drawText(renderer, std::format("Arcane:     {:.0f}", p->getStat("arcane")), padX, curY, Theme::colors.arcane, uiScale); curY += lineH;
-    UIWidget::drawText(renderer, std::format("Corruption: {:.0f}", p->getStat("corruption")), padX, curY, Theme::colors.corruption, uiScale); curY += (lineH + 8.0f * uiScale);
-
-    // Anatomy & Fluid Stores
-    UIWidget::drawText(renderer, "ANATOMY & FLUIDS", padX, curY, Theme::colors.textGold, uiScale); curY += (lineH + 2.0f * uiScale);
-    UIWidget::drawText(renderer, std::format("Height: {:.2f}m", p->anatomy.heightMeters), padX, curY, Theme::colors.textSecondary, uiScale); curY += lineH;
-
-    if (const bodyPart* b = p->anatomy.getPart(bodySlot::BREASTS))
-    {
-        UIWidget::drawText(renderer, std::format("Breasts: {}-Cup ({:.0f}/{:.0f}ml milk)", bodyPart::getCupSizeName(b->cupSize), b->currentFluidMl, b->maxFluidMl), padX, curY, Theme::colors.textSecondary, uiScale); curY += lineH;
-    }
-    if (const bodyPart* g = p->anatomy.getPart(bodySlot::GROIN))
-    {
-        if (p->anatomy.hasPenis())
-        {
-            UIWidget::drawText(renderer, std::format("Penis: {:.1f}cm x {:.1f}cm ({:.0f}/{:.0f}ml cum)", g->length, g->diameter, g->currentFluidMl, g->maxFluidMl), padX, curY, Theme::colors.textSecondary, uiScale); curY += lineH;
-        }
-    }
-
-    // Total content height
-    float totalContentHeight = (curY + scrollY) - rect.y + (10.0f * uiScale);
-    drawScrollbar(renderer, rect, totalContentHeight, scrollY, uiScale);
-}
-
-void uiRenderer::renderCenterPane(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale)
-{
-    UIWidget::drawPanel(renderer, rect);
-
     iGameState* state = gameContext->getActiveState();
-    if (!state) return;
+    if (!state) return 0.0f;
 
     if (dynamic_cast<sexState*>(state))
     {
-        renderSexView(renderer, gameContext, rect, uiScale);
+        return renderSexView(renderer, gameContext, rect, curY, uiScale);
     }
     else if (dynamic_cast<CombatState*>(state))
     {
-        renderCombatView(renderer, gameContext, rect, uiScale);
+        return renderCombatView(renderer, gameContext, rect, curY, uiScale);
     }
     else if (dynamic_cast<encounterResolutionState*>(state))
     {
-        renderResolutionView(renderer, gameContext, rect, uiScale);
+        return renderResolutionView(renderer, gameContext, rect, curY, uiScale);
     }
     else if (dynamic_cast<inventoryState*>(state))
     {
-        renderInventoryView(renderer, gameContext, rect, uiScale);
+        return renderInventoryView(renderer, gameContext, rect, curY, uiScale);
     }
     else if (dynamic_cast<eventState*>(state))
     {
-        renderSceneView(renderer, gameContext, rect, uiScale);
+        return renderSceneView(renderer, gameContext, rect, curY, uiScale);
     }
     else
     {
-        renderExplorationView(renderer, gameContext, rect, uiScale);
+        return renderExplorationView(renderer, gameContext, rect, curY, uiScale);
     }
 }
 
-void uiRenderer::renderSceneView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale)
+float uiRenderer::renderSceneView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)
 {
     const questScene& scene = gameContext->getCurrentScene();
-    float headerH = 28.0f * uiScale;
-    SDL_FRect headerRect = { rect.x, rect.y, rect.w, headerH };
+    float startY = curY;
+    float headerH = 26.0f * uiScale;
+    SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
     UIWidget::drawHeader(renderer, headerRect, scene.speakerName.empty() ? "NARRATIVE SCENE" : scene.speakerName, Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
+    curY += headerH + (10.0f * uiScale);
 
-    float padX = rect.x + (15.0f * uiScale);
-    float startY = rect.y + headerH + (15.0f * uiScale);
-    float innerW = rect.w - (30.0f * uiScale);
-    UIWidget::drawTextWrapped(renderer, scene.bodyText, padX, startY, innerW, Theme::colors.textPrimary, uiScale);
+    float padX = rect.x + (12.0f * uiScale);
+    float innerW = rect.w - (24.0f * uiScale);
+    float textH = UIWidget::drawTextWrapped(renderer, scene.bodyText, padX, curY, innerW, Theme::colors.textPrimary, uiScale);
+    curY += textH + (6.0f * uiScale);
+
+    return (curY - startY);
 }
 
-void uiRenderer::renderSexView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale)
+float uiRenderer::renderSexView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)
 {
     sexState* sex = dynamic_cast<sexState*>(gameContext->getActiveState());
-    if (!sex) return;
+    if (!sex) return 0.0f;
 
-    float headerH = 28.0f * uiScale;
-    SDL_FRect headerRect = { rect.x, rect.y, rect.w, headerH };
+    float startY = curY;
+    float headerH = 26.0f * uiScale;
+    SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
     UIWidget::drawHeader(renderer, headerRect, "INTERACTIVE CYOA EROTIC ENCOUNTER", Theme::colors.bgHeader, Theme::colors.lust, uiScale);
+    curY += headerH + (10.0f * uiScale);
 
     entity* partner = sex->getPartner();
     std::string partnerName = partner ? partner->name : "Partner";
 
-    float padX = rect.x + (15.0f * uiScale);
-    float curY = rect.y + headerH + (12.0f * uiScale);
-    float innerW = rect.w - (30.0f * uiScale);
+    float padX = rect.x + (12.0f * uiScale);
+    float innerW = rect.w - (24.0f * uiScale);
     float halfW = (innerW - (10.0f * uiScale)) / 2.0f;
     float barH = 18.0f * uiScale;
 
-    UIWidget::drawText(renderer, std::format("Partner: {} | Stance: {}", partnerName, sexStanceToString(sex->getStance())), padX, curY, Theme::colors.textGold, uiScale); curY += (22.0f * uiScale);
+    UIWidget::drawText(renderer, std::format("Partner: {} | Stance: {}", partnerName, sexStanceToString(sex->getStance())), padX, curY, Theme::colors.textGold, uiScale);
+    curY += (22.0f * uiScale);
 
     UIWidget::drawProgressBar(renderer, { padX, curY, halfW, barH }, sex->getPlayerArousal(), 100.0f, Theme::colors.lust, Theme::colors.bgDark, std::format("Your Arousal: {:.0f}/100", sex->getPlayerArousal()), uiScale);
     UIWidget::drawProgressBar(renderer, { padX + halfW + (10.0f * uiScale), curY, halfW, barH }, sex->getPartnerArousal(), 100.0f, Theme::colors.lust, Theme::colors.bgDark, std::format("{} Arousal: {:.0f}/100", partnerName, sex->getPartnerArousal()), uiScale);
@@ -390,28 +318,34 @@ void uiRenderer::renderSexView(SDL_Renderer* renderer, game* gameContext, const 
 
     float dom = sex->getPlayerDominance();
     UIWidget::drawProgressBar(renderer, { padX, curY, innerW, barH }, dom + 100.0f, 200.0f, Theme::colors.textAccent, Theme::colors.bgDark, std::format("Dominance Continuum: {:.0f} ({})", dom, sex->isPlayerDominant() ? "Dominant" : "Submissive"), uiScale);
-    curY += (barH + 12.0f * uiScale);
+    curY += (barH + 10.0f * uiScale);
 
-    UIWidget::drawText(renderer, "NARRATIVE LOG:", padX, curY, Theme::colors.textGold, uiScale); curY += (20.0f * uiScale);
-    UIWidget::drawTextWrapped(renderer, sex->getNarrativeLog(), padX, curY, innerW, Theme::colors.textSecondary, uiScale);
+    UIWidget::drawText(renderer, "NARRATIVE LOG:", padX, curY, Theme::colors.textGold, uiScale);
+    curY += (18.0f * uiScale);
+    float textH = UIWidget::drawTextWrapped(renderer, sex->getNarrativeLog(), padX, curY, innerW, Theme::colors.textSecondary, uiScale);
+    curY += textH + (6.0f * uiScale);
+
+    return (curY - startY);
 }
 
-void uiRenderer::renderCombatView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale)
+float uiRenderer::renderCombatView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)
 {
     CombatState* combat = dynamic_cast<CombatState*>(gameContext->getActiveState());
-    if (!combat) return;
+    if (!combat) return 0.0f;
 
-    float headerH = 28.0f * uiScale;
-    SDL_FRect headerRect = { rect.x, rect.y, rect.w, headerH };
+    float startY = curY;
+    float headerH = 26.0f * uiScale;
+    SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
     UIWidget::drawHeader(renderer, headerRect, std::format("TACTICAL COMBAT (Round {})", combat->getEngine().getCurrentRound()), Theme::colors.bgHeader, Theme::colors.enemy, uiScale);
+    curY += headerH + (10.0f * uiScale);
 
-    float padX = rect.x + (15.0f * uiScale);
-    float curY = rect.y + headerH + (12.0f * uiScale);
-    float innerW = rect.w - (30.0f * uiScale);
+    float padX = rect.x + (12.0f * uiScale);
+    float innerW = rect.w - (24.0f * uiScale);
     float halfW = (innerW - (10.0f * uiScale)) / 2.0f;
     float barH = 18.0f * uiScale;
 
-    UIWidget::drawText(renderer, "PARTY STATUS", padX, curY, Theme::colors.textGold, uiScale); curY += (20.0f * uiScale);
+    UIWidget::drawText(renderer, "PARTY STATUS", padX, curY, Theme::colors.textGold, uiScale);
+    curY += (18.0f * uiScale);
 
     for (const auto& p : combat->getEngine().getPlayerParty())
     {
@@ -430,31 +364,36 @@ void uiRenderer::renderCombatView(SDL_Renderer* renderer, game* gameContext, con
             UIWidget::drawProgressBar(renderer, { padX + halfW + (10.0f * uiScale), curY, halfW, barH }, hp, 100.0f, Theme::colors.enemy, Theme::colors.bgDark, std::format("{} HP: {:.0f}", enemyP.character->name, hp), uiScale);
         }
     }
-    curY += (barH + 14.0f * uiScale);
+    curY += (barH + 12.0f * uiScale);
 
-    UIWidget::drawText(renderer, "COMBAT LOG:", padX, curY, Theme::colors.textGold, uiScale); curY += (20.0f * uiScale);
+    UIWidget::drawText(renderer, "COMBAT LOG:", padX, curY, Theme::colors.textGold, uiScale);
+    curY += (18.0f * uiScale);
     for (const auto& logEntry : combat->getEngine().getCombatLog())
     {
         UIWidget::drawText(renderer, logEntry, padX, curY, Theme::colors.textSecondary, uiScale);
         curY += (16.0f * uiScale);
-        if (curY > rect.y + rect.h - (20.0f * uiScale)) break;
     }
+
+    return (curY - startY);
 }
 
-void uiRenderer::renderResolutionView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale)
+float uiRenderer::renderResolutionView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)
 {
     encounterResolutionState* res = dynamic_cast<encounterResolutionState*>(gameContext->getActiveState());
-    if (!res) return;
+    if (!res) return 0.0f;
 
-    float headerH = 28.0f * uiScale;
-    SDL_FRect headerRect = { rect.x, rect.y, rect.w, headerH };
+    float startY = curY;
+    float headerH = 26.0f * uiScale;
+    SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
     UIWidget::drawHeader(renderer, headerRect, "POST-COMBAT RESOLUTION HUB", Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
+    curY += headerH + (10.0f * uiScale);
 
-    float padX = rect.x + (15.0f * uiScale);
-    float curY = rect.y + headerH + (15.0f * uiScale);
+    float padX = rect.x + (12.0f * uiScale);
+    UIWidget::drawText(renderer, res->getResolutionLog(), padX, curY, Theme::colors.textAccent, uiScale);
+    curY += (26.0f * uiScale);
 
-    UIWidget::drawText(renderer, res->getResolutionLog(), padX, curY, Theme::colors.textAccent, uiScale); curY += (30.0f * uiScale);
-    UIWidget::drawText(renderer, "DEFEATED ENEMIES AT YOUR MERCY:", padX, curY, Theme::colors.textGold, uiScale); curY += (22.0f * uiScale);
+    UIWidget::drawText(renderer, "DEFEATED ENEMIES AT YOUR MERCY:", padX, curY, Theme::colors.textGold, uiScale);
+    curY += (20.0f * uiScale);
 
     const auto& records = res->getDefeatedRecords();
     size_t selected = res->getSelectedIndex();
@@ -472,24 +411,27 @@ void uiRenderer::renderResolutionView(SDL_Renderer* renderer, game* gameContext,
 
         SDL_Color c = (i == selected) ? Theme::colors.textGold : Theme::colors.textPrimary;
         UIWidget::drawText(renderer, line, padX, curY, c, uiScale);
-        curY += (20.0f * uiScale);
+        curY += (18.0f * uiScale);
     }
+
+    return (curY - startY);
 }
 
-void uiRenderer::renderInventoryView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale)
+float uiRenderer::renderInventoryView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)
 {
-    float headerH = 28.0f * uiScale;
-    SDL_FRect headerRect = { rect.x, rect.y, rect.w, headerH };
+    float startY = curY;
+    float headerH = 26.0f * uiScale;
+    SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
     UIWidget::drawHeader(renderer, headerRect, "INVENTORY & CONTAINER VIEW", Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
+    curY += headerH + (10.0f * uiScale);
 
-    float padX = rect.x + (15.0f * uiScale);
-    float curY = rect.y + headerH + (12.0f * uiScale);
-    float halfW = (rect.w - (30.0f * uiScale)) / 2.0f;
+    float padX = rect.x + (12.0f * uiScale);
+    float halfW = (rect.w - (24.0f * uiScale)) / 2.0f;
     float lineH = 18.0f * uiScale;
 
     UIWidget::drawText(renderer, "PLAYER BACKPACK (Side 0)", padX, curY, Theme::colors.textGold, uiScale);
     UIWidget::drawText(renderer, "GROUND / CONTAINER (Side 1)", padX + halfW, curY, Theme::colors.textGold, uiScale);
-    curY += (22.0f * uiScale);
+    curY += (20.0f * uiScale);
 
     auto backpack = gameContext->getPlayerInventoryStacked();
     for (size_t i = 0; i < backpack.size() && i < 15; ++i)
@@ -512,118 +454,34 @@ void uiRenderer::renderInventoryView(SDL_Renderer* renderer, game* gameContext, 
             UIWidget::drawText(renderer, line, padX + halfW, curY + (i * lineH), isSelected ? Theme::colors.textGold : Theme::colors.textPrimary, uiScale);
         }
     }
+
+    size_t maxRows = std::max(backpack.size(), ground.size());
+    curY += (std::min(maxRows, size_t(15)) * lineH) + (10.0f * uiScale);
+
+    return (curY - startY);
 }
 
-void uiRenderer::renderExplorationView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale)
+float uiRenderer::renderExplorationView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)
 {
-    float headerH = 28.0f * uiScale;
-    SDL_FRect headerRect = { rect.x, rect.y, rect.w, headerH };
+    const gameMap* m = gameContext->getActiveMap();
+    if (!m) return 0.0f;
+
+    float startY = curY;
+    float headerH = 26.0f * uiScale;
+    SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
     UIWidget::drawHeader(renderer, headerRect, "OVERWORLD EXPLORATION", Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
+    curY += headerH + (10.0f * uiScale);
 
-    const gameMap* m = gameContext->getActiveMap();
-    if (!m) return;
+    float padX = rect.x + (12.0f * uiScale);
+    float innerW = rect.w - (24.0f * uiScale);
 
-    float padX = rect.x + (15.0f * uiScale);
-    float curY = rect.y + headerH + (15.0f * uiScale);
-    float innerW = rect.w - (30.0f * uiScale);
+    UIWidget::drawText(renderer, std::format("Current Location: {} at [{}, {}]", m->getName(), gameContext->gridX, gameContext->gridY), padX, curY, Theme::colors.textAccent, uiScale);
+    curY += (22.0f * uiScale);
 
-    UIWidget::drawText(renderer, std::format("Current Location: {} at [{}, {}]", m->getName(), gameContext->gridX, gameContext->gridY), padX, curY, Theme::colors.textAccent, uiScale); curY += (26.0f * uiScale);
-    UIWidget::drawTextWrapped(renderer, "You are exploring the district. Use movement keys (W, A, S, D) or click action grid commands to navigate surrounding tiles.", padX, curY, innerW, Theme::colors.textPrimary, uiScale);
-}
+    float textH = UIWidget::drawTextWrapped(renderer, "You are exploring the district. Use movement keys (W, A, S, D) or click action grid commands to navigate surrounding tiles.", padX, curY, innerW, Theme::colors.textPrimary, uiScale);
+    curY += textH + (6.0f * uiScale);
 
-void uiRenderer::renderRightPane(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale)
-{
-    UIWidget::drawPanel(renderer, rect);
-
-    float headerH = 28.0f * uiScale;
-    SDL_FRect headerRect = { rect.x, rect.y, rect.w, headerH };
-    UIWidget::drawHeader(renderer, headerRect, "WORLD MAP & TARGET", Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
-
-    const gameMap* m = gameContext->getActiveMap();
-    if (!m) return;
-
-    // Calculate dynamic radar size that strictly fits both box width and available height
-    const int radius = 3; // 7x7 grid matching studio radar
-    const int gridSize = (radius * 2) + 1; // 7
-    const float availableW = std::max(20.0f, rect.w - (20.0f * uiScale));
-    const float availableH = std::max(20.0f, (rect.h - headerH - (80.0f * uiScale)));
-    const float maxDimension = std::min(availableW, availableH);
-    const float tileSize = std::max(4.0f, maxDimension / static_cast<float>(gridSize));
-    const float totalGridW = tileSize * static_cast<float>(gridSize);
-
-    const float padX = rect.x + ((rect.w - totalGridW) / 2.0f);
-    const float startY = rect.y + headerH + (8.0f * uiScale);
-
-    for (int dy = -radius; dy <= radius; ++dy)
-    {
-        for (int dx = -radius; dx <= radius; ++dx)
-        {
-            int mapX = gameContext->gridX + dx;
-            int mapY = gameContext->gridY + dy;
-
-            SDL_FRect tileRect = {
-                padX + static_cast<float>(dx + radius) * tileSize,
-                startY + static_cast<float>(dy + radius) * tileSize,
-                std::max(1.0f, tileSize - (1.5f * uiScale)),
-                std::max(1.0f, tileSize - (1.5f * uiScale))
-            };
-
-            Tile t = m->getTile(mapX, mapY);
-            SDL_Color tileColor = Theme::colors.bgDark;
-            std::string label = "";
-
-            if (t.discovery == STATE_HIDDEN)
-            {
-                tileColor = SDL_Color{ 15, 15, 20, 255 };
-            }
-            else
-            {
-                if (t.type == TILE_WALL) tileColor = Theme::colors.bgHeader;
-                else if (t.type == TILE_FLOOR) tileColor = Theme::colors.bgSlot;
-                else if (t.type == TILE_DOOR) { tileColor = Theme::colors.textGold; label = "D"; }
-
-                if (dx == 0 && dy == 0)
-                {
-                    tileColor = Theme::colors.borderButton;
-                    label = "@";
-                }
-            }
-
-            SDL_SetRenderDrawColor(renderer, tileColor.r, tileColor.g, tileColor.b, tileColor.a);
-            SDL_RenderFillRect(renderer, &tileRect);
-
-            if (!label.empty() && tileSize >= 14.0f * uiScale)
-            {
-                UIWidget::drawText(renderer, label, tileRect.x + (tileSize * 0.25f), tileRect.y + (tileSize * 0.1f), Theme::colors.textGold, uiScale * (tileSize / 24.0f));
-            }
-        }
-    }
-
-    // Target NPC Inspector Section
-    float curY = startY + (gridSize * tileSize) + (10.0f * uiScale);
-    if (curY < rect.y + rect.h - (20.0f * uiScale))
-    {
-        UIWidget::drawText(renderer, "PROXIMITY TARGET", rect.x + (10.0f * uiScale), curY, Theme::colors.textGold, uiScale);
-        curY += (18.0f * uiScale);
-
-        if (entity* npc = gameContext->getActiveTargetNPC())
-        {
-            UIWidget::drawText(renderer, std::format("Name: {}", npc->name), rect.x + (10.0f * uiScale), curY, Theme::colors.textPrimary, uiScale);
-            curY += (16.0f * uiScale);
-            UIWidget::drawText(renderer, std::format("Level: {} | {}", npc->stats.level, npc->anatomy.getDominantRace()), rect.x + (10.0f * uiScale), curY, Theme::colors.textSecondary, uiScale);
-            curY += (16.0f * uiScale);
-
-            if (curY + (16.0f * uiScale) <= rect.y + rect.h - (4.0f * uiScale))
-            {
-                float hp = npc->getStat("health");
-                UIWidget::drawProgressBar(renderer, { rect.x + (10.0f * uiScale), curY, rect.w - (20.0f * uiScale), 16.0f * uiScale }, hp, 100.0f, Theme::colors.enemy, Theme::colors.bgDark, std::format("HP: {:.0f}", hp), uiScale);
-            }
-        }
-        else
-        {
-            UIWidget::drawText(renderer, "No active target.", rect.x + (10.0f * uiScale), curY, Theme::colors.textMuted, uiScale);
-        }
-    }
+    return (curY - startY);
 }
 
 void uiRenderer::renderBottomActionGrid(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale)

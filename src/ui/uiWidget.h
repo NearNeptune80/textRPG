@@ -13,5 +13,5 @@ namespace UIWidget
     bool drawButton(SDL_Renderer* renderer, const SDL_FRect& rect, const std::string& label, bool isHovered, bool isEnabled = true, bool isSelected = false, float scale = 1.0f);
 
     void drawText(SDL_Renderer* renderer, const std::string& text, float x, float y, SDL_Color color = Theme::colors.textPrimary, float scale = 1.0f);
-    void drawTextWrapped(SDL_Renderer* renderer, const std::string& text, float x, float y, float maxWidth, SDL_Color color = Theme::colors.textPrimary, float scale = 1.0f);
+    float drawTextWrapped(SDL_Renderer* renderer, const std::string& text, float x, float y, float maxWidth, SDL_Color color = Theme::colors.textPrimary, float scale = 1.0f);
 }

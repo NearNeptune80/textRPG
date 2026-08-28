@@ -29,18 +29,15 @@ private:
     static constexpr int BUTTONS_PER_PAGE = 10;
 
     void renderTopBar(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale);
-    void renderLeftPane(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale);
-    void renderCenterPane(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale);
-    void renderRightPane(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale);
     void renderBottomActionGrid(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale);
-
     // View sub-renderers for Center Pane
-    void renderSceneView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale);
-    void renderSexView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale);
-    void renderCombatView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale);
-    void renderResolutionView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale);
-    void renderInventoryView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale);
-    void renderExplorationView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale);
+    float renderCenterPane(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale);
+    float renderSceneView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale);
+    float renderSexView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale);
+    float renderCombatView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale);
+    float renderResolutionView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale);
+    float renderInventoryView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale);
+    float renderExplorationView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale);
 
     // Per-panel scroll tracking
     std::unordered_map<std::string, float> m_panelScrollY;

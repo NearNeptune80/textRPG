@@ -75,8 +75,8 @@ namespace UIWidget
         ::fontManager::getInstance().drawText(renderer, text, x, y, color, scale);
     }
 
-    void drawTextWrapped(SDL_Renderer* renderer, const std::string& text, float x, float y, float maxWidth, SDL_Color color, float scale)
+    float drawTextWrapped(SDL_Renderer* renderer, const std::string& text, float x, float y, float maxWidth, SDL_Color color, float scale)
     {
-        ::fontManager::getInstance().drawTextWrapped(renderer, text, x, y, maxWidth, color, scale);
+        return ::fontManager::getInstance().drawTextWrapped(renderer, text, x, y, maxWidth, color, scale);
     }
 }

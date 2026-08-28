@@ -209,9 +209,9 @@ void fontManager::drawText(SDL_Renderer* renderer, const std::string& text, floa
     SDL_DestroySurface(surface);
 }
 
-void fontManager::drawTextWrapped(SDL_Renderer* renderer, const std::string& text, float x, float y, float maxWidth, SDL_Color color, float scale)
+float fontManager::drawTextWrapped(SDL_Renderer* renderer, const std::string& text, float x, float y, float maxWidth, SDL_Color color, float scale)
 {
-    if (!renderer || text.empty()) return;
+    if (!renderer || text.empty()) return 0.0f;
 
     std::istringstream stream(text);
     std::string line;
@@ -245,4 +245,6 @@ void fontManager::drawTextWrapped(SDL_Renderer* renderer, const std::string& tex
             curY += lineHeight;
         }
     }
+
+    return (curY - y);
 }
