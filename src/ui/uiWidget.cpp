@@ -16,7 +16,7 @@ namespace UIWidget
         SDL_RenderRect(renderer, &rect);
     }
 
-    void drawHeader(SDL_Renderer* renderer, const SDL_FRect& rect, const std::string& title, SDL_Color headerColor, SDL_Color textColor)
+    void drawHeader(SDL_Renderer* renderer, const SDL_FRect& rect, const std::string& title, SDL_Color headerColor, SDL_Color textColor, float scale)
     {
         if (!renderer) return;
 
@@ -26,10 +26,10 @@ namespace UIWidget
         SDL_SetRenderDrawColor(renderer, Theme::colors.borderNormal.r, Theme::colors.borderNormal.g, Theme::colors.borderNormal.b, Theme::colors.borderNormal.a);
         SDL_RenderRect(renderer, &rect);
 
-        drawText(renderer, title, rect.x + 8.0f, rect.y + 6.0f, textColor, 1.0f);
+        drawText(renderer, title, rect.x + (8.0f * scale), rect.y + ((rect.h - (10.0f * scale)) / 2.0f), textColor, scale);
     }
 
-    void drawProgressBar(SDL_Renderer* renderer, const SDL_FRect& rect, float currentValue, float maxValue, SDL_Color fillColor, SDL_Color bgColor, const std::string& label)
+    void drawProgressBar(SDL_Renderer* renderer, const SDL_FRect& rect, float currentValue, float maxValue, SDL_Color fillColor, SDL_Color bgColor, const std::string& label, float scale)
     {
         if (!renderer) return;
 
@@ -47,11 +47,11 @@ namespace UIWidget
 
         if (!label.empty())
         {
-            drawText(renderer, label, rect.x + 6.0f, rect.y + 3.0f, Theme::colors.textPrimary, 1.0f);
+            drawText(renderer, label, rect.x + (6.0f * scale), rect.y + ((rect.h - (10.0f * scale)) / 2.0f), Theme::colors.textPrimary, scale * 0.9f);
         }
     }
 
-    bool drawButton(SDL_Renderer* renderer, const SDL_FRect& rect, const std::string& label, bool isHovered, bool isEnabled, bool isSelected)
+    bool drawButton(SDL_Renderer* renderer, const SDL_FRect& rect, const std::string& label, bool isHovered, bool isEnabled, bool isSelected, float scale)
     {
         if (!renderer) return false;
 
@@ -65,7 +65,7 @@ namespace UIWidget
         SDL_SetRenderDrawColor(renderer, border.r, border.g, border.b, border.a);
         SDL_RenderRect(renderer, &rect);
 
-        drawText(renderer, label, rect.x + 8.0f, rect.y + ((rect.h - 10.0f) / 2.0f), textCol, 1.0f);
+        drawText(renderer, label, rect.x + (8.0f * scale), rect.y + ((rect.h - (10.0f * scale)) / 2.0f), textCol, scale);
         return isEnabled && isHovered;
     }
 
@@ -84,13 +84,13 @@ namespace UIWidget
         {
             if (c == '\n')
             {
-                curY += charHeight + 2.0f;
+                curY += (charHeight + (2.0f * scale));
                 curX = x;
                 continue;
             }
 
             // High-contrast clean block rendering for primary text characters
-            SDL_FRect charRect = { curX, curY, charWidth - 1.0f, charHeight - 2.0f };
+            SDL_FRect charRect = { curX, curY, std::max(1.0f, charWidth - scale), std::max(1.0f, charHeight - scale) };
             if (c != ' ')
             {
                 SDL_RenderFillRect(renderer, &charRect);
@@ -108,7 +108,7 @@ namespace UIWidget
         std::string line;
         float curY = y;
         float charWidth = 8.0f * scale;
-        float lineHeight = 12.0f * scale;
+        float lineHeight = 14.0f * scale;
 
         while (std::getline(stream, line))
         {

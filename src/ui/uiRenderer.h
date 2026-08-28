@@ -28,17 +28,17 @@ private:
     int m_currentPage = 0;
     static constexpr int BUTTONS_PER_PAGE = 10;
 
-    void renderTopBar(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect);
-    void renderLeftPane(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect);
-    void renderCenterPane(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect);
-    void renderRightPane(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect);
-    void renderBottomActionGrid(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect);
+    void renderTopBar(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale);
+    void renderLeftPane(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale);
+    void renderCenterPane(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale);
+    void renderRightPane(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale);
+    void renderBottomActionGrid(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale);
 
     // View sub-renderers for Center Pane
-    void renderSceneView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect);
-    void renderSexView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect);
-    void renderCombatView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect);
-    void renderResolutionView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect);
-    void renderInventoryView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect);
-    void renderExplorationView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect);
+    void renderSceneView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale);
+    void renderSexView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale);
+    void renderCombatView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale);
+    void renderResolutionView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale);
+    void renderInventoryView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale);
+    void renderExplorationView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale);
 };
