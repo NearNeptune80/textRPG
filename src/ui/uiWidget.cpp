@@ -69,6 +69,8 @@ namespace UIWidget
         return isEnabled && isHovered;
     }
 
+#include "ui/embeddedFont.h"
+
     void drawText(SDL_Renderer* renderer, const std::string& text, float x, float y, SDL_Color color, float scale)
     {
         if (!renderer || text.empty()) return;
@@ -80,8 +82,17 @@ namespace UIWidget
 
         SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
 
-        for (char c : text)
+        for (size_t i = 0; i < text.size(); ++i)
         {
+            unsigned char c = static_cast<unsigned char>(text[i]);
+
+            // Handle multi-byte UTF-8 currency symbol ¤ (0xC2 0xA4)
+            if (c == 0xC2 && i + 1 < text.size() && static_cast<unsigned char>(text[i + 1]) == 0xA4)
+            {
+                c = '$';
+                i++;
+            }
+
             if (c == '\n')
             {
                 curY += (charHeight + (2.0f * scale));
@@ -89,11 +100,27 @@ namespace UIWidget
                 continue;
             }
 
-            // High-contrast clean block rendering for primary text characters
-            SDL_FRect charRect = { curX, curY, std::max(1.0f, charWidth - scale), std::max(1.0f, charHeight - scale) };
-            if (c != ' ')
+            if (c >= 32 && c < 128)
             {
-                SDL_RenderFillRect(renderer, &charRect);
+                for (int row = 0; row < 8; ++row)
+                {
+                    uint8_t rowBits = FONT_8X8[c][row];
+                    if (!rowBits) continue;
+
+                    for (int col = 0; col < 8; ++col)
+                    {
+                        if (rowBits & (0x80 >> col))
+                        {
+                            SDL_FRect pixelRect = {
+                                curX + (col * scale),
+                                curY + (row * scale),
+                                std::max(1.0f, scale),
+                                std::max(1.0f, scale)
+                            };
+                            SDL_RenderFillRect(renderer, &pixelRect);
+                        }
+                    }
+                }
             }
 
             curX += charWidth;
