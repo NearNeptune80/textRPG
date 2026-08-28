@@ -112,14 +112,15 @@ json saveManager::buildPayload(game* g, const std::string& customSaveName)
     char timeBuffer[30];
     std::strftime(timeBuffer, sizeof(timeBuffer), "%Y-%m-%d %H:%M", std::localtime(&now));
 
-    std::string charName = (g->Player && !g->Player->name.empty()) ? g->Player->name : "Hero";
+    entity* p = g->getPlayer();
+    std::string charName = (p && !p->name.empty()) ? p->name : "Hero";
     std::string currentQuest = "None";
 
     j["metadata"] = {
         {"saveVersion", CURRENT_SAVE_VERSION},
         {"saveName", customSaveName},
         {"characterName", charName},
-        {"characterLevel", g->Player ? g->Player->stats.level : 1},
+        {"characterLevel", p ? p->stats.level : 1},
         {"activeQuest", currentQuest},
         {"mapLocation", g->map ? g->map->getId() : "Unknown"},
         {"timestamp", std::string(timeBuffer)},
@@ -139,13 +140,16 @@ json saveManager::buildPayload(game* g, const std::string& customSaveName)
         {"dayOfWeek", g->gameTime.dayOfWeek}
     };
 
-    if (g->Player) j["player"] = g->Player->toJson();
+    if (p) j["player"] = p->toJson();
     if (g->map) j["map"] = g->map->saveStateToJson();
     j["settings"] = g->settings.toJson();
 
     return j;
 }
 
+/**
+ * Atomically writes JSON content to disk using a temporary file and rename to prevent corruption on crash.
+ */
 bool saveManager::writeAtomicJson(const std::string& targetPath, const json& payload)
 {
     std::string tmpPath = targetPath + ".tmp";
@@ -167,21 +171,28 @@ bool saveManager::writeAtomicJson(const std::string& targetPath, const json& pay
     return !ec;
 }
 
+/**
+ * Writes a user-named manual save file.
+ */
 bool saveManager::saveNamedGame(game* g, const std::string& customSaveName)
 {
     std::string savesDir = getSavesDirectory();
-    std::string charName = (g->Player && !g->Player->name.empty()) ? g->Player->name : "Hero";
+    entity* p = g ? g->getPlayer() : nullptr;
+    std::string charName = (p && !p->name.empty()) ? p->name : "Hero";
     std::string fileName = savesDir + "/" + sanitizeFilename(charName) + "_" + sanitizeFilename(customSaveName) + ".json";
 
     json payload = buildPayload(g, customSaveName);
     return writeAtomicJson(fileName, payload);
 }
 
+/**
+ * Rolls rotating auto-save slots (Autosave_1 becomes newest, oldest evicted).
+ */
 bool saveManager::saveAutosave(game* g, int maxAutosaves)
 {
-    if (!g || !g->Player) return false;
+    if (!g || !g->getPlayer()) return false;
     std::string savesDir = getSavesDirectory();
-    std::string charName = sanitizeFilename(!g->Player->name.empty() ? g->Player->name : "Hero");
+    std::string charName = sanitizeFilename(!g->getPlayer()->name.empty() ? g->getPlayer()->name : "Hero");
 
     for (int i = maxAutosaves; i >= 1; --i)
     {
@@ -210,11 +221,15 @@ bool saveManager::saveAutosave(game* g, int maxAutosaves)
 bool saveManager::exists(game* g, const std::string& customSaveName)
 {
     std::string savesDir = getSavesDirectory();
-    std::string charName = (g->Player && !g->Player->name.empty()) ? g->Player->name : "Hero";
+    entity* p = g ? g->getPlayer() : nullptr;
+    std::string charName = (p && !p->name.empty()) ? p->name : "Hero";
     std::string fileName = savesDir + "/" + sanitizeFilename(charName) + "_" + sanitizeFilename(customSaveName) + ".json";
     return fs::exists(fileName);
 }
 
+/**
+ * Loads world state, player attributes, quests, and discovery maps from a JSON save file.
+ */
 bool saveManager::loadFromFile(game* g, const std::string& fileName)
 {
     if (!g) return false;
@@ -258,8 +273,7 @@ bool saveManager::loadFromFile(game* g, const std::string& fileName)
             {
                 g->playerEntity = std::make_shared<entity>("player_main", "Hero");
             }
-            g->Player = g->playerEntity.get();
-            g->Player->fromJson(j["player"]);
+            g->getPlayer()->fromJson(j["player"]);
         }
 
         if (j.contains("currentMap"))

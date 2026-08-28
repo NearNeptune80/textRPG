@@ -163,11 +163,18 @@ bool questDatabase::loadDatabase(const std::string& pathStr)
     return true;
 }
 
-bool questDatabase::exists(const std::string& id) { return registry.find(id) != registry.end(); }
+bool questDatabase::exists(const std::string& id)
+{
+    return registry.find(id) != registry.end();
+}
 
+/**
+ * Retrieves a quest scene by ID (single hash lookup). Returns fallback error scene if missing.
+ */
 questScene questDatabase::getScene(const std::string& id)
 {
-    if (exists(id)) return registry[id];
+    auto it = registry.find(id);
+    if (it != registry.end()) return it->second;
 
     questScene fallback;
     fallback.id = "error";
@@ -176,6 +183,9 @@ questScene questDatabase::getScene(const std::string& id)
     return fallback;
 }
 
+/**
+ * Queries all global quest triggers matching a specific map location.
+ */
 std::vector<MapTrigger> questDatabase::getTriggersForLocation(const std::string& mapId, int x, int y)
 {
     std::vector<MapTrigger> matches;

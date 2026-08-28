@@ -83,31 +83,32 @@ struct TileRuntimeData
 		return std::max(0, effective);
 	}
 
+	/**
+	 * Places an item on the tile ground with a time-to-decay lifespan in minutes.
+	 */
 	void addDroppedItem(std::shared_ptr<item> itemPtr, int lifespanMinutes = 120)
 	{
 		if (!itemPtr) return;
 		droppedItems.push_back({ itemPtr, lifespanMinutes });
 	}
 
+	/**
+	 * Decrements lifespans of dropped items on unsafe tiles and despawns expired loot.
+	 */
 	void processItemDecay(int minutesPassed)
 	{
 		if (getIsEffectiveStorageSafe() || minutesPassed <= 0) return;
 
-		for (auto it = droppedItems.begin(); it != droppedItems.end(); )
-		{
-			it->minutesRemaining -= minutesPassed;
-			if (it->minutesRemaining <= 0)
-			{
-				it = droppedItems.erase(it);
-			}
-			else
-			{
-				++it;
-			}
-		}
+		std::erase_if(droppedItems, [minutesPassed](DroppedItemEntry& entry) {
+			entry.minutesRemaining -= minutesPassed;
+			return entry.minutesRemaining <= 0;
+		});
 	}
 };
 
+/**
+ * Bit-packs 2D integer coordinates into a 64-bit unsigned hash key for runtime storage.
+ */
 constexpr uint64_t makeTileKey(int32_t x, int32_t y) noexcept
 {
 	return (static_cast<uint64_t>(static_cast<uint32_t>(x)) << 32) | static_cast<uint32_t>(y);

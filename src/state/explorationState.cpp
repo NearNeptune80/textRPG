@@ -33,6 +33,7 @@ void explorationState::handleInput(game* gameContext, const SDL_Event& event)
             return;
         }
 
+        // F5: Manual QuickSave
         if (event.key.scancode == SDL_SCANCODE_F5)
         {
             saveManager::saveNamedGame(gameContext, "QuickSave");
@@ -40,9 +41,11 @@ void explorationState::handleInput(game* gameContext, const SDL_Event& event)
             return;
         }
 
+        // F9: QuickLoad
         if (event.key.scancode == SDL_SCANCODE_F9)
         {
-            std::string charName = (gameContext->Player && !gameContext->Player->name.empty()) ? gameContext->Player->name : "Hero";
+            entity* p = gameContext->getPlayer();
+            std::string charName = (p && !p->name.empty()) ? p->name : "Hero";
             std::string fileName = charName + "_QuickSave.json";
 
             if (saveManager::loadFromFile(gameContext, fileName))

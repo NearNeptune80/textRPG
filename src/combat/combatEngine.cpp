@@ -206,17 +206,23 @@ void combatEngine::executeAction(const QueuedAction& qa, game* g)
     }
 }
 
+/**
+ * Checks whether combat has ended (either all enemies defeated or all players defeated).
+ */
 bool combatEngine::isCombatOver() const
 {
     return isPlayerVictory() || std::all_of(m_playerParty.begin(), m_playerParty.end(), [](const CombatParticipant& p) {
-        return p.character->getStat("health") <= 0;
+        return !p.character || p.character->getStat("health") <= 0.0f;
     });
 }
 
+/**
+ * Checks whether all enemy participants have been reduced to 0 HP.
+ */
 bool combatEngine::isPlayerVictory() const
 {
     return std::all_of(m_enemyParty.begin(), m_enemyParty.end(), [](const CombatParticipant& p) {
-        return p.character->getStat("health") <= 0;
+        return !p.character || p.character->getStat("health") <= 0.0f;
     });
 }
 

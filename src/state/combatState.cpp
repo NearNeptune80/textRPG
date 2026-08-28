@@ -3,8 +3,8 @@
 #include <algorithm>
 #include <format>
 #include <memory>
-#include <random>
 
+#include "common/randomEngine.h"
 #include "core/eventBus.h"
 #include "core/game.h"
 #include "entities/entity.h"
@@ -289,11 +289,7 @@ void CombatState::handleRunAttempt(game* gameContext)
     float fleeChance = 0.50f + ((playerAgility - enemyAgility) * 0.05f);
     fleeChance = std::clamp(fleeChance, 0.10f, 0.90f);
 
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<float> dist(0.0f, 1.0f);
-
-    if (dist(gen) <= fleeChance)
+    if (dice::roll01() <= fleeChance)
     {
         int outcomeVal = static_cast<int>(CombatOutcome::ESCAPE);
         eventBus::getInstance().publishEvent({ gameEvent::combatEnded, outcomeVal, "ESCAPE", nullptr });

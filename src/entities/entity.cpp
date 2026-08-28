@@ -9,6 +9,9 @@ using json = nlohmann::json;
 
 entity::entity(std::string entityId, std::string entityName) : id(entityId), name(entityName) {}
 
+/**
+ * Applies or refreshes duration of a status effect.
+ */
 void entity::addStatusEffect(const StatusEffect& effect)
 {
     for (auto& fx : statusEffects)
@@ -22,13 +25,12 @@ void entity::addStatusEffect(const StatusEffect& effect)
     statusEffects.push_back(effect);
 }
 
+/**
+ * Removes all active status effects with the matching ID.
+ */
 void entity::removeStatusEffect(const std::string& effectId)
 {
-    statusEffects.erase(
-        std::remove_if(statusEffects.begin(), statusEffects.end(),
-            [&](const StatusEffect& fx) { return fx.id == effectId; }),
-        statusEffects.end()
-    );
+    std::erase_if(statusEffects, [&](const StatusEffect& fx) { return fx.id == effectId; });
 }
 
 bool entity::hasStatusEffect(const std::string& effectId) const
@@ -40,14 +42,15 @@ bool entity::hasStatusEffect(const std::string& effectId) const
     return false;
 }
 
+/**
+ * Decrements turn-based durations and prunes expired status effects.
+ */
 void entity::updateStatusEffectsOnTurn()
 {
-    for (auto it = statusEffects.begin(); it != statusEffects.end(); )
-    {
-        if (it->durationTurns > 0) it->durationTurns--;
-        if (it->durationTurns == 0) it = statusEffects.erase(it);
-        else ++it;
-    }
+    std::erase_if(statusEffects, [](StatusEffect& fx) {
+        if (fx.durationTurns > 0) fx.durationTurns--;
+        return fx.durationTurns == 0;
+    });
 }
 
 json entity::toJson() const

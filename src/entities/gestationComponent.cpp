@@ -2,14 +2,21 @@
 #include "entities/anatomyComponent.h"
 
 #include <algorithm>
-#include <random>
 
+#include "common/randomEngine.h"
+
+/**
+ * Checks whether the host anatomy is physically capable of conception.
+ */
 bool gestationComponent::canConceive(const anatomyComponent& anatomy) const
 {
     if (isPregnant) return false;
     return anatomy.hasVagina();
 }
 
+/**
+ * Impregnates the host entity, rolling litter size and genetic inheritance per offspring.
+ */
 bool gestationComponent::impregnate(const std::string& fId, const std::string& fName, const std::string& fRace, const std::string& mRace, int customLitterSize)
 {
     if (isPregnant) return false;
@@ -24,35 +31,26 @@ bool gestationComponent::impregnate(const std::string& fId, const std::string& f
     gestationDaysRemaining = totalGestationDays;
     accumulatedMinutes = 0;
 
-    std::random_device rd;
-    std::mt19937 gen(rd());
-
     if (customLitterSize > 0)
     {
         litterSize = customLitterSize;
     }
     else
     {
-        // 70% chance 1, 20% chance 2, 10% chance 3
-        std::uniform_int_distribution<int> dist(1, 100);
-        int roll = dist(gen);
+        // Demographic litter probability: 70% single, 20% twins, 10% triplets
+        int roll = dice::rollInt(1, 100);
         if (roll <= 70) litterSize = 1;
         else if (roll <= 90) litterSize = 2;
         else litterSize = 3;
     }
 
     incubatedOffspringRaces.clear();
-    std::uniform_int_distribution<int> raceDist(1, 100);
 
     for (int i = 0; i < litterSize; ++i)
     {
-        // 50/50 inheritance or hybrid
-        int rRoll = raceDist(gen);
-        if (fatherRace == motherRace)
-        {
-            incubatedOffspringRaces.push_back(fatherRace);
-        }
-        else if (rRoll <= 45)
+        // 45% paternal race, 45% maternal race, 10% hybrid chimera
+        int rRoll = dice::rollInt(1, 100);
+        if (fatherRace == motherRace || rRoll <= 45)
         {
             incubatedOffspringRaces.push_back(fatherRace);
         }
@@ -69,6 +67,9 @@ bool gestationComponent::impregnate(const std::string& fId, const std::string& f
     return true;
 }
 
+/**
+ * Advances gestation days and returns true if labor is due.
+ */
 bool gestationComponent::processGestation(int daysPassed)
 {
     if (!isPregnant || daysPassed <= 0) return false;
