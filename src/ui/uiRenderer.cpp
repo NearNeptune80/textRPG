@@ -129,25 +129,25 @@ void uiRenderer::renderTopBar(SDL_Renderer* renderer, game* gameContext, const S
 {
     UIWidget::drawPanel(renderer, rect, Theme::colors.bgHeader, Theme::colors.borderNormal);
 
-    std::string title = "textRPG Engine (Decoupled Modern C++26 Simulation)";
-    UIWidget::drawText(renderer, title, rect.x + (10.0f * uiScale), rect.y + ((rect.h - (10.0f * uiScale)) / 2.0f), Theme::colors.textGold, uiScale);
-
+    // Left: Time & Phase
     std::string timeStr = std::format("{} | {}, {}",
                                       gameContext->getTime().getFormattedTime(),
                                       gameContext->getTime().getFormattedDate(),
                                       gameContext->getTime().getPhaseString());
-    UIWidget::drawText(renderer, timeStr, rect.x + (rect.w * 0.40f), rect.y + ((rect.h - (10.0f * uiScale)) / 2.0f), Theme::colors.textSecondary, uiScale);
+    UIWidget::drawText(renderer, timeStr, rect.x + (12.0f * uiScale), rect.y + ((rect.h - (10.0f * uiScale)) / 2.0f), Theme::colors.textSecondary, uiScale);
 
+    // Center: Currency
     if (entity* p = gameContext->getPlayer())
     {
-        std::string goldStr = std::format("Gold: {:.0f}¤", p->getStat("currency"));
-        UIWidget::drawText(renderer, goldStr, rect.x + (rect.w * 0.75f), rect.y + ((rect.h - (10.0f * uiScale)) / 2.0f), Theme::colors.textGold, uiScale);
+        std::string goldStr = std::format("{:.0f}¤", p->getStat("currency"));
+        UIWidget::drawText(renderer, goldStr, rect.x + (rect.w * 0.48f), rect.y + ((rect.h - (10.0f * uiScale)) / 2.0f), Theme::colors.textGold, uiScale);
     }
 
+    // Right: Map Location
     if (const gameMap* m = gameContext->getActiveMap())
     {
-        std::string locStr = std::format("Map: {}", m->getName());
-        UIWidget::drawText(renderer, locStr, rect.x + (rect.w * 0.88f), rect.y + ((rect.h - (10.0f * uiScale)) / 2.0f), Theme::colors.textAccent, uiScale);
+        std::string locStr = std::format("{}", m->getName());
+        UIWidget::drawText(renderer, locStr, rect.x + rect.w - (140.0f * uiScale), rect.y + ((rect.h - (10.0f * uiScale)) / 2.0f), Theme::colors.textAccent, uiScale);
     }
 }
 
@@ -184,10 +184,10 @@ void uiRenderer::renderLeftPane(SDL_Renderer* renderer, game* gameContext, const
 
     // Attributes
     UIWidget::drawText(renderer, "ATTRIBUTES", padX, curY, Theme::colors.textGold, uiScale); curY += (lineH + 2.0f * uiScale);
-    UIWidget::drawText(renderer, std::format("Physique:  {:.0f}", p->getStat("physique")), padX, curY, Theme::colors.physique, uiScale); curY += lineH;
-    UIWidget::drawText(renderer, std::format("Agility:   {:.0f}", p->getStat("agility")), padX, curY, Theme::colors.textSecondary, uiScale); curY += lineH;
-    UIWidget::drawText(renderer, std::format("Arcane:    {:.0f}", p->getStat("arcane")), padX, curY, Theme::colors.arcane, uiScale); curY += lineH;
-    UIWidget::drawText(renderer, std::format("Corruption:{:.0f}", p->getStat("corruption")), padX, curY, Theme::colors.corruption, uiScale); curY += (lineH + 8.0f * uiScale);
+    UIWidget::drawText(renderer, std::format("Physique:   {:.0f}", p->getStat("physique")), padX, curY, Theme::colors.physique, uiScale); curY += lineH;
+    UIWidget::drawText(renderer, std::format("Agility:    {:.0f}", p->getStat("agility")), padX, curY, Theme::colors.textSecondary, uiScale); curY += lineH;
+    UIWidget::drawText(renderer, std::format("Arcane:     {:.0f}", p->getStat("arcane")), padX, curY, Theme::colors.arcane, uiScale); curY += lineH;
+    UIWidget::drawText(renderer, std::format("Corruption: {:.0f}", p->getStat("corruption")), padX, curY, Theme::colors.corruption, uiScale); curY += (lineH + 8.0f * uiScale);
 
     // Anatomy & Fluid Stores
     UIWidget::drawText(renderer, "ANATOMY & FLUIDS", padX, curY, Theme::colors.textGold, uiScale); curY += (lineH + 2.0f * uiScale);
