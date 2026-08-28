@@ -61,6 +61,24 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
         return std::ranges::find(widgets, target) != widgets.end();
     };
 
+    // Handle Mouse Wheel Scrolling on Hovered Panel
+    const auto mousePos = gameContext->input.getMousePosition();
+    const float wheelY = gameContext->input.getMouseWheelY();
+    if (wheelY != 0.0f)
+    {
+        for (const auto& p : panels)
+        {
+            if (mousePos.x >= p.rect.x && mousePos.x <= p.rect.x + p.rect.w &&
+                mousePos.y >= p.rect.y && mousePos.y <= p.rect.y + p.rect.h)
+            {
+                m_panelScrollY[p.id] -= wheelY * (32.0f * uiScale);
+                m_panelScrollY[p.id] = std::max(0.0f, m_panelScrollY[p.id]);
+                break;
+            }
+        }
+        gameContext->input.consumeMouseWheel();
+    }
+
     // Dispatch panel renderers matching calculated layout bounds
     for (const auto& p : panels)
     {
@@ -125,6 +143,32 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
     SDL_RenderPresent(renderer);
 }
 
+void uiRenderer::drawScrollbar(SDL_Renderer* renderer, const SDL_FRect& panelRect, float contentHeight, float currentScroll, float uiScale)
+{
+    if (contentHeight <= panelRect.h) return;
+
+    float barW = 4.0f * uiScale;
+    float trackX = panelRect.x + panelRect.w - barW - (2.0f * uiScale);
+    float trackY = panelRect.y + (2.0f * uiScale);
+    float trackH = panelRect.h - (4.0f * uiScale);
+
+    // Track background
+    SDL_FRect trackRect = { trackX, trackY, barW, trackH };
+    SDL_SetRenderDrawColor(renderer, 20, 20, 28, 140);
+    SDL_RenderFillRect(renderer, &trackRect);
+
+    // Thumb indicator
+    float ratio = panelRect.h / contentHeight;
+    float thumbH = std::max(16.0f * uiScale, trackH * ratio);
+    float maxScroll = contentHeight - panelRect.h;
+    float scrollFraction = (maxScroll > 0.0f) ? std::clamp(currentScroll / maxScroll, 0.0f, 1.0f) : 0.0f;
+    float thumbY = trackY + scrollFraction * (trackH - thumbH);
+
+    SDL_FRect thumbRect = { trackX, thumbY, barW, thumbH };
+    SDL_SetRenderDrawColor(renderer, Theme::colors.borderSelected.r, Theme::colors.borderSelected.g, Theme::colors.borderSelected.b, 200);
+    SDL_RenderFillRect(renderer, &thumbRect);
+}
+
 void uiRenderer::renderTopBar(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale)
 {
     UIWidget::drawPanel(renderer, rect, Theme::colors.bgHeader, Theme::colors.borderNormal);
@@ -162,8 +206,10 @@ void uiRenderer::renderLeftPane(SDL_Renderer* renderer, game* gameContext, const
     entity* p = gameContext->getPlayer();
     if (!p) return;
 
+    float scrollY = m_panelScrollY["left_pane"];
     float padX = rect.x + (10.0f * uiScale);
-    float curY = rect.y + headerH + (10.0f * uiScale);
+    float startY = rect.y + headerH + (10.0f * uiScale);
+    float curY = startY - scrollY;
     float innerW = rect.w - (20.0f * uiScale);
     float lineH = 18.0f * uiScale;
     float barH = 18.0f * uiScale;
@@ -204,6 +250,10 @@ void uiRenderer::renderLeftPane(SDL_Renderer* renderer, game* gameContext, const
             UIWidget::drawText(renderer, std::format("Penis: {:.1f}cm x {:.1f}cm ({:.0f}/{:.0f}ml cum)", g->length, g->diameter, g->currentFluidMl, g->maxFluidMl), padX, curY, Theme::colors.textSecondary, uiScale); curY += lineH;
         }
     }
+
+    // Total content height
+    float totalContentHeight = (curY + scrollY) - rect.y + (10.0f * uiScale);
+    drawScrollbar(renderer, rect, totalContentHeight, scrollY, uiScale);
 }
 
 void uiRenderer::renderCenterPane(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale)

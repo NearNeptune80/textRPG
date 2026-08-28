@@ -8,6 +8,7 @@ void inputHandler::update(game* g)
     if (!g) return;
 
     m_leftMouseJustClicked = false;
+    m_mouseWheelY = 0.0f;
 
     SDL_Event event;
     while (SDL_PollEvent(&event))
@@ -29,6 +30,10 @@ void inputHandler::update(game* g)
         else if (event.type == SDL_EVENT_MOUSE_BUTTON_UP && event.button.button == SDL_BUTTON_LEFT)
         {
             m_leftMouseDown = false;
+        }
+        else if (event.type == SDL_EVENT_MOUSE_WHEEL)
+        {
+            m_mouseWheelY += event.wheel.y;
         }
 
         processKeyEvent(event);

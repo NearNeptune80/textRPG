@@ -41,4 +41,8 @@ private:
     void renderResolutionView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale);
     void renderInventoryView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale);
     void renderExplorationView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale);
+
+    // Per-panel scroll tracking
+    std::unordered_map<std::string, float> m_panelScrollY;
+    void drawScrollbar(SDL_Renderer* renderer, const SDL_FRect& panelRect, float contentHeight, float currentScroll, float uiScale);
 };
