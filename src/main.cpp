@@ -1,4 +1,4 @@
-﻿#include <iostream>
+#include <iostream>
 #include <SDL3/SDL.h>
 
 #include "core/game.h"
@@ -36,10 +36,13 @@ int main(int argc, char* argv[])
     }
 
     SDL_SetRenderVSync(renderer, 1);
-    SDL_SetRenderLogicalPresentation(renderer, windowWidth, windowHeight, SDL_LOGICAL_PRESENTATION_STRETCH);
+    SDL_SetRenderLogicalPresentation(renderer, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED);
 
-    // 3. Initialise UI Theme
-    Theme::loadFromFile("data/theme.json");
+    // 3. Initialise UI Theme (Attempt Dark Fantasy default, fallback to theme.json)
+    if (!Theme::loadFromFile("data/themes/theme_dark_fantasy.json"))
+    {
+        Theme::loadFromFile("data/theme.json");
+    }
 
     // 4. Initialise Headless Engine
     game engine;
