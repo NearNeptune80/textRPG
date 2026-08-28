@@ -9,7 +9,7 @@
 
 using json = nlohmann::json;
 
-std::unordered_map<std::string, item> itemDatabase::registry;
+std::unordered_map<std::string, std::shared_ptr<item>> itemDatabase::registry;
 
 equipSlot stringToEquipSlot(const std::string& str)
 {
@@ -177,8 +177,8 @@ bool itemDatabase::loadDatabase(const std::string& filePath)
         registry.clear();
         for (const auto& itemJson : data.at("items"))
         {
-            item newItem = itemJson.get<item>();
-            registry[newItem.id] = newItem;
+            auto newItem = std::make_shared<item>(itemJson.get<item>());
+            registry[newItem->id] = newItem;
         }
         return true;
     }
@@ -197,6 +197,19 @@ bool itemDatabase::exists(std::string_view id)
 std::shared_ptr<item> itemDatabase::getItem(std::string_view id)
 {
     auto it = registry.find(std::string(id));
-    if (it != registry.end()) return std::make_shared<item>(it->second);
+    if (it != registry.end() && it->second)
+    {
+        return std::make_shared<item>(*it->second);
+    }
+    return nullptr;
+}
+
+const item* itemDatabase::getItemTemplate(std::string_view id)
+{
+    auto it = registry.find(std::string(id));
+    if (it != registry.end() && it->second)
+    {
+        return it->second.get();
+    }
     return nullptr;
 }

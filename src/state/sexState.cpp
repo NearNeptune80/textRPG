@@ -2,8 +2,8 @@
 
 #include <algorithm>
 #include <format>
-#include <random>
 
+#include "common/randomEngine.h"
 #include "core/characterDescription.h"
 #include "core/game.h"
 #include "core/textParser.h"
@@ -435,7 +435,7 @@ void sexState::handleStruggle(game* gameContext)
     float pPhys = player ? player->getStat("physique") : 10.0f;
     float partnerPhys = partner ? partner->getStat("physique") : 10.0f;
 
-    if (pPhys + (rand() % 10) >= partnerPhys)
+    if (pPhys + dice::rollFloat(0.0f, 10.0f) >= partnerPhys)
     {
         m_playerDominance += 35.0f;
         appendNarrative(std::format("You forcefully shove {} back, breaking free from their hold and seizing control!", partner ? partner->name : "them"));

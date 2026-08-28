@@ -1,11 +1,11 @@
 #include "entities/npcGenerator.h"
 
-#include <cstdlib>
 #include <fstream>
 #include <iostream>
 
 #include <nlohmann/json.hpp>
 
+#include "common/randomEngine.h"
 #include "entities/entity.h"
 #include "items/itemDatabase.h"
 
@@ -63,8 +63,8 @@ void npcGenerator::applyDemographicConfiguration(entity* npc, const GameSettings
     DemographicSettings defaultDemo;
     const DemographicSettings& demo = settings ? settings->demographics : defaultDemo;
 
-    float rollSex = static_cast<float>(rand() % 1000) / 1000.0f;
-    float rollArch = static_cast<float>(rand() % 1000) / 1000.0f;
+    float rollSex = dice::roll01();
+    float rollArch = dice::roll01();
 
     npc->orientation = demo.rollSexuality(rollSex);
     npc->genderArchetype = demo.rollGenderArchetype(rollArch);
@@ -157,15 +157,15 @@ std::shared_ptr<entity> npcGenerator::generateFromTemplate(const std::string& te
 
     auto npc = std::make_shared<entity>("npc_gen_" + std::to_string(genCounter++), tpl.name);
 
-    int lvlRange = (tpl.levelMax - tpl.levelMin) + 1;
-    npc->stats.level = tpl.levelMin + (rand() % std::max(1, lvlRange));
+    npc->stats.level = dice::rollInt(tpl.levelMin, tpl.levelMax);
 
     for (const auto& [sName, val] : tpl.baseStats)
     {
         npc->stats.setBaseStat(sName, val);
     }
 
-    std::string race = tpl.possibleRaces.empty() ? "Human" : tpl.possibleRaces[rand() % tpl.possibleRaces.size()];
+    const std::string* racePtr = dice::choose(tpl.possibleRaces);
+    std::string race = racePtr ? *racePtr : "Human";
     bodyPart torso; torso.id = "part_torso_" + race; torso.name = "Torso"; torso.race = race;
     npc->anatomy.setPart(bodySlot::TORSO, torso);
 
@@ -189,7 +189,7 @@ std::shared_ptr<entity> npcGenerator::generateFromTemplate(const std::string& te
 
     for (const auto& itemId : tpl.randomItems)
     {
-        if ((rand() % 100) < 50)
+        if (dice::rollPercent(50.0f))
         {
             auto itemPtr = itemDatabase::getItem(itemId);
             if (itemPtr) npc->inventory.addItem(itemPtr);
@@ -204,6 +204,6 @@ std::shared_ptr<entity> npcGenerator::generateRandomNPC(const GameSettings* sett
     if (registry.empty()) return nullptr;
 
     auto it = registry.begin();
-    std::advance(it, rand() % registry.size());
+    std::advance(it, dice::rollInt<size_t>(0, registry.size() - 1));
     return generateFromTemplate(it->first, settings);
 }

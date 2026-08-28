@@ -1,9 +1,9 @@
 #include "core/game.h"
 
 #include <algorithm>
-#include <cstdlib>
 #include <iostream>
 
+#include "common/randomEngine.h"
 #include "core/eventBus.h"
 #include "core/textParser.h"
 #include "entities/npcGenerator.h"
@@ -859,26 +859,12 @@ void game::processEffect(const gameEffect& eff)
     {
         if (!eff.branches.empty())
         {
-            int totalWeight = 0;
             std::vector<int> activeWeights = eff.weights;
             if (activeWeights.size() < eff.branches.size())
             {
                 activeWeights.resize(eff.branches.size(), 1);
             }
-            for (int w : activeWeights) totalWeight += w;
-
-            int roll = (totalWeight > 0) ? (rand() % totalWeight) : 0;
-            int accum = 0;
-            size_t chosenIdx = 0;
-            for (size_t i = 0; i < eff.branches.size(); ++i)
-            {
-                accum += activeWeights[i];
-                if (roll < accum)
-                {
-                    chosenIdx = i;
-                    break;
-                }
-            }
+            size_t chosenIdx = dice::rollWeighted(activeWeights);
             loadScene(eff.branches[chosenIdx]);
         }
     }

@@ -1,9 +1,9 @@
 #include "map/encounterResolver.h"
 
 #include <algorithm>
-#include <cstdlib>
 #include <format>
 
+#include "common/randomEngine.h"
 #include "core/game.h"
 #include "entities/entity.h"
 #include "entities/npcGenerator.h"
@@ -22,8 +22,7 @@ bool encounterResolver::shouldTriggerEncounter(int dangerLevel, TimePhase phase,
     baseChance -= (playerStealth * 0.5f);
 
     float finalChance = std::clamp(baseChance, 5.0f, 85.0f);
-    int roll = rand() % 100;
-    return (roll < static_cast<int>(finalChance));
+    return dice::rollPercent(finalChance);
 }
 
 std::shared_ptr<entity> encounterResolver::createEncounterNPC(int dangerLevel, const GameSettings& settings)

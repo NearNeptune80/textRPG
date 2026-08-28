@@ -16,7 +16,8 @@ public:
     static bool loadDatabase(const std::string& filePath);
     static bool exists(std::string_view id);
     static std::shared_ptr<item> getItem(std::string_view id);
+    static const item* getItemTemplate(std::string_view id);
 
 private:
-    static std::unordered_map<std::string, item> registry;
+    static std::unordered_map<std::string, std::shared_ptr<item>> registry;
 };
