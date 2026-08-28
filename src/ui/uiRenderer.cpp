@@ -83,7 +83,7 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
         return std::ranges::find(widgets, target) != widgets.end();
     };
 
-    // Handle Mouse Wheel Scrolling on Hovered Panel
+    // Handle Mouse Wheel Scrolling on Hovered Panel (Strictly clamped to content height)
     const auto mousePos = gameContext->input.getMousePosition();
     const float wheelY = gameContext->input.getMouseWheelY();
     if (wheelY != 0.0f)
@@ -93,8 +93,9 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
             if (mousePos.x >= p.rect.x && mousePos.x <= p.rect.x + p.rect.w &&
                 mousePos.y >= p.rect.y && mousePos.y <= p.rect.y + p.rect.h)
             {
+                float maxScroll = m_panelMaxScrollY.contains(p.id) ? m_panelMaxScrollY[p.id] : 0.0f;
                 m_panelScrollY[p.id] -= wheelY * (32.0f * uiScale);
-                m_panelScrollY[p.id] = std::max(0.0f, m_panelScrollY[p.id]);
+                m_panelScrollY[p.id] = std::clamp(m_panelScrollY[p.id], 0.0f, maxScroll);
                 break;
             }
         }
@@ -146,6 +147,8 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
             // General Multi-Widget Box Container
             UIWidget::drawPanel(renderer, p.rect);
 
+            float maxScroll = m_panelMaxScrollY.contains(p.id) ? m_panelMaxScrollY[p.id] : 0.0f;
+            m_panelScrollY[p.id] = std::clamp(m_panelScrollY[p.id], 0.0f, maxScroll);
             float scrollY = m_panelScrollY[p.id];
             float curY = p.rect.y + (10.0f * uiScale) - scrollY;
 
@@ -190,6 +193,8 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
             }
 
             float totalContentH = (curY + scrollY) - p.rect.y + (10.0f * uiScale);
+            float calculatedMaxScroll = std::max(0.0f, totalContentH - p.rect.h);
+            m_panelMaxScrollY[p.id] = calculatedMaxScroll;
             drawScrollbar(renderer, p.rect, totalContentH, scrollY, uiScale);
         }
 
@@ -791,10 +796,11 @@ float uiRenderer::renderWidgetRadar(SDL_Renderer* renderer, game* gameContext, c
     float startY = curY;
     const int radius = 3;
     const int gridSize = (radius * 2) + 1; // 7
+    // Calculate static grid dimensions independent of current scroll offset
     const float availableW = std::max(20.0f, rect.w - (20.0f * uiScale));
-    const float availableH = std::max(20.0f, rect.h - (curY - rect.y) - (10.0f * uiScale));
+    const float availableH = std::max(20.0f, rect.h - (20.0f * uiScale));
     const float maxDimension = std::min(availableW, availableH);
-    const float tileSize = std::max(4.0f, maxDimension / static_cast<float>(gridSize));
+    const float tileSize = std::max(4.0f, std::min(30.0f * uiScale, maxDimension / static_cast<float>(gridSize)));
     const float totalGridW = tileSize * static_cast<float>(gridSize);
 
     const float padX = rect.x + ((rect.w - totalGridW) / 2.0f);

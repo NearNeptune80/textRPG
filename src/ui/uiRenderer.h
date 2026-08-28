@@ -44,6 +44,7 @@ private:
 
     // Per-panel scroll tracking
     std::unordered_map<std::string, float> m_panelScrollY;
+    std::unordered_map<std::string, float> m_panelMaxScrollY;
     void drawScrollbar(SDL_Renderer* renderer, const SDL_FRect& panelRect, float contentHeight, float currentScroll, float uiScale);
 
     // Modular atomic widget renderers
