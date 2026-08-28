@@ -1,4 +1,5 @@
 #include "ui/uiWidget.h"
+#include "ui/fontManager.h"
 
 #include <algorithm>
 #include <sstream>
@@ -69,100 +70,13 @@ namespace UIWidget
         return isEnabled && isHovered;
     }
 
-#include "ui/embeddedFont.h"
-
     void drawText(SDL_Renderer* renderer, const std::string& text, float x, float y, SDL_Color color, float scale)
     {
-        if (!renderer || text.empty()) return;
-
-        float charWidth = 8.0f * scale;
-        float charHeight = 10.0f * scale;
-        float curX = x;
-        float curY = y;
-
-        SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
-
-        for (size_t i = 0; i < text.size(); ++i)
-        {
-            unsigned char c = static_cast<unsigned char>(text[i]);
-
-            // Handle multi-byte UTF-8 currency symbol ¤ (0xC2 0xA4)
-            if (c == 0xC2 && i + 1 < text.size() && static_cast<unsigned char>(text[i + 1]) == 0xA4)
-            {
-                c = '$';
-                i++;
-            }
-
-            if (c == '\n')
-            {
-                curY += (charHeight + (2.0f * scale));
-                curX = x;
-                continue;
-            }
-
-            if (c >= 32 && c < 128)
-            {
-                for (int row = 0; row < 8; ++row)
-                {
-                    uint8_t rowBits = FONT_8X8[c][row];
-                    if (!rowBits) continue;
-
-                    for (int col = 0; col < 8; ++col)
-                    {
-                        if (rowBits & (0x80 >> col))
-                        {
-                            SDL_FRect pixelRect = {
-                                curX + (col * scale),
-                                curY + (row * scale),
-                                std::max(1.0f, scale),
-                                std::max(1.0f, scale)
-                            };
-                            SDL_RenderFillRect(renderer, &pixelRect);
-                        }
-                    }
-                }
-            }
-
-            curX += charWidth;
-        }
+        ::fontManager::getInstance().drawText(renderer, text, x, y, color, scale);
     }
 
     void drawTextWrapped(SDL_Renderer* renderer, const std::string& text, float x, float y, float maxWidth, SDL_Color color, float scale)
     {
-        if (!renderer || text.empty()) return;
-
-        std::istringstream stream(text);
-        std::string line;
-        float curY = y;
-        float charWidth = 8.0f * scale;
-        float lineHeight = 14.0f * scale;
-
-        while (std::getline(stream, line))
-        {
-            std::istringstream lineStream(line);
-            std::string word;
-            std::string currentLine = "";
-
-            while (lineStream >> word)
-            {
-                std::string testLine = currentLine.empty() ? word : currentLine + " " + word;
-                if ((testLine.length() * charWidth) > maxWidth && !currentLine.empty())
-                {
-                    drawText(renderer, currentLine, x, curY, color, scale);
-                    curY += lineHeight;
-                    currentLine = word;
-                }
-                else
-                {
-                    currentLine = testLine;
-                }
-            }
-
-            if (!currentLine.empty())
-            {
-                drawText(renderer, currentLine, x, curY, color, scale);
-                curY += lineHeight;
-            }
-        }
+        ::fontManager::getInstance().drawTextWrapped(renderer, text, x, y, maxWidth, color, scale);
     }
 }

@@ -15,6 +15,7 @@
 #include "state/inventoryState.h"
 #include "state/sexState.h"
 #include "ui/actionGridManager.h"
+#include "ui/fontManager.h"
 #include "ui/uiWidget.h"
 
 uiRenderer::uiRenderer()
@@ -24,6 +25,9 @@ uiRenderer::uiRenderer()
     {
         m_layoutEngine.loadDefaultLayout();
     }
+
+    // Attempt loading primary TTF font with fallback to embedded 8x8 font
+    fontManager::getInstance().loadFont("data/fonts/Roboto/static/Roboto-Medium.ttf", 14.0f);
 }
 
 uiRenderer::~uiRenderer() = default;
@@ -40,6 +44,7 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
     SDL_GetRenderOutputSize(renderer, &winW, &winH);
 
     float uiScale = std::clamp(static_cast<float>(winH) / 720.0f, 0.75f, 3.0f);
+    fontManager::getInstance().setScale(uiScale);
     auto panels = m_layoutEngine.computeLayout(static_cast<float>(winW), static_cast<float>(winH), uiScale);
 
     // Clear Screen with Dark Theme Background
