@@ -26,6 +26,7 @@
     },
     "display": {
         "descriptionVerbosity": 0,
-        "activeTheme": "default"
+        "activeTheme": "default",
+        "activeLayout": "default"
     }
 }

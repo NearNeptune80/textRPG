@@ -21,12 +21,34 @@
 
 uiRenderer::uiRenderer()
 {
-    // Attempt loading custom layout from active settings or fallback
+    // Attempt loading custom layout from active settings or candidate paths
     GameSettings settings;
     settingsManager::loadFromFile(settings);
-    std::string layoutPath = settings.display.activeLayout.empty() ? "data/layouts/default_layout.json" : settings.display.activeLayout;
+    std::string layoutName = settings.display.activeLayout.empty() ? "default" : settings.display.activeLayout;
 
-    if (!m_layoutEngine.loadFromFile(layoutPath))
+    std::vector<std::string> candidatePaths = {
+        layoutName,
+        "data/layouts/" + layoutName + ".json",
+        "data/layouts/layout_" + layoutName + ".json",
+        "data/layouts/" + layoutName,
+        "layouts/" + layoutName + ".json",
+        "layouts/layout_" + layoutName + ".json",
+        "data/layouts/custom_tile_layout.json",
+        "data/layouts/default_layout.json"
+    };
+
+    bool loaded = false;
+    for (const auto& path : candidatePaths)
+    {
+        if (m_layoutEngine.loadFromFile(path))
+        {
+            std::cout << "[uiRenderer] Initialised layout from: " << path << "\n";
+            loaded = true;
+            break;
+        }
+    }
+
+    if (!loaded)
     {
         m_layoutEngine.loadDefaultLayout();
     }
@@ -99,18 +121,6 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
                                    hasWidgetTag(p.widgets, "ACTION_GRID") ||
                                    p.id == "bottom_action_grid";
 
-        const bool hasLeftStats = hasWidgetTag(p.widgets, "widget_char_overview") ||
-                                  hasWidgetTag(p.widgets, "CHARACTER_OVERVIEW") ||
-                                  p.id == "left_pane" || p.id == "left_sidebar";
-
-        const bool hasRadar = hasWidgetTag(p.widgets, "widget_minimap_radar") ||
-                              hasWidgetTag(p.widgets, "MINIMAP_RADAR") ||
-                              p.id == "right_pane" || p.id == "right_sidebar";
-
-        const bool hasCenter = hasWidgetTag(p.widgets, "widget_narrative_story") ||
-                               hasWidgetTag(p.widgets, "SCENE_NARRATIVE") ||
-                               p.id == "center_pane" || p.id == "center_story";
-
         if (hasTopBar)
         {
             renderTopBar(renderer, gameContext, p.rect, uiScale);
@@ -119,21 +129,68 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
         {
             renderBottomActionGrid(renderer, gameContext, p.rect, uiScale);
         }
-        else if (hasLeftStats)
-        {
-            renderLeftPane(renderer, gameContext, p.rect, uiScale);
-        }
-        else if (hasRadar)
-        {
-            renderRightPane(renderer, gameContext, p.rect, uiScale);
-        }
-        else if (hasCenter)
+        else if (p.widgets.size() == 1 && (p.widgets[0] == "widget_narrative_story" || p.widgets[0] == "SCENE_NARRATIVE" || p.id == "center_pane"))
         {
             renderCenterPane(renderer, gameContext, p.rect, uiScale);
         }
-        else
+        else if (p.widgets.size() == 1 && (p.widgets[0] == "widget_inventory_dual" || p.widgets[0] == "BACKPACK_INVENTORY"))
+        {
+            renderInventoryView(renderer, gameContext, p.rect, uiScale);
+        }
+        else if (p.widgets.empty())
         {
             UIWidget::drawPanel(renderer, p.rect);
+        }
+        else
+        {
+            // General Multi-Widget Box Container
+            UIWidget::drawPanel(renderer, p.rect);
+
+            float scrollY = m_panelScrollY[p.id];
+            float curY = p.rect.y + (10.0f * uiScale) - scrollY;
+
+            for (const auto& wId : p.widgets)
+            {
+                if (wId == "widget_char_overview")
+                {
+                    curY += renderWidgetCharOverview(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
+                }
+                else if (wId == "widget_vitals_gauges")
+                {
+                    curY += renderWidgetVitals(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
+                }
+                else if (wId == "widget_attributes_table")
+                {
+                    curY += renderWidgetAttributes(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
+                }
+                else if (wId == "widget_anatomy_fluids")
+                {
+                    curY += renderWidgetAnatomy(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
+                }
+                else if (wId == "widget_minimap_radar" || wId == "MINIMAP_RADAR")
+                {
+                    curY += renderWidgetRadar(renderer, gameContext, p.rect, curY, uiScale);
+                }
+                else if (wId == "widget_target_inspector" || wId == "TARGET_INSPECTOR")
+                {
+                    curY += renderWidgetTarget(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
+                }
+                else if (wId == "widget_narrative_story" || wId == "SCENE_NARRATIVE")
+                {
+                    SDL_FRect subRect = { p.rect.x, curY, p.rect.w, std::max(50.0f, p.rect.h - (curY - p.rect.y)) };
+                    renderCenterPane(renderer, gameContext, subRect, uiScale);
+                    curY += subRect.h;
+                }
+                else if (wId == "widget_inventory_dual" || wId == "BACKPACK_INVENTORY")
+                {
+                    SDL_FRect subRect = { p.rect.x, curY, p.rect.w, std::max(50.0f, p.rect.h - (curY - p.rect.y)) };
+                    renderInventoryView(renderer, gameContext, subRect, uiScale);
+                    curY += subRect.h;
+                }
+            }
+
+            float totalContentH = (curY + scrollY) - p.rect.y + (10.0f * uiScale);
+            drawScrollbar(renderer, p.rect, totalContentH, scrollY, uiScale);
         }
 
         // Reset clip rect
@@ -640,4 +697,178 @@ void uiRenderer::renderBottomActionGrid(SDL_Renderer* renderer, game* gameContex
             gameContext->input.consumeMouseClick();
         }
     }
+}
+
+float uiRenderer::renderWidgetCharOverview(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
+{
+    entity* p = gameContext->getPlayer();
+    if (!p) return 0.0f;
+
+    float lineH = 18.0f * uiScale;
+    float startY = curY;
+    float padX = curX + (10.0f * uiScale);
+
+    UIWidget::drawText(renderer, std::format("Name: {}", p->name), padX, curY, Theme::colors.textPrimary, uiScale); curY += lineH;
+    UIWidget::drawText(renderer, std::format("Title: {}", p->anatomy.getRacialTitle()), padX, curY, Theme::colors.textAccent, uiScale); curY += lineH;
+    UIWidget::drawText(renderer, std::format("Gender: {}", genderArchetypeToString(p->anatomy.getGenderArchetype())), padX, curY, Theme::colors.textSecondary, uiScale); curY += (lineH + 4.0f * uiScale);
+
+    return (curY - startY);
+}
+
+float uiRenderer::renderWidgetVitals(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
+{
+    entity* p = gameContext->getPlayer();
+    if (!p) return 0.0f;
+
+    float startY = curY;
+    float padX = curX + (10.0f * uiScale);
+    float barW = innerW - (20.0f * uiScale);
+    float barH = 18.0f * uiScale;
+
+    float hp = p->getStat("health");
+    UIWidget::drawProgressBar(renderer, { padX, curY, barW, barH }, hp, 100.0f, Theme::colors.health, Theme::colors.bgDark, std::format("HP: {:.0f}/100", hp), uiScale); curY += (barH + 6.0f * uiScale);
+
+    float mana = p->getStat("mana");
+    UIWidget::drawProgressBar(renderer, { padX, curY, barW, barH }, mana, 50.0f, Theme::colors.mana, Theme::colors.bgDark, std::format("Mana: {:.0f}/50", mana), uiScale); curY += (barH + 6.0f * uiScale);
+
+    float lust = p->getStat("lust");
+    UIWidget::drawProgressBar(renderer, { padX, curY, barW, barH }, lust, 100.0f, Theme::colors.lust, Theme::colors.bgDark, std::format("Lust: {:.0f}/100", lust), uiScale); curY += (barH + 8.0f * uiScale);
+
+    return (curY - startY);
+}
+
+float uiRenderer::renderWidgetAttributes(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
+{
+    entity* p = gameContext->getPlayer();
+    if (!p) return 0.0f;
+
+    float startY = curY;
+    float padX = curX + (10.0f * uiScale);
+    float lineH = 18.0f * uiScale;
+
+    UIWidget::drawText(renderer, "ATTRIBUTES", padX, curY, Theme::colors.textGold, uiScale); curY += (lineH + 2.0f * uiScale);
+    UIWidget::drawText(renderer, std::format("Physique:   {:.0f}", p->getStat("physique")), padX, curY, Theme::colors.physique, uiScale); curY += lineH;
+    UIWidget::drawText(renderer, std::format("Agility:    {:.0f}", p->getStat("agility")), padX, curY, Theme::colors.textSecondary, uiScale); curY += lineH;
+    UIWidget::drawText(renderer, std::format("Arcane:     {:.0f}", p->getStat("arcane")), padX, curY, Theme::colors.arcane, uiScale); curY += lineH;
+    UIWidget::drawText(renderer, std::format("Corruption: {:.0f}", p->getStat("corruption")), padX, curY, Theme::colors.corruption, uiScale); curY += (lineH + 8.0f * uiScale);
+
+    return (curY - startY);
+}
+
+float uiRenderer::renderWidgetAnatomy(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
+{
+    entity* p = gameContext->getPlayer();
+    if (!p) return 0.0f;
+
+    float startY = curY;
+    float padX = curX + (10.0f * uiScale);
+    float lineH = 18.0f * uiScale;
+
+    UIWidget::drawText(renderer, "ANATOMY & FLUIDS", padX, curY, Theme::colors.textGold, uiScale); curY += (lineH + 2.0f * uiScale);
+    UIWidget::drawText(renderer, std::format("Height: {:.2f}m", p->anatomy.heightMeters), padX, curY, Theme::colors.textSecondary, uiScale); curY += lineH;
+
+    if (const bodyPart* b = p->anatomy.getPart(bodySlot::BREASTS))
+    {
+        UIWidget::drawText(renderer, std::format("Breasts: {}-Cup ({:.0f}/{:.0f}ml milk)", bodyPart::getCupSizeName(b->cupSize), b->currentFluidMl, b->maxFluidMl), padX, curY, Theme::colors.textSecondary, uiScale); curY += lineH;
+    }
+    if (const bodyPart* g = p->anatomy.getPart(bodySlot::GROIN))
+    {
+        if (p->anatomy.hasPenis())
+        {
+            UIWidget::drawText(renderer, std::format("Penis: {:.1f}cm x {:.1f}cm ({:.0f}/{:.0f}ml cum)", g->length, g->diameter, g->currentFluidMl, g->maxFluidMl), padX, curY, Theme::colors.textSecondary, uiScale); curY += lineH;
+        }
+    }
+    curY += (4.0f * uiScale);
+
+    return (curY - startY);
+}
+
+float uiRenderer::renderWidgetRadar(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)
+{
+    const gameMap* m = gameContext->getActiveMap();
+    if (!m) return 0.0f;
+
+    float startY = curY;
+    const int radius = 3;
+    const int gridSize = (radius * 2) + 1; // 7
+    const float availableW = std::max(20.0f, rect.w - (20.0f * uiScale));
+    const float availableH = std::max(20.0f, rect.h - (curY - rect.y) - (10.0f * uiScale));
+    const float maxDimension = std::min(availableW, availableH);
+    const float tileSize = std::max(4.0f, maxDimension / static_cast<float>(gridSize));
+    const float totalGridW = tileSize * static_cast<float>(gridSize);
+
+    const float padX = rect.x + ((rect.w - totalGridW) / 2.0f);
+
+    for (int dy = -radius; dy <= radius; ++dy)
+    {
+        for (int dx = -radius; dx <= radius; ++dx)
+        {
+            int mapX = gameContext->gridX + dx;
+            int mapY = gameContext->gridY + dy;
+
+            SDL_FRect tileRect = {
+                padX + static_cast<float>(dx + radius) * tileSize,
+                curY + static_cast<float>(dy + radius) * tileSize,
+                std::max(1.0f, tileSize - (1.5f * uiScale)),
+                std::max(1.0f, tileSize - (1.5f * uiScale))
+            };
+
+            Tile t = m->getTile(mapX, mapY);
+            SDL_Color tileColor = Theme::colors.bgDark;
+            std::string label = "";
+
+            if (t.discovery == STATE_HIDDEN)
+            {
+                tileColor = SDL_Color{ 15, 15, 20, 255 };
+            }
+            else
+            {
+                if (t.type == TILE_WALL) tileColor = Theme::colors.bgHeader;
+                else if (t.type == TILE_FLOOR) tileColor = Theme::colors.bgSlot;
+                else if (t.type == TILE_DOOR) { tileColor = Theme::colors.textGold; label = "D"; }
+
+                if (dx == 0 && dy == 0)
+                {
+                    tileColor = Theme::colors.borderButton;
+                    label = "@";
+                }
+            }
+
+            SDL_SetRenderDrawColor(renderer, tileColor.r, tileColor.g, tileColor.b, tileColor.a);
+            SDL_RenderFillRect(renderer, &tileRect);
+
+            if (!label.empty() && tileSize >= 14.0f * uiScale)
+            {
+                UIWidget::drawText(renderer, label, tileRect.x + (tileSize * 0.25f), tileRect.y + (tileSize * 0.1f), Theme::colors.textGold, uiScale * (tileSize / 24.0f));
+            }
+        }
+    }
+
+    curY += (totalGridW + 8.0f * uiScale);
+    return (curY - startY);
+}
+
+float uiRenderer::renderWidgetTarget(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
+{
+    float startY = curY;
+    float padX = curX + (10.0f * uiScale);
+    float lineH = 16.0f * uiScale;
+
+    UIWidget::drawText(renderer, "PROXIMITY TARGET", padX, curY, Theme::colors.textGold, uiScale); curY += (18.0f * uiScale);
+
+    if (entity* npc = gameContext->getActiveTargetNPC())
+    {
+        UIWidget::drawText(renderer, std::format("Name: {}", npc->name), padX, curY, Theme::colors.textPrimary, uiScale); curY += lineH;
+        UIWidget::drawText(renderer, std::format("Level: {} | {}", npc->stats.level, npc->anatomy.getDominantRace()), padX, curY, Theme::colors.textSecondary, uiScale); curY += lineH;
+
+        float hp = npc->getStat("health");
+        UIWidget::drawProgressBar(renderer, { padX, curY, innerW - (20.0f * uiScale), 16.0f * uiScale }, hp, 100.0f, Theme::colors.enemy, Theme::colors.bgDark, std::format("HP: {:.0f}", hp), uiScale);
+        curY += (20.0f * uiScale);
+    }
+    else
+    {
+        UIWidget::drawText(renderer, "No active target.", padX, curY, Theme::colors.textMuted, uiScale); curY += lineH;
+    }
+
+    return (curY - startY);
 }
