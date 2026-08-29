@@ -204,7 +204,32 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
                 {
                     curY += renderShopView(renderer, gameContext, p.rect, curY, uiScale);
                 }
-                else if (wId == "widget_body_mutations_tree" || wId == "widget_active_enchantments_list" || wId == "widget_enchanting_altar")
+                else if (wId == "widget_lt_character_card")
+                {
+                    curY += renderWidgetCharOverview(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
+                    curY += renderWidgetVitals(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
+                }
+                else if (wId == "widget_lt_dpad_radar")
+                {
+                    curY += renderWidgetDpadRadar(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
+                }
+                else if (wId == "widget_lt_characters_present")
+                {
+                    curY += renderWidgetCharactersPresent(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
+                }
+                else if (wId == "widget_lt_items_present")
+                {
+                    curY += renderWidgetItemsPresent(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
+                }
+                else if (wId == "widget_lt_event_log")
+                {
+                    curY += renderWidgetEventLog(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
+                }
+                else if (wId == "widget_lt_enchanting_screen" || wId == "widget_enchanting_altar")
+                {
+                    curY += renderEnchantingView(renderer, gameContext, p.rect, curY, uiScale);
+                }
+                else if (wId == "widget_body_mutations_tree" || wId == "widget_active_enchantments_list")
                 {
                     curY += renderTransformationView(renderer, gameContext, p.rect, curY, uiScale);
                 }
@@ -1044,6 +1069,233 @@ float uiRenderer::renderTransformationView(SDL_Renderer* renderer, game* gameCon
         float descH = UIWidget::drawTextWrapped(renderer, anatDesc, padX, curY, availableW, Theme::colors.textPrimary, uiScale);
         curY += descH + (14.0f * uiScale);
     }
+
+    return (curY - startY);
+}
+
+float uiRenderer::renderEnchantingView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)
+{
+    float startY = curY;
+    float padX = rect.x + (14.0f * uiScale);
+    float availableW = rect.w - (28.0f * uiScale);
+
+    float headerH = 26.0f * uiScale;
+    SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
+    UIWidget::drawHeader(renderer, headerRect, "ENCHANTING & INFUSION ALTAR", Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
+    curY += headerH + (10.0f * uiScale);
+
+    float halfW = (availableW - (12.0f * uiScale)) / 2.0f;
+
+    // 1. Primary & Secondary Modifier Headers & Grids
+    UIWidget::drawText(renderer, "Primary Modifier", padX, curY, Theme::colors.textGold, uiScale * 0.95f);
+    UIWidget::drawText(renderer, "Secondary Modifier", padX + halfW + (12.0f * uiScale), curY, Theme::colors.textAccent, uiScale * 0.95f);
+    curY += (18.0f * uiScale);
+
+    // Primary Modifiers Matrix (Left)
+    float btnSize = 22.0f * uiScale;
+    float gap = 4.0f * uiScale;
+    for (int r = 0; r < 3; ++r)
+    {
+        for (int c = 0; c < 8; ++c)
+        {
+            SDL_FRect mRect = { padX + (c * (btnSize + gap)), curY + (r * (btnSize + gap)), btnSize, btnSize };
+            bool isSelected = (r == 0 && c == 0);
+            UIWidget::drawPanel(renderer, mRect, isSelected ? Theme::colors.lust : Theme::colors.bgSlot, isSelected ? Theme::colors.borderButton : Theme::colors.borderNormal);
+        }
+    }
+
+    // Secondary Modifiers Matrix (Right)
+    float secX = padX + halfW + (12.0f * uiScale);
+    for (int r = 0; r < 3; ++r)
+    {
+        for (int c = 0; c < 8; ++c)
+        {
+            SDL_FRect mRect = { secX + (c * (btnSize + gap)), curY + (r * (btnSize + gap)), btnSize, btnSize };
+            bool isSelected = (r == 1 && c == 1);
+            UIWidget::drawPanel(renderer, mRect, isSelected ? Theme::colors.arcane : Theme::colors.bgSlot, isSelected ? Theme::colors.textGold : Theme::colors.borderNormal);
+        }
+    }
+
+    curY += (3 * (btnSize + gap)) + (12.0f * uiScale);
+
+    // 2. Strength Selector Buttons Row
+    static const std::vector<std::string> tiers = { "Major Drain", "Drain", "Minor Drain", "Minor Boost", "Boost", "Major Boost" };
+    float tierW = (availableW - (gap * 5)) / 6.0f;
+    float tierH = 22.0f * uiScale;
+
+    for (size_t i = 0; i < tiers.size(); ++i)
+    {
+        SDL_FRect tRect = { padX + (i * (tierW + gap)), curY, tierW, tierH };
+        bool isSelected = (i == 5); // Major Boost
+        UIWidget::drawButton(renderer, tRect, tiers[i], isSelected, true, isSelected, uiScale * 0.8f);
+    }
+    curY += tierH + (10.0f * uiScale);
+
+    // 3. Effect To Be Added Banner & Add Button
+    SDL_FRect addBarRect = { padX, curY, availableW, 26.0f * uiScale };
+    UIWidget::drawPanel(renderer, addBarRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+    UIWidget::drawText(renderer, "Effect to be added: Huge increase in milk regeneration.", padX + (8.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.lust, uiScale * 0.9f);
+
+    float addBtnW = 75.0f * uiScale;
+    SDL_FRect addBtnRect = { padX + availableW - addBtnW - (4.0f * uiScale), curY + (3.0f * uiScale), addBtnW, 20.0f * uiScale };
+    UIWidget::drawButton(renderer, addBtnRect, "Add | 13*", false, true, false, uiScale * 0.8f);
+    curY += addBarRect.h + (12.0f * uiScale);
+
+    // 4. Recipe Craft Container (Input, Name + Effects List, Output)
+    SDL_FRect recipeRect = { padX, curY, availableW, 110.0f * uiScale };
+    UIWidget::drawPanel(renderer, recipeRect, Theme::colors.bgDark, Theme::colors.borderButton);
+
+    // Input Slot
+    UIWidget::drawText(renderer, "Input (x1)", padX + (12.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.85f);
+    SDL_FRect inSlotRect = { padX + (10.0f * uiScale), curY + (24.0f * uiScale), 48.0f * uiScale, 48.0f * uiScale };
+    UIWidget::drawPanel(renderer, inSlotRect, Theme::colors.bgHeader, Theme::colors.borderButton);
+    UIWidget::drawText(renderer, "ELIXIR", inSlotRect.x + (6.0f * uiScale), inSlotRect.y + (16.0f * uiScale), Theme::colors.textGold, uiScale * 0.8f);
+
+    // Effects Middle List
+    float midX = padX + (70.0f * uiScale);
+    float midW = availableW - (150.0f * uiScale);
+    UIWidget::drawText(renderer, "Effects (5/100) | Cost: 46*", midX, curY + (6.0f * uiScale), Theme::colors.textGold, uiScale * 0.85f);
+
+    SDL_FRect nameInputRect = { midX, curY + (22.0f * uiScale), midW, 20.0f * uiScale };
+    UIWidget::drawPanel(renderer, nameInputRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+    UIWidget::drawText(renderer, "Bovine elixir", nameInputRect.x + (6.0f * uiScale), nameInputRect.y + (3.0f * uiScale), Theme::colors.textGold, uiScale * 0.85f);
+
+    static const std::vector<std::string> appliedEffects = {
+        "Bovine tail transformation.",
+        "Bovine ears transformation.",
+        "Grows curved horns.",
+        "Huge increase in breast size. (+3 breast size.)"
+    };
+
+    float effY = curY + (46.0f * uiScale);
+    for (const auto& eff : appliedEffects)
+    {
+        UIWidget::drawText(renderer, std::format("• {}", eff), midX, effY, Theme::colors.textPrimary, uiScale * 0.8f);
+        effY += (14.0f * uiScale);
+    }
+
+    // Output Slot
+    float outX = padX + availableW - (65.0f * uiScale);
+    UIWidget::drawText(renderer, "Output", outX + (4.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textAccent, uiScale * 0.85f);
+    SDL_FRect outSlotRect = { outX, curY + (24.0f * uiScale), 48.0f * uiScale, 48.0f * uiScale };
+    UIWidget::drawPanel(renderer, outSlotRect, Theme::colors.bgHeader, Theme::colors.lust);
+    UIWidget::drawText(renderer, "RUNIC", outSlotRect.x + (6.0f * uiScale), outSlotRect.y + (16.0f * uiScale), Theme::colors.lust, uiScale * 0.8f);
+
+    curY += recipeRect.h + (8.0f * uiScale);
+    return (curY - startY);
+}
+
+float uiRenderer::renderWidgetCharactersPresent(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
+{
+    float startY = curY;
+    float padX = curX + (10.0f * uiScale);
+    float availableW = innerW - (20.0f * uiScale);
+
+    UIWidget::drawText(renderer, "CHARACTERS PRESENT", padX, curY, Theme::colors.textGold, uiScale);
+    curY += (18.0f * uiScale);
+
+    bool hasNpc = false;
+    if (gameContext->map)
+    {
+        auto& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
+        if (tileData.persistentNPC)
+        {
+            hasNpc = true;
+            SDL_FRect cardRect = { padX, curY, availableW, 24.0f * uiScale };
+            UIWidget::drawPanel(renderer, cardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+            UIWidget::drawText(renderer, std::format("👤 {}", tileData.persistentNPC->name), padX + (6.0f * uiScale), curY + (4.0f * uiScale), Theme::colors.lust, uiScale * 0.85f);
+            curY += (28.0f * uiScale);
+        }
+    }
+
+    if (!hasNpc)
+    {
+        UIWidget::drawText(renderer, "None...", padX, curY, Theme::colors.textMuted, uiScale * 0.85f);
+        curY += (16.0f * uiScale);
+    }
+
+    return (curY - startY);
+}
+
+float uiRenderer::renderWidgetItemsPresent(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
+{
+    float startY = curY;
+    float padX = curX + (10.0f * uiScale);
+
+    UIWidget::drawText(renderer, "ITEMS PRESENT", padX, curY, Theme::colors.textGold, uiScale);
+    curY += (18.0f * uiScale);
+
+    auto ground = gameContext->getTileInventoryStacked();
+    if (ground.empty())
+    {
+        UIWidget::drawText(renderer, "None...", padX, curY, Theme::colors.textMuted, uiScale * 0.85f);
+        curY += (16.0f * uiScale);
+    }
+    else
+    {
+        for (size_t i = 0; i < ground.size() && i < 6; ++i)
+        {
+            if (ground[i].itemPtr)
+            {
+                std::string line = std::format("{}x {}", ground[i].totalCount, ground[i].itemPtr->name);
+                UIWidget::drawText(renderer, line, padX, curY, Theme::colors.textAccent, uiScale * 0.85f);
+                curY += (15.0f * uiScale);
+            }
+        }
+    }
+
+    return (curY - startY);
+}
+
+float uiRenderer::renderWidgetEventLog(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
+{
+    float startY = curY;
+    float padX = curX + (10.0f * uiScale);
+
+    UIWidget::drawText(renderer, "EVENT LOG", padX, curY, Theme::colors.textGold, uiScale);
+    curY += (18.0f * uiScale);
+
+    static const std::vector<std::pair<std::string, SDL_Color>> logEntries = {
+        { "Game loaded: QuickSave.json", Theme::colors.friendly },
+        { "Encyclopedia: Wolf-morph", Theme::colors.textGold },
+        { "Item Added: Impish Brew", Theme::colors.lust },
+        { "Item Added: Bunny Juice", Theme::colors.arcane },
+        { "Encyclopedia: Gothic boots", Theme::colors.textAccent }
+    };
+
+    for (const auto& entry : logEntries)
+    {
+        UIWidget::drawText(renderer, entry.first, padX, curY, entry.second, uiScale * 0.8f);
+        curY += (14.0f * uiScale);
+    }
+
+    return (curY - startY);
+}
+
+float uiRenderer::renderWidgetDpadRadar(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
+{
+    float startY = curY;
+    float padX = curX + (10.0f * uiScale);
+    float availableW = innerW - (20.0f * uiScale);
+
+    // 1. Time / Date Banner
+    UIWidget::drawText(renderer, "📅 24th October • 19:08", padX, curY, Theme::colors.textGold, uiScale * 0.85f);
+    curY += (18.0f * uiScale);
+
+    // 2. D-Pad Radar Map
+    curY += renderWidgetRadar(renderer, gameContext, { padX, curY, availableW, 120.0f * uiScale }, curY, uiScale);
+
+    // 3. Bottom Toolstrip Icons
+    float iconW = (availableW - (4.0f * 4.0f * uiScale)) / 5.0f;
+    float iconH = 20.0f * uiScale;
+    static const std::vector<std::string> tools = { "⚙", "📖", "👗", "🎒", "🧭" };
+
+    for (size_t i = 0; i < tools.size(); ++i)
+    {
+        SDL_FRect iRect = { padX + (i * (iconW + 4.0f * uiScale)), curY, iconW, iconH };
+        UIWidget::drawButton(renderer, iRect, tools[i], false, true, false, uiScale * 0.8f);
+    }
+    curY += iconH + (6.0f * uiScale);
 
     return (curY - startY);
 }

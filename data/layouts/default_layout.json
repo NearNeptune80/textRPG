@@ -2,36 +2,44 @@
   "layoutName": "Lilith's Throne Complete Master Layout",
   "margin": 6.0,
   "rootNode": {
-    "id": "root_column",
+    "id": "root_row",
     "type": "CONTAINER",
-    "direction": "COLUMN",
-    "sizes": [6.0, 72.0, 22.0],
+    "direction": "ROW",
+    "sizes": [20.0, 60.0, 20.0],
     "children": [
       {
-        "id": "top_bar_box",
-        "type": "LEAF",
-        "name": "Top Status Bar",
-        "widgets": [
-          "widget_top_bar_full"
-        ]
-      },
-      {
-        "id": "middle_row_container",
+        "id": "left_column",
         "type": "CONTAINER",
-        "direction": "ROW",
-        "sizes": [22.0, 56.0, 22.0],
+        "direction": "COLUMN",
+        "sizes": [48.0, 52.0],
         "children": [
           {
-            "id": "left_sidebar_box",
+            "id": "left_char_card_box",
             "type": "LEAF",
             "name": "Character Bio & Vitals",
             "widgets": [
               "widget_char_overview",
               "widget_vitals_gauges",
-              "widget_attributes_table",
-              "widget_anatomy_fluids"
+              "widget_lt_character_card"
             ]
           },
+          {
+            "id": "left_dpad_box",
+            "type": "LEAF",
+            "name": "Radar & Navigation Toolstrip",
+            "widgets": [
+              "widget_minimap_radar",
+              "widget_lt_dpad_radar"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "center_column",
+        "type": "CONTAINER",
+        "direction": "COLUMN",
+        "sizes": [78.0, 22.0],
+        "children": [
           {
             "id": "center_narrative_box",
             "type": "LEAF",
@@ -41,22 +49,46 @@
             ]
           },
           {
-            "id": "right_sidebar_box",
+            "id": "bottom_actions_box",
             "type": "LEAF",
-            "name": "World Radar & Target",
+            "name": "Action Commands Grid",
             "widgets": [
-              "widget_minimap_radar",
-              "widget_target_inspector"
+              "widget_action_commands"
             ]
           }
         ]
       },
       {
-        "id": "bottom_actions_box",
-        "type": "LEAF",
-        "name": "Action Commands Grid",
-        "widgets": [
-          "widget_action_commands"
+        "id": "right_column",
+        "type": "CONTAINER",
+        "direction": "COLUMN",
+        "sizes": [25.0, 30.0, 45.0],
+        "children": [
+          {
+            "id": "right_chars_box",
+            "type": "LEAF",
+            "name": "Characters Present",
+            "widgets": [
+              "widget_target_inspector",
+              "widget_lt_characters_present"
+            ]
+          },
+          {
+            "id": "right_items_box",
+            "type": "LEAF",
+            "name": "Items Present",
+            "widgets": [
+              "widget_lt_items_present"
+            ]
+          },
+          {
+            "id": "right_log_box",
+            "type": "LEAF",
+            "name": "Event & Activity Log",
+            "widgets": [
+              "widget_lt_event_log"
+            ]
+          }
         ]
       }
     ]
