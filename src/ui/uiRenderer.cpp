@@ -259,14 +259,43 @@ void uiRenderer::renderTopBar(SDL_Renderer* renderer, game* gameContext, const S
     if (entity* p = gameContext->getPlayer())
     {
         std::string goldStr = std::format("{:.0f}¤", p->getStat("currency"));
-        UIWidget::drawText(renderer, goldStr, rect.x + (rect.w * 0.48f), rect.y + ((rect.h - (10.0f * uiScale)) / 2.0f), Theme::colors.textGold, uiScale);
+        UIWidget::drawText(renderer, goldStr, rect.x + (rect.w * 0.45f), rect.y + ((rect.h - (10.0f * uiScale)) / 2.0f), Theme::colors.textGold, uiScale);
     }
 
-    // Right: Map Location
+    // Right: Dedicated Menu / Options Button
+    float menuBtnW = 90.0f * uiScale;
+    float menuBtnH = std::max(20.0f, rect.h - (10.0f * uiScale));
+    float menuBtnX = rect.x + rect.w - menuBtnW - (8.0f * uiScale);
+    float menuBtnY = rect.y + ((rect.h - menuBtnH) / 2.0f);
+
+    SDL_FRect menuBtnRect = { menuBtnX, menuBtnY, menuBtnW, menuBtnH };
+    auto mousePos = gameContext->input.getMousePosition();
+    bool clicked = gameContext->input.isLeftMouseJustClicked();
+
+    bool menuHovered = (mousePos.x >= menuBtnRect.x && mousePos.x <= menuBtnRect.x + menuBtnRect.w &&
+                        mousePos.y >= menuBtnRect.y && mousePos.y <= menuBtnRect.y + menuBtnRect.h);
+
+    bool inMenu = dynamic_cast<optionsState*>(gameContext->getActiveState()) || dynamic_cast<mainMenuState*>(gameContext->getActiveState());
+    UIWidget::drawButton(renderer, menuBtnRect, inMenu ? "Close (ESC)" : "⚙ MENU", menuHovered, true, inMenu, uiScale * 0.85f);
+
+    if (menuHovered && clicked)
+    {
+        if (inMenu)
+        {
+            gameContext->handleCommand({ CommandType::CLOSE_MENU, 0, 0, "" });
+        }
+        else
+        {
+            gameContext->handleCommand({ CommandType::OPEN_SETTINGS, 0, 0, "" });
+        }
+        gameContext->input.consumeMouseClick();
+    }
+
+    // Right: Map Location Badge
     if (const gameMap* m = gameContext->getActiveMap())
     {
         std::string locStr = std::format("{}", m->getName());
-        UIWidget::drawText(renderer, locStr, rect.x + rect.w - (140.0f * uiScale), rect.y + ((rect.h - (10.0f * uiScale)) / 2.0f), Theme::colors.textAccent, uiScale);
+        UIWidget::drawText(renderer, locStr, menuBtnX - (160.0f * uiScale), rect.y + ((rect.h - (10.0f * uiScale)) / 2.0f), Theme::colors.textAccent, uiScale);
     }
 }
 
@@ -329,7 +358,34 @@ float uiRenderer::renderSceneView(SDL_Renderer* renderer, game* gameContext, con
     float padX = rect.x + (12.0f * uiScale);
     float innerW = rect.w - (24.0f * uiScale);
     float textH = UIWidget::drawTextWrapped(renderer, scene.bodyText, padX, curY, innerW, Theme::colors.textPrimary, uiScale);
-    curY += textH + (6.0f * uiScale);
+    curY += textH + (16.0f * uiScale);
+
+    // Interactive Inline Choice Buttons
+    auto mousePos = gameContext->input.getMousePosition();
+    bool clicked = gameContext->input.isLeftMouseJustClicked();
+
+    for (size_t i = 0; i < scene.choices.size(); ++i)
+    {
+        const auto& choice = scene.choices[i];
+        if (!gameContext->checkConditions(choice.requirements)) continue;
+
+        float choiceBtnH = 28.0f * uiScale;
+        SDL_FRect choiceRect = { padX, curY, innerW, choiceBtnH };
+        bool hovered = (mousePos.x >= choiceRect.x && mousePos.x <= choiceRect.x + choiceRect.w &&
+                        mousePos.y >= choiceRect.y && mousePos.y <= choiceRect.y + choiceRect.h);
+
+        std::string labelWithHotkey = std::format("[{}] {}", i + 1, choice.label);
+        UIWidget::drawButton(renderer, choiceRect, labelWithHotkey, hovered, true, false, uiScale * 0.95f);
+
+        if (hovered && clicked)
+        {
+            gameContext->processChoice(choice);
+            gameContext->input.consumeMouseClick();
+            break;
+        }
+
+        curY += choiceBtnH + (6.0f * uiScale);
+    }
 
     return (curY - startY);
 }
@@ -523,7 +579,48 @@ float uiRenderer::renderExplorationView(SDL_Renderer* renderer, game* gameContex
     curY += (22.0f * uiScale);
 
     float textH = UIWidget::drawTextWrapped(renderer, "You are exploring the district. Use movement keys (W, A, S, D) or click action grid commands to navigate surrounding tiles.", padX, curY, innerW, Theme::colors.textPrimary, uiScale);
-    curY += textH + (6.0f * uiScale);
+    curY += textH + (14.0f * uiScale);
+
+    auto mousePos = gameContext->input.getMousePosition();
+    bool clicked = gameContext->input.isLeftMouseJustClicked();
+
+    if (gameContext->map)
+    {
+        auto& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
+        if (tileData.persistentNPC)
+        {
+            float btnH = 28.0f * uiScale;
+            SDL_FRect npcRect = { padX, curY, innerW, btnH };
+            bool hovered = (mousePos.x >= npcRect.x && mousePos.x <= npcRect.x + npcRect.w &&
+                            mousePos.y >= npcRect.y && mousePos.y <= npcRect.y + npcRect.h);
+
+            UIWidget::drawButton(renderer, npcRect, std::format("Talk / Interact with {}", tileData.persistentNPC->name), hovered, true, false, uiScale * 0.95f);
+
+            if (hovered && clicked)
+            {
+                gameContext->triggerEncounter(tileData.persistentNPC);
+                gameContext->input.consumeMouseClick();
+            }
+            curY += btnH + (8.0f * uiScale);
+        }
+
+        if (!tileData.droppedItems.empty())
+        {
+            float btnH = 28.0f * uiScale;
+            SDL_FRect itemRect = { padX, curY, innerW, btnH };
+            bool hovered = (mousePos.x >= itemRect.x && mousePos.x <= itemRect.x + itemRect.w &&
+                            mousePos.y >= itemRect.y && mousePos.y <= itemRect.y + itemRect.h);
+
+            UIWidget::drawButton(renderer, itemRect, std::format("Examine Ground ({} items)", tileData.droppedItems.size()), hovered, true, false, uiScale * 0.95f);
+
+            if (hovered && clicked)
+            {
+                gameContext->changeState(std::make_unique<inventoryState>());
+                gameContext->input.consumeMouseClick();
+            }
+            curY += btnH + (8.0f * uiScale);
+        }
+    }
 
     return (curY - startY);
 }

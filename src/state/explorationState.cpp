@@ -4,7 +4,9 @@
 #include <memory>
 
 #include "core/game.h"
+#include "map/encounterResolver.h"
 #include "save/saveManager.h"
+#include "state/combatState.h"
 #include "state/inventoryState.h"
 
 void explorationState::initialise(game* gameContext) {}
@@ -30,6 +32,36 @@ void explorationState::handleInput(game* gameContext, const SDL_Event& event)
         if (event.key.key == SDLK_I)
         {
             gameContext->changeState(std::make_unique<inventoryState>());
+            return;
+        }
+
+        if (event.key.key == SDLK_K)
+        {
+            gameContext->handleCommand({ CommandType::OPEN_SHOP, 0, 0, "" });
+            return;
+        }
+
+        if (event.key.key == SDLK_M)
+        {
+            gameContext->handleCommand({ CommandType::OPEN_TRANSFORMATION, 0, 0, "" });
+            return;
+        }
+
+        if (event.key.key == SDLK_ESCAPE)
+        {
+            gameContext->handleCommand({ CommandType::OPEN_SETTINGS, 0, 0, "" });
+            return;
+        }
+
+        if (event.key.key == SDLK_C)
+        {
+            std::vector<std::shared_ptr<entity>> pParty = { gameContext->playerEntity };
+            std::vector<std::shared_ptr<entity>> eParty;
+            auto& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
+            if (tileData.persistentNPC) eParty.push_back(tileData.persistentNPC);
+            else if (gameContext->activeTargetNPC) eParty.push_back(gameContext->activeTargetNPC);
+            else eParty.push_back(encounterResolver::createEncounterNPC(1, gameContext->settings));
+            gameContext->changeState(std::make_unique<CombatState>(pParty, eParty));
             return;
         }
 

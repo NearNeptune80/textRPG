@@ -5,6 +5,7 @@
 #include <unordered_set>
 
 #include "core/game.h"
+#include "map/encounterResolver.h"
 #include "state/combatState.h"
 #include "state/encounterResolutionState.h"
 #include "state/eventState.h"
@@ -23,11 +24,8 @@ void ActionGridManager::refresh(game* gameContext)
     iGameState* currentState = gameContext->getActiveState();
     if (!currentState) return;
 
-    // Preserve existing choice buttons if in eventState and choices are already populated
-    if (dynamic_cast<eventState*>(currentState) && !gameContext->activeButtons.empty())
-    {
-        return;
-    }
+    // Clear previous buttons to prevent duplication across frames/refreshes
+    gameContext->activeButtons.clear();
 
     // Main Menu State Actions
     if (auto menu = dynamic_cast<mainMenuState*>(currentState))
@@ -331,71 +329,29 @@ void ActionGridManager::refresh(game* gameContext)
         return;
     }
 
-    // 4. Exploration Movement & Interaction Shortcuts
-    if (dynamic_cast<explorationState*>(currentState))
+    // 4. Scene Event Choices (if in eventState)
+    if (dynamic_cast<eventState*>(currentState))
     {
-        if (gameContext->map)
+        const auto& scene = gameContext->getCurrentScene();
+        for (size_t i = 0; i < scene.choices.size(); ++i)
         {
-            std::unordered_set<std::string> seenScenes;
-
-            // A. Map-specific triggers at current coordinates
-            auto mapTrigs = gameContext->map->getTriggersAt(gameContext->gridX, gameContext->gridY);
-            for (const auto& trig : mapTrigs)
+            if (gameContext->checkConditions(scene.choices[i].requirements))
             {
-                if (seenScenes.find(trig.sceneId) == seenScenes.end() && gameContext->checkConditions(trig.conditions))
-                {
-                    seenScenes.insert(trig.sceneId);
-                    actionButton trigBtn;
-                    trigBtn.label = trig.label.empty() ? "Interact" : trig.label;
-                    std::string sId = trig.sceneId;
-                    trigBtn.onClick = [gameContext, sId]() {
-                        gameContext->loadScene(sId);
-                    };
-                    gameContext->activeButtons.push_back(trigBtn);
-                }
-            }
-
-            // B. Global quest triggers at current coordinates
-            auto questTrigs = questDatabase::getTriggersForLocation(gameContext->map->getId(), gameContext->gridX, gameContext->gridY);
-            for (const auto& trig : questTrigs)
-            {
-                if (seenScenes.find(trig.sceneId) == seenScenes.end() && gameContext->checkConditions(trig.conditions))
-                {
-                    seenScenes.insert(trig.sceneId);
-                    actionButton trigBtn;
-                    trigBtn.label = trig.label.empty() ? "Interact" : trig.label;
-                    std::string sId = trig.sceneId;
-                    trigBtn.onClick = [gameContext, sId]() {
-                        gameContext->loadScene(sId);
-                    };
-                    gameContext->activeButtons.push_back(trigBtn);
-                }
-            }
-
-            // C. Persistent NPC at current tile
-            auto& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
-            if (tileData.persistentNPC)
-            {
-                actionButton npcBtn;
-                npcBtn.label = std::format("Talk to {}", tileData.persistentNPC->name);
-                npcBtn.onClick = [gameContext, npc = tileData.persistentNPC]() {
-                    gameContext->triggerEncounter(npc);
+                actionButton choiceBtn;
+                choiceBtn.label = scene.choices[i].label;
+                dialogueChoice choice = scene.choices[i];
+                choiceBtn.onClick = [gameContext, choice]() {
+                    gameContext->processChoice(choice);
                 };
-                gameContext->activeButtons.push_back(npcBtn);
-            }
-
-            // D. Ground items at current tile
-            if (!tileData.droppedItems.empty())
-            {
-                actionButton groundBtn;
-                groundBtn.label = std::format("Examine Ground ({} items)", tileData.droppedItems.size());
-                groundBtn.onClick = [gameContext]() {
-                    gameContext->changeState(std::make_unique<inventoryState>());
-                };
-                gameContext->activeButtons.push_back(groundBtn);
+                gameContext->activeButtons.push_back(choiceBtn);
             }
         }
+        return;
+    }
 
+    // 5. Exploration Movement & Interaction Shortcuts
+    if (dynamic_cast<explorationState*>(currentState))
+    {
         actionButton northBtn;
         northBtn.label = "Move North (W)";
         northBtn.onClick = [gameContext]() {
@@ -424,6 +380,30 @@ void ActionGridManager::refresh(game* gameContext)
         };
         gameContext->activeButtons.push_back(eastBtn);
 
+        if (gameContext->map)
+        {
+            auto& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
+            if (tileData.persistentNPC)
+            {
+                actionButton npcBtn;
+                npcBtn.label = std::format("Talk to {}", tileData.persistentNPC->name);
+                npcBtn.onClick = [gameContext, npc = tileData.persistentNPC]() {
+                    gameContext->triggerEncounter(npc);
+                };
+                gameContext->activeButtons.push_back(npcBtn);
+            }
+
+            if (!tileData.droppedItems.empty())
+            {
+                actionButton groundBtn;
+                groundBtn.label = std::format("Examine Ground ({} items)", tileData.droppedItems.size());
+                groundBtn.onClick = [gameContext]() {
+                    gameContext->changeState(std::make_unique<inventoryState>());
+                };
+                gameContext->activeButtons.push_back(groundBtn);
+            }
+        }
+
         actionButton invBtn;
         invBtn.label = "Inventory (I)";
         invBtn.onClick = [gameContext]() {
@@ -432,24 +412,30 @@ void ActionGridManager::refresh(game* gameContext)
         gameContext->activeButtons.push_back(invBtn);
 
         actionButton shopBtn;
-        shopBtn.label = "Visit Shop";
+        shopBtn.label = "Visit Shop (K)";
         shopBtn.onClick = [gameContext]() {
             gameContext->changeState(std::make_unique<shopState>());
         };
         gameContext->activeButtons.push_back(shopBtn);
 
         actionButton tfBtn;
-        tfBtn.label = "Mutations & TF";
+        tfBtn.label = "Mutations & TF (M)";
         tfBtn.onClick = [gameContext]() {
             gameContext->changeState(std::make_unique<transformationState>());
         };
         gameContext->activeButtons.push_back(tfBtn);
 
-        actionButton optBtn;
-        optBtn.label = "Settings";
-        optBtn.onClick = [gameContext]() {
-            gameContext->changeState(std::make_unique<optionsState>());
+        actionButton combatBtn;
+        combatBtn.label = "Test Combat (C)";
+        combatBtn.onClick = [gameContext]() {
+            std::vector<std::shared_ptr<entity>> pParty = { gameContext->playerEntity };
+            std::vector<std::shared_ptr<entity>> eParty;
+            auto& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
+            if (tileData.persistentNPC) eParty.push_back(tileData.persistentNPC);
+            else if (gameContext->activeTargetNPC) eParty.push_back(gameContext->activeTargetNPC);
+            else eParty.push_back(encounterResolver::createEncounterNPC(1, gameContext->settings));
+            gameContext->changeState(std::make_unique<CombatState>(pParty, eParty));
         };
-        gameContext->activeButtons.push_back(optBtn);
+        gameContext->activeButtons.push_back(combatBtn);
     }
 }
