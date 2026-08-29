@@ -329,15 +329,7 @@ void game::movePlayer(int nextX, int nextY)
     gameTime.advanceTime(2);
     map->updateDiscovery(gridX, gridY, 3);
 
-    // 1. Check Map Warps
-    MapWarp warp;
-    if (map->checkWarp(gridX, gridY, warp))
-    {
-        loadMap(warp.targetMap, warp.targetX, warp.targetY);
-        return;
-    }
-
-    // 2. Check Map Triggers & Global Quest Triggers
+    // 1. Check Map Triggers & Global Quest Triggers
     auto tileTriggers = map->getTriggersAt(gridX, gridY);
     for (const auto& trig : tileTriggers)
     {

@@ -398,33 +398,6 @@ float uiRenderer::renderSceneView(SDL_Renderer* renderer, game* gameContext, con
     float textH = UIWidget::drawTextWrapped(renderer, scene.bodyText, padX, curY, innerW, Theme::colors.textPrimary, uiScale);
     curY += textH + (16.0f * uiScale);
 
-    // Interactive Inline Choice Buttons
-    auto mousePos = gameContext->input.getMousePosition();
-    bool clicked = gameContext->input.isLeftMouseJustClicked();
-
-    for (size_t i = 0; i < scene.choices.size(); ++i)
-    {
-        const auto& choice = scene.choices[i];
-        if (!gameContext->checkConditions(choice.requirements)) continue;
-
-        float choiceBtnH = 28.0f * uiScale;
-        SDL_FRect choiceRect = { padX, curY, innerW, choiceBtnH };
-        bool hovered = (mousePos.x >= choiceRect.x && mousePos.x <= choiceRect.x + choiceRect.w &&
-                        mousePos.y >= choiceRect.y && mousePos.y <= choiceRect.y + choiceRect.h);
-
-        std::string labelWithHotkey = std::format("[{}] {}", i + 1, choice.label);
-        UIWidget::drawButton(renderer, choiceRect, labelWithHotkey, hovered, true, false, uiScale * 0.95f);
-
-        if (hovered && clicked)
-        {
-            gameContext->processChoice(choice);
-            gameContext->input.consumeMouseClick();
-            break;
-        }
-
-        curY += choiceBtnH + (6.0f * uiScale);
-    }
-
     return (curY - startY);
 }
 
@@ -813,10 +786,10 @@ float uiRenderer::renderWidgetRadar(SDL_Renderer* renderer, game* gameContext, c
     float startY = curY;
     const int radius = 2; // 5x5 grid
     const int gridSize = (radius * 2) + 1; // 5
-    const float availableW = std::max(20.0f, rect.w - (20.0f * uiScale));
-    const float availableH = std::max(20.0f, rect.h - (20.0f * uiScale));
+    const float availableW = std::max(20.0f, rect.w - (16.0f * uiScale));
+    const float availableH = std::max(20.0f, rect.h - (10.0f * uiScale));
     const float maxDimension = std::min(availableW, availableH);
-    const float tileSize = std::max(6.0f, std::min(36.0f * uiScale, maxDimension / static_cast<float>(gridSize)));
+    const float tileSize = std::max(6.0f, std::min(22.0f * uiScale, maxDimension / static_cast<float>(gridSize)));
     const float totalGridW = tileSize * static_cast<float>(gridSize);
 
     const float padX = rect.x + ((rect.w - totalGridW) / 2.0f);
@@ -841,7 +814,8 @@ float uiRenderer::renderWidgetRadar(SDL_Renderer* renderer, game* gameContext, c
                 continue; // Do not draw void/off-map cells as tiles
             }
 
-            int dist = std::max(std::abs(dx), std::abs(dy));
+            int manhattanDist = std::abs(dx) + std::abs(dy);
+            bool isAdjacent = (manhattanDist == 1); // Strictly orthogonal (up, down, left, right)
             bool isWalkedOn = t.visited || (t.discovery == STATE_REVEALED);
 
             SDL_Color tileColor;
@@ -863,9 +837,9 @@ float uiRenderer::renderWidgetRadar(SDL_Renderer* renderer, game* gameContext, c
                 else { tileColor = Theme::colors.bgSlot; }
                 borderColor = Theme::colors.borderNormal;
             }
-            else if (dist == 1)
+            else if (isAdjacent)
             {
-                // Tier 2: 1 tile away, never walked on (darker than walked on, lighter than >1)
+                // Tier 2: Strictly orthogonal adjacent (up, down, left, right), unwalked
                 if (t.type == TILE_WALL) { tileColor = SDL_Color{ 24, 24, 34, 255 }; }
                 else if (t.type == TILE_DOOR) { tileColor = SDL_Color{ 130, 95, 20, 255 }; label = "d"; }
                 else { tileColor = SDL_Color{ 18, 18, 26, 255 }; }
@@ -873,7 +847,7 @@ float uiRenderer::renderWidgetRadar(SDL_Renderer* renderer, game* gameContext, c
             }
             else
             {
-                // Tier 3: >1 tile away, never walked on (darkest, but visible tile)
+                // Tier 3: Diagonal or >1 tile away, unwalked (darkest, but visible tile)
                 if (t.type == TILE_WALL) { tileColor = SDL_Color{ 14, 14, 20, 255 }; }
                 else if (t.type == TILE_DOOR) { tileColor = SDL_Color{ 35, 28, 10, 255 }; }
                 else { tileColor = SDL_Color{ 10, 10, 14, 255 }; }
@@ -894,7 +868,7 @@ float uiRenderer::renderWidgetRadar(SDL_Renderer* renderer, game* gameContext, c
         }
     }
 
-    curY += (totalGridW + 8.0f * uiScale);
+    curY += (totalGridW + 4.0f * uiScale);
     return (curY - startY);
 }
 
@@ -1324,13 +1298,13 @@ float uiRenderer::renderWidgetTimeBar(SDL_Renderer* renderer, game* gameContext,
     float padX = curX + (8.0f * uiScale);
     float availableW = innerW - (16.0f * uiScale);
 
-    SDL_FRect timeRect = { padX, curY, availableW, 20.0f * uiScale };
+    SDL_FRect timeRect = { padX, curY, availableW, 18.0f * uiScale };
     UIWidget::drawPanel(renderer, timeRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
-    UIWidget::drawText(renderer, "17th November", padX + (6.0f * uiScale), curY + (2.0f * uiScale), Theme::colors.textGold, uiScale * 0.85f);
-    UIWidget::drawText(renderer, "• 20:04", padX + availableW - (55.0f * uiScale), curY + (2.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.85f);
+    UIWidget::drawText(renderer, "17th November", padX + (6.0f * uiScale), curY + (2.0f * uiScale), Theme::colors.textGold, uiScale * 0.8f);
+    UIWidget::drawText(renderer, "• 20:04", padX + availableW - (52.0f * uiScale), curY + (2.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.8f);
 
-    curY += timeRect.h + (6.0f * uiScale);
+    curY += timeRect.h + (4.0f * uiScale);
     return (curY - startY);
 }
 
@@ -1348,9 +1322,9 @@ float uiRenderer::renderWidgetOptionsToolbar(SDL_Renderer* renderer, game* gameC
         { "LOOK", CommandType::OPEN_TRANSFORMATION }
     };
 
-    float btnGap = 4.0f * uiScale;
+    float btnGap = 3.0f * uiScale;
     float btnW = (availableW - (btnGap * (tools.size() - 1))) / tools.size();
-    float btnH = 22.0f * uiScale;
+    float btnH = 20.0f * uiScale;
 
     auto mousePos = gameContext->input.getMousePosition();
     bool clicked = gameContext->input.isLeftMouseJustClicked();
@@ -1362,7 +1336,7 @@ float uiRenderer::renderWidgetOptionsToolbar(SDL_Renderer* renderer, game* gameC
                         mousePos.y >= btnRect.y && mousePos.y <= btnRect.y + btnRect.h);
 
         bool isActive = (i == 1 && gameContext->isPhoneMenuOpen);
-        UIWidget::drawButton(renderer, btnRect, tools[i].first, hovered, true, isActive, uiScale * 0.75f);
+        UIWidget::drawButton(renderer, btnRect, tools[i].first, hovered, true, isActive, uiScale * 0.7f);
 
         if (hovered && clicked)
         {
@@ -1371,7 +1345,7 @@ float uiRenderer::renderWidgetOptionsToolbar(SDL_Renderer* renderer, game* gameC
         }
     }
 
-    curY += btnH + (6.0f * uiScale);
+    curY += btnH + (4.0f * uiScale);
     return (curY - startY);
 }
 

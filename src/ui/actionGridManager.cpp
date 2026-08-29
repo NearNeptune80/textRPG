@@ -420,6 +420,37 @@ void ActionGridManager::refresh(game* gameContext)
         {
             if (gameContext->map)
             {
+                MapWarp warp;
+                if (gameContext->map->checkWarp(gameContext->gridX, gameContext->gridY, warp))
+                {
+                    actionButton warpBtn;
+                    warpBtn.label = std::format("Enter {}", warp.targetMap.empty() ? "Door" : warp.targetMap);
+                    warpBtn.onClick = [gameContext, warp]() {
+                        gameContext->loadMap(warp.targetMap, warp.targetX, warp.targetY);
+                    };
+                    gameContext->activeButtons.push_back(warpBtn);
+                }
+                else
+                {
+                    static const std::pair<int, int> adjDirs[] = { {0, -1}, {0, 1}, {-1, 0}, {1, 0} };
+                    for (auto [adx, ady] : adjDirs)
+                    {
+                        int nx = gameContext->gridX + adx;
+                        int ny = gameContext->gridY + ady;
+                        if (gameContext->map->checkWarp(nx, ny, warp))
+                        {
+                            actionButton warpBtn;
+                            std::string dirName = (adx == 0 && ady == -1) ? "North" : (adx == 0 && ady == 1) ? "South" : (adx == -1 && ady == 0) ? "West" : "East";
+                            warpBtn.label = std::format("Enter Door ({})", dirName);
+                            warpBtn.onClick = [gameContext, warp]() {
+                                gameContext->loadMap(warp.targetMap, warp.targetX, warp.targetY);
+                            };
+                            gameContext->activeButtons.push_back(warpBtn);
+                            break;
+                        }
+                    }
+                }
+
                 auto& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
                 if (tileData.persistentNPC)
                 {
