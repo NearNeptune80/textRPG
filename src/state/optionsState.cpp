@@ -6,6 +6,11 @@
 #include "state/explorationState.h"
 #include "state/mainMenuState.h"
 
+optionsState::optionsState(OptionsScreenMode mode, std::unique_ptr<iGameState> returnState)
+    : screenMode(mode), m_returnState(std::move(returnState))
+{
+}
+
 void optionsState::initialise(game* gameContext) {}
 
 void optionsState::onEnter(game* gameContext)
@@ -20,20 +25,30 @@ void optionsState::onExit(game* gameContext) {}
 
 void optionsState::update(game* gameContext, float deltaTime) {}
 
+void optionsState::goBack(game* gameContext)
+{
+    if (!gameContext) return;
+    if (m_returnState)
+    {
+        gameContext->changeState(std::move(m_returnState));
+    }
+    else if (gameContext->getActiveMap())
+    {
+        gameContext->changeState(std::make_unique<explorationState>());
+    }
+    else
+    {
+        gameContext->changeState(std::make_unique<mainMenuState>());
+    }
+}
+
 void optionsState::handleInput(game* gameContext, const SDL_Event& event)
 {
     if (!gameContext) return;
 
     if (event.type == SDL_EVENT_KEY_DOWN && event.key.key == SDLK_ESCAPE)
     {
-        if (gameContext->getActiveMap())
-        {
-            gameContext->changeState(std::make_unique<explorationState>());
-        }
-        else
-        {
-            gameContext->changeState(std::make_unique<mainMenuState>());
-        }
+        goBack(gameContext);
     }
 }
 
@@ -43,14 +58,7 @@ void optionsState::handleCommand(game* gameContext, const UICommand& cmd)
 
     if (cmd.type == CommandType::CLOSE_MENU)
     {
-        if (gameContext->getActiveMap())
-        {
-            gameContext->changeState(std::make_unique<explorationState>());
-        }
-        else
-        {
-            gameContext->changeState(std::make_unique<mainMenuState>());
-        }
+        goBack(gameContext);
     }
     else if (cmd.type == CommandType::CYCLE_SETTING_OPTION)
     {
@@ -64,10 +72,7 @@ void optionsState::handleCommand(game* gameContext, const UICommand& cmd)
         }
         else if (cmd.stringPayload == "difficulty")
         {
-            float& diff = gameContext->settings.gameplay.difficultyMultiplier;
-            if (diff <= 0.8f) diff = 1.0f;
-            else if (diff <= 1.1f) diff = 1.5f;
-            else diff = 0.75f;
+            difficultyLevel = (difficultyLevel + 1) % 5;
         }
         gameContext->refreshActionGrid();
     }

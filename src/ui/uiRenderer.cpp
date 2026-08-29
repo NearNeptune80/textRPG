@@ -632,10 +632,6 @@ void uiRenderer::renderBottomActionGrid(SDL_Renderer* renderer, game* gameContex
 {
     UIWidget::drawPanel(renderer, rect);
 
-    float headerH = 24.0f * uiScale;
-    SDL_FRect headerRect = { rect.x, rect.y, rect.w, headerH };
-    UIWidget::drawHeader(renderer, headerRect, "ACTION COMMANDS", Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
-
     const auto& buttons = gameContext->getActiveActionButtons();
     int totalButtons = static_cast<int>(buttons.size());
 
@@ -645,32 +641,72 @@ void uiRenderer::renderBottomActionGrid(SDL_Renderer* renderer, game* gameContex
     int startIndex = m_currentPage * BUTTONS_PER_PAGE;
     int endIndex = std::min(startIndex + BUTTONS_PER_PAGE, totalButtons);
 
-    float padX = rect.x + (10.0f * uiScale);
-    float startY = rect.y + headerH + (6.0f * uiScale);
-    float availableW = rect.w - (20.0f * uiScale);
-    float spaceX = 8.0f * uiScale;
-    float spaceY = 6.0f * uiScale;
-    int cols = 5;
-    int rows = 3;
-    float btnWidth = (availableW - (spaceX * (cols - 1))) / cols;
-    float btnHeight = (rect.h - headerH - (10.0f * uiScale) - (spaceY * (rows - 1))) / rows;
+    float sideBtnW = 20.0f * uiScale;
+    float marginX = 8.0f * uiScale;
+    float padY = rect.y + (6.0f * uiScale);
+    float gridH = rect.h - (12.0f * uiScale);
 
     auto mousePos = gameContext->input.getMousePosition();
     bool clicked = gameContext->input.isLeftMouseJustClicked();
+
+    // 1. Left Side Pagination (< and Q)
+    SDL_FRect leftTopRect = { rect.x + marginX, padY, sideBtnW, (gridH / 3.0f) - (2.0f * uiScale) };
+    SDL_FRect leftMidRect = { rect.x + marginX, padY + (gridH / 3.0f), sideBtnW, (gridH * 2.0f / 3.0f) };
+    bool leftHovered = (mousePos.x >= leftMidRect.x && mousePos.x <= leftMidRect.x + leftMidRect.w &&
+                        mousePos.y >= leftMidRect.y && mousePos.y <= leftMidRect.y + leftMidRect.h);
+
+    UIWidget::drawLTActionButton(renderer, leftTopRect, "Q", "", false, false, false, uiScale * 0.75f);
+    UIWidget::drawLTActionButton(renderer, leftMidRect, "<", "", leftHovered, m_currentPage > 0, false, uiScale * 0.9f);
+    if (leftHovered && clicked && m_currentPage > 0)
+    {
+        m_currentPage--;
+        gameContext->input.consumeMouseClick();
+    }
+
+    // 2. Right Side Pagination (> and E)
+    float rightX = rect.x + rect.w - marginX - sideBtnW;
+    SDL_FRect rightTopRect = { rightX, padY, sideBtnW, (gridH / 3.0f) - (2.0f * uiScale) };
+    SDL_FRect rightMidRect = { rightX, padY + (gridH / 3.0f), sideBtnW, (gridH * 2.0f / 3.0f) };
+    bool rightHovered = (mousePos.x >= rightMidRect.x && mousePos.x <= rightMidRect.x + rightMidRect.w &&
+                         mousePos.y >= rightMidRect.y && mousePos.y <= rightMidRect.y + rightMidRect.h);
+
+    UIWidget::drawLTActionButton(renderer, rightTopRect, "E", "", false, false, false, uiScale * 0.75f);
+    UIWidget::drawLTActionButton(renderer, rightMidRect, ">", "", rightHovered, m_currentPage < totalPages - 1, false, uiScale * 0.9f);
+    if (rightHovered && clicked && m_currentPage < totalPages - 1)
+    {
+        m_currentPage++;
+        gameContext->input.consumeMouseClick();
+    }
+
+    // 3. Middle 3x5 Grid
+    float gridX = rect.x + marginX + sideBtnW + (6.0f * uiScale);
+    float availableW = (rightX - (6.0f * uiScale)) - gridX;
+    float spaceX = 6.0f * uiScale;
+    float spaceY = 5.0f * uiScale;
+    int cols = 5;
+    int rows = 3;
+    float btnWidth = (availableW - (spaceX * (cols - 1))) / cols;
+    float btnHeight = (gridH - (spaceY * (rows - 1))) / rows;
+
+    static const char* hotkeys[15] = {
+        "1", "2", "3", "4", "5",
+        "SHIFT + 1", "SHIFT + 2", "SHIFT + 3", "SHIFT + 4", "SHIFT + 5",
+        "CTRL + 1", "CTRL + 2", "CTRL + 3", "CTRL + 4", "CTRL + 5"
+    };
 
     for (int slotIdx = 0; slotIdx < BUTTONS_PER_PAGE; ++slotIdx)
     {
         int col = slotIdx % cols;
         int row = slotIdx / cols;
-        SDL_FRect btnRect = { padX + col * (btnWidth + spaceX), startY + row * (btnHeight + spaceY), btnWidth, btnHeight };
+        SDL_FRect btnRect = { gridX + col * (btnWidth + spaceX), padY + row * (btnHeight + spaceY), btnWidth, btnHeight };
 
         int buttonIdx = startIndex + slotIdx;
-        if (buttonIdx < endIndex)
+        if (buttonIdx < endIndex && !buttons[buttonIdx].label.empty())
         {
             bool hovered = (mousePos.x >= btnRect.x && mousePos.x <= btnRect.x + btnRect.w &&
                             mousePos.y >= btnRect.y && mousePos.y <= btnRect.y + btnRect.h);
 
-            UIWidget::drawButton(renderer, btnRect, buttons[buttonIdx].label, hovered, buttons[buttonIdx].isEnabled, false, uiScale);
+            UIWidget::drawLTActionButton(renderer, btnRect, buttons[buttonIdx].label, hotkeys[slotIdx], hovered, buttons[buttonIdx].isEnabled, false, uiScale);
 
             if (hovered && clicked && buttons[buttonIdx].isEnabled && buttons[buttonIdx].onClick)
             {
@@ -680,34 +716,8 @@ void uiRenderer::renderBottomActionGrid(SDL_Renderer* renderer, game* gameContex
         }
         else
         {
-            // Empty inactive slot panel
-            UIWidget::drawPanel(renderer, btnRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
-        }
-    }
-
-    // Pagination Controls
-    if (totalPages > 1)
-    {
-        float pBtnW = 60.0f * uiScale;
-        float pBtnH = 20.0f * uiScale;
-        SDL_FRect prevRect = { rect.x + rect.w - (pBtnW * 2.0f) - (10.0f * uiScale), rect.y + (2.0f * uiScale), pBtnW, pBtnH };
-        SDL_FRect nextRect = { rect.x + rect.w - pBtnW - (5.0f * uiScale), rect.y + (2.0f * uiScale), pBtnW, pBtnH };
-
-        bool prevHovered = (mousePos.x >= prevRect.x && mousePos.x <= prevRect.x + prevRect.w && mousePos.y >= prevRect.y && mousePos.y <= prevRect.y + prevRect.h);
-        bool nextHovered = (mousePos.x >= nextRect.x && mousePos.x <= nextRect.x + nextRect.w && mousePos.y >= nextRect.y && mousePos.y <= nextRect.y + nextRect.h);
-
-        UIWidget::drawButton(renderer, prevRect, "< Prev", prevHovered, m_currentPage > 0, false, uiScale * 0.85f);
-        UIWidget::drawButton(renderer, nextRect, "Next >", nextHovered, m_currentPage < totalPages - 1, false, uiScale * 0.85f);
-
-        if (prevHovered && clicked && m_currentPage > 0)
-        {
-            m_currentPage--;
-            gameContext->input.consumeMouseClick();
-        }
-        else if (nextHovered && clicked && m_currentPage < totalPages - 1)
-        {
-            m_currentPage++;
-            gameContext->input.consumeMouseClick();
+            // Empty slot with hotkey tag
+            UIWidget::drawLTActionButton(renderer, btnRect, "", hotkeys[slotIdx], false, false, false, uiScale);
         }
     }
 }
@@ -1007,43 +1017,48 @@ float uiRenderer::renderWidgetItemInspector(SDL_Renderer* renderer, game* gameCo
 float uiRenderer::renderMainMenu(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)
 {
     float startY = curY;
-    float padX = rect.x + (24.0f * uiScale);
-    float availableW = rect.w - (48.0f * uiScale);
+    float centerX = rect.x + (rect.w / 2.0f);
+    float textW = std::min(rect.w - (60.0f * uiScale), 740.0f * uiScale);
+    float textX = centerX - (textW / 2.0f);
 
-    float headerH = 28.0f * uiScale;
-    SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
-    UIWidget::drawHeader(renderer, headerRect, "CHRONICLES OF LILITH • MAIN MENU", Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
-    curY += headerH + (18.0f * uiScale);
+    curY += (28.0f * uiScale);
 
-    UIWidget::drawText(renderer, "CHRONICLES OF LILITH", padX, curY, Theme::colors.textGold, uiScale * 1.6f);
-    curY += (30.0f * uiScale);
+    // Title: Lilith's Throne in glowing purple/pink
+    std::string mainTitle = "Lilith's Throne";
+    float titleTextW = mainTitle.size() * (13.0f * uiScale);
+    UIWidget::drawText(renderer, mainTitle, centerX - (titleTextW / 2.0f), curY, SDL_Color{ 235, 145, 255, 255 }, uiScale * 1.8f);
+    curY += (38.0f * uiScale);
 
-    UIWidget::drawText(renderer, "A Transformative Text-Based Fantasy RPG Engine", padX, curY, Theme::colors.textAccent, uiScale * 1.05f);
+    // Subtitle: Created by Innoxia
+    std::string subTitle = "Created by Innoxia";
+    float subTextW = subTitle.size() * (8.5f * uiScale);
+    UIWidget::drawText(renderer, subTitle, centerX - (subTextW / 2.0f), curY, SDL_Color{ 200, 140, 235, 255 }, uiScale * 1.15f);
+    curY += (34.0f * uiScale);
+
+    // Paragraph 1: Disclaimer
+    float p1H = UIWidget::drawTextWrapped(renderer,
+        "This game is a text-based erotic RPG, and contains a lot of graphic sexual content. You must agree to the game's disclaimer before playing this game!",
+        textX, curY, textW, Theme::colors.textPrimary, uiScale * 0.92f);
+    curY += p1H + (20.0f * uiScale);
+
+    // Paragraph 2: Config note
+    float p2H = UIWidget::drawTextWrapped(renderer,
+        "Use the Options and Content Options commands in the action grid below to customize gameplay mechanics, difficulty, content toggles, themes, and demographics.",
+        textX, curY, textW, Theme::colors.textSecondary, uiScale * 0.9f);
+    curY += p2H + (20.0f * uiScale);
+
+    // Paragraph 3: Old saves note
+    float p3H = UIWidget::drawTextWrapped(renderer,
+        "Copy over the contents of your 'data' folder to use your old saves in this version!",
+        textX, curY, textW, Theme::colors.textPrimary, uiScale * 0.9f);
+    curY += p3H + (24.0f * uiScale);
+
+    // Engine version
+    std::string verText = "Your engine version: 0.4.11.3 Alpha (C++ Edition)";
+    float verW = verText.size() * (6.5f * uiScale);
+    UIWidget::drawText(renderer, verText, centerX - (verW / 2.0f), curY, Theme::colors.textMuted, uiScale * 0.85f);
     curY += (24.0f * uiScale);
 
-    float descH = UIWidget::drawTextWrapped(renderer,
-        "Welcome to Dominion. Deep mutation pipelines, CYOA encounter resolution, and dynamic anatomy simulation await. Select an action command from the grid below to start a new adventure, continue your journey, load a save profile, or configure settings.",
-        padX, curY, availableW, Theme::colors.textPrimary, uiScale * 0.95f);
-    curY += descH + (22.0f * uiScale);
-
-    // Overview Panel
-    SDL_FRect infoRect = { padX, curY, availableW, 106.0f * uiScale };
-    UIWidget::drawPanel(renderer, infoRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
-
-    float infoPadX = padX + (12.0f * uiScale);
-    float infoY = curY + (10.0f * uiScale);
-    UIWidget::drawText(renderer, "COMMAND GRID NAVIGATION GUIDE:", infoPadX, infoY, Theme::colors.textGold, uiScale * 0.9f);
-    infoY += (20.0f * uiScale);
-
-    UIWidget::drawText(renderer, "• [New Game] - Create a character and begin a new campaign in Dominion.", infoPadX, infoY, Theme::colors.textSecondary, uiScale * 0.82f);
-    infoY += (18.0f * uiScale);
-    UIWidget::drawText(renderer, "• [Continue] - Instantly resume your most recent quicksave checkpoint.", infoPadX, infoY, Theme::colors.textSecondary, uiScale * 0.82f);
-    infoY += (18.0f * uiScale);
-    UIWidget::drawText(renderer, "• [Load Game] - Access all character campaigns and autosaves ordered by timestamp.", infoPadX, infoY, Theme::colors.textSecondary, uiScale * 0.82f);
-    infoY += (18.0f * uiScale);
-    UIWidget::drawText(renderer, "• [Options & Settings] - Fine-tune gameplay, content, demographics, and themes.", infoPadX, infoY, Theme::colors.textSecondary, uiScale * 0.82f);
-
-    curY += infoRect.h + (20.0f * uiScale);
     return (curY - startY);
 }
 
@@ -1051,8 +1066,9 @@ float uiRenderer::renderLoadGameView(SDL_Renderer* renderer, game* gameContext, 
 {
     loadGameState* loadState = dynamic_cast<loadGameState*>(gameContext->getActiveState());
     float startY = curY;
-    float padX = rect.x + (16.0f * uiScale);
-    float availableW = rect.w - (32.0f * uiScale);
+    float centerX = rect.x + (rect.w / 2.0f);
+    float padX = rect.x + (24.0f * uiScale);
+    float availableW = rect.w - (48.0f * uiScale);
 
     auto mousePos = gameContext->input.getMousePosition();
     bool clicked = gameContext->input.isLeftMouseJustClicked();
@@ -1061,17 +1077,39 @@ float uiRenderer::renderLoadGameView(SDL_Renderer* renderer, game* gameContext, 
     entity* player = gameContext->getPlayer();
     std::string activeCharName = (player && !player->name.empty()) ? player->name : "Hero";
 
-    float headerH = 28.0f * uiScale;
-    SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
-    UIWidget::drawHeader(renderer, headerRect, isSaveMode ? "SAVE & LOAD CAMPAIGN PROFILES" : "LOAD SAVED ADVENTURE & PROFILES", Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
-    curY += headerH + (12.0f * uiScale);
+    // 1. Centered Header Card
+    float cardW = std::min(availableW, 400.0f * uiScale);
+    float cardH = 34.0f * uiScale;
+    UIWidget::drawCenteredHeaderCard(renderer, centerX, curY, cardW, cardH, "Save game files", Theme::colors.textPrimary, uiScale);
+    curY += cardH + (18.0f * uiScale);
 
-    // ==========================================
-    // 1. Pending Confirmation Modals (Overwrite / Delete)
-    // ==========================================
+    // 2. Centered "Please Note:"
+    std::string noteTitle = "Please Note:";
+    float noteTitleW = noteTitle.size() * (7.5f * uiScale);
+    UIWidget::drawText(renderer, noteTitle, centerX - (noteTitleW / 2.0f), curY, Theme::colors.textPrimary, uiScale * 0.95f);
+    curY += (22.0f * uiScale);
+
+    float textW = std::min(availableW, 680.0f * uiScale);
+    float textX = centerX - (textW / 2.0f);
+
+    static const char* notes[] = {
+        "1. Only standard characters (letters and numbers) will work for save file names.",
+        "2. The 'AutoSave' file is automatically overwritten every time you move between maps.",
+        "3. The 'QuickSave' file is automatically overwritten every time you quick save (binding is F5).",
+        "4. You cannot save during scenes which restrict your movement, including combat and sex."
+    };
+
+    for (int i = 0; i < 4; ++i)
+    {
+        UIWidget::drawText(renderer, notes[i], textX, curY, Theme::colors.textSecondary, uiScale * 0.86f);
+        curY += (18.0f * uiScale);
+    }
+    curY += (14.0f * uiScale);
+
+    // Confirmation Modals (Overwrite / Delete)
     if (loadState && !loadState->pendingOverwriteSaveName.empty())
     {
-        SDL_FRect modalRect = { padX, curY, availableW, 64.0f * uiScale };
+        SDL_FRect modalRect = { padX, curY, availableW, 60.0f * uiScale };
         UIWidget::drawPanel(renderer, modalRect, Theme::colors.bgHeader, Theme::colors.enemy);
 
         std::string warnMsg = std::format("! Overwrite Save: '{}' already exists for {}. Overwrite this file?", loadState->pendingOverwriteSaveName, activeCharName);
@@ -1079,8 +1117,8 @@ float uiRenderer::renderLoadGameView(SDL_Renderer* renderer, game* gameContext, 
 
         float btnW = 120.0f * uiScale;
         float btnH = 24.0f * uiScale;
-        SDL_FRect yesBtnRect = { padX + availableW - (btnW * 2.0f) - (20.0f * uiScale), curY + (32.0f * uiScale), btnW, btnH };
-        SDL_FRect cancelBtnRect = { padX + availableW - btnW - (10.0f * uiScale), curY + (32.0f * uiScale), btnW, btnH };
+        SDL_FRect yesBtnRect = { padX + availableW - (btnW * 2.0f) - (20.0f * uiScale), curY + (28.0f * uiScale), btnW, btnH };
+        SDL_FRect cancelBtnRect = { padX + availableW - btnW - (10.0f * uiScale), curY + (28.0f * uiScale), btnW, btnH };
 
         bool yesHovered = (mousePos.x >= yesBtnRect.x && mousePos.x <= yesBtnRect.x + yesBtnRect.w &&
                            mousePos.y >= yesBtnRect.y && mousePos.y <= yesBtnRect.y + yesBtnRect.h);
@@ -1107,7 +1145,7 @@ float uiRenderer::renderLoadGameView(SDL_Renderer* renderer, game* gameContext, 
 
     if (loadState && !loadState->pendingDeleteFileName.empty())
     {
-        SDL_FRect modalRect = { padX, curY, availableW, 64.0f * uiScale };
+        SDL_FRect modalRect = { padX, curY, availableW, 60.0f * uiScale };
         UIWidget::drawPanel(renderer, modalRect, Theme::colors.bgHeader, Theme::colors.enemy);
 
         std::string warnMsg = std::format("! Delete Save: Are you sure you want to permanently delete '{}'?", loadState->pendingDeleteFileName);
@@ -1115,8 +1153,8 @@ float uiRenderer::renderLoadGameView(SDL_Renderer* renderer, game* gameContext, 
 
         float btnW = 120.0f * uiScale;
         float btnH = 24.0f * uiScale;
-        SDL_FRect yesBtnRect = { padX + availableW - (btnW * 2.0f) - (20.0f * uiScale), curY + (32.0f * uiScale), btnW, btnH };
-        SDL_FRect cancelBtnRect = { padX + availableW - btnW - (10.0f * uiScale), curY + (32.0f * uiScale), btnW, btnH };
+        SDL_FRect yesBtnRect = { padX + availableW - (btnW * 2.0f) - (20.0f * uiScale), curY + (28.0f * uiScale), btnW, btnH };
+        SDL_FRect cancelBtnRect = { padX + availableW - btnW - (10.0f * uiScale), curY + (28.0f * uiScale), btnW, btnH };
 
         bool yesHovered = (mousePos.x >= yesBtnRect.x && mousePos.x <= yesBtnRect.x + yesBtnRect.w &&
                            mousePos.y >= yesBtnRect.y && mousePos.y <= yesBtnRect.y + yesBtnRect.h);
@@ -1141,178 +1179,22 @@ float uiRenderer::renderLoadGameView(SDL_Renderer* renderer, game* gameContext, 
         curY += modalRect.h + (14.0f * uiScale);
     }
 
-    // ==========================================
-    // 2. In-Game "Create New Save File" Section
-    // ==========================================
-    if (isSaveMode || player)
-    {
-        UIWidget::drawText(renderer, "CREATE NEW SAVE FILE", padX, curY, Theme::colors.textGold, uiScale * 0.95f);
-        curY += (18.0f * uiScale);
+    // 3. Table Column Headers: Time | Name | Save | Load | Delete
+    float tableX = padX;
+    float timeColW = 160.0f * uiScale;
+    float actionsColX = padX + availableW - (190.0f * uiScale);
 
-        SDL_FRect saveBoxRect = { padX, curY, availableW, 40.0f * uiScale };
-        UIWidget::drawPanel(renderer, saveBoxRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+    UIWidget::drawText(renderer, "Time", tableX + (10.0f * uiScale), curY, Theme::colors.textSecondary, uiScale * 0.9f);
+    UIWidget::drawText(renderer, "Name", tableX + timeColW, curY, Theme::colors.textSecondary, uiScale * 0.9f);
+    UIWidget::drawText(renderer, "Save | Load | Delete", actionsColX, curY, Theme::colors.textSecondary, uiScale * 0.9f);
+    curY += (24.0f * uiScale);
 
-        // Text input field for Save Name
-        float inputW = availableW - (130.0f * uiScale);
-        float inputH = 26.0f * uiScale;
-        SDL_FRect inputRect = { padX + (8.0f * uiScale), curY + (7.0f * uiScale), inputW, inputH };
-
-        bool inputHovered = (mousePos.x >= inputRect.x && mousePos.x <= inputRect.x + inputRect.w &&
-                             mousePos.y >= inputRect.y && mousePos.y <= inputRect.y + inputRect.h);
-
-        bool isEditing = loadState ? loadState->isEditingSaveName : false;
-        UIWidget::drawPanel(renderer, inputRect, Theme::colors.bgDark, isEditing ? Theme::colors.borderSelected : (inputHovered ? Theme::colors.borderButton : Theme::colors.borderNormal));
-
-        std::string currentSaveName = loadState ? loadState->newSaveNameInput : "Manual_Save";
-        std::string displaySaveName = currentSaveName.empty() ? "(Enter save name...)" : currentSaveName;
-        if (isEditing) displaySaveName += "_";
-
-        UIWidget::drawText(renderer, displaySaveName, inputRect.x + (8.0f * uiScale), inputRect.y + (5.0f * uiScale), isEditing ? Theme::colors.textGold : Theme::colors.textPrimary, uiScale * 0.82f);
-
-        if (inputHovered && clicked && loadState)
-        {
-            loadState->isEditingSaveName = true;
-            gameContext->input.consumeMouseClick();
-        }
-
-        // Save Button
-        float saveBtnW = 105.0f * uiScale;
-        float saveBtnH = 26.0f * uiScale;
-        SDL_FRect saveBtnRect = { padX + availableW - saveBtnW - (8.0f * uiScale), curY + (7.0f * uiScale), saveBtnW, saveBtnH };
-        bool saveBtnHovered = (mousePos.x >= saveBtnRect.x && mousePos.x <= saveBtnRect.x + saveBtnRect.w &&
-                               mousePos.y >= saveBtnRect.y && mousePos.y <= saveBtnRect.y + saveBtnRect.h);
-
-        UIWidget::drawButton(renderer, saveBtnRect, "+ SAVE GAME", saveBtnHovered, true, false, uiScale * 0.78f);
-
-        if (saveBtnHovered && clicked && loadState)
-        {
-            loadState->isEditingSaveName = false;
-            std::string saveNameToUse = loadState->newSaveNameInput.empty() ? "Manual_Save" : loadState->newSaveNameInput;
-
-            if (saveManager::exists(gameContext, saveNameToUse))
-            {
-                loadState->pendingOverwriteSaveName = saveNameToUse;
-            }
-            else
-            {
-                saveManager::saveNamedGame(gameContext, saveNameToUse);
-            }
-            gameContext->input.consumeMouseClick();
-        }
-
-        curY += saveBoxRect.h + (16.0f * uiScale);
-    }
-
-    // ==========================================
-    // 3. Global QuickSave Section
-    // ==========================================
-    UIWidget::drawText(renderer, "GLOBAL QUICKSAVE CHECKPOINT", padX, curY, Theme::colors.textGold, uiScale * 0.95f);
-    curY += (18.0f * uiScale);
-
-    std::string savesDir = saveManager::getSavesDirectory();
-    std::string quickSavePath = savesDir + "/QuickSave.json";
-    if (!std::filesystem::exists(quickSavePath))
-    {
-        quickSavePath = "QuickSave.json";
-    }
-
-    bool hasQuickSave = std::filesystem::exists(quickSavePath);
-    SDL_FRect qsCard = { padX, curY, availableW, 36.0f * uiScale };
-    UIWidget::drawPanel(renderer, qsCard, Theme::colors.bgSlot, hasQuickSave ? Theme::colors.borderSelected : Theme::colors.borderNormal);
-
-    if (hasQuickSave)
-    {
-        SaveMetaData qsMeta = saveManager::readMetadata(quickSavePath);
-        std::string qsTitle = std::format("QuickSave (Global) • {} (Lvl {})", qsMeta.characterName.empty() ? "Hero" : qsMeta.characterName, qsMeta.characterLevel);
-        std::string qsSub = std::format("Location: {} | Saved: {}", qsMeta.mapLocation.empty() ? "Dominion" : qsMeta.mapLocation, qsMeta.timestamp.empty() ? "Recent" : qsMeta.timestamp);
-
-        UIWidget::drawText(renderer, qsTitle, padX + (10.0f * uiScale), curY + (5.0f * uiScale), Theme::colors.textGold, uiScale * 0.85f);
-        UIWidget::drawText(renderer, qsSub, padX + (10.0f * uiScale), curY + (19.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.72f);
-
-        float rightOffset = 8.0f * uiScale;
-
-        // Delete button
-        float delBtnW = 60.0f * uiScale;
-        float delBtnH = 22.0f * uiScale;
-        SDL_FRect delBtnRect = { padX + availableW - rightOffset - delBtnW, curY + (7.0f * uiScale), delBtnW, delBtnH };
-        bool delHovered = (mousePos.x >= delBtnRect.x && mousePos.x <= delBtnRect.x + delBtnRect.w &&
-                           mousePos.y >= delBtnRect.y && mousePos.y <= delBtnRect.y + delBtnRect.h);
-
-        UIWidget::drawButton(renderer, delBtnRect, "DEL", delHovered, true, false, uiScale * 0.72f);
-        if (delHovered && clicked && loadState)
-        {
-            loadState->pendingDeleteFileName = "QuickSave.json";
-            gameContext->input.consumeMouseClick();
-        }
-        rightOffset += delBtnW + (6.0f * uiScale);
-
-        // Load button
-        float loadBtnW = 80.0f * uiScale;
-        float loadBtnH = 22.0f * uiScale;
-        SDL_FRect loadBtnRect = { padX + availableW - rightOffset - loadBtnW, curY + (7.0f * uiScale), loadBtnW, loadBtnH };
-        bool loadHovered = (mousePos.x >= loadBtnRect.x && mousePos.x <= loadBtnRect.x + loadBtnRect.w &&
-                            mousePos.y >= loadBtnRect.y && mousePos.y <= loadBtnRect.y + loadBtnRect.h);
-
-        UIWidget::drawButton(renderer, loadBtnRect, "LOAD", loadHovered, true, false, uiScale * 0.75f);
-        if (loadHovered && clicked)
-        {
-            if (saveManager::loadFromFile(gameContext, quickSavePath))
-            {
-                gameContext->changeState(std::make_unique<explorationState>());
-            }
-            gameContext->input.consumeMouseClick();
-        }
-        rightOffset += loadBtnW + (6.0f * uiScale);
-
-        // If in-game: QuickSave / Overwrite button
-        if (isSaveMode || player)
-        {
-            float qsBtnW = 95.0f * uiScale;
-            float qsBtnH = 22.0f * uiScale;
-            SDL_FRect qsBtnRect = { padX + availableW - rightOffset - qsBtnW, curY + (7.0f * uiScale), qsBtnW, qsBtnH };
-            bool qsHovered = (mousePos.x >= qsBtnRect.x && mousePos.x <= qsBtnRect.x + qsBtnRect.w &&
-                              mousePos.y >= qsBtnRect.y && mousePos.y <= qsBtnRect.y + qsBtnRect.h);
-
-            UIWidget::drawButton(renderer, qsBtnRect, "QUICKSAVE", qsHovered, true, false, uiScale * 0.72f);
-            if (qsHovered && clicked)
-            {
-                saveManager::saveNamedGame(gameContext, "QuickSave");
-                gameContext->input.consumeMouseClick();
-            }
-        }
-    }
-    else
-    {
-        UIWidget::drawText(renderer, "No global quicksave checkpoint available.", padX + (10.0f * uiScale), curY + (10.0f * uiScale), Theme::colors.textMuted, uiScale * 0.85f);
-        if (isSaveMode || player)
-        {
-            float qsBtnW = 100.0f * uiScale;
-            float qsBtnH = 22.0f * uiScale;
-            SDL_FRect qsBtnRect = { padX + availableW - qsBtnW - (8.0f * uiScale), curY + (7.0f * uiScale), qsBtnW, qsBtnH };
-            bool qsHovered = (mousePos.x >= qsBtnRect.x && mousePos.x <= qsBtnRect.x + qsBtnRect.w &&
-                              mousePos.y >= qsBtnRect.y && mousePos.y <= qsBtnRect.y + qsBtnRect.h);
-
-            UIWidget::drawButton(renderer, qsBtnRect, "+ QUICKSAVE", qsHovered, true, false, uiScale * 0.75f);
-            if (qsHovered && clicked)
-            {
-                saveManager::saveNamedGame(gameContext, "QuickSave");
-                gameContext->input.consumeMouseClick();
-            }
-        }
-    }
-    curY += qsCard.h + (18.0f * uiScale);
-
-    // ==========================================
-    // 4. Character-Grouped Saves (Collapsible Dropdowns)
-    // ==========================================
-    UIWidget::drawText(renderer, "CAMPAIGN CHARACTERS & AUTOSAVES", padX, curY, Theme::colors.textGold, uiScale * 0.95f);
-    curY += (18.0f * uiScale);
-
+    // 4. Character Groups & Saves
     auto characterGroups = saveManager::getSavesGroupedByCharacter();
     if (characterGroups.empty())
     {
-        UIWidget::drawText(renderer, "No character saves found. Start a New Game to create a character save.", padX, curY, Theme::colors.textMuted, uiScale * 0.85f);
-        curY += (20.0f * uiScale);
+        UIWidget::drawText(renderer, "No save game files found.", textX, curY, Theme::colors.textMuted, uiScale * 0.88f);
+        curY += (24.0f * uiScale);
     }
     else
     {
@@ -1320,7 +1202,7 @@ float uiRenderer::renderLoadGameView(SDL_Renderer* renderer, game* gameContext, 
         {
             bool isCollapsed = loadState ? loadState->isCharacterCollapsed(group.characterName) : false;
 
-            // Character Dropdown Banner Header
+            // Character Header Accordion
             SDL_FRect groupHeader = { padX, curY, availableW, 26.0f * uiScale };
             bool groupHeaderHovered = (mousePos.x >= groupHeader.x && mousePos.x <= groupHeader.x + groupHeader.w &&
                                        mousePos.y >= groupHeader.y && mousePos.y <= groupHeader.y + groupHeader.h);
@@ -1339,45 +1221,47 @@ float uiRenderer::renderLoadGameView(SDL_Renderer* renderer, game* gameContext, 
 
             curY += groupHeader.h + (6.0f * uiScale);
 
-            // If Expanded: Draw all saves in group
+            // Expanded saves
             if (!isCollapsed)
             {
                 for (const auto& save : group.saves)
                 {
-                    SDL_FRect itemRect = { padX + (8.0f * uiScale), curY, availableW - (8.0f * uiScale), 32.0f * uiScale };
+                    SDL_FRect itemRect = { padX, curY, availableW, 28.0f * uiScale };
                     UIWidget::drawPanel(renderer, itemRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
-                    std::string title = std::format("{} ({})", save.saveName.empty() ? save.fileName : save.saveName, save.fileName);
-                    std::string detail = std::format("Lvl {} | {} | {}", save.characterLevel, save.mapLocation.empty() ? "Dominion" : save.mapLocation, save.timestamp.empty() ? "Recent" : save.timestamp);
+                    // Time column
+                    std::string timeStr = save.timestamp.empty() ? "2026-08-29" : save.timestamp;
+                    UIWidget::drawText(renderer, timeStr, padX + (8.0f * uiScale), curY + (5.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.8f);
 
-                    UIWidget::drawText(renderer, title, itemRect.x + (8.0f * uiScale), curY + (4.0f * uiScale), save.isAutosave ? Theme::colors.arcane : Theme::colors.textAccent, uiScale * 0.82f);
-                    UIWidget::drawText(renderer, detail, itemRect.x + (8.0f * uiScale), curY + (17.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.72f);
+                    // Name column
+                    std::string displayName = save.saveName.empty() ? save.fileName : save.saveName;
+                    UIWidget::drawText(renderer, displayName, padX + timeColW, curY + (5.0f * uiScale), save.isAutosave ? Theme::colors.arcane : Theme::colors.textPrimary, uiScale * 0.82f);
 
+                    // Action buttons: Save | Load | Delete
                     float rightOffset = 6.0f * uiScale;
 
-                    // Delete Button
+                    // Delete button
                     float delBtnW = 55.0f * uiScale;
-                    float delBtnH = 20.0f * uiScale;
-                    SDL_FRect delBtnRect = { itemRect.x + itemRect.w - rightOffset - delBtnW, curY + (6.0f * uiScale), delBtnW, delBtnH };
+                    float btnH = 20.0f * uiScale;
+                    SDL_FRect delBtnRect = { padX + availableW - rightOffset - delBtnW, curY + (4.0f * uiScale), delBtnW, btnH };
                     bool delHovered = (mousePos.x >= delBtnRect.x && mousePos.x <= delBtnRect.x + delBtnRect.w &&
                                        mousePos.y >= delBtnRect.y && mousePos.y <= delBtnRect.y + delBtnRect.h);
 
-                    UIWidget::drawButton(renderer, delBtnRect, "DEL", delHovered, true, false, uiScale * 0.7f);
+                    UIWidget::drawButton(renderer, delBtnRect, "Delete", delHovered, true, false, uiScale * 0.72f);
                     if (delHovered && clicked && loadState)
                     {
                         loadState->pendingDeleteFileName = save.fileName;
                         gameContext->input.consumeMouseClick();
                     }
-                    rightOffset += delBtnW + (5.0f * uiScale);
+                    rightOffset += delBtnW + (6.0f * uiScale);
 
-                    // Load Button
-                    float loadBtnW = 70.0f * uiScale;
-                    float loadBtnH = 20.0f * uiScale;
-                    SDL_FRect loadBtnRect = { itemRect.x + itemRect.w - rightOffset - loadBtnW, curY + (6.0f * uiScale), loadBtnW, loadBtnH };
+                    // Load button
+                    float loadBtnW = 55.0f * uiScale;
+                    SDL_FRect loadBtnRect = { padX + availableW - rightOffset - loadBtnW, curY + (4.0f * uiScale), loadBtnW, btnH };
                     bool loadHovered = (mousePos.x >= loadBtnRect.x && mousePos.x <= loadBtnRect.x + loadBtnRect.w &&
                                         mousePos.y >= loadBtnRect.y && mousePos.y <= loadBtnRect.y + loadBtnRect.h);
 
-                    UIWidget::drawButton(renderer, loadBtnRect, "LOAD", loadHovered, true, false, uiScale * 0.72f);
+                    UIWidget::drawButton(renderer, loadBtnRect, "Load", loadHovered, true, false, uiScale * 0.72f);
                     if (loadHovered && clicked)
                     {
                         if (saveManager::loadFromFile(gameContext, save.fileName))
@@ -1386,30 +1270,29 @@ float uiRenderer::renderLoadGameView(SDL_Renderer* renderer, game* gameContext, 
                         }
                         gameContext->input.consumeMouseClick();
                     }
-                    rightOffset += loadBtnW + (5.0f * uiScale);
+                    rightOffset += loadBtnW + (6.0f * uiScale);
 
-                    // If in-game and same character: Overwrite Button
+                    // Save button
                     if ((isSaveMode || player) && group.characterName == activeCharName && !save.isAutosave)
                     {
-                        float ovBtnW = 85.0f * uiScale;
-                        float ovBtnH = 20.0f * uiScale;
-                        SDL_FRect ovBtnRect = { itemRect.x + itemRect.w - rightOffset - ovBtnW, curY + (6.0f * uiScale), ovBtnW, ovBtnH };
-                        bool ovHovered = (mousePos.x >= ovBtnRect.x && mousePos.x <= ovBtnRect.x + ovBtnRect.w &&
-                                          mousePos.y >= ovBtnRect.y && mousePos.y <= ovBtnRect.y + ovBtnRect.h);
+                        float saveBtnW = 55.0f * uiScale;
+                        SDL_FRect saveBtnRect = { padX + availableW - rightOffset - saveBtnW, curY + (4.0f * uiScale), saveBtnW, btnH };
+                        bool saveHovered = (mousePos.x >= saveBtnRect.x && mousePos.x <= saveBtnRect.x + saveBtnRect.w &&
+                                            mousePos.y >= saveBtnRect.y && mousePos.y <= saveBtnRect.y + saveBtnRect.h);
 
-                        UIWidget::drawButton(renderer, ovBtnRect, "OVERWRITE", ovHovered, true, false, uiScale * 0.7f);
-                        if (ovHovered && clicked && loadState)
+                        UIWidget::drawButton(renderer, saveBtnRect, "Save", saveHovered, true, false, uiScale * 0.72f);
+                        if (saveHovered && clicked && loadState)
                         {
                             loadState->pendingOverwriteSaveName = save.saveName.empty() ? save.fileName : save.saveName;
                             gameContext->input.consumeMouseClick();
                         }
                     }
 
-                    curY += itemRect.h + (5.0f * uiScale);
+                    curY += itemRect.h + (4.0f * uiScale);
                 }
             }
 
-            curY += (10.0f * uiScale);
+            curY += (8.0f * uiScale);
         }
     }
 
@@ -1422,185 +1305,162 @@ float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, c
     if (!opt) return 0.0f;
 
     float startY = curY;
-    float padX = rect.x + (16.0f * uiScale);
-    float availableW = rect.w - (32.0f * uiScale);
+    float centerX = rect.x + (rect.w / 2.0f);
+    float padX = rect.x + (20.0f * uiScale);
+    float availableW = rect.w - (40.0f * uiScale);
 
     auto mousePos = gameContext->input.getMousePosition();
     bool clicked = gameContext->input.isLeftMouseJustClicked();
 
-    float headerH = 28.0f * uiScale;
-    SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
+    if (opt->screenMode == OptionsScreenMode::GENERAL_OPTIONS)
+    {
+        // 1. Centered Header Card: Options
+        float cardW = std::min(availableW, 360.0f * uiScale);
+        float cardH = 34.0f * uiScale;
+        UIWidget::drawCenteredHeaderCard(renderer, centerX, curY, cardW, cardH, "Options", Theme::colors.textPrimary, uiScale);
+        curY += cardH + (20.0f * uiScale);
 
-    std::string catTitle = "GAME SETTINGS & CONFIGURATION";
-    if (opt->currentCategory == OptionsCategory::GAMEPLAY) catTitle = "SETTINGS: GAMEPLAY MECHANICS";
-    else if (opt->currentCategory == OptionsCategory::CONTENT) catTitle = "SETTINGS: CONTENT & MUTATIONS";
-    else if (opt->currentCategory == OptionsCategory::DEMOGRAPHICS) catTitle = "SETTINGS: WORLD DEMOGRAPHICS";
-    else if (opt->currentCategory == OptionsCategory::DISPLAY) catTitle = "SETTINGS: DISPLAY & INTERFACE";
+        float textW = std::min(availableW, 700.0f * uiScale);
+        float textX = centerX - (textW / 2.0f);
 
-    UIWidget::drawHeader(renderer, headerRect, catTitle, Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
-    curY += headerH + (14.0f * uiScale);
-
-    auto renderSettingSection = [&](const std::string& name, const std::string& description, const std::vector<std::pair<std::string, bool>>& options, std::function<void(int)> onSelect) {
-        UIWidget::drawText(renderer, name, padX, curY, Theme::colors.textAccent, uiScale * 0.95f);
+        // Section: Light/Dark theme
+        UIWidget::drawText(renderer, "Light/Dark theme:", textX, curY, Theme::colors.textPrimary, uiScale * 0.95f);
         curY += (18.0f * uiScale);
+        float descH1 = UIWidget::drawTextWrapped(renderer, "This switches the main display between a light and dark theme. (Work in progress!)", textX, curY, textW, Theme::colors.textSecondary, uiScale * 0.86f);
+        curY += descH1 + (18.0f * uiScale);
 
-        float descH = UIWidget::drawTextWrapped(renderer, description, padX, curY, availableW, Theme::colors.textSecondary, uiScale * 0.85f);
-        curY += descH + (8.0f * uiScale);
+        // Section: Font-size
+        UIWidget::drawText(renderer, "Font-size:", textX, curY, Theme::colors.textPrimary, uiScale * 0.95f);
+        curY += (18.0f * uiScale);
+        std::string fontDesc = std::format("This cycles the game's base font size. This currently only affects the size of the text in the main dialogue, but in the future I'll expand it to include every display element.\nMinimum font size is 12. Default font size is 18. Maximum font size is 36.\nCurrent font size: {}.", opt->fontSize);
+        float descH2 = UIWidget::drawTextWrapped(renderer, fontDesc, textX, curY, textW, Theme::colors.textSecondary, uiScale * 0.86f);
+        curY += descH2 + (18.0f * uiScale);
 
-        float btnW = std::min(140.0f * uiScale, (availableW - ((options.size() - 1) * 8.0f * uiScale)) / options.size());
-        float btnH = 24.0f * uiScale;
+        // Section: Fade-in
+        UIWidget::drawText(renderer, "Fade-in:", textX, curY, Theme::colors.textPrimary, uiScale * 0.95f);
+        curY += (18.0f * uiScale);
+        float descH3 = UIWidget::drawTextWrapped(renderer, "This option is responsible for fading in the main part of the text each time a new scene is displayed. Although it makes scene transitions a little prettier, it is off by default, as it can cause some annoying lag in inventory screens.", textX, curY, textW, Theme::colors.textSecondary, uiScale * 0.86f);
+        curY += descH3 + (18.0f * uiScale);
 
-        for (size_t i = 0; i < options.size(); ++i)
+        // Section: Difficulty
+        static const char* diffNames[] = { "Human", "Morph", "Demon", "Lilin", "Lilith" };
+        std::string diffHeader = std::format("Difficulty (Currently set to {}):", diffNames[opt->difficultyLevel]);
+        UIWidget::drawText(renderer, diffHeader, textX, curY, Theme::colors.textPrimary, uiScale * 0.95f);
+        curY += (20.0f * uiScale);
+
+        // Colored difficulty tiers
+        struct DiffTier { std::string name; std::string desc; SDL_Color col; };
+        static const DiffTier tiers[5] = {
+            { "Human", "The way the game is meant to be played. No level scaling and no damage modifications.", Theme::colors.textPrimary },
+            { "Morph", "Enemies level up alongside your character, but do normal damage.", SDL_Color{ 180, 140, 200, 255 } },
+            { "Demon", "Enemies level up alongside your character and do 200% damage.", SDL_Color{ 190, 120, 220, 255 } },
+            { "Lilin", "Enemies level up alongside your character, do 200% damage, and take only 50% damage from all sources.", SDL_Color{ 210, 110, 240, 255 } },
+            { "Lilith", "Enemies are always 2x your character's level, do 400% damage, and take only 25% damage from all sources. Be prepared to lose. A lot.", SDL_Color{ 240, 90, 110, 255 } }
+        };
+
+        for (int i = 0; i < 5; ++i)
         {
-            SDL_FRect bRect = { padX + (i * (btnW + 8.0f * uiScale)), curY, btnW, btnH };
-            bool hovered = (mousePos.x >= bRect.x && mousePos.x <= bRect.x + bRect.w &&
-                            mousePos.y >= bRect.y && mousePos.y <= bRect.y + bRect.h);
-            bool isSelected = options[i].second;
-
-            UIWidget::drawButton(renderer, bRect, options[i].first, hovered, true, isSelected, uiScale * 0.75f);
-
-            if (hovered && clicked)
-            {
-                onSelect(static_cast<int>(i));
-                settingsManager::saveToFile(gameContext->settings, "data/settings.json");
-                gameContext->input.consumeMouseClick();
-            }
+            UIWidget::drawText(renderer, tiers[i].name, textX, curY, tiers[i].col, uiScale * 0.88f);
+            float nameOffset = (tiers[i].name.size() * (8.5f * uiScale)) + (6.0f * uiScale);
+            float tierH = UIWidget::drawTextWrapped(renderer, tiers[i].desc, textX + nameOffset, curY, textW - nameOffset, Theme::colors.textSecondary, uiScale * 0.85f);
+            curY += std::max(tierH, 18.0f * uiScale) + (6.0f * uiScale);
         }
-        curY += btnH + (16.0f * uiScale);
-    };
 
-    if (opt->currentCategory == OptionsCategory::GAMEPLAY)
-    {
-        float diff = gameContext->settings.gameplay.difficultyMultiplier;
-        renderSettingSection(
-            "Combat Difficulty Multiplier",
-            "Scales enemy maximum vitality, damage output, and offensive spellcasting frequency.",
-            { { "Easy (0.8x)", diff <= 0.85f }, { "Normal (1.0x)", diff > 0.85f && diff <= 1.2f }, { "Hard (1.5x)", diff > 1.2f } },
-            [&](int idx) {
-                if (idx == 0) gameContext->settings.gameplay.difficultyMultiplier = 0.8f;
-                else if (idx == 1) gameContext->settings.gameplay.difficultyMultiplier = 1.0f;
-                else gameContext->settings.gameplay.difficultyMultiplier = 1.5f;
-            }
-        );
-
-        float loss = gameContext->settings.gameplay.currencyLossOnDefeatPercent;
-        renderSettingSection(
-            "Defeat Currency Penalty",
-            "The percentage of held gold and essence confiscated by opponents when submitted or defeated.",
-            { { "0% (Safe)", loss <= 0.01f }, { "15% (Standard)", loss > 0.01f && loss <= 0.2f }, { "35% (Harsh)", loss > 0.2f && loss <= 0.4f }, { "50% (Hardcore)", loss > 0.4f } },
-            [&](int idx) {
-                if (idx == 0) gameContext->settings.gameplay.currencyLossOnDefeatPercent = 0.0f;
-                else if (idx == 1) gameContext->settings.gameplay.currencyLossOnDefeatPercent = 0.15f;
-                else if (idx == 2) gameContext->settings.gameplay.currencyLossOnDefeatPercent = 0.35f;
-                else gameContext->settings.gameplay.currencyLossOnDefeatPercent = 0.50f;
-            }
-        );
-
-        bool autoMap = gameContext->settings.gameplay.autoSaveOnMapChange;
-        renderSettingSection(
-            "Auto-Save on Room & Map Transitions",
-            "Automatically writes a quicksave snapshot whenever entering new rooms, shops, or dungeons.",
-            { { "ENABLED", autoMap }, { "DISABLED", !autoMap } },
-            [&](int idx) { gameContext->settings.gameplay.autoSaveOnMapChange = (idx == 0); }
-        );
+        return (curY - startY);
     }
-    else if (opt->currentCategory == OptionsCategory::CONTENT)
+    else // Content Options (Misc., Gameplay, etc.)
     {
-        bool preg = gameContext->settings.content.pregnancyEnabled;
-        renderSettingSection(
-            "Biological Pregnancy & Gestation Pipeline",
-            "Simulates multi-stage pregnancy, womb expansion, gestation timers, and offspring traits.",
-            { { "ENABLED", preg }, { "DISABLED", !preg } },
-            [&](int idx) { gameContext->settings.content.pregnancyEnabled = (idx == 0); }
-        );
+        std::string catName = "Misc.";
+        if (opt->contentCategory == ContentOptionsCategory::GAMEPLAY) catName = "Gameplay";
+        else if (opt->contentCategory == ContentOptionsCategory::SEX_AND_FETISHES) catName = "Sex & Fetishes";
+        else if (opt->contentCategory == ContentOptionsCategory::BODIES) catName = "Bodies";
+        else if (opt->contentCategory == ContentOptionsCategory::GENDER_PREFS) catName = "Gender preferences";
+        else if (opt->contentCategory == ContentOptionsCategory::ORIENTATION_PREFS) catName = "Orientation preferences";
+        else if (opt->contentCategory == ContentOptionsCategory::AGE_PREFS) catName = "Age preferences";
+        else if (opt->contentCategory == ContentOptionsCategory::FURRY_PREFS) catName = "Furry preferences";
+        else if (opt->contentCategory == ContentOptionsCategory::FETISH_PREFS) catName = "Fetish preferences";
 
-        bool lact = gameContext->settings.content.lactationEnabled;
-        renderSettingSection(
-            "Lactation & Milk Generation Mechanics",
-            "Enables breast stimulation, milk accumulation, chest expansion, and nursery production.",
-            { { "ENABLED", lact }, { "DISABLED", !lact } },
-            [&](int idx) { gameContext->settings.content.lactationEnabled = (idx == 0); }
-        );
+        // Centered Header Card: Content Options (<Category>)
+        float cardW = std::min(availableW, 420.0f * uiScale);
+        float cardH = 34.0f * uiScale;
+        UIWidget::drawCenteredHeaderCard(renderer, centerX, curY, cardW, cardH, "Content Options (" + catName + ")", Theme::colors.textPrimary, uiScale);
+        curY += cardH + (18.0f * uiScale);
 
-        float fluid = gameContext->settings.content.fluidMultiplier;
-        renderSettingSection(
-            "Fluid Volume Capacity Multiplier",
-            "Scales maximum bodily fluid storage (cum, milk, fluids) across all entities in the game.",
-            { { "0.5x (Subtle)", fluid <= 0.6f }, { "1.0x (Normal)", fluid > 0.6f && fluid <= 1.5f }, { "2.5x (Abundant)", fluid > 1.5f && fluid <= 3.5f }, { "5.0x (Hyper)", fluid > 3.5f } },
-            [&](int idx) {
-                if (idx == 0) gameContext->settings.content.fluidMultiplier = 0.5f;
-                else if (idx == 1) gameContext->settings.content.fluidMultiplier = 1.0f;
-                else if (idx == 2) gameContext->settings.content.fluidMultiplier = 2.5f;
-                else gameContext->settings.content.fluidMultiplier = 5.0f;
+        // Helper lambda to render a Content Option item card
+        auto renderOptionCard = [&](const std::string& title, SDL_Color titleCol, const std::string& description, const std::vector<std::string>& pillLabels, int selectedIndex, std::function<void(int)> onSelect) {
+            float cardWidth = availableW;
+            float leftW = cardWidth - (180.0f * uiScale);
+            float cardMinH = 50.0f * uiScale;
+
+            SDL_FRect cardRect = { padX, curY, cardWidth, cardMinH };
+            UIWidget::drawPanel(renderer, cardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+
+            // Title + Description
+            UIWidget::drawText(renderer, title + ":", padX + (10.0f * uiScale), curY + (7.0f * uiScale), titleCol, uiScale * 0.88f);
+            float titleW = (title.size() + 2) * (7.5f * uiScale);
+
+            float descH = UIWidget::drawTextWrapped(renderer, description, padX + (10.0f * uiScale) + titleW, curY + (7.0f * uiScale), leftW - titleW - (10.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.82f);
+
+            // Segmented Pills on Right
+            float pillTotalW = 150.0f * uiScale;
+            float pillH = 24.0f * uiScale;
+            float pillItemW = pillTotalW / pillLabels.size();
+            float pillStartX = padX + cardWidth - pillTotalW - (12.0f * uiScale);
+            float pillY = curY + ((cardMinH - pillH) / 2.0f);
+
+            for (size_t p = 0; p < pillLabels.size(); ++p)
+            {
+                SDL_FRect pRect = { pillStartX + (p * pillItemW), pillY, pillItemW, pillH };
+                bool pHovered = (mousePos.x >= pRect.x && mousePos.x <= pRect.x + pRect.w &&
+                                 mousePos.y >= pRect.y && mousePos.y <= pRect.y + pRect.h);
+                bool isSelected = (static_cast<int>(p) == selectedIndex);
+
+                SDL_Color bgCol = isSelected ? (pillLabels[p] == "OFF" ? SDL_Color{ 160, 45, 55, 240 } : SDL_Color{ 45, 120, 65, 240 }) : (pHovered ? SDL_Color{ 50, 54, 62, 255 } : Theme::colors.bgButton);
+                SDL_Color borderCol = isSelected ? Theme::colors.borderSelected : (pHovered ? Theme::colors.textGold : Theme::colors.borderButton);
+
+                SDL_SetRenderDrawColor(renderer, bgCol.r, bgCol.g, bgCol.b, bgCol.a);
+                SDL_RenderFillRect(renderer, &pRect);
+                SDL_SetRenderDrawColor(renderer, borderCol.r, borderCol.g, borderCol.b, borderCol.a);
+                SDL_RenderRect(renderer, &pRect);
+
+                SDL_Color pTextCol = isSelected ? Theme::colors.textPrimary : (pHovered ? Theme::colors.textGold : Theme::colors.textMuted);
+                float labelW = pillLabels[p].size() * (6.0f * uiScale);
+                UIWidget::drawText(renderer, pillLabels[p], pRect.x + ((pRect.w - labelW) / 2.0f), pRect.y + (4.0f * uiScale), pTextCol, uiScale * 0.78f);
+
+                if (pHovered && clicked)
+                {
+                    onSelect(static_cast<int>(p));
+                    gameContext->input.consumeMouseClick();
+                }
             }
-        );
 
-        float tfSpeed = gameContext->settings.content.transformationSpeedMultiplier;
-        renderSettingSection(
-            "Transformation Mutation Progression Speed",
-            "Speed at which alchemical potions, morphic draughts, and essences mutate the body.",
-            { { "Instantaneous", tfSpeed >= 5.0f }, { "Standard (1.0x)", tfSpeed > 0.7f && tfSpeed < 5.0f }, { "Gradual (0.5x)", tfSpeed <= 0.7f } },
-            [&](int idx) {
-                if (idx == 0) gameContext->settings.content.transformationSpeedMultiplier = 10.0f;
-                else if (idx == 1) gameContext->settings.content.transformationSpeedMultiplier = 1.0f;
-                else gameContext->settings.content.transformationSpeedMultiplier = 0.5f;
-            }
-        );
+            float actualCardH = std::max(cardMinH, descH + (14.0f * uiScale));
+            curY += actualCardH + (8.0f * uiScale);
+        };
+
+        if (opt->contentCategory == ContentOptionsCategory::MISC)
+        {
+            renderOptionCard("Autosave Frequency", Theme::colors.companion, "Choose how often want the game to autosave when you transition from one map to another.", { "Always", "Daily", "Weekly" }, 0, [](int idx) {});
+            renderOptionCard("Artwork", SDL_Color{ 100, 200, 255, 255 }, "Enables artwork to be displayed in characters' information screens.", { "OFF", "ON" }, 1, [](int idx) {});
+            renderOptionCard("Thumbnails", SDL_Color{ 100, 200, 255, 255 }, "Enables tooltips containing thumbnail images of the character.", { "OFF", "ON" }, 1, [](int idx) {});
+            renderOptionCard("Shared Encyclopedia", Theme::colors.textGold, "When enabled, your character will use the shared Encyclopedia across playthroughs.", { "OFF", "ON" }, 0, [](int idx) {});
+            renderOptionCard("Storm interruptions", SDL_Color{ 235, 140, 255, 255 }, "When enabled, arcane storms will interrupt dialogue to let you know that they've started.", { "OFF", "ON" }, 1, [](int idx) {});
+        }
+        else if (opt->contentCategory == ContentOptionsCategory::GAMEPLAY)
+        {
+            renderOptionCard("Enchantment Instability", SDL_Color{ 235, 140, 255, 255 }, "Toggle the 'enchantment instability' mechanic, restricting enchanted items.", { "OFF", "ON" }, 1, [](int idx) {});
+            renderOptionCard("Bad Ends", SDL_Color{ 255, 110, 120, 255 }, "Toggle the ability to trigger 'bad ends', which end the game when encountered.", { "OFF", "ON" }, 1, [](int idx) {});
+            renderOptionCard("Level Drain", SDL_Color{ 255, 90, 100, 255 }, "Toggle the use of the 'orgasmic level drain' perk by unique NPCs.", { "OFF", "ON" }, 1, [](int idx) {});
+            renderOptionCard("Opportunistic attackers", SDL_Color{ 255, 110, 120, 255 }, "Makes random attacks more likely when you're high on lust, low health, or exposed.", { "OFF", "ON" }, 1, [](int idx) {});
+            renderOptionCard("Offspring Encounters", SDL_Color{ 160, 160, 255, 255 }, "Enables you to randomly encounter your offspring throughout the world.", { "OFF", "ON" }, 1, [](int idx) {});
+        }
+        else
+        {
+            renderOptionCard("Category Preferences", Theme::colors.textGold, "Fine tune preferences and content generation rules for this category.", { "OFF", "ON" }, 1, [](int idx) {});
+        }
+
+        return (curY - startY);
     }
-    else if (opt->currentCategory == OptionsCategory::DEMOGRAPHICS)
-    {
-        renderSettingSection(
-            "World NPC Orientation Distribution",
-            "Statistical bias for generating heterosexuality, bisexuality, and homosexuality among NPCs.",
-            { { "Balanced Mix", true }, { "Bi/Pan Heavy", false }, { "Hetero Bias", false } },
-            [&](int idx) {
-                if (idx == 0) { gameContext->settings.demographics.percentHetero = 40.0f; gameContext->settings.demographics.percentBi = 35.0f; gameContext->settings.demographics.percentHomo = 25.0f; }
-                else if (idx == 1) { gameContext->settings.demographics.percentHetero = 20.0f; gameContext->settings.demographics.percentBi = 60.0f; gameContext->settings.demographics.percentHomo = 20.0f; }
-                else { gameContext->settings.demographics.percentHetero = 70.0f; gameContext->settings.demographics.percentBi = 20.0f; gameContext->settings.demographics.percentHomo = 10.0f; }
-            }
-        );
-
-        renderSettingSection(
-            "World Gender & Morph Distribution",
-            "Frequency of encounterable Male, Female, Hermaphrodite, and Morph individuals in Dominion.",
-            { { "Standard Fantasy", true }, { "Herm / Futa Surge", false }, { "Matriarchal", false } },
-            [&](int idx) {
-                if (idx == 0) { gameContext->settings.demographics.percentMale = 35.0f; gameContext->settings.demographics.percentFemale = 45.0f; gameContext->settings.demographics.percentHermaphrodite = 20.0f; }
-                else if (idx == 1) { gameContext->settings.demographics.percentMale = 20.0f; gameContext->settings.demographics.percentFemale = 30.0f; gameContext->settings.demographics.percentHermaphrodite = 50.0f; }
-                else { gameContext->settings.demographics.percentMale = 10.0f; gameContext->settings.demographics.percentFemale = 70.0f; gameContext->settings.demographics.percentHermaphrodite = 20.0f; }
-            }
-        );
-    }
-    else if (opt->currentCategory == OptionsCategory::DISPLAY)
-    {
-        int verb = gameContext->settings.display.descriptionVerbosity;
-        renderSettingSection(
-            "Narrative Prose & Description Detail",
-            "Controls the length and richness of descriptive prose during encounters and inspections.",
-            { { "Full & Immersive", verb == 0 }, { "Condensed Summary", verb == 1 }, { "Minimal Speed", verb == 2 } },
-            [&](int idx) { gameContext->settings.display.descriptionVerbosity = idx; }
-        );
-
-        std::string curTheme = gameContext->settings.display.activeTheme;
-        renderSettingSection(
-            "Color Palette & Aesthetic Theme",
-            "Selects the primary color scheme and visual styling for panels, headers, and buttons.",
-            { { "Dark Fantasy", curTheme == "theme_dark_fantasy" || curTheme == "dark_fantasy" },
-              { "Cyber Neon", curTheme == "theme_cyber_neon" || curTheme == "cyber_neon" },
-              { "Arcane Parchment", curTheme == "theme_parchment" || curTheme == "parchment" },
-              { "Lilith Midnight", curTheme == "default" || curTheme == "theme.json" || curTheme.empty() } },
-            [&](int idx) {
-                if (idx == 0) gameContext->settings.display.activeTheme = "theme_dark_fantasy";
-                else if (idx == 1) gameContext->settings.display.activeTheme = "theme_cyber_neon";
-                else if (idx == 2) gameContext->settings.display.activeTheme = "theme_parchment";
-                else gameContext->settings.display.activeTheme = "default";
-
-                Theme::applyTheme(gameContext->settings.display.activeTheme);
-            }
-        );
-    }
-
-    return (curY - startY);
 }
 
 float uiRenderer::renderShopView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)

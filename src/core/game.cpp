@@ -978,7 +978,12 @@ void game::handleCommand(const UICommand& cmd)
 {
     if (cmd.type == CommandType::OPEN_SETTINGS)
     {
-        changeState(std::make_unique<optionsState>());
+        changeState(std::make_unique<optionsState>(OptionsScreenMode::GENERAL_OPTIONS));
+        return;
+    }
+    else if (cmd.type == CommandType::OPEN_CONTENT_OPTIONS)
+    {
+        changeState(std::make_unique<optionsState>(OptionsScreenMode::CONTENT_OPTIONS));
         return;
     }
     else if (cmd.type == CommandType::OPEN_INVENTORY)
