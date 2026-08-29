@@ -1049,6 +1049,7 @@ float uiRenderer::renderMainMenu(SDL_Renderer* renderer, game* gameContext, cons
 
 float uiRenderer::renderLoadGameView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)
 {
+    loadGameState* loadState = dynamic_cast<loadGameState*>(gameContext->getActiveState());
     float startY = curY;
     float padX = rect.x + (16.0f * uiScale);
     float availableW = rect.w - (32.0f * uiScale);
@@ -1056,12 +1057,155 @@ float uiRenderer::renderLoadGameView(SDL_Renderer* renderer, game* gameContext, 
     auto mousePos = gameContext->input.getMousePosition();
     bool clicked = gameContext->input.isLeftMouseJustClicked();
 
+    bool isSaveMode = (loadState && loadState->getMode() == SaveMenuMode::SAVE_AND_LOAD);
+    entity* player = gameContext->getPlayer();
+    std::string activeCharName = (player && !player->name.empty()) ? player->name : "Hero";
+
     float headerH = 28.0f * uiScale;
     SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
-    UIWidget::drawHeader(renderer, headerRect, "LOAD SAVED ADVENTURE & PROFILES", Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
-    curY += headerH + (14.0f * uiScale);
+    UIWidget::drawHeader(renderer, headerRect, isSaveMode ? "SAVE & LOAD CAMPAIGN PROFILES" : "LOAD SAVED ADVENTURE & PROFILES", Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
+    curY += headerH + (12.0f * uiScale);
 
-    // 1. Global Quicksave Section
+    // ==========================================
+    // 1. Pending Confirmation Modals (Overwrite / Delete)
+    // ==========================================
+    if (loadState && !loadState->pendingOverwriteSaveName.empty())
+    {
+        SDL_FRect modalRect = { padX, curY, availableW, 64.0f * uiScale };
+        UIWidget::drawPanel(renderer, modalRect, Theme::colors.bgHeader, Theme::colors.enemy);
+
+        std::string warnMsg = std::format("! Overwrite Save: '{}' already exists for {}. Overwrite this file?", loadState->pendingOverwriteSaveName, activeCharName);
+        UIWidget::drawText(renderer, warnMsg, padX + (12.0f * uiScale), curY + (10.0f * uiScale), Theme::colors.textGold, uiScale * 0.85f);
+
+        float btnW = 120.0f * uiScale;
+        float btnH = 24.0f * uiScale;
+        SDL_FRect yesBtnRect = { padX + availableW - (btnW * 2.0f) - (20.0f * uiScale), curY + (32.0f * uiScale), btnW, btnH };
+        SDL_FRect cancelBtnRect = { padX + availableW - btnW - (10.0f * uiScale), curY + (32.0f * uiScale), btnW, btnH };
+
+        bool yesHovered = (mousePos.x >= yesBtnRect.x && mousePos.x <= yesBtnRect.x + yesBtnRect.w &&
+                           mousePos.y >= yesBtnRect.y && mousePos.y <= yesBtnRect.y + yesBtnRect.h);
+        bool cancelHovered = (mousePos.x >= cancelBtnRect.x && mousePos.x <= cancelBtnRect.x + cancelBtnRect.w &&
+                              mousePos.y >= cancelBtnRect.y && mousePos.y <= cancelBtnRect.y + cancelBtnRect.h);
+
+        UIWidget::drawButton(renderer, yesBtnRect, "YES, OVERWRITE", yesHovered, true, false, uiScale * 0.75f);
+        UIWidget::drawButton(renderer, cancelBtnRect, "CANCEL", cancelHovered, true, false, uiScale * 0.75f);
+
+        if (yesHovered && clicked)
+        {
+            saveManager::saveNamedGame(gameContext, loadState->pendingOverwriteSaveName);
+            loadState->pendingOverwriteSaveName = "";
+            gameContext->input.consumeMouseClick();
+        }
+        else if (cancelHovered && clicked)
+        {
+            loadState->pendingOverwriteSaveName = "";
+            gameContext->input.consumeMouseClick();
+        }
+
+        curY += modalRect.h + (14.0f * uiScale);
+    }
+
+    if (loadState && !loadState->pendingDeleteFileName.empty())
+    {
+        SDL_FRect modalRect = { padX, curY, availableW, 64.0f * uiScale };
+        UIWidget::drawPanel(renderer, modalRect, Theme::colors.bgHeader, Theme::colors.enemy);
+
+        std::string warnMsg = std::format("! Delete Save: Are you sure you want to permanently delete '{}'?", loadState->pendingDeleteFileName);
+        UIWidget::drawText(renderer, warnMsg, padX + (12.0f * uiScale), curY + (10.0f * uiScale), Theme::colors.enemy, uiScale * 0.85f);
+
+        float btnW = 120.0f * uiScale;
+        float btnH = 24.0f * uiScale;
+        SDL_FRect yesBtnRect = { padX + availableW - (btnW * 2.0f) - (20.0f * uiScale), curY + (32.0f * uiScale), btnW, btnH };
+        SDL_FRect cancelBtnRect = { padX + availableW - btnW - (10.0f * uiScale), curY + (32.0f * uiScale), btnW, btnH };
+
+        bool yesHovered = (mousePos.x >= yesBtnRect.x && mousePos.x <= yesBtnRect.x + yesBtnRect.w &&
+                           mousePos.y >= yesBtnRect.y && mousePos.y <= yesBtnRect.y + yesBtnRect.h);
+        bool cancelHovered = (mousePos.x >= cancelBtnRect.x && mousePos.x <= cancelBtnRect.x + cancelBtnRect.w &&
+                              mousePos.y >= cancelBtnRect.y && mousePos.y <= cancelBtnRect.y + cancelBtnRect.h);
+
+        UIWidget::drawButton(renderer, yesBtnRect, "YES, DELETE", yesHovered, true, false, uiScale * 0.75f);
+        UIWidget::drawButton(renderer, cancelBtnRect, "CANCEL", cancelHovered, true, false, uiScale * 0.75f);
+
+        if (yesHovered && clicked)
+        {
+            saveManager::deleteSave(loadState->pendingDeleteFileName);
+            loadState->pendingDeleteFileName = "";
+            gameContext->input.consumeMouseClick();
+        }
+        else if (cancelHovered && clicked)
+        {
+            loadState->pendingDeleteFileName = "";
+            gameContext->input.consumeMouseClick();
+        }
+
+        curY += modalRect.h + (14.0f * uiScale);
+    }
+
+    // ==========================================
+    // 2. In-Game "Create New Save File" Section
+    // ==========================================
+    if (isSaveMode || player)
+    {
+        UIWidget::drawText(renderer, "CREATE NEW SAVE FILE", padX, curY, Theme::colors.textGold, uiScale * 0.95f);
+        curY += (18.0f * uiScale);
+
+        SDL_FRect saveBoxRect = { padX, curY, availableW, 40.0f * uiScale };
+        UIWidget::drawPanel(renderer, saveBoxRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+
+        // Text input field for Save Name
+        float inputW = availableW - (130.0f * uiScale);
+        float inputH = 26.0f * uiScale;
+        SDL_FRect inputRect = { padX + (8.0f * uiScale), curY + (7.0f * uiScale), inputW, inputH };
+
+        bool inputHovered = (mousePos.x >= inputRect.x && mousePos.x <= inputRect.x + inputRect.w &&
+                             mousePos.y >= inputRect.y && mousePos.y <= inputRect.y + inputRect.h);
+
+        bool isEditing = loadState ? loadState->isEditingSaveName : false;
+        UIWidget::drawPanel(renderer, inputRect, Theme::colors.bgDark, isEditing ? Theme::colors.borderSelected : (inputHovered ? Theme::colors.borderButton : Theme::colors.borderNormal));
+
+        std::string currentSaveName = loadState ? loadState->newSaveNameInput : "Manual_Save";
+        std::string displaySaveName = currentSaveName.empty() ? "(Enter save name...)" : currentSaveName;
+        if (isEditing) displaySaveName += "_";
+
+        UIWidget::drawText(renderer, displaySaveName, inputRect.x + (8.0f * uiScale), inputRect.y + (5.0f * uiScale), isEditing ? Theme::colors.textGold : Theme::colors.textPrimary, uiScale * 0.82f);
+
+        if (inputHovered && clicked && loadState)
+        {
+            loadState->isEditingSaveName = true;
+            gameContext->input.consumeMouseClick();
+        }
+
+        // Save Button
+        float saveBtnW = 105.0f * uiScale;
+        float saveBtnH = 26.0f * uiScale;
+        SDL_FRect saveBtnRect = { padX + availableW - saveBtnW - (8.0f * uiScale), curY + (7.0f * uiScale), saveBtnW, saveBtnH };
+        bool saveBtnHovered = (mousePos.x >= saveBtnRect.x && mousePos.x <= saveBtnRect.x + saveBtnRect.w &&
+                               mousePos.y >= saveBtnRect.y && mousePos.y <= saveBtnRect.y + saveBtnRect.h);
+
+        UIWidget::drawButton(renderer, saveBtnRect, "+ SAVE GAME", saveBtnHovered, true, false, uiScale * 0.78f);
+
+        if (saveBtnHovered && clicked && loadState)
+        {
+            loadState->isEditingSaveName = false;
+            std::string saveNameToUse = loadState->newSaveNameInput.empty() ? "Manual_Save" : loadState->newSaveNameInput;
+
+            if (saveManager::exists(gameContext, saveNameToUse))
+            {
+                loadState->pendingOverwriteSaveName = saveNameToUse;
+            }
+            else
+            {
+                saveManager::saveNamedGame(gameContext, saveNameToUse);
+            }
+            gameContext->input.consumeMouseClick();
+        }
+
+        curY += saveBoxRect.h + (16.0f * uiScale);
+    }
+
+    // ==========================================
+    // 3. Global QuickSave Section
+    // ==========================================
     UIWidget::drawText(renderer, "GLOBAL QUICKSAVE CHECKPOINT", padX, curY, Theme::colors.textGold, uiScale * 0.95f);
     curY += (18.0f * uiScale);
 
@@ -1079,21 +1223,38 @@ float uiRenderer::renderLoadGameView(SDL_Renderer* renderer, game* gameContext, 
     if (hasQuickSave)
     {
         SaveMetaData qsMeta = saveManager::readMetadata(quickSavePath);
-        std::string qsTitle = std::format("⚡ QuickSave • {} (Level {})", qsMeta.characterName.empty() ? "Hero" : qsMeta.characterName, qsMeta.characterLevel);
+        std::string qsTitle = std::format("QuickSave (Global) • {} (Lvl {})", qsMeta.characterName.empty() ? "Hero" : qsMeta.characterName, qsMeta.characterLevel);
         std::string qsSub = std::format("Location: {} | Saved: {}", qsMeta.mapLocation.empty() ? "Dominion" : qsMeta.mapLocation, qsMeta.timestamp.empty() ? "Recent" : qsMeta.timestamp);
 
-        UIWidget::drawText(renderer, qsTitle, padX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textGold, uiScale * 0.85f);
-        UIWidget::drawText(renderer, qsSub, padX + (10.0f * uiScale), curY + (20.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.75f);
+        UIWidget::drawText(renderer, qsTitle, padX + (10.0f * uiScale), curY + (5.0f * uiScale), Theme::colors.textGold, uiScale * 0.85f);
+        UIWidget::drawText(renderer, qsSub, padX + (10.0f * uiScale), curY + (19.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.72f);
+
+        float rightOffset = 8.0f * uiScale;
+
+        // Delete button
+        float delBtnW = 60.0f * uiScale;
+        float delBtnH = 22.0f * uiScale;
+        SDL_FRect delBtnRect = { padX + availableW - rightOffset - delBtnW, curY + (7.0f * uiScale), delBtnW, delBtnH };
+        bool delHovered = (mousePos.x >= delBtnRect.x && mousePos.x <= delBtnRect.x + delBtnRect.w &&
+                           mousePos.y >= delBtnRect.y && mousePos.y <= delBtnRect.y + delBtnRect.h);
+
+        UIWidget::drawButton(renderer, delBtnRect, "DEL", delHovered, true, false, uiScale * 0.72f);
+        if (delHovered && clicked && loadState)
+        {
+            loadState->pendingDeleteFileName = "QuickSave.json";
+            gameContext->input.consumeMouseClick();
+        }
+        rightOffset += delBtnW + (6.0f * uiScale);
 
         // Load button
-        float loadBtnW = 90.0f * uiScale;
+        float loadBtnW = 80.0f * uiScale;
         float loadBtnH = 22.0f * uiScale;
-        SDL_FRect loadBtnRect = { padX + availableW - loadBtnW - (8.0f * uiScale), curY + (7.0f * uiScale), loadBtnW, loadBtnH };
-        bool hovered = (mousePos.x >= loadBtnRect.x && mousePos.x <= loadBtnRect.x + loadBtnRect.w &&
-                        mousePos.y >= loadBtnRect.y && mousePos.y <= loadBtnRect.y + loadBtnRect.h);
+        SDL_FRect loadBtnRect = { padX + availableW - rightOffset - loadBtnW, curY + (7.0f * uiScale), loadBtnW, loadBtnH };
+        bool loadHovered = (mousePos.x >= loadBtnRect.x && mousePos.x <= loadBtnRect.x + loadBtnRect.w &&
+                            mousePos.y >= loadBtnRect.y && mousePos.y <= loadBtnRect.y + loadBtnRect.h);
 
-        UIWidget::drawButton(renderer, loadBtnRect, "LOAD", hovered, true, false, uiScale * 0.75f);
-        if (hovered && clicked)
+        UIWidget::drawButton(renderer, loadBtnRect, "LOAD", loadHovered, true, false, uiScale * 0.75f);
+        if (loadHovered && clicked)
         {
             if (saveManager::loadFromFile(gameContext, quickSavePath))
             {
@@ -1101,14 +1262,49 @@ float uiRenderer::renderLoadGameView(SDL_Renderer* renderer, game* gameContext, 
             }
             gameContext->input.consumeMouseClick();
         }
+        rightOffset += loadBtnW + (6.0f * uiScale);
+
+        // If in-game: QuickSave / Overwrite button
+        if (isSaveMode || player)
+        {
+            float qsBtnW = 95.0f * uiScale;
+            float qsBtnH = 22.0f * uiScale;
+            SDL_FRect qsBtnRect = { padX + availableW - rightOffset - qsBtnW, curY + (7.0f * uiScale), qsBtnW, qsBtnH };
+            bool qsHovered = (mousePos.x >= qsBtnRect.x && mousePos.x <= qsBtnRect.x + qsBtnRect.w &&
+                              mousePos.y >= qsBtnRect.y && mousePos.y <= qsBtnRect.y + qsBtnRect.h);
+
+            UIWidget::drawButton(renderer, qsBtnRect, "QUICKSAVE", qsHovered, true, false, uiScale * 0.72f);
+            if (qsHovered && clicked)
+            {
+                saveManager::saveNamedGame(gameContext, "QuickSave");
+                gameContext->input.consumeMouseClick();
+            }
+        }
     }
     else
     {
         UIWidget::drawText(renderer, "No global quicksave checkpoint available.", padX + (10.0f * uiScale), curY + (10.0f * uiScale), Theme::colors.textMuted, uiScale * 0.85f);
-    }
-    curY += qsCard.h + (20.0f * uiScale);
+        if (isSaveMode || player)
+        {
+            float qsBtnW = 100.0f * uiScale;
+            float qsBtnH = 22.0f * uiScale;
+            SDL_FRect qsBtnRect = { padX + availableW - qsBtnW - (8.0f * uiScale), curY + (7.0f * uiScale), qsBtnW, qsBtnH };
+            bool qsHovered = (mousePos.x >= qsBtnRect.x && mousePos.x <= qsBtnRect.x + qsBtnRect.w &&
+                              mousePos.y >= qsBtnRect.y && mousePos.y <= qsBtnRect.y + qsBtnRect.h);
 
-    // 2. Character-Grouped Saves
+            UIWidget::drawButton(renderer, qsBtnRect, "+ QUICKSAVE", qsHovered, true, false, uiScale * 0.75f);
+            if (qsHovered && clicked)
+            {
+                saveManager::saveNamedGame(gameContext, "QuickSave");
+                gameContext->input.consumeMouseClick();
+            }
+        }
+    }
+    curY += qsCard.h + (18.0f * uiScale);
+
+    // ==========================================
+    // 4. Character-Grouped Saves (Collapsible Dropdowns)
+    // ==========================================
     UIWidget::drawText(renderer, "CAMPAIGN CHARACTERS & AUTOSAVES", padX, curY, Theme::colors.textGold, uiScale * 0.95f);
     curY += (18.0f * uiScale);
 
@@ -1122,42 +1318,98 @@ float uiRenderer::renderLoadGameView(SDL_Renderer* renderer, game* gameContext, 
     {
         for (const auto& group : characterGroups)
         {
-            // Character Group Header Banner
-            SDL_FRect groupHeader = { padX, curY, availableW, 24.0f * uiScale };
-            UIWidget::drawPanel(renderer, groupHeader, Theme::colors.bgHeader, Theme::colors.borderButton);
-            UIWidget::drawText(renderer, std::format("👤 Character: {}", group.characterName), padX + (8.0f * uiScale), curY + (4.0f * uiScale), Theme::colors.textGold, uiScale * 0.85f);
+            bool isCollapsed = loadState ? loadState->isCharacterCollapsed(group.characterName) : false;
+
+            // Character Dropdown Banner Header
+            SDL_FRect groupHeader = { padX, curY, availableW, 26.0f * uiScale };
+            bool groupHeaderHovered = (mousePos.x >= groupHeader.x && mousePos.x <= groupHeader.x + groupHeader.w &&
+                                       mousePos.y >= groupHeader.y && mousePos.y <= groupHeader.y + groupHeader.h);
+
+            UIWidget::drawPanel(renderer, groupHeader, Theme::colors.bgHeader, groupHeaderHovered ? Theme::colors.borderSelected : Theme::colors.borderButton);
+
+            std::string arrow = isCollapsed ? "[ + ]" : "[ - ]";
+            std::string headerText = std::format("{} Character: {} ({} saves)", arrow, group.characterName, group.saves.size());
+            UIWidget::drawText(renderer, headerText, padX + (10.0f * uiScale), curY + (5.0f * uiScale), groupHeaderHovered ? Theme::colors.textPrimary : Theme::colors.textGold, uiScale * 0.85f);
+
+            if (groupHeaderHovered && clicked && loadState)
+            {
+                loadState->toggleCharacterCollapsed(group.characterName);
+                gameContext->input.consumeMouseClick();
+            }
+
             curY += groupHeader.h + (6.0f * uiScale);
 
-            for (const auto& save : group.saves)
+            // If Expanded: Draw all saves in group
+            if (!isCollapsed)
             {
-                SDL_FRect itemRect = { padX + (8.0f * uiScale), curY, availableW - (8.0f * uiScale), 32.0f * uiScale };
-                UIWidget::drawPanel(renderer, itemRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
-
-                std::string title = std::format("{} ({})", save.saveName.empty() ? save.fileName : save.saveName, save.fileName);
-                std::string detail = std::format("Lvl {} | {} | {}", save.characterLevel, save.mapLocation.empty() ? "Dominion" : save.mapLocation, save.timestamp.empty() ? "Recent" : save.timestamp);
-
-                UIWidget::drawText(renderer, title, itemRect.x + (8.0f * uiScale), curY + (4.0f * uiScale), save.isAutosave ? Theme::colors.arcane : Theme::colors.textAccent, uiScale * 0.82f);
-                UIWidget::drawText(renderer, detail, itemRect.x + (8.0f * uiScale), curY + (17.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.72f);
-
-                float loadBtnW = 80.0f * uiScale;
-                float loadBtnH = 20.0f * uiScale;
-                SDL_FRect loadBtnRect = { itemRect.x + itemRect.w - loadBtnW - (6.0f * uiScale), curY + (6.0f * uiScale), loadBtnW, loadBtnH };
-                bool hovered = (mousePos.x >= loadBtnRect.x && mousePos.x <= loadBtnRect.x + loadBtnRect.w &&
-                                mousePos.y >= loadBtnRect.y && mousePos.y <= loadBtnRect.y + loadBtnRect.h);
-
-                UIWidget::drawButton(renderer, loadBtnRect, "LOAD", hovered, true, false, uiScale * 0.72f);
-                if (hovered && clicked)
+                for (const auto& save : group.saves)
                 {
-                    if (saveManager::loadFromFile(gameContext, save.fileName))
-                    {
-                        gameContext->changeState(std::make_unique<explorationState>());
-                    }
-                    gameContext->input.consumeMouseClick();
-                }
+                    SDL_FRect itemRect = { padX + (8.0f * uiScale), curY, availableW - (8.0f * uiScale), 32.0f * uiScale };
+                    UIWidget::drawPanel(renderer, itemRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
-                curY += itemRect.h + (5.0f * uiScale);
+                    std::string title = std::format("{} ({})", save.saveName.empty() ? save.fileName : save.saveName, save.fileName);
+                    std::string detail = std::format("Lvl {} | {} | {}", save.characterLevel, save.mapLocation.empty() ? "Dominion" : save.mapLocation, save.timestamp.empty() ? "Recent" : save.timestamp);
+
+                    UIWidget::drawText(renderer, title, itemRect.x + (8.0f * uiScale), curY + (4.0f * uiScale), save.isAutosave ? Theme::colors.arcane : Theme::colors.textAccent, uiScale * 0.82f);
+                    UIWidget::drawText(renderer, detail, itemRect.x + (8.0f * uiScale), curY + (17.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.72f);
+
+                    float rightOffset = 6.0f * uiScale;
+
+                    // Delete Button
+                    float delBtnW = 55.0f * uiScale;
+                    float delBtnH = 20.0f * uiScale;
+                    SDL_FRect delBtnRect = { itemRect.x + itemRect.w - rightOffset - delBtnW, curY + (6.0f * uiScale), delBtnW, delBtnH };
+                    bool delHovered = (mousePos.x >= delBtnRect.x && mousePos.x <= delBtnRect.x + delBtnRect.w &&
+                                       mousePos.y >= delBtnRect.y && mousePos.y <= delBtnRect.y + delBtnRect.h);
+
+                    UIWidget::drawButton(renderer, delBtnRect, "DEL", delHovered, true, false, uiScale * 0.7f);
+                    if (delHovered && clicked && loadState)
+                    {
+                        loadState->pendingDeleteFileName = save.fileName;
+                        gameContext->input.consumeMouseClick();
+                    }
+                    rightOffset += delBtnW + (5.0f * uiScale);
+
+                    // Load Button
+                    float loadBtnW = 70.0f * uiScale;
+                    float loadBtnH = 20.0f * uiScale;
+                    SDL_FRect loadBtnRect = { itemRect.x + itemRect.w - rightOffset - loadBtnW, curY + (6.0f * uiScale), loadBtnW, loadBtnH };
+                    bool loadHovered = (mousePos.x >= loadBtnRect.x && mousePos.x <= loadBtnRect.x + loadBtnRect.w &&
+                                        mousePos.y >= loadBtnRect.y && mousePos.y <= loadBtnRect.y + loadBtnRect.h);
+
+                    UIWidget::drawButton(renderer, loadBtnRect, "LOAD", loadHovered, true, false, uiScale * 0.72f);
+                    if (loadHovered && clicked)
+                    {
+                        if (saveManager::loadFromFile(gameContext, save.fileName))
+                        {
+                            gameContext->changeState(std::make_unique<explorationState>());
+                        }
+                        gameContext->input.consumeMouseClick();
+                    }
+                    rightOffset += loadBtnW + (5.0f * uiScale);
+
+                    // If in-game and same character: Overwrite Button
+                    if ((isSaveMode || player) && group.characterName == activeCharName && !save.isAutosave)
+                    {
+                        float ovBtnW = 85.0f * uiScale;
+                        float ovBtnH = 20.0f * uiScale;
+                        SDL_FRect ovBtnRect = { itemRect.x + itemRect.w - rightOffset - ovBtnW, curY + (6.0f * uiScale), ovBtnW, ovBtnH };
+                        bool ovHovered = (mousePos.x >= ovBtnRect.x && mousePos.x <= ovBtnRect.x + ovBtnRect.w &&
+                                          mousePos.y >= ovBtnRect.y && mousePos.y <= ovBtnRect.y + ovBtnRect.h);
+
+                        UIWidget::drawButton(renderer, ovBtnRect, "OVERWRITE", ovHovered, true, false, uiScale * 0.7f);
+                        if (ovHovered && clicked && loadState)
+                        {
+                            loadState->pendingOverwriteSaveName = save.saveName.empty() ? save.fileName : save.saveName;
+                            gameContext->input.consumeMouseClick();
+                        }
+                    }
+
+                    curY += itemRect.h + (5.0f * uiScale);
+                }
             }
-            curY += (12.0f * uiScale);
+
+            curY += (10.0f * uiScale);
         }
     }
 

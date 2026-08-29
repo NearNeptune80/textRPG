@@ -77,9 +77,33 @@ void ActionGridManager::refresh(game* gameContext)
         return;
     }
 
-    // Load Game State Actions
+    // Load / Save Game State Actions
     if (auto loadState = dynamic_cast<loadGameState*>(currentState))
     {
+        if (loadState->getMode() == SaveMenuMode::SAVE_AND_LOAD)
+        {
+            actionButton saveNewBtn;
+            saveNewBtn.label = "+ Save Game";
+            saveNewBtn.onClick = [gameContext, loadState]() {
+                if (saveManager::exists(gameContext, loadState->newSaveNameInput))
+                {
+                    loadState->pendingOverwriteSaveName = loadState->newSaveNameInput;
+                }
+                else
+                {
+                    saveManager::saveNamedGame(gameContext, loadState->newSaveNameInput);
+                }
+            };
+            gameContext->activeButtons.push_back(saveNewBtn);
+
+            actionButton qsBtn;
+            qsBtn.label = "QuickSave (F5)";
+            qsBtn.onClick = [gameContext]() {
+                saveManager::saveNamedGame(gameContext, "QuickSave");
+            };
+            gameContext->activeButtons.push_back(qsBtn);
+        }
+
         while (gameContext->activeButtons.size() < 14)
         {
             actionButton blank;
@@ -89,9 +113,9 @@ void ActionGridManager::refresh(game* gameContext)
         }
 
         actionButton backBtn;
-        backBtn.label = "< Back to Menu (ESC)";
-        backBtn.onClick = [gameContext]() {
-            gameContext->changeState(std::make_unique<mainMenuState>());
+        backBtn.label = (loadState->getMode() == SaveMenuMode::SAVE_AND_LOAD) ? "< Return to Game (ESC)" : "< Back to Menu (ESC)";
+        backBtn.onClick = [gameContext, loadState]() {
+            loadState->goBack(gameContext);
         };
         gameContext->activeButtons.push_back(backBtn);
         return;
@@ -444,6 +468,13 @@ void ActionGridManager::refresh(game* gameContext)
             questBtn.onClick = [gameContext]() {};
             gameContext->activeButtons.push_back(questBtn);
 
+            actionButton saveMenuBtn;
+            saveMenuBtn.label = "Save / Load Menu";
+            saveMenuBtn.onClick = [gameContext]() {
+                gameContext->changeState(std::make_unique<loadGameState>(SaveMenuMode::SAVE_AND_LOAD, std::make_unique<explorationState>()));
+            };
+            gameContext->activeButtons.push_back(saveMenuBtn);
+
             actionButton saveBtn;
             saveBtn.label = "QuickSave (F5)";
             saveBtn.onClick = [gameContext]() {
@@ -454,9 +485,7 @@ void ActionGridManager::refresh(game* gameContext)
             actionButton loadBtn;
             loadBtn.label = "QuickLoad (F9)";
             loadBtn.onClick = [gameContext]() {
-                entity* p = gameContext->getPlayer();
-                std::string charName = (p && !p->name.empty()) ? p->name : "Hero";
-                saveManager::loadFromFile(gameContext, charName + "_QuickSave.json");
+                saveManager::loadFromFile(gameContext, "QuickSave.json");
                 gameContext->refreshActionGrid();
             };
             gameContext->activeButtons.push_back(loadBtn);

@@ -18,6 +18,7 @@
 #include "state/eventState.h"
 #include "state/explorationState.h"
 #include "state/inventoryState.h"
+#include "state/loadGameState.h"
 #include "state/mainMenuState.h"
 #include "state/optionsState.h"
 #include "state/shopState.h"
@@ -993,6 +994,11 @@ void game::handleCommand(const UICommand& cmd)
     else if (cmd.type == CommandType::OPEN_TRANSFORMATION)
     {
         changeState(std::make_unique<transformationState>());
+        return;
+    }
+    else if (cmd.type == CommandType::OPEN_LOAD_MENU)
+    {
+        changeState(std::make_unique<loadGameState>(SaveMenuMode::SAVE_AND_LOAD, std::make_unique<explorationState>()));
         return;
     }
     else if (cmd.type == CommandType::OPEN_PHONE)

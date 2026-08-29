@@ -250,6 +250,27 @@ bool saveManager::exists(game* g, const std::string& customSaveName)
     return fs::exists(fileName);
 }
 
+bool saveManager::deleteSave(const std::string& fileName)
+{
+    std::string savesDir = getSavesDirectory();
+    std::string path = fileName;
+    if (!fs::exists(path))
+    {
+        path = savesDir + "/" + fileName;
+    }
+    if (!fs::exists(path))
+    {
+        path = "saves/" + fileName;
+    }
+
+    if (fs::exists(path))
+    {
+        std::error_code ec;
+        return fs::remove(path, ec);
+    }
+    return false;
+}
+
 /**
  * Loads world state, player attributes, quests, and discovery maps from a JSON save file.
  */

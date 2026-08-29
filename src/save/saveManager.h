@@ -34,6 +34,7 @@ public:
     static bool saveNamedGame(game* g, const std::string& customSaveName);
     static bool saveAutosave(game* g, int maxAutosaves = 3);
     static bool loadFromFile(game* g, const std::string& fileName);
+    static bool deleteSave(const std::string& fileName);
     static bool exists(game* g, const std::string& customSaveName);
 
     static std::vector<CharacterSaveGroup> getSavesGroupedByCharacter();
