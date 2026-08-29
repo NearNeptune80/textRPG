@@ -170,7 +170,9 @@ void ActionGridManager::refresh(game* gameContext)
             actionButton contBtn;
             contBtn.label = "Continue";
             contBtn.onClick = [cc, gameContext]() {
-                cc->finalizeCharacter(gameContext);
+                cc->step = 3;
+                cc->subView = 0;
+                gameContext->refreshActionGrid();
             };
             gameContext->activeButtons.push_back(contBtn);
 
@@ -202,6 +204,173 @@ void ActionGridManager::refresh(game* gameContext)
             backBtn.label = "Back";
             backBtn.onClick = [cc, gameContext]() {
                 cc->step = 1;
+                gameContext->refreshActionGrid();
+            };
+            gameContext->activeButtons.push_back(backBtn);
+            return;
+        }
+        else if (cc->step == 3) // Step 4: In the Museum / Customization Overview
+        {
+            if (cc->subView == 0)
+            {
+                // Row 1: Continue, Core, Face, Hair, Breasts
+                actionButton contBtn;
+                contBtn.label = "Continue";
+                contBtn.onClick = [cc, gameContext]() {
+                    cc->step = 4;
+                    gameContext->refreshActionGrid();
+                };
+                gameContext->activeButtons.push_back(contBtn);
+
+                actionButton coreBtn;
+                coreBtn.label = "Core";
+                coreBtn.onClick = [cc, gameContext]() {
+                    cc->subView = 1;
+                    gameContext->refreshActionGrid();
+                };
+                gameContext->activeButtons.push_back(coreBtn);
+
+                actionButton faceBtn;
+                faceBtn.label = "Face";
+                faceBtn.onClick = [cc, gameContext]() {
+                    cc->subView = 2;
+                    gameContext->refreshActionGrid();
+                };
+                gameContext->activeButtons.push_back(faceBtn);
+
+                actionButton hairBtn;
+                hairBtn.label = "Hair";
+                hairBtn.onClick = [cc, gameContext]() {
+                    cc->subView = 3;
+                    gameContext->refreshActionGrid();
+                };
+                gameContext->activeButtons.push_back(hairBtn);
+
+                actionButton breastsBtn;
+                breastsBtn.label = "Breasts";
+                breastsBtn.onClick = [cc, gameContext]() {
+                    cc->subView = 4;
+                    gameContext->refreshActionGrid();
+                };
+                gameContext->activeButtons.push_back(breastsBtn);
+
+                // Row 2: Ass & Hips, Penis, Makeup, Piercings, Tattoos
+                actionButton assBtn;
+                assBtn.label = "Ass & Hips";
+                assBtn.onClick = [cc, gameContext]() {
+                    cc->subView = 5;
+                    gameContext->refreshActionGrid();
+                };
+                gameContext->activeButtons.push_back(assBtn);
+
+                actionButton penisBtn;
+                penisBtn.label = "Penis";
+                penisBtn.onClick = [cc, gameContext]() {
+                    cc->subView = 6;
+                    gameContext->refreshActionGrid();
+                };
+                gameContext->activeButtons.push_back(penisBtn);
+
+                actionButton makeupBtn;
+                makeupBtn.label = "Makeup";
+                makeupBtn.onClick = [cc, gameContext]() {
+                    cc->subView = 7;
+                    gameContext->refreshActionGrid();
+                };
+                gameContext->activeButtons.push_back(makeupBtn);
+
+                actionButton piercBtn;
+                piercBtn.label = "Piercings";
+                piercBtn.onClick = [cc, gameContext]() {
+                    cc->subView = 8;
+                    gameContext->refreshActionGrid();
+                };
+                gameContext->activeButtons.push_back(piercBtn);
+
+                actionButton tatBtn;
+                tatBtn.label = "Tattoos";
+                tatBtn.onClick = [cc, gameContext]() {
+                    cc->subView = 9;
+                    gameContext->refreshActionGrid();
+                };
+                gameContext->activeButtons.push_back(tatBtn);
+
+                // Row 3: Extra hair, blank x 3, Back
+                actionButton extraHairBtn;
+                extraHairBtn.label = "Extra hair";
+                extraHairBtn.onClick = [cc, gameContext]() {
+                    cc->subView = 10;
+                    gameContext->refreshActionGrid();
+                };
+                gameContext->activeButtons.push_back(extraHairBtn);
+
+                while (gameContext->activeButtons.size() < 14)
+                {
+                    actionButton blank;
+                    blank.label = "";
+                    blank.isEnabled = false;
+                    gameContext->activeButtons.push_back(blank);
+                }
+
+                actionButton backBtn;
+                backBtn.label = "Back";
+                backBtn.onClick = [cc, gameContext]() {
+                    cc->step = 2;
+                    gameContext->refreshActionGrid();
+                };
+                gameContext->activeButtons.push_back(backBtn);
+                return;
+            }
+            else
+            {
+                // Sub-view (e.g. Core Body Appearance): Back button to return to overview
+                while (gameContext->activeButtons.size() < 14)
+                {
+                    actionButton blank;
+                    blank.label = "";
+                    blank.isEnabled = false;
+                    gameContext->activeButtons.push_back(blank);
+                }
+
+                actionButton backBtn;
+                backBtn.label = "Back";
+                backBtn.onClick = [cc, gameContext]() {
+                    cc->subView = 0;
+                    gameContext->refreshActionGrid();
+                };
+                gameContext->activeButtons.push_back(backBtn);
+                return;
+            }
+        }
+        else if (cc->step == 4) // Step 5: Evening's Attire
+        {
+            // Tab 1: Overview -> [1] To the stage
+            actionButton toStageBtn;
+            toStageBtn.label = "To the stage";
+            toStageBtn.onClick = [cc, gameContext]() {
+                cc->finalizeCharacter(gameContext);
+            };
+            gameContext->activeButtons.push_back(toStageBtn);
+
+            // Tab 2: Selected item -> [SHIFT+E] Unequip all
+            actionButton unequipBtn;
+            unequipBtn.label = "Unequip all";
+            unequipBtn.onClick = [gameContext]() {};
+            gameContext->activeButtons.push_back(unequipBtn);
+
+            while (gameContext->activeButtons.size() < 14)
+            {
+                actionButton blank;
+                blank.label = "";
+                blank.isEnabled = false;
+                gameContext->activeButtons.push_back(blank);
+            }
+
+            actionButton backBtn;
+            backBtn.label = "Back";
+            backBtn.onClick = [cc, gameContext]() {
+                cc->step = 3;
+                cc->subView = 0;
                 gameContext->refreshActionGrid();
             };
             gameContext->activeButtons.push_back(backBtn);

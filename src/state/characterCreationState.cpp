@@ -191,11 +191,22 @@ void characterCreationState::finalizeCharacter(game* gameContext)
             penis.id = "penis_human";
             penis.name = "Penis";
             penis.race = "Human";
-            penis.length = 16.0f;
-            penis.diameter = 3.8f;
             penis.tags.push_back("penis");
             player->anatomy.setPart(bodySlot::GROIN, penis);
         }
+
+        // Starting stats & currency for Lilaya's Home F1 prologue completion
+        player->stats.setBaseStat("currency", 5000.0f);
+        player->stats.setBaseStat("health", 40.0f);
+        player->stats.setBaseStat("mana", 108.0f);
+        player->stats.setBaseStat("lust", 0.0f);
+        player->stats.setBaseStat("arcaneEssence", 20.0f);
+    }
+
+    if (gameContext)
+    {
+        gameContext->gameTime.hour = 21;
+        gameContext->gameTime.minute = 47;
     }
 
     gameContext->changeState(std::make_unique<explorationState>());
