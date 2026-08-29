@@ -18,6 +18,10 @@
 #include "state/eventState.h"
 #include "state/explorationState.h"
 #include "state/inventoryState.h"
+#include "state/mainMenuState.h"
+#include "state/optionsState.h"
+#include "state/shopState.h"
+#include "state/transformationState.h"
 #include "ui/actionGridManager.h"
 
 game::game() : isRunning(false), map(nullptr), playerEntity(nullptr), Player(nullptr), gridX(1), gridY(1) {}
@@ -977,6 +981,42 @@ void game::clean()
 
 void game::handleCommand(const UICommand& cmd)
 {
+    if (cmd.type == CommandType::OPEN_SETTINGS)
+    {
+        changeState(std::make_unique<optionsState>());
+        return;
+    }
+    else if (cmd.type == CommandType::OPEN_INVENTORY)
+    {
+        changeState(std::make_unique<inventoryState>());
+        return;
+    }
+    else if (cmd.type == CommandType::OPEN_SHOP)
+    {
+        changeState(std::make_unique<shopState>());
+        return;
+    }
+    else if (cmd.type == CommandType::OPEN_TRANSFORMATION)
+    {
+        changeState(std::make_unique<transformationState>());
+        return;
+    }
+    else if (cmd.type == CommandType::CLOSE_MENU)
+    {
+        changeState(std::make_unique<explorationState>());
+        return;
+    }
+    else if (cmd.type == CommandType::START_NEW_GAME)
+    {
+        changeState(std::make_unique<explorationState>());
+        return;
+    }
+    else if (cmd.type == CommandType::QUIT_GAME)
+    {
+        isRunning = false;
+        return;
+    }
+
     if (activeGameState)
     {
         activeGameState->handleCommand(this, cmd);

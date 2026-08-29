@@ -26,7 +26,7 @@ public:
 private:
     layoutEngine m_layoutEngine;
     int m_currentPage = 0;
-    static constexpr int BUTTONS_PER_PAGE = 10;
+    static constexpr int BUTTONS_PER_PAGE = 15;
 
     void renderTopBar(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale);
     void renderBottomActionGrid(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float uiScale);

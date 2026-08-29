@@ -645,12 +645,12 @@ void uiRenderer::renderBottomActionGrid(SDL_Renderer* renderer, game* gameContex
     float padX = rect.x + (10.0f * uiScale);
     float startY = rect.y + headerH + (6.0f * uiScale);
     float availableW = rect.w - (20.0f * uiScale);
-    float spaceX = 10.0f * uiScale;
-    float spaceY = 8.0f * uiScale;
+    float spaceX = 8.0f * uiScale;
+    float spaceY = 6.0f * uiScale;
     int cols = 5;
-    int rows = 2;
+    int rows = 3;
     float btnWidth = (availableW - (spaceX * (cols - 1))) / cols;
-    float btnHeight = (rect.h - headerH - (12.0f * uiScale) - (spaceY * (rows - 1))) / rows;
+    float btnHeight = (rect.h - headerH - (10.0f * uiScale) - (spaceY * (rows - 1))) / rows;
 
     auto mousePos = gameContext->input.getMousePosition();
     bool clicked = gameContext->input.isLeftMouseJustClicked();
