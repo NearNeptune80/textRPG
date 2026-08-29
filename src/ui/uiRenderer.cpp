@@ -144,17 +144,7 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
             UIWidget::drawPanel(renderer, p.rect);
 
             float scrollY = m_panelScrollY.contains(p.id) ? m_panelScrollY[p.id] : 0.0f;
-            float curY = p.rect.y + (10.0f * uiScale) - scrollY;
-
-            // If this is the bottom-left navigation panel, anchor flushed to the bottom corner
-            if (p.id == "left_dpad_box" || (p.widgets.size() == 1 && p.widgets[0] == "widget_lt_dpad_radar"))
-            {
-                float bottomGroupH = 182.0f * uiScale;
-                if (p.rect.h > bottomGroupH)
-                {
-                    curY = p.rect.y + p.rect.h - bottomGroupH - (8.0f * uiScale);
-                }
-            }
+            float curY = p.rect.y + (6.0f * uiScale) - scrollY;
 
             for (const auto& wId : p.widgets)
             {
@@ -846,11 +836,16 @@ float uiRenderer::renderWidgetRadar(SDL_Renderer* renderer, game* gameContext, c
             };
 
             Tile t = m->getTile(mapX, mapY);
+            if (t.type == TILE_VOID)
+            {
+                continue; // Do not draw void/off-map cells as tiles
+            }
+
             int dist = std::max(std::abs(dx), std::abs(dy));
-            bool isWalkedOn = (t.discovery == STATE_REVEALED);
+            bool isWalkedOn = t.visited || (t.discovery == STATE_REVEALED);
 
             SDL_Color tileColor;
-            SDL_Color borderColor = SDL_Color{ 25, 25, 35, 255 };
+            SDL_Color borderColor = SDL_Color{ 22, 22, 30, 255 };
             std::string label = "";
 
             if (dx == 0 && dy == 0)
@@ -862,7 +857,7 @@ float uiRenderer::renderWidgetRadar(SDL_Renderer* renderer, game* gameContext, c
             }
             else if (isWalkedOn)
             {
-                // Tier 1: Walked on / Discovered (brightest)
+                // Tier 1: Walked on / Visited (brightest)
                 if (t.type == TILE_WALL) { tileColor = Theme::colors.bgHeader; }
                 else if (t.type == TILE_DOOR) { tileColor = Theme::colors.textGold; label = "D"; }
                 else { tileColor = Theme::colors.bgSlot; }
@@ -872,15 +867,17 @@ float uiRenderer::renderWidgetRadar(SDL_Renderer* renderer, game* gameContext, c
             {
                 // Tier 2: 1 tile away, never walked on (darker than walked on, lighter than >1)
                 if (t.type == TILE_WALL) { tileColor = SDL_Color{ 24, 24, 34, 255 }; }
-                else if (t.type == TILE_DOOR) { tileColor = SDL_Color{ 110, 85, 20, 255 }; label = "d"; }
+                else if (t.type == TILE_DOOR) { tileColor = SDL_Color{ 130, 95, 20, 255 }; label = "d"; }
                 else { tileColor = SDL_Color{ 18, 18, 26, 255 }; }
-                borderColor = SDL_Color{ 32, 32, 44, 255 };
+                borderColor = SDL_Color{ 36, 36, 48, 255 };
             }
             else
             {
-                // Tier 3: >1 tile away, never walked on (very dark, but visible)
-                tileColor = SDL_Color{ 10, 10, 14, 255 };
-                borderColor = SDL_Color{ 16, 16, 22, 255 };
+                // Tier 3: >1 tile away, never walked on (darkest, but visible tile)
+                if (t.type == TILE_WALL) { tileColor = SDL_Color{ 14, 14, 20, 255 }; }
+                else if (t.type == TILE_DOOR) { tileColor = SDL_Color{ 35, 28, 10, 255 }; }
+                else { tileColor = SDL_Color{ 10, 10, 14, 255 }; }
+                borderColor = SDL_Color{ 20, 20, 28, 255 };
             }
 
             // Draw tile border and fill
