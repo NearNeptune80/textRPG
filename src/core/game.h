@@ -66,6 +66,7 @@ public:
     std::unordered_map<std::string, gameMap> mapCache;
     std::vector<actionButton> activeButtons;
     questScene currentScene;
+    bool isPhoneMenuOpen = false;
 
     // Scene Subroutine Stack Management
     std::vector<std::string> sceneStack;

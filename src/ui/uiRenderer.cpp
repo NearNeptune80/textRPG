@@ -206,12 +206,25 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
                 }
                 else if (wId == "widget_lt_character_card")
                 {
-                    curY += renderWidgetCharOverview(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
-                    curY += renderWidgetVitals(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
+                    curY += renderWidgetCharacterCard(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
+                }
+                else if (wId == "widget_lt_time_bar" || wId == "TIME_CALENDAR_BAR")
+                {
+                    curY += renderWidgetTimeBar(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
+                }
+                else if (wId == "widget_lt_radar_map" || wId == "RADAR_MAP_5X5")
+                {
+                    curY += renderWidgetRadar(renderer, gameContext, p.rect, curY, uiScale);
+                }
+                else if (wId == "widget_lt_options_toolbar" || wId == "OPTIONS_TOOLBAR_5")
+                {
+                    curY += renderWidgetOptionsToolbar(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
                 }
                 else if (wId == "widget_lt_dpad_radar")
                 {
-                    curY += renderWidgetDpadRadar(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
+                    curY += renderWidgetTimeBar(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
+                    curY += renderWidgetRadar(renderer, gameContext, p.rect, curY, uiScale);
+                    curY += renderWidgetOptionsToolbar(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
                 }
                 else if (wId == "widget_lt_characters_present")
                 {
@@ -1298,30 +1311,151 @@ float uiRenderer::renderWidgetEventLog(SDL_Renderer* renderer, game* gameContext
     return (curY - startY);
 }
 
-float uiRenderer::renderWidgetDpadRadar(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
+float uiRenderer::renderWidgetTimeBar(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
 {
     float startY = curY;
-    float padX = curX + (10.0f * uiScale);
-    float availableW = innerW - (20.0f * uiScale);
+    float padX = curX + (8.0f * uiScale);
+    float availableW = innerW - (16.0f * uiScale);
 
-    // 1. Time / Date Banner
-    UIWidget::drawText(renderer, "📅 24th October • 19:08", padX, curY, Theme::colors.textGold, uiScale * 0.85f);
-    curY += (18.0f * uiScale);
+    SDL_FRect timeRect = { padX, curY, availableW, 22.0f * uiScale };
+    UIWidget::drawPanel(renderer, timeRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
-    // 2. D-Pad Radar Map
-    curY += renderWidgetRadar(renderer, gameContext, { padX, curY, availableW, 120.0f * uiScale }, curY, uiScale);
+    UIWidget::drawText(renderer, "📅 17th November", padX + (6.0f * uiScale), curY + (3.0f * uiScale), Theme::colors.textGold, uiScale * 0.85f);
+    UIWidget::drawText(renderer, "▮ 20:04", padX + availableW - (55.0f * uiScale), curY + (3.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.85f);
 
-    // 3. Bottom Toolstrip Icons
-    float iconW = (availableW - (4.0f * 4.0f * uiScale)) / 5.0f;
-    float iconH = 20.0f * uiScale;
-    static const std::vector<std::string> tools = { "⚙", "📖", "👗", "🎒", "🧭" };
+    curY += timeRect.h + (6.0f * uiScale);
+    return (curY - startY);
+}
+
+float uiRenderer::renderWidgetOptionsToolbar(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
+{
+    float startY = curY;
+    float padX = curX + (8.0f * uiScale);
+    float availableW = innerW - (16.0f * uiScale);
+
+    static const std::vector<std::pair<std::string, CommandType>> tools = {
+        { "⚙", CommandType::OPEN_SETTINGS },
+        { "📱", CommandType::OPEN_PHONE },
+        { "👗", CommandType::OPEN_INVENTORY },
+        { "🎒", CommandType::OPEN_INVENTORY },
+        { "👁", CommandType::OPEN_TRANSFORMATION }
+    };
+
+    float btnGap = 4.0f * uiScale;
+    float btnW = (availableW - (btnGap * (tools.size() - 1))) / tools.size();
+    float btnH = 24.0f * uiScale;
+
+    auto mousePos = gameContext->input.getMousePosition();
+    bool clicked = gameContext->input.isLeftMouseJustClicked();
 
     for (size_t i = 0; i < tools.size(); ++i)
     {
-        SDL_FRect iRect = { padX + (i * (iconW + 4.0f * uiScale)), curY, iconW, iconH };
-        UIWidget::drawButton(renderer, iRect, tools[i], false, true, false, uiScale * 0.8f);
-    }
-    curY += iconH + (6.0f * uiScale);
+        SDL_FRect btnRect = { padX + (i * (btnW + btnGap)), curY, btnW, btnH };
+        bool hovered = (mousePos.x >= btnRect.x && mousePos.x <= btnRect.x + btnRect.w &&
+                        mousePos.y >= btnRect.y && mousePos.y <= btnRect.y + btnRect.h);
 
+        bool isActive = (i == 1 && gameContext->isPhoneMenuOpen);
+        UIWidget::drawButton(renderer, btnRect, tools[i].first, hovered, true, isActive, uiScale * 0.9f);
+
+        if (hovered && clicked)
+        {
+            gameContext->handleCommand(UICommand{ tools[i].second });
+            gameContext->input.consumeMouseClick();
+        }
+    }
+
+    curY += btnH + (6.0f * uiScale);
+    return (curY - startY);
+}
+
+float uiRenderer::renderWidgetCharacterCard(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
+{
+    entity* p = gameContext->getPlayer();
+    if (!p) return 0.0f;
+
+    float startY = curY;
+    float padX = curX + (8.0f * uiScale);
+    float availableW = innerW - (16.0f * uiScale);
+
+    // 1. Zone & Room Header (Dominion in purple, Lilaya's Home in cyan)
+    UIWidget::drawText(renderer, "Dominion", padX, curY, SDL_Color{ 208, 112, 255, 255 }, uiScale * 1.1f);
+    curY += (18.0f * uiScale);
+    UIWidget::drawText(renderer, "Lilaya's Home", padX, curY, SDL_Color{ 96, 208, 255, 255 }, uiScale * 0.9f);
+    curY += (16.0f * uiScale);
+
+    // 2. Character Card Frame
+    SDL_FRect cardRect = { padX, curY, availableW, 162.0f * uiScale };
+    UIWidget::drawPanel(renderer, cardRect, Theme::colors.bgDark, Theme::colors.borderButton);
+
+    float innerPadX = padX + (8.0f * uiScale);
+    float cardCurY = curY + (8.0f * uiScale);
+    float cardInnerW = availableW - (16.0f * uiScale);
+
+    // Row A: Avatar & Name/Level
+    SDL_FRect avatarRect = { innerPadX, cardCurY, 24.0f * uiScale, 24.0f * uiScale };
+    UIWidget::drawPanel(renderer, avatarRect, Theme::colors.bgHeader, Theme::colors.borderButton);
+    UIWidget::drawText(renderer, "👤", avatarRect.x + (4.0f * uiScale), avatarRect.y + (3.0f * uiScale), Theme::colors.textGold, uiScale * 0.85f);
+
+    std::string nameLvl = std::format("{} - Level {}", p->name.empty() ? "Hero" : p->name, p->stats.level);
+    UIWidget::drawText(renderer, nameLvl, innerPadX + (30.0f * uiScale), cardCurY + (4.0f * uiScale), Theme::colors.textAccent, uiScale * 0.95f);
+    cardCurY += (28.0f * uiScale);
+
+    // Row B: Currency (Gold ¤ and Arcane Essence ⭐)
+    UIWidget::drawText(renderer, std::format("¤ {:.0f}", p->getStat("currency")), innerPadX, cardCurY, Theme::colors.textGold, uiScale * 0.9f);
+    UIWidget::drawText(renderer, "⭐ 0", innerPadX + (cardInnerW * 0.55f), cardCurY, Theme::colors.lust, uiScale * 0.9f);
+    cardCurY += (18.0f * uiScale);
+
+    // Row C: Core stats icons/numbers
+    UIWidget::drawText(renderer, std::format("❤️ {:.0f}", p->getStat("physique")), innerPadX, cardCurY, Theme::colors.enemy, uiScale * 0.85f);
+    UIWidget::drawText(renderer, std::format("⭐ {:.0f}", p->getStat("arcane")), innerPadX + (cardInnerW * 0.35f), cardCurY, Theme::colors.arcane, uiScale * 0.85f);
+    UIWidget::drawText(renderer, std::format("🌀 {:.0f}", p->getStat("corruption")), innerPadX + (cardInnerW * 0.7f), cardCurY, Theme::colors.corruption, uiScale * 0.85f);
+    cardCurY += (18.0f * uiScale);
+
+    // Row D: 3 Vitals Bars (Red/Coral Health, Purple Mana, Pink Lust)
+    float barH = 13.0f * uiScale;
+    float barW = cardInnerW - (30.0f * uiScale);
+
+    // Health
+    float hp = p->getStat("health");
+    UIWidget::drawText(renderer, "⚡", innerPadX, cardCurY, Theme::colors.health, uiScale * 0.75f);
+    UIWidget::drawProgressBar(renderer, { innerPadX + (14.0f * uiScale), cardCurY, barW, barH }, hp, 100.0f, Theme::colors.health, Theme::colors.bgSlot, "", uiScale);
+    UIWidget::drawText(renderer, std::format("{:.0f}", hp), innerPadX + (16.0f * uiScale) + barW, cardCurY, Theme::colors.textPrimary, uiScale * 0.75f);
+    cardCurY += (barH + 4.0f * uiScale);
+
+    // Mana
+    float mana = p->getStat("mana");
+    UIWidget::drawText(renderer, "⭐", innerPadX, cardCurY, Theme::colors.mana, uiScale * 0.75f);
+    UIWidget::drawProgressBar(renderer, { innerPadX + (14.0f * uiScale), cardCurY, barW, barH }, mana, 50.0f, Theme::colors.mana, Theme::colors.bgSlot, "", uiScale);
+    UIWidget::drawText(renderer, std::format("{:.0f}", mana), innerPadX + (16.0f * uiScale) + barW, cardCurY, Theme::colors.textPrimary, uiScale * 0.75f);
+    cardCurY += (barH + 4.0f * uiScale);
+
+    // Lust
+    float lust = p->getStat("lust");
+    UIWidget::drawText(renderer, "💧", innerPadX, cardCurY, Theme::colors.lust, uiScale * 0.75f);
+    UIWidget::drawProgressBar(renderer, { innerPadX + (14.0f * uiScale), cardCurY, barW, barH }, lust, 100.0f, Theme::colors.lust, Theme::colors.bgSlot, "", uiScale);
+    UIWidget::drawText(renderer, std::format("{:.0f}", lust), innerPadX + (16.0f * uiScale) + barW, cardCurY, Theme::colors.textPrimary, uiScale * 0.75f);
+    cardCurY += (barH + 7.0f * uiScale);
+
+    // Row E: Status trait badges
+    static const std::vector<std::string> statusBadges = { "⚡", "🌧️", "♀️", "🎀", "✨" };
+    float badgeSize = 16.0f * uiScale;
+    float badgeGap = 4.0f * uiScale;
+    for (size_t i = 0; i < statusBadges.size(); ++i)
+    {
+        SDL_FRect bRect = { innerPadX + (i * (badgeSize + badgeGap)), cardCurY, badgeSize, badgeSize };
+        UIWidget::drawPanel(renderer, bRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+        UIWidget::drawText(renderer, statusBadges[i], bRect.x + (2.0f * uiScale), bRect.y + (1.0f * uiScale), Theme::colors.textGold, uiScale * 0.7f);
+    }
+
+    curY += cardRect.h + (10.0f * uiScale);
+    return (curY - startY);
+}
+
+float uiRenderer::renderWidgetDpadRadar(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
+{
+    float startY = curY;
+    curY += renderWidgetTimeBar(renderer, gameContext, curX, curY, innerW, uiScale);
+    curY += renderWidgetRadar(renderer, gameContext, { curX, curY, innerW, 110.0f * uiScale }, curY, uiScale);
+    curY += renderWidgetOptionsToolbar(renderer, gameContext, curX, curY, innerW, uiScale);
     return (curY - startY);
 }

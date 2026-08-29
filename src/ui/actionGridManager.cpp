@@ -353,87 +353,161 @@ void ActionGridManager::refresh(game* gameContext)
     // 5. Exploration Movement & Interaction Shortcuts
     if (dynamic_cast<explorationState*>(currentState))
     {
-        if (gameContext->map)
+        if (gameContext->isPhoneMenuOpen)
         {
-            auto& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
-            if (tileData.persistentNPC)
+            actionButton spellsBtn;
+            spellsBtn.label = "Spells & Moves";
+            spellsBtn.onClick = [gameContext]() {};
+            gameContext->activeButtons.push_back(spellsBtn);
+
+            actionButton tfBtn;
+            tfBtn.label = "Transformations (M)";
+            tfBtn.onClick = [gameContext]() {
+                gameContext->changeState(std::make_unique<transformationState>());
+            };
+            gameContext->activeButtons.push_back(tfBtn);
+
+            actionButton fetishBtn;
+            fetishBtn.label = "Fetishes & Perks";
+            fetishBtn.onClick = [gameContext]() {};
+            gameContext->activeButtons.push_back(fetishBtn);
+
+            actionButton encBtn;
+            encBtn.label = "Encyclopedia";
+            encBtn.onClick = [gameContext]() {};
+            gameContext->activeButtons.push_back(encBtn);
+
+            actionButton questBtn;
+            questBtn.label = "Quest Journal";
+            questBtn.onClick = [gameContext]() {};
+            gameContext->activeButtons.push_back(questBtn);
+
+            actionButton saveBtn;
+            saveBtn.label = "QuickSave (F5)";
+            saveBtn.onClick = [gameContext]() {
+                saveManager::saveNamedGame(gameContext, "QuickSave");
+            };
+            gameContext->activeButtons.push_back(saveBtn);
+
+            actionButton loadBtn;
+            loadBtn.label = "QuickLoad (F9)";
+            loadBtn.onClick = [gameContext]() {
+                entity* p = gameContext->getPlayer();
+                std::string charName = (p && !p->name.empty()) ? p->name : "Hero";
+                saveManager::loadFromFile(gameContext, charName + "_QuickSave.json");
+                gameContext->refreshActionGrid();
+            };
+            gameContext->activeButtons.push_back(loadBtn);
+
+            // Pad up to slot 14
+            while (gameContext->activeButtons.size() < 14)
             {
-                actionButton npcBtn;
-                npcBtn.label = std::format("Talk to {}", tileData.persistentNPC->name);
-                npcBtn.onClick = [gameContext, npc = tileData.persistentNPC]() {
-                    gameContext->triggerEncounter(npc);
-                };
-                gameContext->activeButtons.push_back(npcBtn);
+                actionButton blank;
+                blank.label = "";
+                blank.isEnabled = false;
+                gameContext->activeButtons.push_back(blank);
             }
 
-            if (!tileData.droppedItems.empty())
-            {
-                actionButton groundBtn;
-                groundBtn.label = std::format("Examine Ground ({} items)", tileData.droppedItems.size());
-                groundBtn.onClick = [gameContext]() {
-                    gameContext->changeState(std::make_unique<inventoryState>());
-                };
-                gameContext->activeButtons.push_back(groundBtn);
-            }
+            actionButton backBtn;
+            backBtn.label = "< Back (Phone)";
+            backBtn.onClick = [gameContext]() {
+                gameContext->isPhoneMenuOpen = false;
+                gameContext->refreshActionGrid();
+            };
+            gameContext->activeButtons.push_back(backBtn);
         }
+        else
+        {
+            if (gameContext->map)
+            {
+                auto& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
+                if (tileData.persistentNPC)
+                {
+                    actionButton npcBtn;
+                    npcBtn.label = std::format("Talk to {}", tileData.persistentNPC->name);
+                    npcBtn.onClick = [gameContext, npc = tileData.persistentNPC]() {
+                        gameContext->triggerEncounter(npc);
+                    };
+                    gameContext->activeButtons.push_back(npcBtn);
+                }
 
-        actionButton invBtn;
-        invBtn.label = "Inventory (I)";
-        invBtn.onClick = [gameContext]() {
-            gameContext->changeState(std::make_unique<inventoryState>());
-        };
-        gameContext->activeButtons.push_back(invBtn);
+                if (!tileData.droppedItems.empty())
+                {
+                    actionButton groundBtn;
+                    groundBtn.label = std::format("Examine Ground ({} items)", tileData.droppedItems.size());
+                    groundBtn.onClick = [gameContext]() {
+                        gameContext->changeState(std::make_unique<inventoryState>());
+                    };
+                    gameContext->activeButtons.push_back(groundBtn);
+                }
+            }
 
-        actionButton shopBtn;
-        shopBtn.label = "Visit Shop (K)";
-        shopBtn.onClick = [gameContext]() {
-            gameContext->changeState(std::make_unique<shopState>());
-        };
-        gameContext->activeButtons.push_back(shopBtn);
+            actionButton invBtn;
+            invBtn.label = "Inventory (I)";
+            invBtn.onClick = [gameContext]() {
+                gameContext->changeState(std::make_unique<inventoryState>());
+            };
+            gameContext->activeButtons.push_back(invBtn);
 
-        actionButton tfBtn;
-        tfBtn.label = "Mutations & TF (M)";
-        tfBtn.onClick = [gameContext]() {
-            gameContext->changeState(std::make_unique<transformationState>());
-        };
-        gameContext->activeButtons.push_back(tfBtn);
+            actionButton shopBtn;
+            shopBtn.label = "Visit Shop (K)";
+            shopBtn.onClick = [gameContext]() {
+                gameContext->changeState(std::make_unique<shopState>());
+            };
+            gameContext->activeButtons.push_back(shopBtn);
 
-        actionButton combatBtn;
-        combatBtn.label = "Test Combat (C)";
-        combatBtn.onClick = [gameContext]() {
-            std::vector<std::shared_ptr<entity>> pParty = { gameContext->playerEntity };
-            std::vector<std::shared_ptr<entity>> eParty;
-            auto& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
-            if (tileData.persistentNPC) eParty.push_back(tileData.persistentNPC);
-            else if (gameContext->activeTargetNPC) eParty.push_back(gameContext->activeTargetNPC);
-            else eParty.push_back(encounterResolver::createEncounterNPC(1, gameContext->settings));
-            gameContext->changeState(std::make_unique<CombatState>(pParty, eParty));
-        };
-        gameContext->activeButtons.push_back(combatBtn);
+            actionButton tfBtn;
+            tfBtn.label = "Mutations & TF (M)";
+            tfBtn.onClick = [gameContext]() {
+                gameContext->changeState(std::make_unique<transformationState>());
+            };
+            gameContext->activeButtons.push_back(tfBtn);
 
-        actionButton waitBtn;
-        waitBtn.label = "Wait / Rest (1 hr)";
-        waitBtn.onClick = [gameContext]() {
-            gameContext->gameTime.advanceTime(60);
-            gameContext->refreshActionGrid();
-        };
-        gameContext->activeButtons.push_back(waitBtn);
+            actionButton combatBtn;
+            combatBtn.label = "Test Combat (C)";
+            combatBtn.onClick = [gameContext]() {
+                std::vector<std::shared_ptr<entity>> pParty = { gameContext->playerEntity };
+                std::vector<std::shared_ptr<entity>> eParty;
+                auto& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
+                if (tileData.persistentNPC) eParty.push_back(tileData.persistentNPC);
+                else if (gameContext->activeTargetNPC) eParty.push_back(gameContext->activeTargetNPC);
+                else eParty.push_back(encounterResolver::createEncounterNPC(1, gameContext->settings));
+                gameContext->changeState(std::make_unique<CombatState>(pParty, eParty));
+            };
+            gameContext->activeButtons.push_back(combatBtn);
 
-        actionButton saveBtn;
-        saveBtn.label = "QuickSave (F5)";
-        saveBtn.onClick = [gameContext]() {
-            saveManager::saveNamedGame(gameContext, "QuickSave");
-        };
-        gameContext->activeButtons.push_back(saveBtn);
+            actionButton waitBtn;
+            waitBtn.label = "Wait / Rest (1 hr)";
+            waitBtn.onClick = [gameContext]() {
+                gameContext->gameTime.advanceTime(60);
+                gameContext->refreshActionGrid();
+            };
+            gameContext->activeButtons.push_back(waitBtn);
 
-        actionButton loadBtn;
-        loadBtn.label = "QuickLoad (F9)";
-        loadBtn.onClick = [gameContext]() {
-            entity* p = gameContext->getPlayer();
-            std::string charName = (p && !p->name.empty()) ? p->name : "Hero";
-            saveManager::loadFromFile(gameContext, charName + "_QuickSave.json");
-            gameContext->refreshActionGrid();
-        };
-        gameContext->activeButtons.push_back(loadBtn);
+            actionButton phoneBtn;
+            phoneBtn.label = "Phone (Menu)";
+            phoneBtn.onClick = [gameContext]() {
+                gameContext->isPhoneMenuOpen = true;
+                gameContext->refreshActionGrid();
+            };
+            gameContext->activeButtons.push_back(phoneBtn);
+
+            actionButton saveBtn;
+            saveBtn.label = "QuickSave (F5)";
+            saveBtn.onClick = [gameContext]() {
+                saveManager::saveNamedGame(gameContext, "QuickSave");
+            };
+            gameContext->activeButtons.push_back(saveBtn);
+
+            actionButton loadBtn;
+            loadBtn.label = "QuickLoad (F9)";
+            loadBtn.onClick = [gameContext]() {
+                entity* p = gameContext->getPlayer();
+                std::string charName = (p && !p->name.empty()) ? p->name : "Hero";
+                saveManager::loadFromFile(gameContext, charName + "_QuickSave.json");
+                gameContext->refreshActionGrid();
+            };
+            gameContext->activeButtons.push_back(loadBtn);
+        }
     }
 }

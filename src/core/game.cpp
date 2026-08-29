@@ -1001,6 +1001,12 @@ void game::handleCommand(const UICommand& cmd)
         changeState(std::make_unique<transformationState>());
         return;
     }
+    else if (cmd.type == CommandType::OPEN_PHONE)
+    {
+        isPhoneMenuOpen = !isPhoneMenuOpen;
+        refreshActionGrid();
+        return;
+    }
     else if (cmd.type == CommandType::CLOSE_MENU)
     {
         changeState(std::make_unique<explorationState>());
