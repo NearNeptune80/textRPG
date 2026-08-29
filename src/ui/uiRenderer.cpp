@@ -636,9 +636,9 @@ void uiRenderer::renderBottomActionGrid(SDL_Renderer* renderer, game* gameContex
     int totalButtons = static_cast<int>(buttons.size());
 
     int totalPages = (totalButtons > 0) ? ((totalButtons - 1) / BUTTONS_PER_PAGE) + 1 : 1;
-    m_currentPage = std::clamp(m_currentPage, 0, totalPages - 1);
+    gameContext->currentActionPage = std::clamp(gameContext->currentActionPage, 0, totalPages - 1);
 
-    int startIndex = m_currentPage * BUTTONS_PER_PAGE;
+    int startIndex = gameContext->currentActionPage * BUTTONS_PER_PAGE;
     int endIndex = std::min(startIndex + BUTTONS_PER_PAGE, totalButtons);
 
     float sideBtnW = 20.0f * uiScale;
@@ -656,10 +656,10 @@ void uiRenderer::renderBottomActionGrid(SDL_Renderer* renderer, game* gameContex
                         mousePos.y >= leftMidRect.y && mousePos.y <= leftMidRect.y + leftMidRect.h);
 
     UIWidget::drawLTActionButton(renderer, leftTopRect, "Q", "", false, false, false, uiScale * 0.75f);
-    UIWidget::drawLTActionButton(renderer, leftMidRect, "<", "", leftHovered, m_currentPage > 0, false, uiScale * 0.9f);
-    if (leftHovered && clicked && m_currentPage > 0)
+    UIWidget::drawLTActionButton(renderer, leftMidRect, "<", "", leftHovered, gameContext->currentActionPage > 0, false, uiScale * 0.9f);
+    if (leftHovered && clicked && gameContext->currentActionPage > 0)
     {
-        m_currentPage--;
+        gameContext->previousActionPage();
         gameContext->input.consumeMouseClick();
     }
 
@@ -671,10 +671,10 @@ void uiRenderer::renderBottomActionGrid(SDL_Renderer* renderer, game* gameContex
                          mousePos.y >= rightMidRect.y && mousePos.y <= rightMidRect.y + rightMidRect.h);
 
     UIWidget::drawLTActionButton(renderer, rightTopRect, "E", "", false, false, false, uiScale * 0.75f);
-    UIWidget::drawLTActionButton(renderer, rightMidRect, ">", "", rightHovered, m_currentPage < totalPages - 1, false, uiScale * 0.9f);
-    if (rightHovered && clicked && m_currentPage < totalPages - 1)
+    UIWidget::drawLTActionButton(renderer, rightMidRect, ">", "", rightHovered, gameContext->currentActionPage < totalPages - 1, false, uiScale * 0.9f);
+    if (rightHovered && clicked && gameContext->currentActionPage < totalPages - 1)
     {
-        m_currentPage++;
+        gameContext->nextActionPage();
         gameContext->input.consumeMouseClick();
     }
 
@@ -706,12 +706,14 @@ void uiRenderer::renderBottomActionGrid(SDL_Renderer* renderer, game* gameContex
             bool hovered = (mousePos.x >= btnRect.x && mousePos.x <= btnRect.x + btnRect.w &&
                             mousePos.y >= btnRect.y && mousePos.y <= btnRect.y + btnRect.h);
 
-            UIWidget::drawLTActionButton(renderer, btnRect, buttons[buttonIdx].label, hotkeys[slotIdx], hovered, buttons[buttonIdx].isEnabled, false, uiScale);
+            UIWidget::drawLTActionButton(renderer, btnRect, buttons[buttonIdx].label, hotkeys[slotIdx], hovered, buttons[buttonIdx].isEnabled, buttons[buttonIdx].isSelected, uiScale);
 
             if (hovered && clicked && buttons[buttonIdx].isEnabled && buttons[buttonIdx].onClick)
             {
-                buttons[buttonIdx].onClick();
+                auto cb = buttons[buttonIdx].onClick;
                 gameContext->input.consumeMouseClick();
+                cb();
+                break;
             }
         }
         else
@@ -1368,7 +1370,7 @@ float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, c
 
         return (curY - startY);
     }
-    else // Content Options (Misc., Gameplay, etc.)
+    else // Content Options (Misc., Gameplay, Sex & Fetishes, Bodies, Preferences, etc.)
     {
         std::string catName = "Misc.";
         if (opt->contentCategory == ContentOptionsCategory::GAMEPLAY) catName = "Gameplay";
@@ -1380,28 +1382,68 @@ float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, c
         else if (opt->contentCategory == ContentOptionsCategory::FURRY_PREFS) catName = "Furry preferences";
         else if (opt->contentCategory == ContentOptionsCategory::FETISH_PREFS) catName = "Fetish preferences";
 
-        // Centered Header Card: Content Options (<Category>)
+        // Centered Header Card
+        std::string headerTitle = (opt->contentCategory == ContentOptionsCategory::GENDER_PREFS ||
+                                   opt->contentCategory == ContentOptionsCategory::ORIENTATION_PREFS ||
+                                   opt->contentCategory == ContentOptionsCategory::AGE_PREFS ||
+                                   opt->contentCategory == ContentOptionsCategory::FURRY_PREFS ||
+                                   opt->contentCategory == ContentOptionsCategory::FETISH_PREFS)
+                                  ? catName : "Content Options (" + catName + ")";
+
         float cardW = std::min(availableW, 420.0f * uiScale);
         float cardH = 34.0f * uiScale;
-        UIWidget::drawCenteredHeaderCard(renderer, centerX, curY, cardW, cardH, "Content Options (" + catName + ")", Theme::colors.textPrimary, uiScale);
-        curY += cardH + (18.0f * uiScale);
+        UIWidget::drawCenteredHeaderCard(renderer, centerX, curY, cardW, cardH, headerTitle, Theme::colors.textPrimary, uiScale);
+        curY += cardH + (16.0f * uiScale);
 
-        // Helper lambda to render a Content Option item card
+        // Helper lambda: Info dropdown banner
+        auto renderInfoDropdown = [&]() {
+            float dropW = availableW;
+            float dropH = 26.0f * uiScale;
+            SDL_FRect dropRect = { padX, curY, dropW, dropH };
+            UIWidget::drawPanel(renderer, dropRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+            std::string infoStr = "► Click for more info.";
+            float strW = infoStr.size() * (7.0f * uiScale);
+            UIWidget::drawText(renderer, infoStr, padX + ((dropW - strW) / 2.0f), curY + (5.0f * uiScale), SDL_Color{ 180, 130, 255, 255 }, uiScale * 0.86f);
+            curY += dropH + (12.0f * uiScale);
+        };
+
+        // Helper lambda: Multi-colored distribution proportion bar
+        auto renderDistributionBar = [&](const std::vector<std::pair<float, SDL_Color>>& segments) {
+            float barW = availableW;
+            float barH = 10.0f * uiScale;
+            float total = 0.0f;
+            for (const auto& s : segments) total += s.first;
+            if (total <= 0.0f) total = 1.0f;
+
+            float accX = padX;
+            for (const auto& s : segments)
+            {
+                float segW = (s.first / total) * barW;
+                if (segW > 0.0f)
+                {
+                    SDL_FRect segRect = { accX, curY, segW, barH };
+                    SDL_SetRenderDrawColor(renderer, s.second.r, s.second.g, s.second.b, s.second.a);
+                    SDL_RenderFillRect(renderer, &segRect);
+                    accX += segW;
+                }
+            }
+            curY += barH + (14.0f * uiScale);
+        };
+
+        // Helper lambda: Setting Row with Segments (e.g. OFF / ON)
         auto renderOptionCard = [&](const std::string& title, SDL_Color titleCol, const std::string& description, const std::vector<std::string>& pillLabels, int selectedIndex, std::function<void(int)> onSelect) {
             float cardWidth = availableW;
             float leftW = cardWidth - (180.0f * uiScale);
-            float cardMinH = 50.0f * uiScale;
+            float cardMinH = 48.0f * uiScale;
 
             SDL_FRect cardRect = { padX, curY, cardWidth, cardMinH };
             UIWidget::drawPanel(renderer, cardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
-            // Title + Description
             UIWidget::drawText(renderer, title + ":", padX + (10.0f * uiScale), curY + (7.0f * uiScale), titleCol, uiScale * 0.88f);
             float titleW = (title.size() + 2) * (7.5f * uiScale);
 
             float descH = UIWidget::drawTextWrapped(renderer, description, padX + (10.0f * uiScale) + titleW, curY + (7.0f * uiScale), leftW - titleW - (10.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.82f);
 
-            // Segmented Pills on Right
             float pillTotalW = 150.0f * uiScale;
             float pillH = 24.0f * uiScale;
             float pillItemW = pillTotalW / pillLabels.size();
@@ -1438,6 +1480,56 @@ float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, c
             curY += actualCardH + (8.0f * uiScale);
         };
 
+        // Helper lambda: 6-pill frequency row ([ Off ] [ Minimal ] [ Low ] [ Average ] [ High ] [ Abundant ])
+        auto renderFrequencyRow = [&](const std::string& title, SDL_Color titleCol, const std::string& subtitle, int selectedIndex, std::function<void(int)> onSelect) {
+            float cardWidth = availableW;
+            float rowMinH = subtitle.empty() ? 32.0f * uiScale : 48.0f * uiScale;
+            SDL_FRect rowRect = { padX, curY, cardWidth, rowMinH };
+            UIWidget::drawPanel(renderer, rowRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+
+            UIWidget::drawText(renderer, title, padX + (12.0f * uiScale), curY + (6.0f * uiScale), titleCol, uiScale * 0.9f);
+
+            static const std::vector<std::string> freqLabels = { "Off", "Minimal", "Low", "Average", "High", "Abundant" };
+            float pillTotalW = 280.0f * uiScale;
+            float pillH = 22.0f * uiScale;
+            float pillItemW = (pillTotalW - (5.0f * 4.0f * uiScale)) / 6.0f;
+            float pillStartX = padX + cardWidth - pillTotalW - (12.0f * uiScale);
+            float pillY = curY + (5.0f * uiScale);
+
+            for (size_t p = 0; p < freqLabels.size(); ++p)
+            {
+                SDL_FRect pRect = { pillStartX + (p * (pillItemW + 4.0f * uiScale)), pillY, pillItemW, pillH };
+                bool pHovered = (mousePos.x >= pRect.x && mousePos.x <= pRect.x + pRect.w &&
+                                 mousePos.y >= pRect.y && mousePos.y <= pRect.y + pRect.h);
+                bool isSelected = (static_cast<int>(p) == selectedIndex);
+
+                SDL_Color bgCol = isSelected ? SDL_Color{ 75, 24, 55, 255 } : (pHovered ? SDL_Color{ 50, 54, 62, 255 } : SDL_Color{ 38, 42, 50, 255 });
+                SDL_Color borderCol = isSelected ? SDL_Color{ 245, 80, 175, 255 } : (pHovered ? Theme::colors.textGold : SDL_Color{ 58, 62, 72, 255 });
+
+                SDL_SetRenderDrawColor(renderer, bgCol.r, bgCol.g, bgCol.b, bgCol.a);
+                SDL_RenderFillRect(renderer, &pRect);
+                SDL_SetRenderDrawColor(renderer, borderCol.r, borderCol.g, borderCol.b, borderCol.a);
+                SDL_RenderRect(renderer, &pRect);
+
+                SDL_Color pTextCol = isSelected ? SDL_Color{ 255, 220, 245, 255 } : (pHovered ? Theme::colors.textGold : Theme::colors.textMuted);
+                float labelW = freqLabels[p].size() * (6.0f * uiScale);
+                UIWidget::drawText(renderer, freqLabels[p], pRect.x + ((pRect.w - labelW) / 2.0f), pRect.y + (3.0f * uiScale), pTextCol, uiScale * 0.75f);
+
+                if (pHovered && clicked)
+                {
+                    onSelect(static_cast<int>(p));
+                    gameContext->input.consumeMouseClick();
+                }
+            }
+
+            if (!subtitle.empty())
+            {
+                UIWidget::drawText(renderer, subtitle, padX + (12.0f * uiScale), curY + (28.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.8f);
+            }
+
+            curY += rowMinH + (6.0f * uiScale);
+        };
+
         if (opt->contentCategory == ContentOptionsCategory::MISC)
         {
             renderOptionCard("Autosave Frequency", Theme::colors.companion, "Choose how often want the game to autosave when you transition from one map to another.", { "Always", "Daily", "Weekly" }, 0, [](int idx) {});
@@ -1454,9 +1546,69 @@ float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, c
             renderOptionCard("Opportunistic attackers", SDL_Color{ 255, 110, 120, 255 }, "Makes random attacks more likely when you're high on lust, low health, or exposed.", { "OFF", "ON" }, 1, [](int idx) {});
             renderOptionCard("Offspring Encounters", SDL_Color{ 160, 160, 255, 255 }, "Enables you to randomly encounter your offspring throughout the world.", { "OFF", "ON" }, 1, [](int idx) {});
         }
+        else if (opt->contentCategory == ContentOptionsCategory::SEX_AND_FETISHES)
+        {
+            renderOptionCard("Non-consent", SDL_Color{ 255, 95, 120, 255 }, "This enables the 'resist' pace in sex scenes, which contains some more extreme non-consensual descriptions, as well as dialogue references and actions related to this content. Please note that bad ends involve non-con content, regardless of whether or not this option is enabled.", { "OFF", "ON" }, 1, [](int idx) {});
+            renderOptionCard("Sadistic sex", SDL_Color{ 255, 95, 120, 255 }, "This unlocks 'sadistic' sex actions, such as choking, slapping, and spitting on partners in sex.", { "OFF", "ON" }, 1, [](int idx) {});
+            renderOptionCard("Lipstick marking", SDL_Color{ 255, 105, 180, 255 }, "This enables lipstick marking of body parts via kisses during sex.", { "OFF", "ON" }, 1, [](int idx) {});
+            renderOptionCard("Voluntary NTR", SDL_Color{ 255, 130, 160, 255 }, "When enabled, you will get the option to offer certain enemies sex with your companions as a way to avoid combat.", { "OFF", "ON" }, 1, [](int idx) {});
+            renderOptionCard("Involuntary NTR", SDL_Color{ 255, 95, 120, 255 }, "When enabled, enemies might choose to only have sex with your companion after beating your party in combat. When disabled, all post-combat-loss sex scenes will involve you.", { "OFF", "ON" }, 0, [](int idx) {});
+            renderOptionCard("Incest", SDL_Color{ 190, 130, 255, 255 }, "This will enable sexual actions between closely related characters.", { "OFF", "ON" }, 1, [](int idx) {});
+        }
+        else if (opt->contentCategory == ContentOptionsCategory::BODIES)
+        {
+            renderOptionCard("Age", SDL_Color{ 185, 230, 110, 255 }, "This enables descriptions of the age that characters appear to be.", { "OFF", "ON" }, 1, [](int idx) {});
+            renderOptionCard("Feral", SDL_Color{ 240, 180, 80, 255 }, "This enables feral content, which contains sexual and non-sexual interactions with sapient characters who have fully-animal bodies.", { "OFF", "ON" }, 1, [](int idx) {});
+            renderOptionCard("Cum Regeneration", SDL_Color{ 100, 210, 255, 255 }, "This enables cum regeneration related content, such as decreasing quantity for multiple orgasms in one session and the full balls status effect. When disabled, balls will always be treated as full, but without any negative effects.", { "OFF", "ON" }, 1, [](int idx) {});
+            renderOptionCard("Futanari Testicles", SDL_Color{ 255, 80, 200, 255 }, "When enabled, futanari NPCs will be able to have external testicles. When disabled, they are locked to always being internal.", { "OFF", "ON" }, 1, [](int idx) {});
+            renderOptionCard("Bipedal Cloacas", SDL_Color{ 255, 80, 200, 255 }, "When enabled, certain bipedal races (such as harpies and alligator-morphs) will have cloacas. When disabled, all bipeds with cloacas will be treated as having a regular genitalia configuration. Some special races, such as lamia, always have cloacas, and are not affected by this.", { "OFF", "ON" }, 1, [](int idx) {});
+        }
+        else if (opt->contentCategory == ContentOptionsCategory::GENDER_PREFS)
+        {
+            renderFrequencyRow("Butch", SDL_Color{ 100, 160, 255, 255 }, "Butchs have a vagina, no penis, and breasts.", 0, [](int idx) {});
+            renderFrequencyRow("Cuntboy", SDL_Color{ 100, 160, 255, 255 }, "Cuntboys have a vagina, no penis, and no breasts.", 0, [](int idx) {});
+            renderFrequencyRow("Mannequin", SDL_Color{ 100, 160, 255, 255 }, "Mannequins have no vagina, no penis, and breasts.", 0, [](int idx) {});
+            renderFrequencyRow("Mannequin", SDL_Color{ 100, 160, 255, 255 }, "Mannequins have no vagina, no penis, and no breasts.", 0, [](int idx) {});
+
+            renderDistributionBar({ { 45.0f, SDL_Color{ 100, 160, 255, 255 } }, { 10.0f, SDL_Color{ 140, 90, 120, 255 } }, { 5.0f, SDL_Color{ 190, 130, 160, 255 } }, { 40.0f, SDL_Color{ 255, 170, 215, 255 } } });
+
+            UIWidget::drawText(renderer, "Androgynous", centerX - (45.0f * uiScale), curY, SDL_Color{ 180, 130, 255, 255 }, uiScale * 0.95f);
+            curY += (20.0f * uiScale);
+
+            renderFrequencyRow("Hermaphrodite", SDL_Color{ 180, 130, 255, 255 }, "Hermaphrodites have a vagina, a penis, and breasts.", 0, [](int idx) {});
+            renderFrequencyRow("Hermaphrodite", SDL_Color{ 180, 130, 255, 255 }, "Hermaphrodites have a vagina, a penis, and no breasts.", 0, [](int idx) {});
+        }
+        else if (opt->contentCategory == ContentOptionsCategory::ORIENTATION_PREFS)
+        {
+            renderInfoDropdown();
+
+            renderFrequencyRow("Androphilic", SDL_Color{ 100, 160, 255, 255 }, "", 3, [](int idx) {});
+            renderFrequencyRow("Ambiphilic", SDL_Color{ 180, 130, 255, 255 }, "", 3, [](int idx) {});
+            renderFrequencyRow("Gynephilic", SDL_Color{ 255, 110, 180, 255 }, "", 3, [](int idx) {});
+
+            curY += (8.0f * uiScale);
+            renderDistributionBar({ { 33.3f, SDL_Color{ 100, 160, 255, 255 } }, { 33.3f, SDL_Color{ 180, 130, 255, 255 } }, { 33.4f, SDL_Color{ 255, 170, 215, 255 } } });
+        }
+        else if (opt->contentCategory == ContentOptionsCategory::AGE_PREFS)
+        {
+            renderInfoDropdown();
+
+            UIWidget::drawText(renderer, "Masculine", centerX - (38.0f * uiScale), curY, SDL_Color{ 100, 160, 255, 255 }, uiScale * 0.95f);
+            curY += (20.0f * uiScale);
+
+            renderFrequencyRow("Late teens", Theme::colors.textPrimary, "", 4, [](int idx) {});
+            renderFrequencyRow("Early twenties", Theme::colors.textPrimary, "", 5, [](int idx) {});
+            renderFrequencyRow("Mid-twenties", Theme::colors.textPrimary, "", 5, [](int idx) {});
+            renderFrequencyRow("Late twenties", Theme::colors.textPrimary, "", 4, [](int idx) {});
+            renderFrequencyRow("Early thirties", Theme::colors.textPrimary, "", 3, [](int idx) {});
+            renderFrequencyRow("Mid-thirties", Theme::colors.textPrimary, "", 3, [](int idx) {});
+            renderFrequencyRow("Late thirties", Theme::colors.textPrimary, "", 2, [](int idx) {});
+            renderFrequencyRow("Early forties", Theme::colors.textPrimary, "", 2, [](int idx) {});
+            renderFrequencyRow("Mid-forties", Theme::colors.textPrimary, "", 1, [](int idx) {});
+        }
         else
         {
-            renderOptionCard("Category Preferences", Theme::colors.textGold, "Fine tune preferences and content generation rules for this category.", { "OFF", "ON" }, 1, [](int idx) {});
+            renderFrequencyRow("Sub-category Tuning", Theme::colors.textGold, "Fine-tune generation frequencies and preference distributions.", 3, [](int idx) {});
         }
 
         return (curY - startY);

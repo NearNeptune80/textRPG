@@ -37,12 +37,45 @@ game::~game()
 
 void game::changeState(std::unique_ptr<iGameState> newState)
 {
+    currentActionPage = 0;
     if (activeGameState) activeGameState->onExit(this);
     activeGameState = std::move(newState);
     if (activeGameState)
     {
         activeGameState->initialise(this);
         activeGameState->onEnter(this);
+    }
+}
+
+void game::triggerActionButton(int slotIndex)
+{
+    if (slotIndex < 0 || slotIndex >= 15) return;
+    int targetIdx = (currentActionPage * 15) + slotIndex;
+    if (targetIdx >= 0 && static_cast<size_t>(targetIdx) < activeButtons.size())
+    {
+        if (activeButtons[targetIdx].isEnabled && activeButtons[targetIdx].onClick)
+        {
+            auto cb = activeButtons[targetIdx].onClick;
+            cb();
+        }
+    }
+}
+
+void game::previousActionPage()
+{
+    if (currentActionPage > 0)
+    {
+        currentActionPage--;
+    }
+}
+
+void game::nextActionPage()
+{
+    int totalButtons = static_cast<int>(activeButtons.size());
+    int totalPages = (totalButtons > 0) ? ((totalButtons - 1) / 15) + 1 : 1;
+    if (currentActionPage < totalPages - 1)
+    {
+        currentActionPage++;
     }
 }
 

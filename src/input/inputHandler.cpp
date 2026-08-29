@@ -1,7 +1,9 @@
 #include "input/inputHandler.h"
 
 #include "core/game.h"
+#include "state/explorationState.h"
 #include "state/iGameState.h"
+#include "state/loadGameState.h"
 
 void inputHandler::update(game* g)
 {
@@ -41,6 +43,47 @@ void inputHandler::update(game* g)
         if (g->getActiveState())
         {
             g->getActiveState()->handleInput(g, event);
+        }
+
+        // Global hotkey routing for Action Grid buttons (1..5, SHIFT+1..5, CTRL+1..5, Q, E)
+        if (event.type == SDL_EVENT_KEY_DOWN && !event.key.repeat)
+        {
+            auto loadState = dynamic_cast<loadGameState*>(g->getActiveState());
+            if (!loadState || !loadState->isEditingSaveName)
+            {
+                SDL_Keymod mod = SDL_GetModState();
+                bool isShift = (mod & SDL_KMOD_SHIFT) != 0;
+                bool isCtrl = (mod & SDL_KMOD_CTRL) != 0;
+
+                int slotIdx = -1;
+                switch (event.key.key)
+                {
+                    case SDLK_1: slotIdx = isCtrl ? 10 : (isShift ? 5 : 0); break;
+                    case SDLK_2: slotIdx = isCtrl ? 11 : (isShift ? 6 : 1); break;
+                    case SDLK_3: slotIdx = isCtrl ? 12 : (isShift ? 7 : 2); break;
+                    case SDLK_4: slotIdx = isCtrl ? 13 : (isShift ? 8 : 3); break;
+                    case SDLK_5: slotIdx = isCtrl ? 14 : (isShift ? 9 : 4); break;
+                    case SDLK_Q:
+                        if (!isCtrl)
+                        {
+                            g->previousActionPage();
+                        }
+                        break;
+                    case SDLK_E:
+                        if (!dynamic_cast<explorationState*>(g->getActiveState()))
+                        {
+                            g->nextActionPage();
+                        }
+                        break;
+                    default:
+                        break;
+                }
+
+                if (slotIdx >= 0)
+                {
+                    g->triggerActionButton(slotIdx);
+                }
+            }
         }
     }
 }

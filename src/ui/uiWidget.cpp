@@ -90,8 +90,8 @@ namespace UIWidget
     {
         if (!renderer) return false;
 
-        SDL_Color bg = isEnabled ? (isSelected ? Theme::colors.bgSlotSelected : (isHovered ? SDL_Color{ 45, 48, 56, 255 } : Theme::colors.bgButton)) : Theme::colors.bgButtonDisabled;
-        SDL_Color border = isEnabled ? (isSelected ? Theme::colors.borderSelected : (isHovered ? SDL_Color{ 110, 120, 140, 255 } : Theme::colors.borderButton)) : Theme::colors.borderButtonDisabled;
+        SDL_Color bg = isEnabled ? (isSelected ? SDL_Color{ 36, 40, 48, 255 } : (isHovered ? SDL_Color{ 52, 56, 68, 255 } : SDL_Color{ 28, 30, 36, 255 })) : SDL_Color{ 18, 20, 24, 255 };
+        SDL_Color border = isEnabled ? (isSelected ? Theme::colors.borderSelected : (isHovered ? Theme::colors.textGold : SDL_Color{ 55, 60, 72, 255 })) : SDL_Color{ 32, 34, 40, 255 };
 
         SDL_SetRenderDrawColor(renderer, bg.r, bg.g, bg.b, bg.a);
         SDL_RenderFillRect(renderer, &rect);
@@ -103,37 +103,41 @@ namespace UIWidget
         if (!hotkey.empty())
         {
             float hotkeyW = hotkey.size() * (5.5f * scale);
-            drawText(renderer, hotkey, rect.x + rect.w - hotkeyW - (4.0f * scale), rect.y + (3.0f * scale), SDL_Color{ 110, 115, 125, 190 }, scale * 0.65f);
+            drawText(renderer, hotkey, rect.x + rect.w - hotkeyW - (4.0f * scale), rect.y + (3.0f * scale), isSelected ? Theme::colors.textGold : SDL_Color{ 110, 115, 125, 190 }, scale * 0.65f);
         }
 
         // Draw centered button label
         if (!label.empty())
         {
-            SDL_Color textCol = isEnabled ? (isHovered ? Theme::colors.textGold : Theme::colors.textPrimary) : Theme::colors.textMuted;
+            SDL_Color textCol = isEnabled ? (isSelected ? Theme::colors.textGold : (isHovered ? Theme::colors.textGold : Theme::colors.textPrimary)) : Theme::colors.textMuted;
+
+            float labelW = label.size() * (7.0f * scale);
+            float labelX = rect.x + std::max(6.0f * scale, (rect.w - labelW) / 2.0f);
+            float labelY = rect.y + ((rect.h - (12.0f * scale)) / 2.0f);
 
             if (label == "Reset")
             {
-                drawText(renderer, label, rect.x + (10.0f * scale), rect.y + ((rect.h - (12.0f * scale)) / 2.0f), SDL_Color{ 255, 120, 140, 255 }, scale * 0.85f);
+                drawText(renderer, label, labelX, labelY, SDL_Color{ 255, 120, 140, 255 }, scale * 0.85f);
             }
             else if (label.find(": OFF") != std::string::npos)
             {
                 size_t colonPos = label.find(':');
                 std::string prefix = label.substr(0, colonPos + 2);
-                drawText(renderer, prefix, rect.x + (10.0f * scale), rect.y + ((rect.h - (12.0f * scale)) / 2.0f), textCol, scale * 0.85f);
+                drawText(renderer, prefix, labelX, labelY, textCol, scale * 0.85f);
                 float prefixW = prefix.size() * (7.0f * scale);
-                drawText(renderer, "OFF", rect.x + (10.0f * scale) + prefixW, rect.y + ((rect.h - (12.0f * scale)) / 2.0f), Theme::colors.enemy, scale * 0.85f);
+                drawText(renderer, "OFF", labelX + prefixW, labelY, Theme::colors.enemy, scale * 0.85f);
             }
             else if (label.find(": ON") != std::string::npos)
             {
                 size_t colonPos = label.find(':');
                 std::string prefix = label.substr(0, colonPos + 2);
-                drawText(renderer, prefix, rect.x + (10.0f * scale), rect.y + ((rect.h - (12.0f * scale)) / 2.0f), textCol, scale * 0.85f);
+                drawText(renderer, prefix, labelX, labelY, textCol, scale * 0.85f);
                 float prefixW = prefix.size() * (7.0f * scale);
-                drawText(renderer, "ON", rect.x + (10.0f * scale) + prefixW, rect.y + ((rect.h - (12.0f * scale)) / 2.0f), Theme::colors.companion, scale * 0.85f);
+                drawText(renderer, "ON", labelX + prefixW, labelY, Theme::colors.companion, scale * 0.85f);
             }
             else
             {
-                drawText(renderer, label, rect.x + (10.0f * scale), rect.y + ((rect.h - (12.0f * scale)) / 2.0f), textCol, scale * 0.85f);
+                drawText(renderer, label, labelX, labelY, textCol, scale * 0.85f);
             }
         }
 

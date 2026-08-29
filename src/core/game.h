@@ -76,10 +76,13 @@ public:
     std::shared_ptr<entity> activeTargetNPC = nullptr;
     TargetMode activeTargetMode = TargetMode::NONE;
 
-    // Command Dispatch
+    int currentActionPage = 0;
+    void triggerActionButton(int slotIndex);
+    void previousActionPage();
+    void nextActionPage();
     void handleCommand(const UICommand& cmd);
 
-    // Universal Snapshot & Read-Only Getters
+    // Snapshot & Read-Only Getters
     const questScene& getCurrentScene() const { return currentScene; }
     entity* getPlayer() const { return playerEntity.get(); }
     std::shared_ptr<entity> getPlayerShared() const { return playerEntity; }

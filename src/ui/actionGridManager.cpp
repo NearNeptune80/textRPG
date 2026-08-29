@@ -259,9 +259,10 @@ void ActionGridManager::refresh(game* gameContext)
         }
         else // CONTENT_OPTIONS
         {
-            // Row 1: Tabs
+            // Row 1: Category Tabs
             actionButton miscTab;
             miscTab.label = "Misc.";
+            miscTab.isSelected = (opt->contentCategory == ContentOptionsCategory::MISC);
             miscTab.onClick = [opt, gameContext]() {
                 opt->contentCategory = ContentOptionsCategory::MISC;
                 gameContext->refreshActionGrid();
@@ -270,6 +271,7 @@ void ActionGridManager::refresh(game* gameContext)
 
             actionButton gameTab;
             gameTab.label = "Gameplay";
+            gameTab.isSelected = (opt->contentCategory == ContentOptionsCategory::GAMEPLAY);
             gameTab.onClick = [opt, gameContext]() {
                 opt->contentCategory = ContentOptionsCategory::GAMEPLAY;
                 gameContext->refreshActionGrid();
@@ -278,6 +280,7 @@ void ActionGridManager::refresh(game* gameContext)
 
             actionButton sexTab;
             sexTab.label = "Sex & Fetishes";
+            sexTab.isSelected = (opt->contentCategory == ContentOptionsCategory::SEX_AND_FETISHES);
             sexTab.onClick = [opt, gameContext]() {
                 opt->contentCategory = ContentOptionsCategory::SEX_AND_FETISHES;
                 gameContext->refreshActionGrid();
@@ -286,6 +289,7 @@ void ActionGridManager::refresh(game* gameContext)
 
             actionButton bodyTab;
             bodyTab.label = "Bodies";
+            bodyTab.isSelected = (opt->contentCategory == ContentOptionsCategory::BODIES);
             bodyTab.onClick = [opt, gameContext]() {
                 opt->contentCategory = ContentOptionsCategory::BODIES;
                 gameContext->refreshActionGrid();
@@ -302,6 +306,7 @@ void ActionGridManager::refresh(game* gameContext)
             // Row 2: Sub-preferences
             actionButton genPrefBtn;
             genPrefBtn.label = "Gender preferences";
+            genPrefBtn.isSelected = (opt->contentCategory == ContentOptionsCategory::GENDER_PREFS);
             genPrefBtn.onClick = [opt, gameContext]() {
                 opt->contentCategory = ContentOptionsCategory::GENDER_PREFS;
                 gameContext->refreshActionGrid();
@@ -310,6 +315,7 @@ void ActionGridManager::refresh(game* gameContext)
 
             actionButton oriPrefBtn;
             oriPrefBtn.label = "Orientation preferences";
+            oriPrefBtn.isSelected = (opt->contentCategory == ContentOptionsCategory::ORIENTATION_PREFS);
             oriPrefBtn.onClick = [opt, gameContext]() {
                 opt->contentCategory = ContentOptionsCategory::ORIENTATION_PREFS;
                 gameContext->refreshActionGrid();
@@ -318,6 +324,7 @@ void ActionGridManager::refresh(game* gameContext)
 
             actionButton agePrefBtn;
             agePrefBtn.label = "Age preferences";
+            agePrefBtn.isSelected = (opt->contentCategory == ContentOptionsCategory::AGE_PREFS);
             agePrefBtn.onClick = [opt, gameContext]() {
                 opt->contentCategory = ContentOptionsCategory::AGE_PREFS;
                 gameContext->refreshActionGrid();
@@ -326,6 +333,7 @@ void ActionGridManager::refresh(game* gameContext)
 
             actionButton furryPrefBtn;
             furryPrefBtn.label = "Furry preferences";
+            furryPrefBtn.isSelected = (opt->contentCategory == ContentOptionsCategory::FURRY_PREFS);
             furryPrefBtn.onClick = [opt, gameContext]() {
                 opt->contentCategory = ContentOptionsCategory::FURRY_PREFS;
                 gameContext->refreshActionGrid();
@@ -334,11 +342,20 @@ void ActionGridManager::refresh(game* gameContext)
 
             actionButton fetPrefBtn;
             fetPrefBtn.label = "Fetish preferences";
+            fetPrefBtn.isSelected = (opt->contentCategory == ContentOptionsCategory::FETISH_PREFS);
             fetPrefBtn.onClick = [opt, gameContext]() {
                 opt->contentCategory = ContentOptionsCategory::FETISH_PREFS;
                 gameContext->refreshActionGrid();
             };
             gameContext->activeButtons.push_back(fetPrefBtn);
+
+            // Row 3: Slot 10 (CTRL + 1): Defaults
+            actionButton defBtn;
+            defBtn.label = "Defaults";
+            defBtn.onClick = [opt, gameContext]() {
+                gameContext->refreshActionGrid();
+            };
+            gameContext->activeButtons.push_back(defBtn);
 
             while (gameContext->activeButtons.size() < 14)
             {
