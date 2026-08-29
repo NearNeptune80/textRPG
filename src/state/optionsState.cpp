@@ -62,6 +62,13 @@ void optionsState::handleCommand(game* gameContext, const UICommand& cmd)
         {
             gameContext->settings.content.lactationEnabled = !gameContext->settings.content.lactationEnabled;
         }
+        else if (cmd.stringPayload == "difficulty")
+        {
+            float& diff = gameContext->settings.gameplay.difficultyMultiplier;
+            if (diff <= 0.8f) diff = 1.0f;
+            else if (diff <= 1.1f) diff = 1.5f;
+            else diff = 0.75f;
+        }
         gameContext->refreshActionGrid();
     }
 }

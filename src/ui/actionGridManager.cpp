@@ -39,14 +39,14 @@ void ActionGridManager::refresh(game* gameContext)
         gameContext->activeButtons.push_back(newGameBtn);
 
         actionButton loadBtn;
-        loadBtn.label = "Load Game";
+        loadBtn.label = "Continue (QuickSave)";
         loadBtn.onClick = [gameContext]() {
             gameContext->handleCommand({ CommandType::CONTINUE_GAME, 0, 0, "" });
         };
         gameContext->activeButtons.push_back(loadBtn);
 
         actionButton optBtn;
-        optBtn.label = "Options";
+        optBtn.label = "Options & Settings";
         optBtn.onClick = [gameContext]() {
             gameContext->handleCommand({ CommandType::OPEN_SETTINGS, 0, 0, "" });
         };
@@ -78,10 +78,17 @@ void ActionGridManager::refresh(game* gameContext)
         };
         gameContext->activeButtons.push_back(lactBtn);
 
+        actionButton diffBtn;
+        diffBtn.label = std::format("Difficulty: {:.1f}x", gameContext->settings.gameplay.difficultyMultiplier);
+        diffBtn.onClick = [gameContext]() {
+            gameContext->handleCommand({ CommandType::CYCLE_SETTING_OPTION, 0, 0, "difficulty" });
+        };
+        gameContext->activeButtons.push_back(diffBtn);
+
         actionButton backBtn;
-        backBtn.label = "Back / Close (ESC)";
+        backBtn.label = "< Back to Menu (ESC)";
         backBtn.onClick = [gameContext]() {
-            gameContext->handleCommand({ CommandType::CLOSE_MENU, 0, 0, "" });
+            gameContext->changeState(std::make_unique<mainMenuState>());
         };
         gameContext->activeButtons.push_back(backBtn);
         return;
@@ -429,26 +436,6 @@ void ActionGridManager::refresh(game* gameContext)
                         gameContext->loadMap(warp.targetMap, warp.targetX, warp.targetY);
                     };
                     gameContext->activeButtons.push_back(warpBtn);
-                }
-                else
-                {
-                    static const std::pair<int, int> adjDirs[] = { {0, -1}, {0, 1}, {-1, 0}, {1, 0} };
-                    for (auto [adx, ady] : adjDirs)
-                    {
-                        int nx = gameContext->gridX + adx;
-                        int ny = gameContext->gridY + ady;
-                        if (gameContext->map->checkWarp(nx, ny, warp))
-                        {
-                            actionButton warpBtn;
-                            std::string dirName = (adx == 0 && ady == -1) ? "North" : (adx == 0 && ady == 1) ? "South" : (adx == -1 && ady == 0) ? "West" : "East";
-                            warpBtn.label = std::format("Enter Door ({})", dirName);
-                            warpBtn.onClick = [gameContext, warp]() {
-                                gameContext->loadMap(warp.targetMap, warp.targetX, warp.targetY);
-                            };
-                            gameContext->activeButtons.push_back(warpBtn);
-                            break;
-                        }
-                    }
                 }
 
                 auto& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);

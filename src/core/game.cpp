@@ -122,7 +122,7 @@ void game::init()
         saveManager::saveNamedGame(this, "Initial");
     }
 
-    changeState(std::make_unique<explorationState>());
+    changeState(std::make_unique<mainMenuState>());
 
     // Milestone 9: Time Advancement Biological Pipeline & Scheduled Maintenance
     eventBus::getInstance().subscribe(gameEvent::timeAdvanced, [this](const eventData& data) {
