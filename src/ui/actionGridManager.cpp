@@ -8,6 +8,7 @@
 #include "map/encounterResolver.h"
 #include "save/saveManager.h"
 #include "settings/settingsManager.h"
+#include "state/characterCreationState.h"
 #include "state/combatState.h"
 #include "state/encounterResolutionState.h"
 #include "state/eventState.h"
@@ -106,6 +107,106 @@ void ActionGridManager::refresh(game* gameContext)
         };
         gameContext->activeButtons.push_back(resumeBtn);
         return;
+    }
+
+    // Character Creation State Actions
+    if (auto cc = dynamic_cast<characterCreationState*>(currentState))
+    {
+        if (cc->step == 0) // Step 1: Start Date, Gender, Femininity
+        {
+            actionButton contBtn;
+            contBtn.label = "Continue";
+            contBtn.onClick = [cc, gameContext]() {
+                cc->step = 1;
+                gameContext->refreshActionGrid();
+            };
+            gameContext->activeButtons.push_back(contBtn);
+
+            while (gameContext->activeButtons.size() < 14)
+            {
+                actionButton blank;
+                blank.label = "";
+                blank.isEnabled = false;
+                gameContext->activeButtons.push_back(blank);
+            }
+
+            actionButton backBtn;
+            backBtn.label = "Back";
+            backBtn.onClick = [gameContext]() {
+                gameContext->changeState(std::make_unique<mainMenuState>());
+            };
+            gameContext->activeButtons.push_back(backBtn);
+            return;
+        }
+        else if (cc->step == 1) // Step 2: Birthday, Orientation, Personality
+        {
+            actionButton contBtn;
+            contBtn.label = "Continue";
+            contBtn.onClick = [cc, gameContext]() {
+                cc->step = 2;
+                gameContext->refreshActionGrid();
+            };
+            gameContext->activeButtons.push_back(contBtn);
+
+            while (gameContext->activeButtons.size() < 14)
+            {
+                actionButton blank;
+                blank.label = "";
+                blank.isEnabled = false;
+                gameContext->activeButtons.push_back(blank);
+            }
+
+            actionButton backBtn;
+            backBtn.label = "Back";
+            backBtn.onClick = [cc, gameContext]() {
+                cc->step = 0;
+                gameContext->refreshActionGrid();
+            };
+            gameContext->activeButtons.push_back(backBtn);
+            return;
+        }
+        else if (cc->step == 2) // Step 3: Names, Surname
+        {
+            actionButton contBtn;
+            contBtn.label = "Continue";
+            contBtn.onClick = [cc, gameContext]() {
+                cc->finalizeCharacter(gameContext);
+            };
+            gameContext->activeButtons.push_back(contBtn);
+
+            actionButton randBtn;
+            randBtn.label = "Random";
+            randBtn.onClick = [cc, gameContext]() {
+                cc->randomizeFirstNames();
+                gameContext->refreshActionGrid();
+            };
+            gameContext->activeButtons.push_back(randBtn);
+
+            actionButton randSurBtn;
+            randSurBtn.label = "Random Surname";
+            randSurBtn.onClick = [cc, gameContext]() {
+                cc->randomizeSurname();
+                gameContext->refreshActionGrid();
+            };
+            gameContext->activeButtons.push_back(randSurBtn);
+
+            while (gameContext->activeButtons.size() < 14)
+            {
+                actionButton blank;
+                blank.label = "";
+                blank.isEnabled = false;
+                gameContext->activeButtons.push_back(blank);
+            }
+
+            actionButton backBtn;
+            backBtn.label = "Back";
+            backBtn.onClick = [cc, gameContext]() {
+                cc->step = 1;
+                gameContext->refreshActionGrid();
+            };
+            gameContext->activeButtons.push_back(backBtn);
+            return;
+        }
     }
 
     // Load / Save Game State Actions

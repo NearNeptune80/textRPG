@@ -9,6 +9,7 @@
 #include "entities/entity.h"
 #include "map/gameMap.h"
 #include "save/saveManager.h"
+#include "state/characterCreationState.h"
 #include "state/combatState.h"
 #include "state/encounterResolutionState.h"
 #include "state/eventState.h"
@@ -359,6 +360,10 @@ float uiRenderer::renderCenterPane(SDL_Renderer* renderer, game* gameContext, co
     if (dynamic_cast<mainMenuState*>(state))
     {
         return renderMainMenu(renderer, gameContext, rect, curY, uiScale);
+    }
+    else if (dynamic_cast<characterCreationState*>(state))
+    {
+        return renderCharacterCreationView(renderer, gameContext, rect, curY, uiScale);
     }
     else if (dynamic_cast<loadGameState*>(state))
     {
@@ -1606,6 +1611,204 @@ float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, c
             renderFrequencyRow("Early forties", Theme::colors.textPrimary, "", 2, [](int idx) {});
             renderFrequencyRow("Mid-forties", Theme::colors.textPrimary, "", 1, [](int idx) {});
         }
+        else if (opt->contentCategory == ContentOptionsCategory::FURRY_PREFS)
+        {
+            renderInfoDropdown();
+
+            // 3 Rate Cards in a row: Human Spawn Rate, Taur Spawn Rate, Half-Demon Spawn Rate
+            float rateCardW = (availableW - (16.0f * uiScale)) / 3.0f;
+            float rateCardH = 48.0f * uiScale;
+            struct RateInfo { std::string title; SDL_Color col; int val; };
+            RateInfo rates[3] = {
+                { "Human Spawn Rate", Theme::colors.textPrimary, 5 },
+                { "Taur Spawn Rate", SDL_Color{ 200, 160, 120, 255 }, 5 },
+                { "Half-Demon Spawn Rate", SDL_Color{ 180, 130, 255, 255 }, 5 }
+            };
+
+            for (int r = 0; r < 3; ++r)
+            {
+                SDL_FRect rRect = { padX + (r * (rateCardW + 8.0f * uiScale)), curY, rateCardW, rateCardH };
+                UIWidget::drawPanel(renderer, rRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+                float titleW = rates[r].title.size() * (6.0f * uiScale);
+                UIWidget::drawText(renderer, rates[r].title, rRect.x + ((rRect.w - titleW) / 2.0f), rRect.y + (5.0f * uiScale), rates[r].col, uiScale * 0.82f);
+
+                float btnW = 16.0f * uiScale;
+                float btnH = 16.0f * uiScale;
+                float stepY = rRect.y + (24.0f * uiScale);
+                float midX = rRect.x + (rRect.w / 2.0f);
+
+                SDL_FRect m1 = { midX - (45.0f * uiScale), stepY, btnW, btnH };
+                SDL_FRect m2 = { midX - (25.0f * uiScale), stepY, btnW, btnH };
+                SDL_FRect p1 = { midX + (12.0f * uiScale), stepY, btnW, btnH };
+                SDL_FRect p2 = { midX + (32.0f * uiScale), stepY, btnW, btnH };
+
+                UIWidget::drawColoredButton(renderer, m1, "-", SDL_Color{ 160, 45, 55, 240 }, Theme::colors.textPrimary, false, uiScale * 0.7f);
+                UIWidget::drawColoredButton(renderer, m2, "-", SDL_Color{ 160, 45, 55, 240 }, Theme::colors.textPrimary, false, uiScale * 0.7f);
+                UIWidget::drawText(renderer, std::format("{}%", rates[r].val), midX - (8.0f * uiScale), stepY + (2.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.8f);
+                UIWidget::drawColoredButton(renderer, p1, "+", SDL_Color{ 45, 120, 65, 240 }, Theme::colors.textPrimary, false, uiScale * 0.7f);
+                UIWidget::drawColoredButton(renderer, p2, "+", SDL_Color{ 45, 120, 65, 240 }, Theme::colors.textPrimary, false, uiScale * 0.7f);
+            }
+            curY += rateCardH + (12.0f * uiScale);
+
+            // Tauric Upper-body Furriness
+            float taurH = 54.0f * uiScale;
+            SDL_FRect taurRect = { padX, curY, availableW, taurH };
+            UIWidget::drawPanel(renderer, taurRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+            UIWidget::drawText(renderer, "Tauric Upper-body Furriness:", padX + (10.0f * uiScale), curY + (6.0f * uiScale), SDL_Color{ 200, 160, 120, 255 }, uiScale * 0.85f);
+            UIWidget::drawTextWrapped(renderer, "Set how furry you prefer the upper bodies of taurs to be.", padX + (10.0f * uiScale), curY + (24.0f * uiScale), availableW * 0.48f, Theme::colors.textSecondary, uiScale * 0.8f);
+
+            static const char* taurOpts[6] = { "Untouched", "Human", "Minimum", "Lesser", "Greater", "Maximum" };
+            float optBtnW = 60.0f * uiScale;
+            float optBtnH = 20.0f * uiScale;
+            float optStartX = padX + availableW - (3 * (optBtnW + 4.0f * uiScale)) - (8.0f * uiScale);
+
+            for (int i = 0; i < 6; ++i)
+            {
+                int r = i / 3;
+                int c = i % 3;
+                SDL_FRect bRect = { optStartX + (c * (optBtnW + 4.0f * uiScale)), curY + (6.0f * uiScale) + (r * (optBtnH + 4.0f * uiScale)), optBtnW, optBtnH };
+                bool isMin = (i == 2);
+                SDL_Color bCol = isMin ? SDL_Color{ 75, 24, 55, 255 } : Theme::colors.bgButton;
+                SDL_Color tCol = isMin ? SDL_Color{ 255, 220, 245, 255 } : Theme::colors.textMuted;
+                UIWidget::drawColoredButton(renderer, bRect, taurOpts[i], bCol, tCol, isMin, uiScale * 0.72f);
+            }
+            curY += taurH + (12.0f * uiScale);
+
+            // Bulk Setters
+            auto renderBulkRow = [&](const std::string& label, const std::vector<std::string>& pills) {
+                float bH = 28.0f * uiScale;
+                SDL_FRect bRect = { padX, curY, availableW, bH };
+                UIWidget::drawPanel(renderer, bRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+                UIWidget::drawText(renderer, label, padX + (12.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.85f);
+                float pW = 52.0f * uiScale;
+                float pStartX = padX + availableW - (pills.size() * (pW + 4.0f * uiScale)) - (8.0f * uiScale);
+                for (size_t i = 0; i < pills.size(); ++i)
+                {
+                    SDL_FRect pr = { pStartX + (i * (pW + 4.0f * uiScale)), curY + (4.0f * uiScale), pW, 20.0f * uiScale };
+                    UIWidget::drawColoredButton(renderer, pr, pills[i], Theme::colors.bgButton, Theme::colors.textMuted, false, uiScale * 0.7f);
+                }
+                curY += bH + (6.0f * uiScale);
+            };
+
+            renderBulkRow("Set all furry preferences:", { "Disabled", "Minimum", "Lesser", "Greater", "Maximum" });
+            renderBulkRow("Set all spawn frequencies:", { "Off", "Low", "Average", "High", "Abundant" });
+            curY += (8.0f * uiScale);
+
+            // Furry Race Table Header
+            float headerColsX = padX + (availableW * 0.45f);
+            UIWidget::drawText(renderer, "Furry Preference", headerColsX, curY, SDL_Color{ 140, 220, 110, 255 }, uiScale * 0.88f);
+            UIWidget::drawText(renderer, "Spawn frequency", headerColsX + (150.0f * uiScale), curY, SDL_Color{ 230, 210, 100, 255 }, uiScale * 0.88f);
+            curY += (20.0f * uiScale);
+
+            // Furry Race Rows
+            struct FurryRace { std::string femaleName; std::string maleName; };
+            static const FurryRace races[8] = {
+                { "Alligator-girl", "Alligator-boy" },
+                { "Bat-girl", "Bat-boy" },
+                { "Cat-girl", "Cat-boy" },
+                { "Dog-girl", "Dog-boy" },
+                { "Fox-girl", "Fox-boy" },
+                { "Horse-girl", "Horse-boy" },
+                { "Rabbit-girl", "Rabbit-boy" },
+                { "Wolf-girl", "Wolf-boy" }
+            };
+
+            for (int i = 0; i < 8; ++i)
+            {
+                float rowH = 44.0f * uiScale;
+                SDL_FRect rowRect = { padX, curY, availableW, rowH };
+                UIWidget::drawPanel(renderer, rowRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+
+                UIWidget::drawText(renderer, "ⓘ", padX + (8.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textMuted, uiScale * 0.85f);
+                UIWidget::drawText(renderer, races[i].femaleName, padX + (28.0f * uiScale), curY + (5.0f * uiScale), SDL_Color{ 255, 120, 180, 255 }, uiScale * 0.85f);
+                UIWidget::drawText(renderer, races[i].maleName, padX + (28.0f * uiScale), curY + (23.0f * uiScale), SDL_Color{ 100, 160, 255, 255 }, uiScale * 0.85f);
+
+                float pW = 20.0f * uiScale;
+                float pH = 16.0f * uiScale;
+                float group1X = headerColsX;
+                float group2X = headerColsX + (150.0f * uiScale);
+
+                // Row 1 (Girl):
+                for (int p = 0; p < 5; ++p)
+                {
+                    SDL_FRect pr1 = { group1X + (p * (pW + 2.0f * uiScale)), curY + (4.0f * uiScale), pW, pH };
+                    bool sel1 = (p == 3);
+                    SDL_Color bCol = sel1 ? SDL_Color{ 75, 24, 55, 255 } : Theme::colors.bgButton;
+                    UIWidget::drawColoredButton(renderer, pr1, std::to_string(p), bCol, sel1 ? Theme::colors.textPrimary : Theme::colors.textMuted, sel1, uiScale * 0.65f);
+
+                    SDL_FRect pr2 = { group2X + (p * (pW + 2.0f * uiScale)), curY + (4.0f * uiScale), pW, pH };
+                    bool sel2 = (p == 4);
+                    SDL_Color bCol2 = sel2 ? SDL_Color{ 75, 24, 55, 255 } : Theme::colors.bgButton;
+                    UIWidget::drawColoredButton(renderer, pr2, std::to_string(p), bCol2, sel2 ? Theme::colors.textPrimary : Theme::colors.textMuted, sel2, uiScale * 0.65f);
+                }
+
+                // Row 2 (Boy):
+                for (int p = 0; p < 5; ++p)
+                {
+                    SDL_FRect pr1 = { group1X + (p * (pW + 2.0f * uiScale)), curY + (22.0f * uiScale), pW, pH };
+                    bool sel1 = (p == 3);
+                    SDL_Color bCol = sel1 ? SDL_Color{ 75, 24, 55, 255 } : Theme::colors.bgButton;
+                    UIWidget::drawColoredButton(renderer, pr1, std::to_string(p), bCol, sel1 ? Theme::colors.textPrimary : Theme::colors.textMuted, sel1, uiScale * 0.65f);
+
+                    SDL_FRect pr2 = { group2X + (p * (pW + 2.0f * uiScale)), curY + (22.0f * uiScale), pW, pH };
+                    bool sel2 = (p == 4);
+                    SDL_Color bCol2 = sel2 ? SDL_Color{ 75, 24, 55, 255 } : Theme::colors.bgButton;
+                    UIWidget::drawColoredButton(renderer, pr2, std::to_string(p), bCol2, sel2 ? Theme::colors.textPrimary : Theme::colors.textMuted, sel2, uiScale * 0.65f);
+                }
+
+                curY += rowH + (6.0f * uiScale);
+            }
+        }
+        else if (opt->contentCategory == ContentOptionsCategory::FETISH_PREFS)
+        {
+            renderInfoDropdown();
+
+            static const char* fetishes[10] = {
+                "Anal", "Buttslut", "Vaginal", "Pussy slut", "Oral",
+                "Oral performer", "Breasts lover", "Breasts", "Milk lover", "Lactation"
+            };
+
+            static const std::vector<std::string> fetPills = {
+                "Disabled", "Hate", "Dislike", "Neutral", "Like", "Love", "Always"
+            };
+
+            for (int i = 0; i < 10; ++i)
+            {
+                float cardWidth = availableW;
+                float rowMinH = 34.0f * uiScale;
+                SDL_FRect rowRect = { padX, curY, cardWidth, rowMinH };
+                UIWidget::drawPanel(renderer, rowRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+
+                UIWidget::drawText(renderer, "ⓘ", padX + (10.0f * uiScale), curY + (8.0f * uiScale), Theme::colors.textMuted, uiScale * 0.85f);
+                UIWidget::drawText(renderer, fetishes[i], padX + (28.0f * uiScale), curY + (8.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.88f);
+
+                float pillTotalW = 340.0f * uiScale;
+                float pillH = 22.0f * uiScale;
+                float pillItemW = (pillTotalW - (6.0f * 4.0f * uiScale)) / 7.0f;
+                float pillStartX = padX + cardWidth - pillTotalW - (10.0f * uiScale);
+                float pillY = curY + (6.0f * uiScale);
+
+                for (size_t p = 0; p < fetPills.size(); ++p)
+                {
+                    SDL_FRect pRect = { pillStartX + (p * (pillItemW + 4.0f * uiScale)), pillY, pillItemW, pillH };
+                    bool isNeutral = (p == 3);
+
+                    SDL_Color bgCol = isNeutral ? SDL_Color{ 75, 24, 55, 255 } : Theme::colors.bgButton;
+                    SDL_Color borderCol = isNeutral ? SDL_Color{ 245, 80, 175, 255 } : Theme::colors.borderButton;
+                    SDL_Color pTextCol = isNeutral ? SDL_Color{ 255, 220, 245, 255 } : Theme::colors.textMuted;
+
+                    SDL_SetRenderDrawColor(renderer, bgCol.r, bgCol.g, bgCol.b, bgCol.a);
+                    SDL_RenderFillRect(renderer, &pRect);
+                    SDL_SetRenderDrawColor(renderer, borderCol.r, borderCol.g, borderCol.b, borderCol.a);
+                    SDL_RenderRect(renderer, &pRect);
+
+                    float labelW = fetPills[p].size() * (5.5f * uiScale);
+                    UIWidget::drawText(renderer, fetPills[p], pRect.x + ((pRect.w - labelW) / 2.0f), pRect.y + (3.0f * uiScale), pTextCol, uiScale * 0.72f);
+                }
+
+                curY += rowMinH + (6.0f * uiScale);
+            }
+        }
         else
         {
             renderFrequencyRow("Sub-category Tuning", Theme::colors.textGold, "Fine-tune generation frequencies and preference distributions.", 3, [](int idx) {});
@@ -1613,6 +1816,440 @@ float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, c
 
         return (curY - startY);
     }
+}
+
+float uiRenderer::renderCharacterCreationView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)
+{
+    auto cc = dynamic_cast<characterCreationState*>(gameContext->getActiveState());
+    if (!cc) return 0.0f;
+
+    float startY = curY;
+    float padX = rect.x + (16.0f * uiScale);
+    float availableW = rect.w - (32.0f * uiScale);
+    float centerX = rect.x + (rect.w / 2.0f);
+
+    auto mousePos = gameContext->input.getMousePosition();
+    bool clicked = gameContext->input.isLeftMouseJustClicked();
+
+    // Scene Title: "A Night Out"
+    std::string sceneTitle = "A Night Out";
+    float titleW = sceneTitle.size() * (10.0f * uiScale);
+    UIWidget::drawText(renderer, sceneTitle, centerX - (titleW / 2.0f), curY, SDL_Color{ 255, 240, 200, 255 }, uiScale * 1.15f);
+    curY += (28.0f * uiScale);
+
+    if (cc->step == 0) // Part 1: Start Date, Gender, Femininity
+    {
+        std::string story1 = "By the time the taxi finally pulls up to the British Museum, you're already almost five minutes late. The whole reason you're visiting London is to attend your aunt Lily's opening evening for her new exhibition, and as you hurriedly pay the driver his fare and step out of the car, you hope that she hasn't started her speech yet.";
+        float h1 = UIWidget::drawTextWrapped(renderer, story1, padX, curY, availableW, Theme::colors.textPrimary, uiScale * 0.9f);
+        curY += h1 + (14.0f * uiScale);
+
+        std::string story2 = "The street lights flicker into life as you rush over to the entrance, illuminating your surroundings with a dull orange glow. It only takes a moment before you're standing at the museum's front doors, where, much to your dismay, you see that a small queue has formed. Having no choice but to step in line and wait your turn, you briefly glance over at the large glass windows of the building's modern facade to see your blurry reflection in the glass...";
+        float h2 = UIWidget::drawTextWrapped(renderer, story2, padX, curY, availableW, Theme::colors.textPrimary, uiScale * 0.9f);
+        curY += h2 + (20.0f * uiScale);
+
+        // Section 1: Start Date
+        UIWidget::drawText(renderer, "Start Date", centerX - (35.0f * uiScale), curY, Theme::colors.textPrimary, uiScale * 0.95f);
+        curY += (18.0f * uiScale);
+        UIWidget::drawText(renderer, "Select the month in which the game starts.", centerX - (115.0f * uiScale), curY, Theme::colors.textSecondary, uiScale * 0.85f);
+        curY += (20.0f * uiScale);
+
+        static const char* months[12] = {
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+        };
+
+        float monthBtnW = (availableW - (5 * 8.0f * uiScale)) / 6.0f;
+        float monthBtnH = 22.0f * uiScale;
+
+        for (int m = 0; m < 12; ++m)
+        {
+            int r = m / 6;
+            int c = m % 6;
+            SDL_FRect mRect = { padX + (c * (monthBtnW + 8.0f * uiScale)), curY + (r * (monthBtnH + 6.0f * uiScale)), monthBtnW, monthBtnH };
+            bool isSel = (cc->startMonth == months[m]);
+            bool mHover = (mousePos.x >= mRect.x && mousePos.x <= mRect.x + mRect.w &&
+                           mousePos.y >= mRect.y && mousePos.y <= mRect.y + mRect.h);
+
+            SDL_Color bg = isSel ? SDL_Color{ 45, 55, 65, 255 } : (mHover ? SDL_Color{ 45, 48, 56, 255 } : Theme::colors.bgButton);
+            SDL_Color border = isSel ? Theme::colors.companion : (mHover ? Theme::colors.textGold : Theme::colors.borderButton);
+            SDL_Color txt = isSel ? Theme::colors.companion : (mHover ? Theme::colors.textGold : Theme::colors.textMuted);
+
+            SDL_SetRenderDrawColor(renderer, bg.r, bg.g, bg.b, bg.a);
+            SDL_RenderFillRect(renderer, &mRect);
+            SDL_SetRenderDrawColor(renderer, border.r, border.g, border.b, border.a);
+            SDL_RenderRect(renderer, &mRect);
+
+            float labelW = std::string(months[m]).size() * (6.0f * uiScale);
+            UIWidget::drawText(renderer, months[m], mRect.x + ((mRect.w - labelW) / 2.0f), mRect.y + (3.0f * uiScale), txt, uiScale * 0.78f);
+
+            if (mHover && clicked)
+            {
+                cc->startMonth = months[m];
+                cc->startMonthIdx = m;
+                gameContext->input.consumeMouseClick();
+            }
+        }
+        curY += (2 * (monthBtnH + 6.0f * uiScale)) + (16.0f * uiScale);
+
+        // Split Row: Gender (Left) & Femininity (Right)
+        float halfW = (availableW - (16.0f * uiScale)) / 2.0f;
+        float splitY = curY;
+
+        // Gender Card (Left)
+        SDL_FRect genRect = { padX, splitY, halfW, 80.0f * uiScale };
+        UIWidget::drawPanel(renderer, genRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+        UIWidget::drawText(renderer, "Gender", genRect.x + ((genRect.w - (25.0f * uiScale)) / 2.0f), splitY + (6.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.9f);
+        UIWidget::drawTextWrapped(renderer, "Your gender is used to determine what genitals you start the game with.", genRect.x + (8.0f * uiScale), splitY + (22.0f * uiScale), halfW - (16.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.78f);
+
+        static const char* genders[2] = { "Male", "Female" };
+        float gBtnW = (halfW - (24.0f * uiScale)) / 2.0f;
+        for (int g = 0; g < 2; ++g)
+        {
+            SDL_FRect gbRect = { genRect.x + (8.0f * uiScale) + (g * (gBtnW + 8.0f * uiScale)), splitY + (50.0f * uiScale), gBtnW, 22.0f * uiScale };
+            bool isSel = (cc->gender == genders[g]);
+            bool gHover = (mousePos.x >= gbRect.x && mousePos.x <= gbRect.x + gbRect.w &&
+                           mousePos.y >= gbRect.y && mousePos.y <= gbRect.y + gbRect.h);
+
+            SDL_Color bg = isSel ? SDL_Color{ 45, 55, 65, 255 } : (gHover ? SDL_Color{ 45, 48, 56, 255 } : Theme::colors.bgButton);
+            SDL_Color border = isSel ? (g == 0 ? SDL_Color{ 100, 160, 255, 255 } : SDL_Color{ 255, 120, 180, 255 }) : (gHover ? Theme::colors.textGold : Theme::colors.borderButton);
+            SDL_Color txt = isSel ? Theme::colors.textPrimary : Theme::colors.textMuted;
+
+            SDL_SetRenderDrawColor(renderer, bg.r, bg.g, bg.b, bg.a);
+            SDL_RenderFillRect(renderer, &gbRect);
+            SDL_SetRenderDrawColor(renderer, border.r, border.g, border.b, border.a);
+            SDL_RenderRect(renderer, &gbRect);
+
+            float labelW = std::string(genders[g]).size() * (6.5f * uiScale);
+            UIWidget::drawText(renderer, genders[g], gbRect.x + ((gbRect.w - labelW) / 2.0f), gbRect.y + (3.0f * uiScale), txt, uiScale * 0.8f);
+
+            if (gHover && clicked)
+            {
+                cc->gender = genders[g];
+                gameContext->input.consumeMouseClick();
+            }
+        }
+
+        // Femininity Card (Right)
+        SDL_FRect femRect = { padX + halfW + (16.0f * uiScale), splitY, halfW, 80.0f * uiScale };
+        UIWidget::drawPanel(renderer, femRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+        UIWidget::drawText(renderer, "Femininity", femRect.x + ((femRect.w - (35.0f * uiScale)) / 2.0f), splitY + (6.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.9f);
+        UIWidget::drawTextWrapped(renderer, "Femininity is a measure of how masculine or feminine your face and body are.", femRect.x + (8.0f * uiScale), splitY + (22.0f * uiScale), halfW - (16.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.78f);
+
+        static const char* femOpts[3] = { "Androgynous", "Masculine", "Very Masculine" };
+        float fBtnW = (halfW - (28.0f * uiScale)) / 3.0f;
+        for (int f = 0; f < 3; ++f)
+        {
+            SDL_FRect fbRect = { femRect.x + (8.0f * uiScale) + (f * (fBtnW + 6.0f * uiScale)), splitY + (50.0f * uiScale), fBtnW, 22.0f * uiScale };
+            bool isSel = (cc->femininity == femOpts[f]);
+            bool fHover = (mousePos.x >= fbRect.x && mousePos.x <= fbRect.x + fbRect.w &&
+                           mousePos.y >= fbRect.y && mousePos.y <= fbRect.y + fbRect.h);
+
+            SDL_Color bg = isSel ? SDL_Color{ 45, 55, 65, 255 } : (fHover ? SDL_Color{ 45, 48, 56, 255 } : Theme::colors.bgButton);
+            SDL_Color border = isSel ? SDL_Color{ 100, 160, 255, 255 } : (fHover ? Theme::colors.textGold : Theme::colors.borderButton);
+            SDL_Color txt = isSel ? (f == 0 ? SDL_Color{ 190, 130, 255, 255 } : SDL_Color{ 100, 160, 255, 255 }) : Theme::colors.textMuted;
+
+            SDL_SetRenderDrawColor(renderer, bg.r, bg.g, bg.b, bg.a);
+            SDL_RenderFillRect(renderer, &fbRect);
+            SDL_SetRenderDrawColor(renderer, border.r, border.g, border.b, border.a);
+            SDL_RenderRect(renderer, &fbRect);
+
+            float labelW = std::string(femOpts[f]).size() * (5.0f * uiScale);
+            UIWidget::drawText(renderer, femOpts[f], fbRect.x + ((fbRect.w - labelW) / 2.0f), fbRect.y + (3.0f * uiScale), txt, uiScale * 0.72f);
+
+            if (fHover && clicked)
+            {
+                cc->femininity = femOpts[f];
+                gameContext->input.consumeMouseClick();
+            }
+        }
+        curY += (80.0f * uiScale) + (16.0f * uiScale);
+    }
+    else if (cc->step == 1) // Part 2: Birthday, Sexual Orientation, Personality
+    {
+        std::string refText = std::format("You will be referred to as a {}.", (cc->gender == "Female" ? "female" : "male"));
+        float refW = refText.size() * (7.0f * uiScale);
+        UIWidget::drawText(renderer, refText, centerX - (refW / 2.0f), curY, SDL_Color{ 100, 160, 255, 255 }, uiScale * 0.9f);
+        curY += (18.0f * uiScale);
+
+        std::string optNote = "You can change all gender names in the options menu.";
+        float noteW = optNote.size() * (6.0f * uiScale);
+        UIWidget::drawText(renderer, optNote, centerX - (noteW / 2.0f), curY, Theme::colors.textMuted, uiScale * 0.8f);
+        curY += (24.0f * uiScale);
+
+        // Card 1: Birthday
+        float bdayH = 75.0f * uiScale;
+        SDL_FRect bdayRect = { padX, curY, availableW, bdayH };
+        UIWidget::drawPanel(renderer, bdayRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+        UIWidget::drawText(renderer, "Birthday", bdayRect.x + ((bdayRect.w - (40.0f * uiScale)) / 2.0f), curY + (6.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.9f);
+
+        std::string bdayDesc = std::format("You were born on the {}th {} {}, making you {} years old.", cc->birthDay, cc->birthMonth, 2019 - cc->birthAge, cc->birthAge);
+        float bDescW = bdayDesc.size() * (6.5f * uiScale);
+        UIWidget::drawText(renderer, bdayDesc, bdayRect.x + ((bdayRect.w - bDescW) / 2.0f), curY + (24.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.82f);
+
+        float colW = availableW / 3.0f;
+        float stepY = curY + (46.0f * uiScale);
+
+        // Day Stepper
+        UIWidget::drawText(renderer, "Day", padX + (colW * 0.1f), stepY + (3.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.85f);
+        SDL_FRect dM2 = { padX + (colW * 0.3f), stepY, 18.0f * uiScale, 18.0f * uiScale };
+        SDL_FRect dM1 = { padX + (colW * 0.3f) + (22.0f * uiScale), stepY, 18.0f * uiScale, 18.0f * uiScale };
+        SDL_FRect dP1 = { padX + (colW * 0.3f) + (70.0f * uiScale), stepY, 18.0f * uiScale, 18.0f * uiScale };
+        SDL_FRect dP2 = { padX + (colW * 0.3f) + (92.0f * uiScale), stepY, 18.0f * uiScale, 18.0f * uiScale };
+
+        UIWidget::drawColoredButton(renderer, dM2, "--", SDL_Color{ 160, 45, 55, 240 }, Theme::colors.textPrimary, false, uiScale * 0.7f);
+        UIWidget::drawColoredButton(renderer, dM1, "-", SDL_Color{ 160, 45, 55, 240 }, Theme::colors.textPrimary, false, uiScale * 0.7f);
+        UIWidget::drawText(renderer, std::to_string(cc->birthDay), padX + (colW * 0.3f) + (46.0f * uiScale), stepY + (3.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.85f);
+        UIWidget::drawColoredButton(renderer, dP1, "+", SDL_Color{ 45, 120, 65, 240 }, Theme::colors.textPrimary, false, uiScale * 0.7f);
+        UIWidget::drawColoredButton(renderer, dP2, "++", SDL_Color{ 45, 120, 65, 240 }, Theme::colors.textPrimary, false, uiScale * 0.7f);
+
+        if (clicked)
+        {
+            auto checkClick = [&](const SDL_FRect& r) {
+                return (mousePos.x >= r.x && mousePos.x <= r.x + r.w && mousePos.y >= r.y && mousePos.y <= r.y + r.h);
+            };
+            if (checkClick(dM2)) { cc->birthDay = std::max(1, cc->birthDay - 5); gameContext->input.consumeMouseClick(); }
+            else if (checkClick(dM1)) { cc->birthDay = std::max(1, cc->birthDay - 1); gameContext->input.consumeMouseClick(); }
+            else if (checkClick(dP1)) { cc->birthDay = std::min(31, cc->birthDay + 1); gameContext->input.consumeMouseClick(); }
+            else if (checkClick(dP2)) { cc->birthDay = std::min(31, cc->birthDay + 5); gameContext->input.consumeMouseClick(); }
+        }
+
+        // Month Stepper
+        static const char* allMonths[12] = {
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+        };
+        UIWidget::drawText(renderer, "Month", padX + colW + (colW * 0.05f), stepY + (3.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.85f);
+        SDL_FRect mM2 = { padX + colW + (colW * 0.32f), stepY, 18.0f * uiScale, 18.0f * uiScale };
+        SDL_FRect mM1 = { padX + colW + (colW * 0.32f) + (22.0f * uiScale), stepY, 18.0f * uiScale, 18.0f * uiScale };
+        SDL_FRect mP1 = { padX + colW + (colW * 0.32f) + (90.0f * uiScale), stepY, 18.0f * uiScale, 18.0f * uiScale };
+        SDL_FRect mP2 = { padX + colW + (colW * 0.32f) + (112.0f * uiScale), stepY, 18.0f * uiScale, 18.0f * uiScale };
+
+        UIWidget::drawColoredButton(renderer, mM2, "--", SDL_Color{ 160, 45, 55, 240 }, Theme::colors.textPrimary, false, uiScale * 0.7f);
+        UIWidget::drawColoredButton(renderer, mM1, "-", SDL_Color{ 160, 45, 55, 240 }, Theme::colors.textPrimary, false, uiScale * 0.7f);
+        UIWidget::drawText(renderer, cc->birthMonth, padX + colW + (colW * 0.32f) + (46.0f * uiScale), stepY + (3.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.85f);
+        UIWidget::drawColoredButton(renderer, mP1, "+", SDL_Color{ 45, 120, 65, 240 }, Theme::colors.textPrimary, false, uiScale * 0.7f);
+        UIWidget::drawColoredButton(renderer, mP2, "++", SDL_Color{ 45, 120, 65, 240 }, Theme::colors.textPrimary, false, uiScale * 0.7f);
+
+        if (clicked)
+        {
+            auto checkClick = [&](const SDL_FRect& r) {
+                return (mousePos.x >= r.x && mousePos.x <= r.x + r.w && mousePos.y >= r.y && mousePos.y <= r.y + r.h);
+            };
+            if (checkClick(mM2)) { cc->birthMonthIdx = (cc->birthMonthIdx + 10) % 12; cc->birthMonth = allMonths[cc->birthMonthIdx]; gameContext->input.consumeMouseClick(); }
+            else if (checkClick(mM1)) { cc->birthMonthIdx = (cc->birthMonthIdx + 11) % 12; cc->birthMonth = allMonths[cc->birthMonthIdx]; gameContext->input.consumeMouseClick(); }
+            else if (checkClick(mP1)) { cc->birthMonthIdx = (cc->birthMonthIdx + 1) % 12; cc->birthMonth = allMonths[cc->birthMonthIdx]; gameContext->input.consumeMouseClick(); }
+            else if (checkClick(mP2)) { cc->birthMonthIdx = (cc->birthMonthIdx + 2) % 12; cc->birthMonth = allMonths[cc->birthMonthIdx]; gameContext->input.consumeMouseClick(); }
+        }
+
+        // Age Stepper
+        UIWidget::drawText(renderer, "Age", padX + (colW * 2.0f) + (colW * 0.1f), stepY + (3.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.85f);
+        SDL_FRect aM2 = { padX + (colW * 2.0f) + (colW * 0.3f), stepY, 18.0f * uiScale, 18.0f * uiScale };
+        SDL_FRect aM1 = { padX + (colW * 2.0f) + (colW * 0.3f) + (22.0f * uiScale), stepY, 18.0f * uiScale, 18.0f * uiScale };
+        SDL_FRect aP1 = { padX + (colW * 2.0f) + (colW * 0.3f) + (70.0f * uiScale), stepY, 18.0f * uiScale, 18.0f * uiScale };
+        SDL_FRect aP2 = { padX + (colW * 2.0f) + (colW * 0.3f) + (92.0f * uiScale), stepY, 18.0f * uiScale, 18.0f * uiScale };
+
+        UIWidget::drawColoredButton(renderer, aM2, "--", SDL_Color{ 160, 45, 55, 240 }, Theme::colors.textPrimary, false, uiScale * 0.7f);
+        UIWidget::drawColoredButton(renderer, aM1, "-", SDL_Color{ 160, 45, 55, 240 }, Theme::colors.textPrimary, false, uiScale * 0.7f);
+        UIWidget::drawText(renderer, std::to_string(cc->birthAge), padX + (colW * 2.0f) + (colW * 0.3f) + (46.0f * uiScale), stepY + (3.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.85f);
+        UIWidget::drawColoredButton(renderer, aP1, "+", SDL_Color{ 45, 120, 65, 240 }, Theme::colors.textPrimary, false, uiScale * 0.7f);
+        UIWidget::drawColoredButton(renderer, aP2, "++", SDL_Color{ 45, 120, 65, 240 }, Theme::colors.textPrimary, false, uiScale * 0.7f);
+
+        if (clicked)
+        {
+            auto checkClick = [&](const SDL_FRect& r) {
+                return (mousePos.x >= r.x && mousePos.x <= r.x + r.w && mousePos.y >= r.y && mousePos.y <= r.y + r.h);
+            };
+            if (checkClick(aM2)) { cc->birthAge = std::max(18, cc->birthAge - 5); gameContext->input.consumeMouseClick(); }
+            else if (checkClick(aM1)) { cc->birthAge = std::max(18, cc->birthAge - 1); gameContext->input.consumeMouseClick(); }
+            else if (checkClick(aP1)) { cc->birthAge = std::min(99, cc->birthAge + 1); gameContext->input.consumeMouseClick(); }
+            else if (checkClick(aP2)) { cc->birthAge = std::min(99, cc->birthAge + 5); gameContext->input.consumeMouseClick(); }
+        }
+
+        curY += bdayH + (14.0f * uiScale);
+
+        // Card 2: Sexual Orientation
+        float oriH = 75.0f * uiScale;
+        SDL_FRect oriRect = { padX, curY, availableW, oriH };
+        UIWidget::drawPanel(renderer, oriRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+        UIWidget::drawText(renderer, "Sexual Orientation", oriRect.x + ((oriRect.w - (75.0f * uiScale)) / 2.0f), curY + (6.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.9f);
+        UIWidget::drawText(renderer, "Sexual orientation is determined by your attraction towards femininity or masculinity.", oriRect.x + (12.0f * uiScale), curY + (22.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.8f);
+        UIWidget::drawText(renderer, "Hover over the orientation icon in your character's status effects panel to see the effects.", oriRect.x + (12.0f * uiScale), curY + (36.0f * uiScale), Theme::colors.textMuted, uiScale * 0.78f);
+
+        static const char* orientations[3] = { "Androphilic", "Ambiphilic", "Gynephilic" };
+        float oBtnW = 75.0f * uiScale;
+        float oStartX = padX + ((availableW - (3 * (oBtnW + 8.0f * uiScale))) / 2.0f);
+        for (int o = 0; o < 3; ++o)
+        {
+            SDL_FRect obRect = { oStartX + (o * (oBtnW + 8.0f * uiScale)), curY + (50.0f * uiScale), oBtnW, 20.0f * uiScale };
+            bool isSel = (cc->orientation == orientations[o]);
+            bool oHover = (mousePos.x >= obRect.x && mousePos.x <= obRect.x + obRect.w &&
+                           mousePos.y >= obRect.y && mousePos.y <= obRect.y + obRect.h);
+
+            SDL_Color bg = isSel ? SDL_Color{ 45, 55, 65, 255 } : (oHover ? SDL_Color{ 45, 48, 56, 255 } : Theme::colors.bgButton);
+            SDL_Color border = isSel ? SDL_Color{ 190, 130, 255, 255 } : (oHover ? Theme::colors.textGold : Theme::colors.borderButton);
+            SDL_Color txt = isSel ? Theme::colors.textPrimary : Theme::colors.textMuted;
+
+            SDL_SetRenderDrawColor(renderer, bg.r, bg.g, bg.b, bg.a);
+            SDL_RenderFillRect(renderer, &obRect);
+            SDL_SetRenderDrawColor(renderer, border.r, border.g, border.b, border.a);
+            SDL_RenderRect(renderer, &obRect);
+
+            float labelW = std::string(orientations[o]).size() * (6.0f * uiScale);
+            UIWidget::drawText(renderer, orientations[o], obRect.x + ((obRect.w - labelW) / 2.0f), obRect.y + (3.0f * uiScale), txt, uiScale * 0.75f);
+
+            if (oHover && clicked)
+            {
+                cc->orientation = orientations[o];
+                gameContext->input.consumeMouseClick();
+            }
+        }
+        curY += oriH + (14.0f * uiScale);
+
+        // Card 3: Personality
+        float persH = 96.0f * uiScale;
+        SDL_FRect persRect = { padX, curY, availableW, persH };
+        UIWidget::drawPanel(renderer, persRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+        UIWidget::drawText(renderer, "Personality", persRect.x + ((persRect.w - (50.0f * uiScale)) / 2.0f), curY + (6.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.9f);
+        UIWidget::drawTextWrapped(renderer, "Your personality will have a minor influence in some situations. It will not lock out any options during the game, and is more for roleplaying purposes.", persRect.x + (12.0f * uiScale), curY + (22.0f * uiScale), availableW - (24.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.8f);
+
+        static const std::vector<std::string> traits = {
+            "Confident", "Shy", "Kind", "Selfish", "Naive", "Cynical",
+            "Brave", "Cowardly", "Lewd", "Innocent", "Prude", "Lisp",
+            "Stutter", "Slovenly"
+        };
+
+        float tBtnW = (availableW - (7 * 6.0f * uiScale)) / 6.0f;
+        float tBtnH = 18.0f * uiScale;
+        float tGridY = curY + (44.0f * uiScale);
+
+        for (size_t t = 0; t < traits.size(); ++t)
+        {
+            int r = t / 6;
+            int c = t % 6;
+            if (r == 2) c += 2;
+            SDL_FRect tbRect = { padX + (6.0f * uiScale) + (c * (tBtnW + 5.0f * uiScale)), tGridY + (r * (tBtnH + 4.0f * uiScale)), tBtnW, tBtnH };
+            bool isSel = (cc->personalityTraits.find(traits[t]) != cc->personalityTraits.end());
+            bool tHover = (mousePos.x >= tbRect.x && mousePos.x <= tbRect.x + tbRect.w &&
+                           mousePos.y >= tbRect.y && mousePos.y <= tbRect.y + tbRect.h);
+
+            SDL_Color bg = isSel ? SDL_Color{ 45, 55, 65, 255 } : (tHover ? SDL_Color{ 45, 48, 56, 255 } : Theme::colors.bgButton);
+            SDL_Color border = isSel ? Theme::colors.companion : (tHover ? Theme::colors.textGold : Theme::colors.borderButton);
+            SDL_Color txt = isSel ? Theme::colors.companion : Theme::colors.textMuted;
+
+            SDL_SetRenderDrawColor(renderer, bg.r, bg.g, bg.b, bg.a);
+            SDL_RenderFillRect(renderer, &tbRect);
+            SDL_SetRenderDrawColor(renderer, border.r, border.g, border.b, border.a);
+            SDL_RenderRect(renderer, &tbRect);
+
+            float labelW = traits[t].size() * (5.5f * uiScale);
+            UIWidget::drawText(renderer, traits[t], tbRect.x + ((tbRect.w - labelW) / 2.0f), tbRect.y + (2.0f * uiScale), txt, uiScale * 0.72f);
+
+            if (tHover && clicked)
+            {
+                if (isSel) cc->personalityTraits.erase(traits[t]);
+                else cc->personalityTraits.insert(traits[t]);
+                gameContext->input.consumeMouseClick();
+            }
+        }
+        curY += persH + (16.0f * uiScale);
+    }
+    else if (cc->step == 2) // Part 3: Names, Surname
+    {
+        std::string line1 = "\"Sir,\" the doorman calls out to you, evidently having finished with the other people in the queue, \"do you have an invitation?\"";
+        float l1 = UIWidget::drawTextWrapped(renderer, line1, padX, curY, availableW, SDL_Color{ 100, 160, 255, 255 }, uiScale * 0.9f);
+        curY += l1 + (12.0f * uiScale);
+
+        std::string line2 = "You turn away from the glass and step forwards, smiling. \"Yes, I have it right here... erm... hold on...\"";
+        float l2 = UIWidget::drawTextWrapped(renderer, line2, padX, curY, availableW, Theme::colors.textPrimary, uiScale * 0.9f);
+        curY += l2 + (12.0f * uiScale);
+
+        std::string line3 = "Reaching into your pocket, you feel your heart start to race as you discover that the invitation isn't in there. \"No, no, no! I must have left it in the taxi!\"";
+        float l3 = UIWidget::drawTextWrapped(renderer, line3, padX, curY, availableW, Theme::colors.textPrimary, uiScale * 0.9f);
+        curY += l3 + (12.0f * uiScale);
+
+        std::string line4 = "\"Well, don't worry,\" the man replies, \"if you give me your name, I can check to make sure that you're on the list.\"";
+        float l4 = UIWidget::drawTextWrapped(renderer, line4, padX, curY, availableW, SDL_Color{ 100, 160, 255, 255 }, uiScale * 0.9f);
+        curY += l4 + (12.0f * uiScale);
+
+        std::string line5 = "Breathing a sigh of relief, you tell the man your name...";
+        float l5 = UIWidget::drawTextWrapped(renderer, line5, padX, curY, availableW, Theme::colors.textPrimary, uiScale * 0.9f);
+        curY += l5 + (18.0f * uiScale);
+
+        // Name Entry Card
+        float cardH = 110.0f * uiScale;
+        SDL_FRect nameCardRect = { padX, curY, availableW, cardH };
+        UIWidget::drawPanel(renderer, nameCardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+
+        std::string expl = "Your first name can be set as three values; your masculine name, androgynous name, and feminine name. Your name will automatically switch to the one which corresponds to your body femininity.";
+        float eH = UIWidget::drawTextWrapped(renderer, expl, padX + (12.0f * uiScale), curY + (6.0f * uiScale), availableW - (24.0f * uiScale), Theme::colors.textMuted, uiScale * 0.78f);
+
+        float fieldY = curY + eH + (10.0f * uiScale);
+
+        UIWidget::drawText(renderer, "First name:", padX + (12.0f * uiScale), fieldY + (4.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.85f);
+
+        float inputW = (availableW - (110.0f * uiScale)) / 3.0f;
+        float inputH = 22.0f * uiScale;
+        float inStartX = padX + (90.0f * uiScale);
+
+        struct NameBox { std::string val; SDL_Color col; int id; };
+        NameBox boxes[3] = {
+            { cc->masculineName, SDL_Color{ 100, 160, 255, 255 }, 0 },
+            { cc->androgynousName, SDL_Color{ 190, 130, 255, 255 }, 1 },
+            { cc->feminineName, SDL_Color{ 255, 120, 180, 255 }, 2 }
+        };
+
+        for (int b = 0; b < 3; ++b)
+        {
+            SDL_FRect boxRect = { inStartX + (b * (inputW + 6.0f * uiScale)), fieldY, inputW, inputH };
+            bool isFocused = (cc->activeNameField == boxes[b].id);
+            bool bHover = (mousePos.x >= boxRect.x && mousePos.x <= boxRect.x + boxRect.w &&
+                           mousePos.y >= boxRect.y && mousePos.y <= boxRect.y + boxRect.h);
+
+            SDL_SetRenderDrawColor(renderer, 22, 24, 30, 255);
+            SDL_RenderFillRect(renderer, &boxRect);
+
+            SDL_Color border = isFocused ? Theme::colors.textGold : (bHover ? Theme::colors.borderButton : Theme::colors.borderNormal);
+            SDL_SetRenderDrawColor(renderer, border.r, border.g, border.b, border.a);
+            SDL_RenderRect(renderer, &boxRect);
+
+            UIWidget::drawText(renderer, boxes[b].val, boxRect.x + (6.0f * uiScale), boxRect.y + (3.0f * uiScale), boxes[b].col, uiScale * 0.82f);
+
+            if (bHover && clicked)
+            {
+                cc->activeNameField = boxes[b].id;
+                gameContext->input.consumeMouseClick();
+            }
+        }
+
+        fieldY += inputH + (8.0f * uiScale);
+
+        UIWidget::drawText(renderer, "Surname:", padX + (12.0f * uiScale), fieldY + (4.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.85f);
+        SDL_FRect surRect = { inStartX, fieldY, inputW, inputH };
+        bool surFocused = (cc->activeNameField == 3);
+        bool surHover = (mousePos.x >= surRect.x && mousePos.x <= surRect.x + surRect.w &&
+                         mousePos.y >= surRect.y && mousePos.y <= surRect.y + surRect.h);
+
+        SDL_SetRenderDrawColor(renderer, 22, 24, 30, 255);
+        SDL_RenderFillRect(renderer, &surRect);
+        SDL_Color surBorder = surFocused ? Theme::colors.textGold : (surHover ? Theme::colors.borderButton : Theme::colors.borderNormal);
+        SDL_SetRenderDrawColor(renderer, surBorder.r, surBorder.g, surBorder.b, surBorder.a);
+        SDL_RenderRect(renderer, &surRect);
+
+        UIWidget::drawText(renderer, cc->surname, surRect.x + (6.0f * uiScale), surRect.y + (3.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.82f);
+        if (surHover && clicked)
+        {
+            cc->activeNameField = 3;
+            gameContext->input.consumeMouseClick();
+        }
+
+        curY += cardH + (12.0f * uiScale);
+
+        std::string footNote = "Your name must be between 2 and 32 characters long. You cannot use the square bracket characters or full stops. (Surname may be left blank.)";
+        UIWidget::drawTextWrapped(renderer, footNote, padX, curY, availableW, Theme::colors.textMuted, uiScale * 0.78f);
+        curY += (20.0f * uiScale);
+    }
+
+    return (curY - startY);
 }
 
 float uiRenderer::renderShopView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)
@@ -1795,6 +2432,24 @@ float uiRenderer::renderWidgetCharactersPresent(SDL_Renderer* renderer, game* ga
     float padX = curX + (10.0f * uiScale);
     float availableW = innerW - (20.0f * uiScale);
 
+    bool inPrologue = (dynamic_cast<characterCreationState*>(gameContext->getActiveState()) != nullptr);
+    if (inPrologue)
+    {
+        UIWidget::drawText(renderer, "Land", padX + (availableW * 0.35f), curY, Theme::colors.textGold, uiScale * 1.05f);
+        curY += (18.0f * uiScale);
+        UIWidget::drawText(renderer, "Safe", padX + (availableW * 0.35f), curY, Theme::colors.companion, uiScale * 0.9f);
+        curY += (20.0f * uiScale);
+
+        UIWidget::drawText(renderer, "Characters Present", padX + (10.0f * uiScale), curY, Theme::colors.textPrimary, uiScale * 0.88f);
+        curY += (18.0f * uiScale);
+
+        SDL_FRect cardRect = { padX, curY, availableW, 24.0f * uiScale };
+        UIWidget::drawPanel(renderer, cardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+        UIWidget::drawText(renderer, "✋ Few people", padX + (6.0f * uiScale), curY + (4.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.85f);
+        curY += (28.0f * uiScale);
+        return (curY - startY);
+    }
+
     UIWidget::drawText(renderer, "CHARACTERS PRESENT", padX, curY, Theme::colors.textGold, uiScale);
     curY += (18.0f * uiScale);
 
@@ -1832,6 +2487,17 @@ float uiRenderer::renderWidgetItemsPresent(SDL_Renderer* renderer, game* gameCon
 
     float startY = curY;
     float padX = curX + (10.0f * uiScale);
+    float availableW = innerW - (20.0f * uiScale);
+
+    bool inPrologue = (dynamic_cast<characterCreationState*>(gameContext->getActiveState()) != nullptr);
+    if (inPrologue)
+    {
+        UIWidget::drawText(renderer, "Items Present", padX + (16.0f * uiScale), curY, Theme::colors.textPrimary, uiScale * 0.88f);
+        curY += (18.0f * uiScale);
+        UIWidget::drawText(renderer, "None...", padX + (availableW * 0.35f), curY, Theme::colors.textMuted, uiScale * 0.85f);
+        curY += (16.0f * uiScale);
+        return (curY - startY);
+    }
 
     UIWidget::drawText(renderer, "ITEMS PRESENT", padX, curY, Theme::colors.textGold, uiScale);
     curY += (18.0f * uiScale);
@@ -1869,6 +2535,31 @@ float uiRenderer::renderWidgetEventLog(SDL_Renderer* renderer, game* gameContext
 
     float startY = curY;
     float padX = curX + (10.0f * uiScale);
+    float availableW = innerW - (20.0f * uiScale);
+
+    bool inPrologue = (dynamic_cast<characterCreationState*>(gameContext->getActiveState()) != nullptr);
+    if (inPrologue)
+    {
+        UIWidget::drawText(renderer, "Event Log", padX + (availableW * 0.3f), curY, Theme::colors.textPrimary, uiScale * 0.88f);
+        curY += (18.0f * uiScale);
+
+        static const std::vector<std::string> startingEquipLog = {
+            "Equipped: Silver masculine watch",
+            "Equipped: Silver ring",
+            "Equipped: Black men's shoes",
+            "Equipped: Black socks",
+            "Equipped: Black trousers",
+            "Equipped: White short-sleeved shirt",
+            "Equipped: Black boxer shorts"
+        };
+
+        for (const auto& entry : startingEquipLog)
+        {
+            float descH = UIWidget::drawTextWrapped(renderer, entry, padX, curY, availableW, Theme::colors.textSecondary, uiScale * 0.8f);
+            curY += descH + (6.0f * uiScale);
+        }
+        return (curY - startY);
+    }
 
     UIWidget::drawText(renderer, "EVENT LOG", padX, curY, Theme::colors.textGold, uiScale);
     curY += (18.0f * uiScale);
@@ -1903,13 +2594,35 @@ float uiRenderer::renderWidgetTimeBar(SDL_Renderer* renderer, game* gameContext,
     float padX = curX + (8.0f * uiScale);
     float availableW = innerW - (16.0f * uiScale);
 
-    SDL_FRect timeRect = { padX, curY, availableW, 18.0f * uiScale };
-    UIWidget::drawPanel(renderer, timeRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+    bool inPrologue = (dynamic_cast<characterCreationState*>(gameContext->getActiveState()) != nullptr);
+    std::string dateStr = inPrologue ? "29th August" : "17th November";
+    std::string timeStr = inPrologue ? "20:34" : "20:04";
 
-    UIWidget::drawText(renderer, "17th November", padX + (6.0f * uiScale), curY + (2.0f * uiScale), Theme::colors.textGold, uiScale * 0.8f);
-    UIWidget::drawText(renderer, "• 20:04", padX + availableW - (52.0f * uiScale), curY + (2.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.8f);
+    // Calendar icon + Date + Watch icon + Time
+    UIWidget::drawText(renderer, "📅", padX, curY + (2.0f * uiScale), Theme::colors.textGold, uiScale * 0.85f);
+    UIWidget::drawText(renderer, dateStr, padX + (16.0f * uiScale), curY + (2.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.82f);
+    UIWidget::drawText(renderer, "⌚", padX + availableW - (60.0f * uiScale), curY + (2.0f * uiScale), Theme::colors.textGold, uiScale * 0.85f);
+    UIWidget::drawText(renderer, timeStr, padX + availableW - (45.0f * uiScale), curY + (2.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.82f);
+    curY += (18.0f * uiScale);
 
-    curY += timeRect.h + (4.0f * uiScale);
+    // Weekdays tracker: M T W T [F] S S
+    static const char* days[7] = { "M", "T", "W", "T", "F", "S", "S" };
+    float dayW = (availableW - (6 * 3.0f * uiScale)) / 7.0f;
+    for (int d = 0; d < 7; ++d)
+    {
+        SDL_FRect dRect = { padX + (d * (dayW + 3.0f * uiScale)), curY, dayW, 14.0f * uiScale };
+        bool isActiveDay = (d == 4); // Friday
+        if (isActiveDay)
+        {
+            SDL_SetRenderDrawColor(renderer, 45, 55, 65, 255);
+            SDL_RenderFillRect(renderer, &dRect);
+            SDL_SetRenderDrawColor(renderer, 100, 160, 255, 255);
+            SDL_RenderRect(renderer, &dRect);
+        }
+        UIWidget::drawText(renderer, days[d], dRect.x + ((dRect.w - (5.0f * uiScale)) / 2.0f), dRect.y + (1.0f * uiScale), isActiveDay ? Theme::colors.textPrimary : Theme::colors.textMuted, uiScale * 0.68f);
+    }
+
+    curY += (18.0f * uiScale);
     return (curY - startY);
 }
 
@@ -1927,16 +2640,16 @@ float uiRenderer::renderWidgetOptionsToolbar(SDL_Renderer* renderer, game* gameC
     float availableW = innerW - (16.0f * uiScale);
 
     static const std::vector<std::pair<std::string, CommandType>> tools = {
-        { "OPT", CommandType::OPEN_SETTINGS },
-        { "PHONE", CommandType::OPEN_PHONE },
-        { "GEAR", CommandType::OPEN_INVENTORY },
-        { "INV", CommandType::OPEN_INVENTORY },
-        { "LOOK", CommandType::OPEN_TRANSFORMATION }
+        { "⚙", CommandType::OPEN_SETTINGS },
+        { "📱", CommandType::OPEN_PHONE },
+        { "🛡", CommandType::OPEN_INVENTORY },
+        { "👥", CommandType::OPEN_INVENTORY },
+        { "🔍", CommandType::OPEN_TRANSFORMATION }
     };
 
-    float btnGap = 3.0f * uiScale;
+    float btnGap = 4.0f * uiScale;
     float btnW = (availableW - (btnGap * (tools.size() - 1))) / tools.size();
-    float btnH = 20.0f * uiScale;
+    float btnH = 22.0f * uiScale;
 
     auto mousePos = gameContext->input.getMousePosition();
     bool clicked = gameContext->input.isLeftMouseJustClicked();
@@ -1948,7 +2661,7 @@ float uiRenderer::renderWidgetOptionsToolbar(SDL_Renderer* renderer, game* gameC
                         mousePos.y >= btnRect.y && mousePos.y <= btnRect.y + btnRect.h);
 
         bool isActive = (i == 1 && gameContext->isPhoneMenuOpen);
-        UIWidget::drawButton(renderer, btnRect, tools[i].first, hovered, true, isActive, uiScale * 0.7f);
+        UIWidget::drawButton(renderer, btnRect, tools[i].first, hovered, true, isActive, uiScale * 0.8f);
 
         if (hovered && clicked)
         {
@@ -1977,11 +2690,21 @@ float uiRenderer::renderWidgetCharacterCard(SDL_Renderer* renderer, game* gameCo
     float padX = curX + (8.0f * uiScale);
     float availableW = innerW - (16.0f * uiScale);
 
-    // 1. Zone & Room Header (Dominion in purple, Lilaya's Home in cyan)
-    UIWidget::drawText(renderer, "Dominion", padX, curY, SDL_Color{ 208, 112, 255, 255 }, uiScale * 1.05f);
-    curY += (17.0f * uiScale);
-    UIWidget::drawText(renderer, "Lilaya's Home", padX, curY, SDL_Color{ 96, 208, 255, 255 }, uiScale * 0.9f);
-    curY += (15.0f * uiScale);
+    bool inPrologue = (dynamic_cast<characterCreationState*>(gameContext->getActiveState()) != nullptr);
+    if (inPrologue)
+    {
+        UIWidget::drawText(renderer, "Museum", padX + (availableW * 0.25f), curY, SDL_Color{ 255, 120, 140, 255 }, uiScale * 1.05f);
+        curY += (17.0f * uiScale);
+        UIWidget::drawText(renderer, "Entrance", padX + (availableW * 0.25f), curY, SDL_Color{ 255, 105, 180, 255 }, uiScale * 0.9f);
+        curY += (15.0f * uiScale);
+    }
+    else
+    {
+        UIWidget::drawText(renderer, "Dominion", padX + (availableW * 0.25f), curY, SDL_Color{ 208, 112, 255, 255 }, uiScale * 1.05f);
+        curY += (17.0f * uiScale);
+        UIWidget::drawText(renderer, "Lilaya's Home", padX + (availableW * 0.25f), curY, SDL_Color{ 96, 208, 255, 255 }, uiScale * 0.9f);
+        curY += (15.0f * uiScale);
+    }
 
     // 2. Character Card Frame
     SDL_FRect cardRect = { padX, curY, availableW, 148.0f * uiScale };

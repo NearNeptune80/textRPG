@@ -86,6 +86,22 @@ namespace UIWidget
         return isEnabled && isHovered;
     }
 
+    bool drawColoredButton(SDL_Renderer* renderer, const SDL_FRect& rect, const std::string& label, SDL_Color bgColor, SDL_Color textColor, bool isSelected, float scale)
+    {
+        if (!renderer) return false;
+
+        SDL_SetRenderDrawColor(renderer, bgColor.r, bgColor.g, bgColor.b, bgColor.a);
+        SDL_RenderFillRect(renderer, &rect);
+
+        SDL_Color border = isSelected ? SDL_Color{ 245, 80, 175, 255 } : Theme::colors.borderButton;
+        SDL_SetRenderDrawColor(renderer, border.r, border.g, border.b, border.a);
+        SDL_RenderRect(renderer, &rect);
+
+        float labelW = label.size() * (6.0f * scale);
+        drawText(renderer, label, rect.x + ((rect.w - labelW) / 2.0f), rect.y + ((rect.h - (10.0f * scale)) / 2.0f), textColor, scale);
+        return true;
+    }
+
     bool drawLTActionButton(SDL_Renderer* renderer, const SDL_FRect& rect, const std::string& label, const std::string& hotkey, bool isHovered, bool isEnabled, bool isSelected, float scale)
     {
         if (!renderer) return false;

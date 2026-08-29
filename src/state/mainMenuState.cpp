@@ -5,6 +5,7 @@
 
 #include "core/game.h"
 #include "save/saveManager.h"
+#include "state/characterCreationState.h"
 #include "state/explorationState.h"
 #include "state/optionsState.h"
 
@@ -30,17 +31,7 @@ void mainMenuState::handleCommand(game* gameContext, const UICommand& cmd)
 
     if (cmd.type == CommandType::START_NEW_GAME)
     {
-        gameContext->loadMap("overworld", 1, 1);
-        if (entity* p = gameContext->getPlayer())
-        {
-            p->stats.setBaseStat("health", 100.0f);
-            p->stats.setBaseStat("mana", 50.0f);
-            p->stats.setBaseStat("lust", 0.0f);
-            p->stats.setBaseStat("physique", 25.0f);
-            p->stats.setBaseStat("agility", 15.0f);
-            p->stats.setBaseStat("currency", 150.0f);
-        }
-        gameContext->changeState(std::make_unique<explorationState>());
+        gameContext->changeState(std::make_unique<characterCreationState>());
     }
     else if (cmd.type == CommandType::CONTINUE_GAME)
     {
