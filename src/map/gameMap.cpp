@@ -132,92 +132,11 @@ void gameMap::updateDiscovery(int playerX, int playerY, int visionRadius)
 {
     if (playerX < 0 || playerX >= width || playerY < 0 || playerY >= height) return;
 
+    // The tile the player has physically walked on is marked as visited & revealed
     if (grid[playerY][playerX].type != TILE_VOID)
     {
+        grid[playerY][playerX].visited = true;
         grid[playerY][playerX].discovery = STATE_REVEALED;
-    }
-
-    // Radius-based line-of-sight raycasting
-    for (int ty = playerY - visionRadius; ty <= playerY + visionRadius; ++ty)
-    {
-        for (int tx = playerX - visionRadius; tx <= playerX + visionRadius; ++tx)
-        {
-            if (tx < 0 || tx >= width || ty < 0 || ty >= height) continue;
-
-            float distSq = static_cast<float>((tx - playerX) * (tx - playerX) + (ty - playerY) * (ty - playerY));
-            if (distSq > (visionRadius * visionRadius) + 0.5f) continue;
-
-            // Raycast line from (playerX, playerY) to (tx, ty)
-            int dx = std::abs(tx - playerX);
-            int dy = std::abs(ty - playerY);
-            int sx = (playerX < tx) ? 1 : -1;
-            int sy = (playerY < ty) ? 1 : -1;
-            int err = dx - dy;
-
-            int cx = playerX;
-            int cy = playerY;
-
-            bool blocked = false;
-            while (cx != tx || cy != ty)
-            {
-                if (grid[cy][cx].type != TILE_VOID)
-                {
-                    grid[cy][cx].discovery = STATE_REVEALED;
-                }
-
-                if (isOpaque(cx, cy) && (cx != playerX || cy != playerY))
-                {
-                    blocked = true;
-                    break; // Wall blocks vision ray
-                }
-
-                int e2 = 2 * err;
-                if (e2 > -dy)
-                {
-                    err -= dy;
-                    cx += sx;
-                }
-                if (e2 < dx)
-                {
-                    err += dx;
-                    cy += sy;
-                }
-            }
-
-            if (!blocked && tx >= 0 && tx < width && ty >= 0 && ty < height)
-            {
-                if (grid[ty][tx].type != TILE_VOID)
-                {
-                    grid[ty][tx].discovery = STATE_REVEALED;
-                }
-            }
-        }
-    }
-
-    // Secondary pass for fringe awareness (adjacent hidden tiles set to STATE_PARTIAL)
-    for (int y = 0; y < height; ++y)
-    {
-        for (int x = 0; x < width; ++x)
-        {
-            if (grid[y][x].discovery == STATE_REVEALED)
-            {
-                for (int dy = -1; dy <= 1; ++dy)
-                {
-                    for (int dx = -1; dx <= 1; ++dx)
-                    {
-                        int nx = x + dx;
-                        int ny = y + dy;
-                        if (nx >= 0 && nx < width && ny >= 0 && ny < height)
-                        {
-                            if (grid[ny][nx].discovery == STATE_HIDDEN && grid[ny][nx].type != TILE_VOID)
-                            {
-                                grid[ny][nx].discovery = STATE_PARTIAL;
-                            }
-                        }
-                    }
-                }
-            }
-        }
     }
 }
 

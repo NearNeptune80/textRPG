@@ -28,6 +28,7 @@ struct Tile
 {
 	TileType type{ TILE_VOID };
 	DiscoveryState discovery{ STATE_HIDDEN };
+	bool visited{ false };
 };
 
 struct MapWarp
