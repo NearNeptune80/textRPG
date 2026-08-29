@@ -780,6 +780,11 @@ float uiRenderer::renderWidgetAnatomy(SDL_Renderer* renderer, game* gameContext,
 
 float uiRenderer::renderWidgetRadar(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)
 {
+    if (dynamic_cast<mainMenuState*>(gameContext->getActiveState()) || dynamic_cast<optionsState*>(gameContext->getActiveState()))
+    {
+        return 0.0f;
+    }
+
     const gameMap* m = gameContext->getActiveMap();
     if (!m) return 0.0f;
 
@@ -982,29 +987,41 @@ float uiRenderer::renderWidgetItemInspector(SDL_Renderer* renderer, game* gameCo
 float uiRenderer::renderMainMenu(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)
 {
     float startY = curY;
-    float padX = rect.x + (16.0f * uiScale);
-    float availableW = rect.w - (32.0f * uiScale);
+    float padX = rect.x + (20.0f * uiScale);
+    float availableW = rect.w - (40.0f * uiScale);
 
     float headerH = 28.0f * uiScale;
     SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
     UIWidget::drawHeader(renderer, headerRect, "CHRONICLES OF LILITH • MAIN MENU", Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
-    curY += headerH + (12.0f * uiScale);
+    curY += headerH + (16.0f * uiScale);
 
-    UIWidget::drawText(renderer, "Welcome to textRPG", padX, curY, Theme::colors.textGold, uiScale * 1.3f);
-    curY += (24.0f * uiScale);
+    UIWidget::drawText(renderer, "CHRONICLES OF LILITH", padX, curY, Theme::colors.textGold, uiScale * 1.5f);
+    curY += (28.0f * uiScale);
 
-    float descH = UIWidget::drawTextWrapped(renderer, "A modular, rich text-based RPG featuring dynamic corruption, deep anatomy mutations, and CYOA tactical combat. Choose an option from the Action Commands below to begin.", padX, curY, availableW, Theme::colors.textPrimary, uiScale);
-    curY += descH + (16.0f * uiScale);
+    UIWidget::drawText(renderer, "A Transformative Text-Based Fantasy RPG Engine", padX, curY, Theme::colors.textAccent, uiScale * 1.0f);
+    curY += (22.0f * uiScale);
 
-    UIWidget::drawText(renderer, "AVAILABLE SAVE PROFILES:", padX, curY, Theme::colors.textAccent, uiScale);
-    curY += (18.0f * uiScale);
+    float descH = UIWidget::drawTextWrapped(renderer,
+        "Welcome to Dominion. Deep mutation pipelines, CYOA encounter resolution, and dynamic anatomy simulation await. Select an action command from the grid below to start a new adventure, continue your journey, or configure settings.",
+        padX, curY, availableW, Theme::colors.textPrimary, uiScale * 0.9f);
+    curY += descH + (20.0f * uiScale);
 
-    for (int i = 1; i <= 3; ++i)
+    UIWidget::drawText(renderer, "SAVE PROFILES & CHECKPOINTS:", padX, curY, Theme::colors.textGold, uiScale * 0.95f);
+    curY += (20.0f * uiScale);
+
+    static const std::vector<std::pair<std::string, std::string>> profiles = {
+        { "QuickSave Profile", "QuickSave.json • Latest fast checkpoint" },
+        { "Profile Slot 1", "Profile_1.json • Standard campaign slot" },
+        { "Profile Slot 2", "Profile_2.json • Secondary campaign slot" }
+    };
+
+    for (size_t i = 0; i < profiles.size(); ++i)
     {
-        SDL_FRect slotRect = { padX, curY, availableW, 28.0f * uiScale };
+        SDL_FRect slotRect = { padX, curY, availableW, 30.0f * uiScale };
         UIWidget::drawPanel(renderer, slotRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
-        UIWidget::drawText(renderer, std::format("Profile Slot {}: [Save Data]", i), padX + 8.0f * uiScale, curY + 6.0f * uiScale, Theme::colors.textSecondary, uiScale);
-        curY += (32.0f * uiScale);
+        UIWidget::drawText(renderer, profiles[i].first, padX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textAccent, uiScale * 0.85f);
+        UIWidget::drawText(renderer, profiles[i].second, padX + (150.0f * uiScale), curY + (7.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.75f);
+        curY += (36.0f * uiScale);
     }
 
     return (curY - startY);
@@ -1012,28 +1029,181 @@ float uiRenderer::renderMainMenu(SDL_Renderer* renderer, game* gameContext, cons
 
 float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)
 {
+    optionsState* opt = dynamic_cast<optionsState*>(gameContext->getActiveState());
+    if (!opt) return 0.0f;
+
     float startY = curY;
     float padX = rect.x + (16.0f * uiScale);
     float availableW = rect.w - (32.0f * uiScale);
 
+    auto mousePos = gameContext->input.getMousePosition();
+    bool clicked = gameContext->input.isLeftMouseJustClicked();
+
     float headerH = 28.0f * uiScale;
     SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
-    UIWidget::drawHeader(renderer, headerRect, "GAME SETTINGS & CONFIGURATION", Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
-    curY += headerH + (12.0f * uiScale);
 
-    UIWidget::drawText(renderer, "CONTENT & MECHANICS:", padX, curY, Theme::colors.textGold, uiScale);
-    curY += (18.0f * uiScale);
+    std::string catTitle = "GAME SETTINGS & CONFIGURATION";
+    if (opt->currentCategory == OptionsCategory::GAMEPLAY) catTitle = "SETTINGS: GAMEPLAY MECHANICS";
+    else if (opt->currentCategory == OptionsCategory::CONTENT) catTitle = "SETTINGS: CONTENT & MUTATIONS";
+    else if (opt->currentCategory == OptionsCategory::DEMOGRAPHICS) catTitle = "SETTINGS: WORLD DEMOGRAPHICS";
+    else if (opt->currentCategory == OptionsCategory::DISPLAY) catTitle = "SETTINGS: DISPLAY & INTERFACE";
 
-    UIWidget::drawText(renderer, std::format("Pregnancy Simulation: {}", gameContext->settings.content.pregnancyEnabled ? "ENABLED" : "DISABLED"), padX, curY, Theme::colors.textPrimary, uiScale);
-    curY += (16.0f * uiScale);
-    UIWidget::drawText(renderer, std::format("Lactation System: {}", gameContext->settings.content.lactationEnabled ? "ENABLED" : "DISABLED"), padX, curY, Theme::colors.textPrimary, uiScale);
-    curY += (16.0f * uiScale);
+    UIWidget::drawHeader(renderer, headerRect, catTitle, Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
+    curY += headerH + (14.0f * uiScale);
 
-    curY += (10.0f * uiScale);
-    UIWidget::drawText(renderer, "DISPLAY & THEME:", padX, curY, Theme::colors.textAccent, uiScale);
-    curY += (18.0f * uiScale);
-    UIWidget::drawText(renderer, std::format("Active Layout: {}", gameContext->settings.display.activeLayout.empty() ? "Default" : gameContext->settings.display.activeLayout), padX, curY, Theme::colors.textSecondary, uiScale);
-    curY += (16.0f * uiScale);
+    auto renderSettingSection = [&](const std::string& name, const std::string& description, const std::vector<std::pair<std::string, bool>>& options, std::function<void(int)> onSelect) {
+        UIWidget::drawText(renderer, name, padX, curY, Theme::colors.textAccent, uiScale * 0.95f);
+        curY += (18.0f * uiScale);
+
+        float descH = UIWidget::drawTextWrapped(renderer, description, padX, curY, availableW, Theme::colors.textSecondary, uiScale * 0.85f);
+        curY += descH + (8.0f * uiScale);
+
+        float btnW = std::min(140.0f * uiScale, (availableW - ((options.size() - 1) * 8.0f * uiScale)) / options.size());
+        float btnH = 24.0f * uiScale;
+
+        for (size_t i = 0; i < options.size(); ++i)
+        {
+            SDL_FRect bRect = { padX + (i * (btnW + 8.0f * uiScale)), curY, btnW, btnH };
+            bool hovered = (mousePos.x >= bRect.x && mousePos.x <= bRect.x + bRect.w &&
+                            mousePos.y >= bRect.y && mousePos.y <= bRect.y + bRect.h);
+            bool isSelected = options[i].second;
+
+            UIWidget::drawButton(renderer, bRect, options[i].first, hovered, true, isSelected, uiScale * 0.75f);
+
+            if (hovered && clicked)
+            {
+                onSelect(static_cast<int>(i));
+                settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                gameContext->input.consumeMouseClick();
+            }
+        }
+        curY += btnH + (16.0f * uiScale);
+    };
+
+    if (opt->currentCategory == OptionsCategory::GAMEPLAY)
+    {
+        float diff = gameContext->settings.gameplay.difficultyMultiplier;
+        renderSettingSection(
+            "Combat Difficulty Multiplier",
+            "Scales enemy maximum vitality, damage output, and offensive spellcasting frequency.",
+            { { "Easy (0.8x)", diff <= 0.85f }, { "Normal (1.0x)", diff > 0.85f && diff <= 1.2f }, { "Hard (1.5x)", diff > 1.2f } },
+            [&](int idx) {
+                if (idx == 0) gameContext->settings.gameplay.difficultyMultiplier = 0.8f;
+                else if (idx == 1) gameContext->settings.gameplay.difficultyMultiplier = 1.0f;
+                else gameContext->settings.gameplay.difficultyMultiplier = 1.5f;
+            }
+        );
+
+        float loss = gameContext->settings.gameplay.currencyLossOnDefeatPercent;
+        renderSettingSection(
+            "Defeat Currency Penalty",
+            "The percentage of held gold and essence confiscated by opponents when submitted or defeated.",
+            { { "0% (Safe)", loss <= 0.01f }, { "15% (Standard)", loss > 0.01f && loss <= 0.2f }, { "35% (Harsh)", loss > 0.2f && loss <= 0.4f }, { "50% (Hardcore)", loss > 0.4f } },
+            [&](int idx) {
+                if (idx == 0) gameContext->settings.gameplay.currencyLossOnDefeatPercent = 0.0f;
+                else if (idx == 1) gameContext->settings.gameplay.currencyLossOnDefeatPercent = 0.15f;
+                else if (idx == 2) gameContext->settings.gameplay.currencyLossOnDefeatPercent = 0.35f;
+                else gameContext->settings.gameplay.currencyLossOnDefeatPercent = 0.50f;
+            }
+        );
+
+        bool autoMap = gameContext->settings.gameplay.autoSaveOnMapChange;
+        renderSettingSection(
+            "Auto-Save on Room & Map Transitions",
+            "Automatically writes a quicksave snapshot whenever entering new rooms, shops, or dungeons.",
+            { { "ENABLED", autoMap }, { "DISABLED", !autoMap } },
+            [&](int idx) { gameContext->settings.gameplay.autoSaveOnMapChange = (idx == 0); }
+        );
+    }
+    else if (opt->currentCategory == OptionsCategory::CONTENT)
+    {
+        bool preg = gameContext->settings.content.pregnancyEnabled;
+        renderSettingSection(
+            "Biological Pregnancy & Gestation Pipeline",
+            "Simulates multi-stage pregnancy, womb expansion, gestation timers, and offspring traits.",
+            { { "ENABLED", preg }, { "DISABLED", !preg } },
+            [&](int idx) { gameContext->settings.content.pregnancyEnabled = (idx == 0); }
+        );
+
+        bool lact = gameContext->settings.content.lactationEnabled;
+        renderSettingSection(
+            "Lactation & Milk Generation Mechanics",
+            "Enables breast stimulation, milk accumulation, chest expansion, and nursery production.",
+            { { "ENABLED", lact }, { "DISABLED", !lact } },
+            [&](int idx) { gameContext->settings.content.lactationEnabled = (idx == 0); }
+        );
+
+        float fluid = gameContext->settings.content.fluidMultiplier;
+        renderSettingSection(
+            "Fluid Volume Capacity Multiplier",
+            "Scales maximum bodily fluid storage (cum, milk, fluids) across all entities in the game.",
+            { { "0.5x (Subtle)", fluid <= 0.6f }, { "1.0x (Normal)", fluid > 0.6f && fluid <= 1.5f }, { "2.5x (Abundant)", fluid > 1.5f && fluid <= 3.5f }, { "5.0x (Hyper)", fluid > 3.5f } },
+            [&](int idx) {
+                if (idx == 0) gameContext->settings.content.fluidMultiplier = 0.5f;
+                else if (idx == 1) gameContext->settings.content.fluidMultiplier = 1.0f;
+                else if (idx == 2) gameContext->settings.content.fluidMultiplier = 2.5f;
+                else gameContext->settings.content.fluidMultiplier = 5.0f;
+            }
+        );
+
+        float tfSpeed = gameContext->settings.content.transformationSpeedMultiplier;
+        renderSettingSection(
+            "Transformation Mutation Progression Speed",
+            "Speed at which alchemical potions, morphic draughts, and essences mutate the body.",
+            { { "Instantaneous", tfSpeed >= 5.0f }, { "Standard (1.0x)", tfSpeed > 0.7f && tfSpeed < 5.0f }, { "Gradual (0.5x)", tfSpeed <= 0.7f } },
+            [&](int idx) {
+                if (idx == 0) gameContext->settings.content.transformationSpeedMultiplier = 10.0f;
+                else if (idx == 1) gameContext->settings.content.transformationSpeedMultiplier = 1.0f;
+                else gameContext->settings.content.transformationSpeedMultiplier = 0.5f;
+            }
+        );
+    }
+    else if (opt->currentCategory == OptionsCategory::DEMOGRAPHICS)
+    {
+        renderSettingSection(
+            "World NPC Orientation Distribution",
+            "Statistical bias for generating heterosexuality, bisexuality, and homosexuality among NPCs.",
+            { { "Balanced Mix", true }, { "Bi/Pan Heavy", false }, { "Hetero Bias", false } },
+            [&](int idx) {
+                if (idx == 0) { gameContext->settings.demographics.percentHetero = 40.0f; gameContext->settings.demographics.percentBi = 35.0f; gameContext->settings.demographics.percentHomo = 25.0f; }
+                else if (idx == 1) { gameContext->settings.demographics.percentHetero = 20.0f; gameContext->settings.demographics.percentBi = 60.0f; gameContext->settings.demographics.percentHomo = 20.0f; }
+                else { gameContext->settings.demographics.percentHetero = 70.0f; gameContext->settings.demographics.percentBi = 20.0f; gameContext->settings.demographics.percentHomo = 10.0f; }
+            }
+        );
+
+        renderSettingSection(
+            "World Gender & Morph Distribution",
+            "Frequency of encounterable Male, Female, Hermaphrodite, and Morph individuals in Dominion.",
+            { { "Standard Fantasy", true }, { "Herm / Futa Surge", false }, { "Matriarchal", false } },
+            [&](int idx) {
+                if (idx == 0) { gameContext->settings.demographics.percentMale = 35.0f; gameContext->settings.demographics.percentFemale = 45.0f; gameContext->settings.demographics.percentHermaphrodite = 20.0f; }
+                else if (idx == 1) { gameContext->settings.demographics.percentMale = 20.0f; gameContext->settings.demographics.percentFemale = 30.0f; gameContext->settings.demographics.percentHermaphrodite = 50.0f; }
+                else { gameContext->settings.demographics.percentMale = 10.0f; gameContext->settings.demographics.percentFemale = 70.0f; gameContext->settings.demographics.percentHermaphrodite = 20.0f; }
+            }
+        );
+    }
+    else if (opt->currentCategory == OptionsCategory::DISPLAY)
+    {
+        int verb = gameContext->settings.display.descriptionVerbosity;
+        renderSettingSection(
+            "Narrative Prose & Description Detail",
+            "Controls the length and richness of descriptive prose during encounters and inspections.",
+            { { "Full & Immersive", verb == 0 }, { "Condensed Summary", verb == 1 }, { "Minimal Speed", verb == 2 } },
+            [&](int idx) { gameContext->settings.display.descriptionVerbosity = idx; }
+        );
+
+        std::string curTheme = gameContext->settings.display.activeTheme;
+        renderSettingSection(
+            "Color Palette & Aesthetic Theme",
+            "Selects the primary color scheme and visual styling for panels, headers, and buttons.",
+            { { "Dark Fantasy", curTheme == "default" || curTheme == "theme_dark_fantasy" }, { "Obsidian", curTheme == "obsidian" }, { "Midnight Slate", curTheme == "slate" } },
+            [&](int idx) {
+                if (idx == 0) gameContext->settings.display.activeTheme = "theme_dark_fantasy";
+                else if (idx == 1) gameContext->settings.display.activeTheme = "obsidian";
+                else gameContext->settings.display.activeTheme = "slate";
+            }
+        );
+    }
 
     return (curY - startY);
 }
@@ -1207,6 +1377,11 @@ float uiRenderer::renderEnchantingView(SDL_Renderer* renderer, game* gameContext
 
 float uiRenderer::renderWidgetCharactersPresent(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
 {
+    if (dynamic_cast<mainMenuState*>(gameContext->getActiveState()) || dynamic_cast<optionsState*>(gameContext->getActiveState()))
+    {
+        return 0.0f;
+    }
+
     float startY = curY;
     float padX = curX + (10.0f * uiScale);
     float availableW = innerW - (20.0f * uiScale);
@@ -1239,6 +1414,11 @@ float uiRenderer::renderWidgetCharactersPresent(SDL_Renderer* renderer, game* ga
 
 float uiRenderer::renderWidgetItemsPresent(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
 {
+    if (dynamic_cast<mainMenuState*>(gameContext->getActiveState()) || dynamic_cast<optionsState*>(gameContext->getActiveState()))
+    {
+        return 0.0f;
+    }
+
     float startY = curY;
     float padX = curX + (10.0f * uiScale);
 
@@ -1269,6 +1449,11 @@ float uiRenderer::renderWidgetItemsPresent(SDL_Renderer* renderer, game* gameCon
 
 float uiRenderer::renderWidgetEventLog(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
 {
+    if (dynamic_cast<mainMenuState*>(gameContext->getActiveState()) || dynamic_cast<optionsState*>(gameContext->getActiveState()))
+    {
+        return 0.0f;
+    }
+
     float startY = curY;
     float padX = curX + (10.0f * uiScale);
 
@@ -1294,6 +1479,11 @@ float uiRenderer::renderWidgetEventLog(SDL_Renderer* renderer, game* gameContext
 
 float uiRenderer::renderWidgetTimeBar(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
 {
+    if (dynamic_cast<mainMenuState*>(gameContext->getActiveState()) || dynamic_cast<optionsState*>(gameContext->getActiveState()))
+    {
+        return 0.0f;
+    }
+
     float startY = curY;
     float padX = curX + (8.0f * uiScale);
     float availableW = innerW - (16.0f * uiScale);
@@ -1310,6 +1500,11 @@ float uiRenderer::renderWidgetTimeBar(SDL_Renderer* renderer, game* gameContext,
 
 float uiRenderer::renderWidgetOptionsToolbar(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
 {
+    if (dynamic_cast<mainMenuState*>(gameContext->getActiveState()) || dynamic_cast<optionsState*>(gameContext->getActiveState()))
+    {
+        return 0.0f;
+    }
+
     float startY = curY;
     float padX = curX + (8.0f * uiScale);
     float availableW = innerW - (16.0f * uiScale);
@@ -1351,6 +1546,11 @@ float uiRenderer::renderWidgetOptionsToolbar(SDL_Renderer* renderer, game* gameC
 
 float uiRenderer::renderWidgetCharacterCard(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
 {
+    if (dynamic_cast<mainMenuState*>(gameContext->getActiveState()) || dynamic_cast<optionsState*>(gameContext->getActiveState()))
+    {
+        return 0.0f;
+    }
+
     entity* p = gameContext->getPlayer();
     if (!p) return 0.0f;
 
@@ -1434,6 +1634,11 @@ float uiRenderer::renderWidgetCharacterCard(SDL_Renderer* renderer, game* gameCo
 
 float uiRenderer::renderWidgetDpadRadar(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
 {
+    if (dynamic_cast<mainMenuState*>(gameContext->getActiveState()) || dynamic_cast<optionsState*>(gameContext->getActiveState()))
+    {
+        return 0.0f;
+    }
+
     float startY = curY;
     curY += renderWidgetTimeBar(renderer, gameContext, curX, curY, innerW, uiScale);
     curY += renderWidgetRadar(renderer, gameContext, { curX, curY, innerW, 120.0f * uiScale }, curY, uiScale);

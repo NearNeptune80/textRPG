@@ -45,12 +45,36 @@ void ActionGridManager::refresh(game* gameContext)
         };
         gameContext->activeButtons.push_back(loadBtn);
 
+        actionButton prof1Btn;
+        prof1Btn.label = "Profile 1";
+        prof1Btn.onClick = [gameContext]() {
+            saveManager::loadFromFile(gameContext, "Profile_1.json");
+            gameContext->changeState(std::make_unique<explorationState>());
+        };
+        gameContext->activeButtons.push_back(prof1Btn);
+
+        actionButton prof2Btn;
+        prof2Btn.label = "Profile 2";
+        prof2Btn.onClick = [gameContext]() {
+            saveManager::loadFromFile(gameContext, "Profile_2.json");
+            gameContext->changeState(std::make_unique<explorationState>());
+        };
+        gameContext->activeButtons.push_back(prof2Btn);
+
         actionButton optBtn;
         optBtn.label = "Options & Settings";
         optBtn.onClick = [gameContext]() {
             gameContext->handleCommand({ CommandType::OPEN_SETTINGS, 0, 0, "" });
         };
         gameContext->activeButtons.push_back(optBtn);
+
+        while (gameContext->activeButtons.size() < 14)
+        {
+            actionButton blank;
+            blank.label = "";
+            blank.isEnabled = false;
+            gameContext->activeButtons.push_back(blank);
+        }
 
         actionButton quitBtn;
         quitBtn.label = "Quit Game";
@@ -61,29 +85,48 @@ void ActionGridManager::refresh(game* gameContext)
         return;
     }
 
-    // Options / Settings State Actions
+    // Options / Settings State Actions (Pages/Tabs in Action Grid)
     if (auto opt = dynamic_cast<optionsState*>(currentState))
     {
-        actionButton pregBtn;
-        pregBtn.label = std::format("Pregnancy: {}", gameContext->settings.content.pregnancyEnabled ? "ON" : "OFF");
-        pregBtn.onClick = [gameContext]() {
-            gameContext->handleCommand({ CommandType::CYCLE_SETTING_OPTION, 0, 0, "pregnancy" });
+        actionButton gameplayTab;
+        gameplayTab.label = "1. Gameplay";
+        gameplayTab.onClick = [gameContext, opt]() {
+            opt->currentCategory = OptionsCategory::GAMEPLAY;
+            gameContext->refreshActionGrid();
         };
-        gameContext->activeButtons.push_back(pregBtn);
+        gameContext->activeButtons.push_back(gameplayTab);
 
-        actionButton lactBtn;
-        lactBtn.label = std::format("Lactation: {}", gameContext->settings.content.lactationEnabled ? "ON" : "OFF");
-        lactBtn.onClick = [gameContext]() {
-            gameContext->handleCommand({ CommandType::CYCLE_SETTING_OPTION, 0, 0, "lactation" });
+        actionButton contentTab;
+        contentTab.label = "2. Content & TF";
+        contentTab.onClick = [gameContext, opt]() {
+            opt->currentCategory = OptionsCategory::CONTENT;
+            gameContext->refreshActionGrid();
         };
-        gameContext->activeButtons.push_back(lactBtn);
+        gameContext->activeButtons.push_back(contentTab);
 
-        actionButton diffBtn;
-        diffBtn.label = std::format("Difficulty: {:.1f}x", gameContext->settings.gameplay.difficultyMultiplier);
-        diffBtn.onClick = [gameContext]() {
-            gameContext->handleCommand({ CommandType::CYCLE_SETTING_OPTION, 0, 0, "difficulty" });
+        actionButton demoTab;
+        demoTab.label = "3. Demographics";
+        demoTab.onClick = [gameContext, opt]() {
+            opt->currentCategory = OptionsCategory::DEMOGRAPHICS;
+            gameContext->refreshActionGrid();
         };
-        gameContext->activeButtons.push_back(diffBtn);
+        gameContext->activeButtons.push_back(demoTab);
+
+        actionButton displayTab;
+        displayTab.label = "4. Display & UI";
+        displayTab.onClick = [gameContext, opt]() {
+            opt->currentCategory = OptionsCategory::DISPLAY;
+            gameContext->refreshActionGrid();
+        };
+        gameContext->activeButtons.push_back(displayTab);
+
+        while (gameContext->activeButtons.size() < 14)
+        {
+            actionButton blank;
+            blank.label = "";
+            blank.isEnabled = false;
+            gameContext->activeButtons.push_back(blank);
+        }
 
         actionButton backBtn;
         backBtn.label = "< Back to Menu (ESC)";
