@@ -602,6 +602,24 @@ float uiRenderer::renderExplorationView(SDL_Renderer* renderer, game* gameContex
     float innerW = rect.w - (32.0f * uiScale);
     float centerX = rect.x + (rect.w / 2.0f);
 
+    if (gameContext->isPhoneMenuOpen)
+    {
+        std::string phoneTitle = "Phone home screen";
+        float titleW = phoneTitle.size() * (9.5f * uiScale);
+        UIWidget::drawText(renderer, phoneTitle, centerX - (titleW / 2.0f), curY, SDL_Color{ 255, 240, 200, 255 }, uiScale * 1.15f);
+        curY += (28.0f * uiScale);
+
+        std::string p1 = "You pull out your phone and tap in the unlock code.";
+        float h1 = UIWidget::drawTextWrapped(renderer, p1, padX, curY, innerW, Theme::colors.textPrimary, uiScale * 0.9f);
+        curY += h1 + (16.0f * uiScale);
+
+        std::string p2 = "Using your powerful aura, you've managed to figure out a way to channel the arcane into charging the battery of your phone, although considering that it's the only one in this world, it's not much use for calling anyone. Instead, you're using it as a way to store information about things you've discovered in this strange new world.";
+        float h2 = UIWidget::drawTextWrapped(renderer, p2, padX, curY, innerW, Theme::colors.textPrimary, uiScale * 0.9f);
+        curY += h2 + (16.0f * uiScale);
+
+        return (curY - startY);
+    }
+
     const gameMap* m = gameContext->getActiveMap();
     std::string locTitle = "Corridor";
     if (m && !m->getName().empty() && m->getName() != "Enchanted Forest" && m->getName() != "District Map")
@@ -810,9 +828,7 @@ float uiRenderer::renderWidgetAnatomy(SDL_Renderer* renderer, game* gameContext,
 
 float uiRenderer::renderWidgetRadar(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)
 {
-    if (dynamic_cast<mainMenuState*>(gameContext->getActiveState()) ||
-        dynamic_cast<optionsState*>(gameContext->getActiveState()) ||
-        dynamic_cast<loadGameState*>(gameContext->getActiveState()))
+    if (!gameContext->getPlayer())
     {
         return 0.0f;
     }
@@ -835,9 +851,6 @@ float uiRenderer::renderWidgetRadar(SDL_Renderer* renderer, game* gameContext, c
     {
         for (int dx = -radius; dx <= radius; ++dx)
         {
-            int mapX = gameContext->gridX + dx;
-            int mapY = gameContext->gridY + dy;
-
             SDL_FRect tileRect = {
                 padX + static_cast<float>(dx + radius) * tileSize,
                 curY + static_cast<float>(dy + radius) * tileSize,
@@ -845,50 +858,53 @@ float uiRenderer::renderWidgetRadar(SDL_Renderer* renderer, game* gameContext, c
                 std::max(1.0f, tileSize - (1.5f * uiScale))
             };
 
-            Tile t = m->getTile(mapX, mapY);
-            if (t.type == TILE_VOID)
-            {
-                continue; // Do not draw void/off-map cells as tiles
-            }
-
-            int manhattanDist = std::abs(dx) + std::abs(dy);
-            bool isAdjacent = (manhattanDist == 1); // Strictly orthogonal (up, down, left, right)
-            bool isWalkedOn = t.visited || (t.discovery == STATE_REVEALED);
-
-            SDL_Color tileColor;
-            SDL_Color borderColor = SDL_Color{ 22, 22, 30, 255 };
+            SDL_Color tileColor = SDL_Color{ 20, 22, 28, 255 };
+            SDL_Color borderColor = SDL_Color{ 35, 38, 48, 255 };
+            SDL_Color textCol = Theme::colors.textGold;
             std::string label = "";
 
             if (dx == 0 && dy == 0)
             {
-                // Player Center Tile
-                tileColor = Theme::colors.borderButton;
-                borderColor = Theme::colors.textGold;
-                label = "@";
+                // Player Center Tile (Corridor location pin)
+                tileColor = SDL_Color{ 25, 42, 60, 255 };
+                borderColor = SDL_Color{ 96, 175, 255, 255 };
+                label = "📍";
+                textCol = SDL_Color{ 100, 190, 255, 255 };
             }
-            else if (isWalkedOn)
+            else if (dx == 0 && dy == -1)
             {
-                // Tier 1: Walked on / Visited (brightest)
-                if (t.type == TILE_WALL) { tileColor = Theme::colors.bgHeader; }
-                else if (t.type == TILE_DOOR) { tileColor = Theme::colors.textGold; label = "D"; }
-                else { tileColor = Theme::colors.bgSlot; }
-                borderColor = Theme::colors.borderNormal;
+                tileColor = SDL_Color{ 28, 34, 44, 255 };
+                borderColor = SDL_Color{ 60, 75, 95, 255 };
+                label = "W";
+                textCol = SDL_Color{ 130, 200, 255, 255 };
             }
-            else if (isAdjacent)
+            else if (dx == -1 && dy == 0)
             {
-                // Tier 2: Strictly orthogonal adjacent (up, down, left, right), unwalked
-                if (t.type == TILE_WALL) { tileColor = SDL_Color{ 24, 24, 34, 255 }; }
-                else if (t.type == TILE_DOOR) { tileColor = SDL_Color{ 130, 95, 20, 255 }; label = "d"; }
-                else { tileColor = SDL_Color{ 18, 18, 26, 255 }; }
-                borderColor = SDL_Color{ 36, 36, 48, 255 };
+                tileColor = SDL_Color{ 28, 34, 44, 255 };
+                borderColor = SDL_Color{ 60, 75, 95, 255 };
+                label = "A";
+                textCol = SDL_Color{ 130, 200, 255, 255 };
             }
-            else
+            else if (dx == 0 && dy == 1)
             {
-                // Tier 3: Diagonal or >1 tile away, unwalked (darkest, but visible tile)
-                if (t.type == TILE_WALL) { tileColor = SDL_Color{ 14, 14, 20, 255 }; }
-                else if (t.type == TILE_DOOR) { tileColor = SDL_Color{ 35, 28, 10, 255 }; }
-                else { tileColor = SDL_Color{ 10, 10, 14, 255 }; }
-                borderColor = SDL_Color{ 20, 20, 28, 255 };
+                tileColor = SDL_Color{ 28, 34, 44, 255 };
+                borderColor = SDL_Color{ 60, 75, 95, 255 };
+                label = "S";
+                textCol = SDL_Color{ 130, 200, 255, 255 };
+            }
+            else if (dx == 1 && dy == 0)
+            {
+                tileColor = SDL_Color{ 45, 25, 30, 255 };
+                borderColor = SDL_Color{ 160, 50, 60, 255 };
+                label = "D";
+                textCol = SDL_Color{ 255, 120, 130, 255 };
+            }
+            else if (std::abs(dx) == 2 || std::abs(dy) == 2 || (std::abs(dx) == 1 && std::abs(dy) == 1))
+            {
+                tileColor = SDL_Color{ 18, 20, 26, 255 };
+                borderColor = SDL_Color{ 32, 35, 44, 255 };
+                label = "🛏";
+                textCol = SDL_Color{ 110, 115, 130, 200 };
             }
 
             // Draw tile border and fill
@@ -900,7 +916,8 @@ float uiRenderer::renderWidgetRadar(SDL_Renderer* renderer, game* gameContext, c
 
             if (!label.empty() && tileSize >= 12.0f * uiScale)
             {
-                UIWidget::drawText(renderer, label, tileRect.x + (tileSize * 0.25f), tileRect.y + (tileSize * 0.1f), Theme::colors.textGold, uiScale * (tileSize / 22.0f));
+                float lScale = (label == "📍" || label == "🛏") ? (uiScale * 0.7f) : (uiScale * 0.75f);
+                UIWidget::drawText(renderer, label, tileRect.x + (tileSize * 0.2f), tileRect.y + (tileSize * 0.1f), textCol, lScale);
             }
         }
     }
@@ -2914,7 +2931,8 @@ float uiRenderer::renderWidgetEventLog(SDL_Renderer* renderer, game* gameContext
         { "Encyclopedia: Half-demon", Theme::colors.arcane },
         { "Equipped: opaque demonstone", SDL_Color{ 100, 180, 255, 255 } },
         { "Encyclopedia: Opaque demonstone", Theme::colors.textGold },
-        { "Gained: ¤ 5,000", Theme::colors.friendly }
+        { "Gained: ¤ 5,000", Theme::colors.friendly },
+        { "New Task: Lilaya's Tests", SDL_Color{ 100, 220, 255, 255 } }
     };
 
     for (const auto& entry : logEntries)
@@ -2928,9 +2946,7 @@ float uiRenderer::renderWidgetEventLog(SDL_Renderer* renderer, game* gameContext
 
 float uiRenderer::renderWidgetTimeBar(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
 {
-    if (dynamic_cast<mainMenuState*>(gameContext->getActiveState()) ||
-        dynamic_cast<optionsState*>(gameContext->getActiveState()) ||
-        dynamic_cast<loadGameState*>(gameContext->getActiveState()))
+    if (!gameContext->getPlayer())
     {
         return 0.0f;
     }

@@ -135,6 +135,14 @@ namespace UIWidget
             {
                 drawText(renderer, label, labelX, labelY, SDL_Color{ 255, 120, 140, 255 }, scale * 0.85f);
             }
+            else if (label == "Quests" || label == "Encyclopedia")
+            {
+                drawText(renderer, label, labelX, labelY, Theme::colors.textGold, scale * 0.85f);
+            }
+            else if (label == "Masturbate")
+            {
+                drawText(renderer, label, labelX, labelY, SDL_Color{ 255, 120, 180, 255 }, scale * 0.85f);
+            }
             else if (label.find(": OFF") != std::string::npos)
             {
                 size_t colonPos = label.find(':');

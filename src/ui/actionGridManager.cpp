@@ -913,66 +913,86 @@ void ActionGridManager::refresh(game* gameContext)
     {
         if (gameContext->isPhoneMenuOpen)
         {
+            // Row 1: Quests, Perk Tree, Spells, Fetishes, Stats
+            actionButton questBtn;
+            questBtn.label = "Quests";
+            questBtn.onClick = [gameContext]() {};
+            gameContext->activeButtons.push_back(questBtn);
+
+            actionButton perkBtn;
+            perkBtn.label = "Perk Tree";
+            perkBtn.onClick = [gameContext]() {};
+            gameContext->activeButtons.push_back(perkBtn);
+
             actionButton spellsBtn;
-            spellsBtn.label = "Spells & Moves";
+            spellsBtn.label = "Spells";
             spellsBtn.onClick = [gameContext]() {};
             gameContext->activeButtons.push_back(spellsBtn);
 
-            actionButton tfBtn;
-            tfBtn.label = "Transformations (M)";
-            tfBtn.onClick = [gameContext]() {
-                gameContext->changeState(std::make_unique<transformationState>());
-            };
-            gameContext->activeButtons.push_back(tfBtn);
-
             actionButton fetishBtn;
-            fetishBtn.label = "Fetishes & Perks";
+            fetishBtn.label = "Fetishes";
             fetishBtn.onClick = [gameContext]() {};
             gameContext->activeButtons.push_back(fetishBtn);
+
+            actionButton statsBtn;
+            statsBtn.label = "Stats";
+            statsBtn.onClick = [gameContext]() {};
+            gameContext->activeButtons.push_back(statsBtn);
+
+            // Row 2: Selfie, Contacts, Encyclopedia, Transform, Maps
+            actionButton selfieBtn;
+            selfieBtn.label = "Selfie";
+            selfieBtn.onClick = [gameContext]() {};
+            gameContext->activeButtons.push_back(selfieBtn);
+
+            actionButton contactsBtn;
+            contactsBtn.label = "Contacts";
+            contactsBtn.onClick = [gameContext]() {};
+            gameContext->activeButtons.push_back(contactsBtn);
 
             actionButton encBtn;
             encBtn.label = "Encyclopedia";
             encBtn.onClick = [gameContext]() {};
             gameContext->activeButtons.push_back(encBtn);
 
-            actionButton questBtn;
-            questBtn.label = "Quest Journal";
-            questBtn.onClick = [gameContext]() {};
-            gameContext->activeButtons.push_back(questBtn);
+            actionButton tfBtn;
+            tfBtn.label = "Transform";
+            tfBtn.isEnabled = false;
+            tfBtn.onClick = [gameContext]() {};
+            gameContext->activeButtons.push_back(tfBtn);
 
-            actionButton saveMenuBtn;
-            saveMenuBtn.label = "Save / Load Menu";
-            saveMenuBtn.onClick = [gameContext]() {
-                gameContext->changeState(std::make_unique<loadGameState>(SaveMenuMode::SAVE_AND_LOAD, std::make_unique<explorationState>()));
-            };
-            gameContext->activeButtons.push_back(saveMenuBtn);
+            actionButton mapsBtn;
+            mapsBtn.label = "Maps";
+            mapsBtn.onClick = [gameContext]() {};
+            gameContext->activeButtons.push_back(mapsBtn);
 
-            actionButton saveBtn;
-            saveBtn.label = "QuickSave (F5)";
-            saveBtn.onClick = [gameContext]() {
-                saveManager::saveNamedGame(gameContext, "QuickSave");
-            };
-            gameContext->activeButtons.push_back(saveBtn);
+            // Row 3: Combat Moves, Masturbate, Loiter, Elemental, Back
+            actionButton combatBtn;
+            combatBtn.label = "Combat Moves";
+            combatBtn.onClick = [gameContext]() {};
+            gameContext->activeButtons.push_back(combatBtn);
 
-            actionButton loadBtn;
-            loadBtn.label = "QuickLoad (F9)";
-            loadBtn.onClick = [gameContext]() {
-                saveManager::loadFromFile(gameContext, "QuickSave.json");
+            actionButton mastBtn;
+            mastBtn.label = "Masturbate";
+            mastBtn.onClick = [gameContext]() {};
+            gameContext->activeButtons.push_back(mastBtn);
+
+            actionButton loiterBtn;
+            loiterBtn.label = "Loiter";
+            loiterBtn.onClick = [gameContext]() {
+                gameContext->gameTime.advanceTime(15);
                 gameContext->refreshActionGrid();
             };
-            gameContext->activeButtons.push_back(loadBtn);
+            gameContext->activeButtons.push_back(loiterBtn);
 
-            // Pad up to slot 14
-            while (gameContext->activeButtons.size() < 14)
-            {
-                actionButton blank;
-                blank.label = "";
-                blank.isEnabled = false;
-                gameContext->activeButtons.push_back(blank);
-            }
+            actionButton elemBtn;
+            elemBtn.label = "Elemental";
+            elemBtn.isEnabled = false;
+            elemBtn.onClick = [gameContext]() {};
+            gameContext->activeButtons.push_back(elemBtn);
 
             actionButton backBtn;
-            backBtn.label = "< Back (Phone)";
+            backBtn.label = "Back";
             backBtn.onClick = [gameContext]() {
                 gameContext->isPhoneMenuOpen = false;
                 gameContext->refreshActionGrid();
