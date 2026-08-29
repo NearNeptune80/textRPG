@@ -12,6 +12,7 @@
 #include "state/eventState.h"
 #include "state/explorationState.h"
 #include "state/inventoryState.h"
+#include "state/loadGameState.h"
 #include "state/mainMenuState.h"
 #include "state/optionsState.h"
 #include "state/sexState.h"
@@ -38,28 +39,19 @@ void ActionGridManager::refresh(game* gameContext)
         };
         gameContext->activeButtons.push_back(newGameBtn);
 
-        actionButton loadBtn;
-        loadBtn.label = "Continue (QuickSave)";
-        loadBtn.onClick = [gameContext]() {
+        actionButton continueBtn;
+        continueBtn.label = "Continue (QuickSave)";
+        continueBtn.onClick = [gameContext]() {
             gameContext->handleCommand({ CommandType::CONTINUE_GAME, 0, 0, "" });
         };
+        gameContext->activeButtons.push_back(continueBtn);
+
+        actionButton loadBtn;
+        loadBtn.label = "Load Game";
+        loadBtn.onClick = [gameContext]() {
+            gameContext->changeState(std::make_unique<loadGameState>());
+        };
         gameContext->activeButtons.push_back(loadBtn);
-
-        actionButton prof1Btn;
-        prof1Btn.label = "Profile 1";
-        prof1Btn.onClick = [gameContext]() {
-            saveManager::loadFromFile(gameContext, "Profile_1.json");
-            gameContext->changeState(std::make_unique<explorationState>());
-        };
-        gameContext->activeButtons.push_back(prof1Btn);
-
-        actionButton prof2Btn;
-        prof2Btn.label = "Profile 2";
-        prof2Btn.onClick = [gameContext]() {
-            saveManager::loadFromFile(gameContext, "Profile_2.json");
-            gameContext->changeState(std::make_unique<explorationState>());
-        };
-        gameContext->activeButtons.push_back(prof2Btn);
 
         actionButton optBtn;
         optBtn.label = "Options & Settings";
@@ -82,6 +74,26 @@ void ActionGridManager::refresh(game* gameContext)
             gameContext->handleCommand({ CommandType::QUIT_GAME, 0, 0, "" });
         };
         gameContext->activeButtons.push_back(quitBtn);
+        return;
+    }
+
+    // Load Game State Actions
+    if (auto loadState = dynamic_cast<loadGameState*>(currentState))
+    {
+        while (gameContext->activeButtons.size() < 14)
+        {
+            actionButton blank;
+            blank.label = "";
+            blank.isEnabled = false;
+            gameContext->activeButtons.push_back(blank);
+        }
+
+        actionButton backBtn;
+        backBtn.label = "< Back to Menu (ESC)";
+        backBtn.onClick = [gameContext]() {
+            gameContext->changeState(std::make_unique<mainMenuState>());
+        };
+        gameContext->activeButtons.push_back(backBtn);
         return;
     }
 

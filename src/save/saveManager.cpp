@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <unordered_set>
 
 #include <nlohmann/json.hpp>
 
@@ -78,14 +79,29 @@ std::vector<CharacterSaveGroup> saveManager::getSavesGroupedByCharacter()
     std::unordered_map<std::string, std::vector<SaveMetaData>> grouped;
     std::string savesDir = getSavesDirectory();
 
-    for (const auto& entry : fs::directory_iterator(savesDir))
+    std::vector<std::string> searchDirs = { savesDir, "saves", "data/saves" };
+    std::unordered_set<std::string> seenFiles;
+
+    for (const auto& dir : searchDirs)
     {
-        if (entry.is_regular_file() && entry.path().extension() == ".json")
+        if (!fs::exists(dir)) continue;
+        for (const auto& entry : fs::directory_iterator(dir))
         {
-            SaveMetaData meta = readMetadata(entry.path().string());
-            if (!meta.characterName.empty())
+            if (entry.is_regular_file() && entry.path().extension() == ".json")
             {
-                grouped[meta.characterName].push_back(meta);
+                std::string filename = entry.path().filename().string();
+                if (filename == "QuickSave.json" || filename == "settings.json" || filename == "theme.json")
+                {
+                    continue;
+                }
+                if (seenFiles.insert(filename).second)
+                {
+                    SaveMetaData meta = readMetadata(entry.path().string());
+                    if (!meta.characterName.empty())
+                    {
+                        grouped[meta.characterName].push_back(meta);
+                    }
+                }
             }
         }
     }
@@ -99,6 +115,13 @@ std::vector<CharacterSaveGroup> saveManager::getSavesGroupedByCharacter()
 
         result.push_back({charName, saveList});
     }
+
+    // Sort character groups from most recently played to oldest
+    std::sort(result.begin(), result.end(), [](const CharacterSaveGroup& a, const CharacterSaveGroup& b) {
+        if (a.saves.empty()) return false;
+        if (b.saves.empty()) return true;
+        return a.saves.front().timestamp > b.saves.front().timestamp;
+    });
 
     return result;
 }

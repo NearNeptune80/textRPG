@@ -386,16 +386,38 @@
             "type": "LEAF",
             "name": "Settings Page Content",
             "widgets": [
-              "widget_options_content",
-              "widget_options_demographics",
-              "widget_options_display_audio",
-              "widget_narrative_story"
+              "widget_options_content"
             ]
           },
           {
             "id": "opt_bottom_actions",
             "type": "LEAF",
             "name": "Settings Actions",
+            "widgets": ["widget_action_commands"]
+          }
+        ]
+      }
+    },
+    "LOAD_GAME": {
+      "enabled": true,
+      "rootNode": {
+        "id": "load_root_column",
+        "type": "CONTAINER",
+        "direction": "COLUMN",
+        "sizes": [78.0, 22.0],
+        "children": [
+          {
+            "id": "load_center_pane",
+            "type": "LEAF",
+            "name": "Load Game Profiles",
+            "widgets": [
+              "widget_load_game"
+            ]
+          },
+          {
+            "id": "load_bottom_actions",
+            "type": "LEAF",
+            "name": "Load Actions",
             "widgets": ["widget_action_commands"]
           }
         ]
@@ -414,9 +436,7 @@
             "type": "LEAF",
             "name": "Main Menu Hero & Profiles",
             "widgets": [
-              "widget_main_menu_hero",
-              "widget_main_menu_actions",
-              "widget_save_slot_list"
+              "widget_main_menu_hero"
             ]
           },
           {

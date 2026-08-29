@@ -1,6 +1,6 @@
 #include "ui/uiRenderer.h"
 
-#include <algorithm>
+#include <filesystem>
 #include <format>
 #include <iostream>
 
@@ -8,11 +8,13 @@
 #include "core/game.h"
 #include "entities/entity.h"
 #include "map/gameMap.h"
+#include "save/saveManager.h"
 #include "state/combatState.h"
 #include "state/encounterResolutionState.h"
 #include "state/eventState.h"
 #include "state/explorationState.h"
 #include "state/inventoryState.h"
+#include "state/loadGameState.h"
 #include "state/mainMenuState.h"
 #include "state/optionsState.h"
 #include "state/sexState.h"
@@ -80,6 +82,7 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
     std::string stateKey = "";
     iGameState* curState = gameContext->getActiveState();
     if (dynamic_cast<mainMenuState*>(curState)) stateKey = "MAIN_MENU";
+    else if (dynamic_cast<loadGameState*>(curState)) stateKey = "LOAD_GAME";
     else if (dynamic_cast<optionsState*>(curState)) stateKey = "SETTINGS";
     else if (dynamic_cast<CombatState*>(curState)) stateKey = "COMBAT";
     else if (dynamic_cast<inventoryState*>(curState)) stateKey = "INVENTORY";
@@ -156,6 +159,7 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
 
             float scrollY = m_panelScrollY.contains(p.id) ? m_panelScrollY[p.id] : 0.0f;
             float curY = p.rect.y + (6.0f * uiScale) - scrollY;
+            bool renderedCenterViewInPanel = false;
 
             for (const auto& wId : p.widgets)
             {
@@ -191,9 +195,16 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
                 {
                     curY += renderWidgetTarget(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
                 }
-                else if (wId == "widget_narrative_story" || wId == "SCENE_NARRATIVE")
+                else if (wId == "widget_narrative_story" || wId == "SCENE_NARRATIVE" ||
+                         wId == "widget_main_menu_hero" || wId == "widget_main_menu_actions" || wId == "widget_save_slot_list" ||
+                         wId == "widget_options_content" || wId == "widget_options_demographics" || wId == "widget_options_display_audio" ||
+                         wId == "widget_load_game")
                 {
-                    curY += renderCenterPane(renderer, gameContext, p.rect, curY, uiScale);
+                    if (!renderedCenterViewInPanel)
+                    {
+                        renderedCenterViewInPanel = true;
+                        curY += renderCenterPane(renderer, gameContext, p.rect, curY, uiScale);
+                    }
                 }
                 else if (wId == "widget_inventory_dual" || wId == "BACKPACK_INVENTORY")
                 {
@@ -202,14 +213,6 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
                 else if (wId == "widget_tactical_combat" || wId == "COMBAT_VIEW")
                 {
                     curY += renderCombatView(renderer, gameContext, p.rect, curY, uiScale);
-                }
-                else if (wId == "widget_main_menu_hero" || wId == "widget_main_menu_actions" || wId == "widget_save_slot_list")
-                {
-                    curY += renderMainMenu(renderer, gameContext, p.rect, curY, uiScale);
-                }
-                else if (wId == "widget_options_content" || wId == "widget_options_demographics" || wId == "widget_options_display_audio")
-                {
-                    curY += renderOptionsView(renderer, gameContext, p.rect, curY, uiScale);
                 }
                 else if (wId == "widget_merchant_dialog" || wId == "widget_merchant_catalog" || wId == "widget_player_sell_grid" || wId == "widget_transaction_cart")
                 {
@@ -356,6 +359,10 @@ float uiRenderer::renderCenterPane(SDL_Renderer* renderer, game* gameContext, co
     if (dynamic_cast<mainMenuState*>(state))
     {
         return renderMainMenu(renderer, gameContext, rect, curY, uiScale);
+    }
+    else if (dynamic_cast<loadGameState*>(state))
+    {
+        return renderLoadGameView(renderer, gameContext, rect, curY, uiScale);
     }
     else if (dynamic_cast<optionsState*>(state))
     {
@@ -791,7 +798,9 @@ float uiRenderer::renderWidgetAnatomy(SDL_Renderer* renderer, game* gameContext,
 
 float uiRenderer::renderWidgetRadar(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)
 {
-    if (dynamic_cast<mainMenuState*>(gameContext->getActiveState()) || dynamic_cast<optionsState*>(gameContext->getActiveState()))
+    if (dynamic_cast<mainMenuState*>(gameContext->getActiveState()) ||
+        dynamic_cast<optionsState*>(gameContext->getActiveState()) ||
+        dynamic_cast<loadGameState*>(gameContext->getActiveState()))
     {
         return 0.0f;
     }
@@ -998,41 +1007,158 @@ float uiRenderer::renderWidgetItemInspector(SDL_Renderer* renderer, game* gameCo
 float uiRenderer::renderMainMenu(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)
 {
     float startY = curY;
-    float padX = rect.x + (20.0f * uiScale);
-    float availableW = rect.w - (40.0f * uiScale);
+    float padX = rect.x + (24.0f * uiScale);
+    float availableW = rect.w - (48.0f * uiScale);
 
     float headerH = 28.0f * uiScale;
     SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
     UIWidget::drawHeader(renderer, headerRect, "CHRONICLES OF LILITH • MAIN MENU", Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
-    curY += headerH + (16.0f * uiScale);
+    curY += headerH + (18.0f * uiScale);
 
-    UIWidget::drawText(renderer, "CHRONICLES OF LILITH", padX, curY, Theme::colors.textGold, uiScale * 1.5f);
-    curY += (28.0f * uiScale);
+    UIWidget::drawText(renderer, "CHRONICLES OF LILITH", padX, curY, Theme::colors.textGold, uiScale * 1.6f);
+    curY += (30.0f * uiScale);
 
-    UIWidget::drawText(renderer, "A Transformative Text-Based Fantasy RPG Engine", padX, curY, Theme::colors.textAccent, uiScale * 1.0f);
-    curY += (22.0f * uiScale);
+    UIWidget::drawText(renderer, "A Transformative Text-Based Fantasy RPG Engine", padX, curY, Theme::colors.textAccent, uiScale * 1.05f);
+    curY += (24.0f * uiScale);
 
     float descH = UIWidget::drawTextWrapped(renderer,
-        "Welcome to Dominion. Deep mutation pipelines, CYOA encounter resolution, and dynamic anatomy simulation await. Select an action command from the grid below to start a new adventure, continue your journey, or configure settings.",
-        padX, curY, availableW, Theme::colors.textPrimary, uiScale * 0.9f);
-    curY += descH + (20.0f * uiScale);
+        "Welcome to Dominion. Deep mutation pipelines, CYOA encounter resolution, and dynamic anatomy simulation await. Select an action command from the grid below to start a new adventure, continue your journey, load a save profile, or configure settings.",
+        padX, curY, availableW, Theme::colors.textPrimary, uiScale * 0.95f);
+    curY += descH + (22.0f * uiScale);
 
-    UIWidget::drawText(renderer, "SAVE PROFILES & CHECKPOINTS:", padX, curY, Theme::colors.textGold, uiScale * 0.95f);
-    curY += (20.0f * uiScale);
+    // Overview Panel
+    SDL_FRect infoRect = { padX, curY, availableW, 106.0f * uiScale };
+    UIWidget::drawPanel(renderer, infoRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
-    static const std::vector<std::pair<std::string, std::string>> profiles = {
-        { "QuickSave Profile", "QuickSave.json • Latest fast checkpoint" },
-        { "Profile Slot 1", "Profile_1.json • Standard campaign slot" },
-        { "Profile Slot 2", "Profile_2.json • Secondary campaign slot" }
-    };
+    float infoPadX = padX + (12.0f * uiScale);
+    float infoY = curY + (10.0f * uiScale);
+    UIWidget::drawText(renderer, "COMMAND GRID NAVIGATION GUIDE:", infoPadX, infoY, Theme::colors.textGold, uiScale * 0.9f);
+    infoY += (20.0f * uiScale);
 
-    for (size_t i = 0; i < profiles.size(); ++i)
+    UIWidget::drawText(renderer, "• [New Game] - Create a character and begin a new campaign in Dominion.", infoPadX, infoY, Theme::colors.textSecondary, uiScale * 0.82f);
+    infoY += (18.0f * uiScale);
+    UIWidget::drawText(renderer, "• [Continue] - Instantly resume your most recent quicksave checkpoint.", infoPadX, infoY, Theme::colors.textSecondary, uiScale * 0.82f);
+    infoY += (18.0f * uiScale);
+    UIWidget::drawText(renderer, "• [Load Game] - Access all character campaigns and autosaves ordered by timestamp.", infoPadX, infoY, Theme::colors.textSecondary, uiScale * 0.82f);
+    infoY += (18.0f * uiScale);
+    UIWidget::drawText(renderer, "• [Options & Settings] - Fine-tune gameplay, content, demographics, and themes.", infoPadX, infoY, Theme::colors.textSecondary, uiScale * 0.82f);
+
+    curY += infoRect.h + (20.0f * uiScale);
+    return (curY - startY);
+}
+
+float uiRenderer::renderLoadGameView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)
+{
+    float startY = curY;
+    float padX = rect.x + (16.0f * uiScale);
+    float availableW = rect.w - (32.0f * uiScale);
+
+    auto mousePos = gameContext->input.getMousePosition();
+    bool clicked = gameContext->input.isLeftMouseJustClicked();
+
+    float headerH = 28.0f * uiScale;
+    SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
+    UIWidget::drawHeader(renderer, headerRect, "LOAD SAVED ADVENTURE & PROFILES", Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
+    curY += headerH + (14.0f * uiScale);
+
+    // 1. Global Quicksave Section
+    UIWidget::drawText(renderer, "GLOBAL QUICKSAVE CHECKPOINT", padX, curY, Theme::colors.textGold, uiScale * 0.95f);
+    curY += (18.0f * uiScale);
+
+    std::string savesDir = saveManager::getSavesDirectory();
+    std::string quickSavePath = savesDir + "/QuickSave.json";
+    if (!std::filesystem::exists(quickSavePath))
     {
-        SDL_FRect slotRect = { padX, curY, availableW, 30.0f * uiScale };
-        UIWidget::drawPanel(renderer, slotRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
-        UIWidget::drawText(renderer, profiles[i].first, padX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textAccent, uiScale * 0.85f);
-        UIWidget::drawText(renderer, profiles[i].second, padX + (150.0f * uiScale), curY + (7.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.75f);
-        curY += (36.0f * uiScale);
+        quickSavePath = "QuickSave.json";
+    }
+
+    bool hasQuickSave = std::filesystem::exists(quickSavePath);
+    SDL_FRect qsCard = { padX, curY, availableW, 36.0f * uiScale };
+    UIWidget::drawPanel(renderer, qsCard, Theme::colors.bgSlot, hasQuickSave ? Theme::colors.borderSelected : Theme::colors.borderNormal);
+
+    if (hasQuickSave)
+    {
+        SaveMetaData qsMeta = saveManager::readMetadata(quickSavePath);
+        std::string qsTitle = std::format("⚡ QuickSave • {} (Level {})", qsMeta.characterName.empty() ? "Hero" : qsMeta.characterName, qsMeta.characterLevel);
+        std::string qsSub = std::format("Location: {} | Saved: {}", qsMeta.mapLocation.empty() ? "Dominion" : qsMeta.mapLocation, qsMeta.timestamp.empty() ? "Recent" : qsMeta.timestamp);
+
+        UIWidget::drawText(renderer, qsTitle, padX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textGold, uiScale * 0.85f);
+        UIWidget::drawText(renderer, qsSub, padX + (10.0f * uiScale), curY + (20.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.75f);
+
+        // Load button
+        float loadBtnW = 90.0f * uiScale;
+        float loadBtnH = 22.0f * uiScale;
+        SDL_FRect loadBtnRect = { padX + availableW - loadBtnW - (8.0f * uiScale), curY + (7.0f * uiScale), loadBtnW, loadBtnH };
+        bool hovered = (mousePos.x >= loadBtnRect.x && mousePos.x <= loadBtnRect.x + loadBtnRect.w &&
+                        mousePos.y >= loadBtnRect.y && mousePos.y <= loadBtnRect.y + loadBtnRect.h);
+
+        UIWidget::drawButton(renderer, loadBtnRect, "LOAD", hovered, true, false, uiScale * 0.75f);
+        if (hovered && clicked)
+        {
+            if (saveManager::loadFromFile(gameContext, quickSavePath))
+            {
+                gameContext->changeState(std::make_unique<explorationState>());
+            }
+            gameContext->input.consumeMouseClick();
+        }
+    }
+    else
+    {
+        UIWidget::drawText(renderer, "No global quicksave checkpoint available.", padX + (10.0f * uiScale), curY + (10.0f * uiScale), Theme::colors.textMuted, uiScale * 0.85f);
+    }
+    curY += qsCard.h + (20.0f * uiScale);
+
+    // 2. Character-Grouped Saves
+    UIWidget::drawText(renderer, "CAMPAIGN CHARACTERS & AUTOSAVES", padX, curY, Theme::colors.textGold, uiScale * 0.95f);
+    curY += (18.0f * uiScale);
+
+    auto characterGroups = saveManager::getSavesGroupedByCharacter();
+    if (characterGroups.empty())
+    {
+        UIWidget::drawText(renderer, "No character saves found. Start a New Game to create a character save.", padX, curY, Theme::colors.textMuted, uiScale * 0.85f);
+        curY += (20.0f * uiScale);
+    }
+    else
+    {
+        for (const auto& group : characterGroups)
+        {
+            // Character Group Header Banner
+            SDL_FRect groupHeader = { padX, curY, availableW, 24.0f * uiScale };
+            UIWidget::drawPanel(renderer, groupHeader, Theme::colors.bgHeader, Theme::colors.borderButton);
+            UIWidget::drawText(renderer, std::format("👤 Character: {}", group.characterName), padX + (8.0f * uiScale), curY + (4.0f * uiScale), Theme::colors.textGold, uiScale * 0.85f);
+            curY += groupHeader.h + (6.0f * uiScale);
+
+            for (const auto& save : group.saves)
+            {
+                SDL_FRect itemRect = { padX + (8.0f * uiScale), curY, availableW - (8.0f * uiScale), 32.0f * uiScale };
+                UIWidget::drawPanel(renderer, itemRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+
+                std::string title = std::format("{} ({})", save.saveName.empty() ? save.fileName : save.saveName, save.fileName);
+                std::string detail = std::format("Lvl {} | {} | {}", save.characterLevel, save.mapLocation.empty() ? "Dominion" : save.mapLocation, save.timestamp.empty() ? "Recent" : save.timestamp);
+
+                UIWidget::drawText(renderer, title, itemRect.x + (8.0f * uiScale), curY + (4.0f * uiScale), save.isAutosave ? Theme::colors.arcane : Theme::colors.textAccent, uiScale * 0.82f);
+                UIWidget::drawText(renderer, detail, itemRect.x + (8.0f * uiScale), curY + (17.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.72f);
+
+                float loadBtnW = 80.0f * uiScale;
+                float loadBtnH = 20.0f * uiScale;
+                SDL_FRect loadBtnRect = { itemRect.x + itemRect.w - loadBtnW - (6.0f * uiScale), curY + (6.0f * uiScale), loadBtnW, loadBtnH };
+                bool hovered = (mousePos.x >= loadBtnRect.x && mousePos.x <= loadBtnRect.x + loadBtnRect.w &&
+                                mousePos.y >= loadBtnRect.y && mousePos.y <= loadBtnRect.y + loadBtnRect.h);
+
+                UIWidget::drawButton(renderer, loadBtnRect, "LOAD", hovered, true, false, uiScale * 0.72f);
+                if (hovered && clicked)
+                {
+                    if (saveManager::loadFromFile(gameContext, save.fileName))
+                    {
+                        gameContext->changeState(std::make_unique<explorationState>());
+                    }
+                    gameContext->input.consumeMouseClick();
+                }
+
+                curY += itemRect.h + (5.0f * uiScale);
+            }
+            curY += (12.0f * uiScale);
+        }
     }
 
     return (curY - startY);
@@ -1394,7 +1520,9 @@ float uiRenderer::renderEnchantingView(SDL_Renderer* renderer, game* gameContext
 
 float uiRenderer::renderWidgetCharactersPresent(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
 {
-    if (dynamic_cast<mainMenuState*>(gameContext->getActiveState()) || dynamic_cast<optionsState*>(gameContext->getActiveState()))
+    if (dynamic_cast<mainMenuState*>(gameContext->getActiveState()) ||
+        dynamic_cast<optionsState*>(gameContext->getActiveState()) ||
+        dynamic_cast<loadGameState*>(gameContext->getActiveState()))
     {
         return 0.0f;
     }
@@ -1431,7 +1559,9 @@ float uiRenderer::renderWidgetCharactersPresent(SDL_Renderer* renderer, game* ga
 
 float uiRenderer::renderWidgetItemsPresent(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
 {
-    if (dynamic_cast<mainMenuState*>(gameContext->getActiveState()) || dynamic_cast<optionsState*>(gameContext->getActiveState()))
+    if (dynamic_cast<mainMenuState*>(gameContext->getActiveState()) ||
+        dynamic_cast<optionsState*>(gameContext->getActiveState()) ||
+        dynamic_cast<loadGameState*>(gameContext->getActiveState()))
     {
         return 0.0f;
     }
@@ -1466,7 +1596,9 @@ float uiRenderer::renderWidgetItemsPresent(SDL_Renderer* renderer, game* gameCon
 
 float uiRenderer::renderWidgetEventLog(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
 {
-    if (dynamic_cast<mainMenuState*>(gameContext->getActiveState()) || dynamic_cast<optionsState*>(gameContext->getActiveState()))
+    if (dynamic_cast<mainMenuState*>(gameContext->getActiveState()) ||
+        dynamic_cast<optionsState*>(gameContext->getActiveState()) ||
+        dynamic_cast<loadGameState*>(gameContext->getActiveState()))
     {
         return 0.0f;
     }
@@ -1496,7 +1628,9 @@ float uiRenderer::renderWidgetEventLog(SDL_Renderer* renderer, game* gameContext
 
 float uiRenderer::renderWidgetTimeBar(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
 {
-    if (dynamic_cast<mainMenuState*>(gameContext->getActiveState()) || dynamic_cast<optionsState*>(gameContext->getActiveState()))
+    if (dynamic_cast<mainMenuState*>(gameContext->getActiveState()) ||
+        dynamic_cast<optionsState*>(gameContext->getActiveState()) ||
+        dynamic_cast<loadGameState*>(gameContext->getActiveState()))
     {
         return 0.0f;
     }
@@ -1517,7 +1651,9 @@ float uiRenderer::renderWidgetTimeBar(SDL_Renderer* renderer, game* gameContext,
 
 float uiRenderer::renderWidgetOptionsToolbar(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
 {
-    if (dynamic_cast<mainMenuState*>(gameContext->getActiveState()) || dynamic_cast<optionsState*>(gameContext->getActiveState()))
+    if (dynamic_cast<mainMenuState*>(gameContext->getActiveState()) ||
+        dynamic_cast<optionsState*>(gameContext->getActiveState()) ||
+        dynamic_cast<loadGameState*>(gameContext->getActiveState()))
     {
         return 0.0f;
     }
@@ -1563,7 +1699,9 @@ float uiRenderer::renderWidgetOptionsToolbar(SDL_Renderer* renderer, game* gameC
 
 float uiRenderer::renderWidgetCharacterCard(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
 {
-    if (dynamic_cast<mainMenuState*>(gameContext->getActiveState()) || dynamic_cast<optionsState*>(gameContext->getActiveState()))
+    if (dynamic_cast<mainMenuState*>(gameContext->getActiveState()) ||
+        dynamic_cast<optionsState*>(gameContext->getActiveState()) ||
+        dynamic_cast<loadGameState*>(gameContext->getActiveState()))
     {
         return 0.0f;
     }
@@ -1651,7 +1789,9 @@ float uiRenderer::renderWidgetCharacterCard(SDL_Renderer* renderer, game* gameCo
 
 float uiRenderer::renderWidgetDpadRadar(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
 {
-    if (dynamic_cast<mainMenuState*>(gameContext->getActiveState()) || dynamic_cast<optionsState*>(gameContext->getActiveState()))
+    if (dynamic_cast<mainMenuState*>(gameContext->getActiveState()) ||
+        dynamic_cast<optionsState*>(gameContext->getActiveState()) ||
+        dynamic_cast<loadGameState*>(gameContext->getActiveState()))
     {
         return 0.0f;
     }
