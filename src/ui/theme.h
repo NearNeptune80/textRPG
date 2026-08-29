@@ -52,4 +52,5 @@ class Theme
 public:
     static ThemeColors colors;
     static bool loadFromFile(const std::string& filePath);
+    static bool applyTheme(const std::string& themeNameOrPath);
 };

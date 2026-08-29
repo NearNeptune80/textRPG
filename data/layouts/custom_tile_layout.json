@@ -379,44 +379,17 @@
         "id": "opt_root_column",
         "type": "CONTAINER",
         "direction": "COLUMN",
-        "sizes": [6.0, 72.0, 22.0],
+        "sizes": [78.0, 22.0],
         "children": [
           {
-            "id": "opt_top_bar",
+            "id": "opt_center_pane",
             "type": "LEAF",
-            "name": "Top Status Bar",
-            "widgets": ["widget_top_bar_full"]
-          },
-          {
-            "id": "opt_middle_row",
-            "type": "CONTAINER",
-            "direction": "ROW",
-            "sizes": [34.0, 33.0, 33.0],
-            "children": [
-              {
-                "id": "opt_content_pane",
-                "type": "LEAF",
-                "name": "Content Toggles",
-                "widgets": [
-                  "widget_options_content"
-                ]
-              },
-              {
-                "id": "opt_demo_pane",
-                "type": "LEAF",
-                "name": "Demographics",
-                "widgets": [
-                  "widget_options_demographics"
-                ]
-              },
-              {
-                "id": "opt_display_pane",
-                "type": "LEAF",
-                "name": "Display & Audio",
-                "widgets": [
-                  "widget_options_display_audio"
-                ]
-              }
+            "name": "Settings Page Content",
+            "widgets": [
+              "widget_options_content",
+              "widget_options_demographics",
+              "widget_options_display_audio",
+              "widget_narrative_story"
             ]
           },
           {

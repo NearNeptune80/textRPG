@@ -134,12 +134,30 @@ bool layoutEngine::loadFromFile(const std::string& filePath)
         m_globalMargin = j.value("margin", 6.0f);
         m_panels.clear();
         m_hasRootNode = false;
+        m_stateOverrides.clear();
 
         // Check for textRPG-studio N-way container format
         if (j.contains("rootNode") && j["rootNode"].is_object())
         {
             m_hasRootNode = true;
             parseStudioNode(j["rootNode"], m_rootNode);
+        }
+
+        if (j.contains("stateOverrides") && j["stateOverrides"].is_object())
+        {
+            for (const auto& [key, val] : j["stateOverrides"].items())
+            {
+                if (val.value("enabled", true) && val.contains("rootNode"))
+                {
+                    StudioLayoutNode overrideNode;
+                    parseStudioNode(val["rootNode"], overrideNode);
+                    m_stateOverrides[key] = overrideNode;
+                }
+            }
+        }
+
+        if (m_hasRootNode)
+        {
             return true;
         }
 
@@ -235,12 +253,20 @@ void layoutEngine::computeStudioNode(const StudioLayoutNode& node, const SDL_FRe
     }
 }
 
-std::vector<PanelComputedBounds> layoutEngine::computeLayout(float windowWidth, float windowHeight, float uiScale) const
+std::vector<PanelComputedBounds> layoutEngine::computeLayout(float windowWidth, float windowHeight, float uiScale, const std::string& activeState) const
 {
     std::vector<PanelComputedBounds> results;
     float margin = m_globalMargin * uiScale;
 
-    // Handle Studio RootNode format
+    // 1. Check Studio State Override first
+    if (!activeState.empty() && m_stateOverrides.contains(activeState))
+    {
+        SDL_FRect rootBounds = { margin / 2.0f, margin / 2.0f, windowWidth - margin, windowHeight - margin };
+        computeStudioNode(m_stateOverrides.at(activeState), rootBounds, margin, results);
+        return results;
+    }
+
+    // 2. Handle Studio Default RootNode format
     if (m_hasRootNode)
     {
         SDL_FRect rootBounds = { margin / 2.0f, margin / 2.0f, windowWidth - margin, windowHeight - margin };

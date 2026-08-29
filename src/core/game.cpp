@@ -23,6 +23,7 @@
 #include "state/shopState.h"
 #include "state/transformationState.h"
 #include "ui/actionGridManager.h"
+#include "ui/theme.h"
 
 game::game() : isRunning(false), map(nullptr), playerEntity(nullptr), Player(nullptr), gridX(1), gridY(1) {}
 
@@ -47,6 +48,7 @@ void game::changeState(std::unique_ptr<iGameState> newState)
 void game::init()
 {
     settingsManager::loadFromFile(settings, "data/settings.json");
+    Theme::applyTheme(settings.display.activeTheme);
 
     if (itemDatabase::loadDatabase("data/items.json"))
     {

@@ -78,7 +78,7 @@ public:
     bool loadFromFile(const std::string& filePath);
     void loadDefaultLayout();
 
-    [[nodiscard]] std::vector<PanelComputedBounds> computeLayout(float windowWidth, float windowHeight, float uiScale = 1.0f) const;
+    [[nodiscard]] std::vector<PanelComputedBounds> computeLayout(float windowWidth, float windowHeight, float uiScale = 1.0f, const std::string& activeState = "") const;
     [[nodiscard]] const PanelConfig* getPanelConfig(const std::string& id) const;
 
     float getMargin() const { return m_globalMargin; }
@@ -89,6 +89,7 @@ private:
     float m_globalMargin = 6.0f;
     bool m_hasRootNode = false;
     StudioLayoutNode m_rootNode;
+    std::unordered_map<std::string, StudioLayoutNode> m_stateOverrides;
     std::vector<PanelConfig> m_panels;
 
     void parseStudioNode(const nlohmann::json& j, StudioLayoutNode& node);

@@ -76,7 +76,18 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
 
     float uiScale = std::clamp(static_cast<float>(winH) / 720.0f, 0.75f, 3.0f);
     fontManager::getInstance().setScale(uiScale);
-    auto panels = m_layoutEngine.computeLayout(static_cast<float>(winW), static_cast<float>(winH), uiScale);
+
+    std::string stateKey = "";
+    iGameState* curState = gameContext->getActiveState();
+    if (dynamic_cast<mainMenuState*>(curState)) stateKey = "MAIN_MENU";
+    else if (dynamic_cast<optionsState*>(curState)) stateKey = "SETTINGS";
+    else if (dynamic_cast<CombatState*>(curState)) stateKey = "COMBAT";
+    else if (dynamic_cast<inventoryState*>(curState)) stateKey = "INVENTORY";
+    else if (dynamic_cast<sexState*>(curState)) stateKey = "SEX";
+    else if (dynamic_cast<shopState*>(curState)) stateKey = "SHOP";
+    else if (dynamic_cast<transformationState*>(curState)) stateKey = "TRANSFORMATION";
+
+    auto panels = m_layoutEngine.computeLayout(static_cast<float>(winW), static_cast<float>(winH), uiScale, stateKey);
 
     // Clear Screen with Dark Theme Background
     SDL_SetRenderDrawColor(renderer, Theme::colors.bgDark.r, Theme::colors.bgDark.g, Theme::colors.bgDark.b, Theme::colors.bgDark.a);
@@ -1196,11 +1207,17 @@ float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, c
         renderSettingSection(
             "Color Palette & Aesthetic Theme",
             "Selects the primary color scheme and visual styling for panels, headers, and buttons.",
-            { { "Dark Fantasy", curTheme == "default" || curTheme == "theme_dark_fantasy" }, { "Obsidian", curTheme == "obsidian" }, { "Midnight Slate", curTheme == "slate" } },
+            { { "Dark Fantasy", curTheme == "theme_dark_fantasy" || curTheme == "dark_fantasy" },
+              { "Cyber Neon", curTheme == "theme_cyber_neon" || curTheme == "cyber_neon" },
+              { "Arcane Parchment", curTheme == "theme_parchment" || curTheme == "parchment" },
+              { "Lilith Midnight", curTheme == "default" || curTheme == "theme.json" || curTheme.empty() } },
             [&](int idx) {
                 if (idx == 0) gameContext->settings.display.activeTheme = "theme_dark_fantasy";
-                else if (idx == 1) gameContext->settings.display.activeTheme = "obsidian";
-                else gameContext->settings.display.activeTheme = "slate";
+                else if (idx == 1) gameContext->settings.display.activeTheme = "theme_cyber_neon";
+                else if (idx == 2) gameContext->settings.display.activeTheme = "theme_parchment";
+                else gameContext->settings.display.activeTheme = "default";
+
+                Theme::applyTheme(gameContext->settings.display.activeTheme);
             }
         );
     }
