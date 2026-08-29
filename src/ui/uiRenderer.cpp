@@ -578,49 +578,23 @@ float uiRenderer::renderExplorationView(SDL_Renderer* renderer, game* gameContex
     UIWidget::drawText(renderer, std::format("Current Location: {} at [{}, {}]", m->getName(), gameContext->gridX, gameContext->gridY), padX, curY, Theme::colors.textAccent, uiScale);
     curY += (22.0f * uiScale);
 
-    float textH = UIWidget::drawTextWrapped(renderer, "You are exploring the district. Use movement keys (W, A, S, D) or click action grid commands to navigate surrounding tiles.", padX, curY, innerW, Theme::colors.textPrimary, uiScale);
-    curY += textH + (14.0f * uiScale);
-
-    auto mousePos = gameContext->input.getMousePosition();
-    bool clicked = gameContext->input.isLeftMouseJustClicked();
+    std::string desc = "You are exploring the district. Use keyboard movement controls (W, A, S, D or Arrow Keys) to navigate surrounding tiles.";
 
     if (gameContext->map)
     {
         auto& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
         if (tileData.persistentNPC)
         {
-            float btnH = 28.0f * uiScale;
-            SDL_FRect npcRect = { padX, curY, innerW, btnH };
-            bool hovered = (mousePos.x >= npcRect.x && mousePos.x <= npcRect.x + npcRect.w &&
-                            mousePos.y >= npcRect.y && mousePos.y <= npcRect.y + npcRect.h);
-
-            UIWidget::drawButton(renderer, npcRect, std::format("Talk / Interact with {}", tileData.persistentNPC->name), hovered, true, false, uiScale * 0.95f);
-
-            if (hovered && clicked)
-            {
-                gameContext->triggerEncounter(tileData.persistentNPC);
-                gameContext->input.consumeMouseClick();
-            }
-            curY += btnH + (8.0f * uiScale);
+            desc += std::format("\n\n{} is standing here waiting to interact.", tileData.persistentNPC->name);
         }
-
         if (!tileData.droppedItems.empty())
         {
-            float btnH = 28.0f * uiScale;
-            SDL_FRect itemRect = { padX, curY, innerW, btnH };
-            bool hovered = (mousePos.x >= itemRect.x && mousePos.x <= itemRect.x + itemRect.w &&
-                            mousePos.y >= itemRect.y && mousePos.y <= itemRect.y + itemRect.h);
-
-            UIWidget::drawButton(renderer, itemRect, std::format("Examine Ground ({} items)", tileData.droppedItems.size()), hovered, true, false, uiScale * 0.95f);
-
-            if (hovered && clicked)
-            {
-                gameContext->changeState(std::make_unique<inventoryState>());
-                gameContext->input.consumeMouseClick();
-            }
-            curY += btnH + (8.0f * uiScale);
+            desc += std::format("\n\nThere are {} dropped items scattered across the cobblestones.", tileData.droppedItems.size());
         }
     }
+
+    float textH = UIWidget::drawTextWrapped(renderer, desc, padX, curY, innerW, Theme::colors.textPrimary, uiScale);
+    curY += textH + (14.0f * uiScale);
 
     return (curY - startY);
 }

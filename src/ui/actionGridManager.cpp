@@ -6,6 +6,7 @@
 
 #include "core/game.h"
 #include "map/encounterResolver.h"
+#include "save/saveManager.h"
 #include "state/combatState.h"
 #include "state/encounterResolutionState.h"
 #include "state/eventState.h"
@@ -352,34 +353,6 @@ void ActionGridManager::refresh(game* gameContext)
     // 5. Exploration Movement & Interaction Shortcuts
     if (dynamic_cast<explorationState*>(currentState))
     {
-        actionButton northBtn;
-        northBtn.label = "Move North (W)";
-        northBtn.onClick = [gameContext]() {
-            gameContext->movePlayer(gameContext->gridX, gameContext->gridY - 1);
-        };
-        gameContext->activeButtons.push_back(northBtn);
-
-        actionButton southBtn;
-        southBtn.label = "Move South (S)";
-        southBtn.onClick = [gameContext]() {
-            gameContext->movePlayer(gameContext->gridX, gameContext->gridY + 1);
-        };
-        gameContext->activeButtons.push_back(southBtn);
-
-        actionButton westBtn;
-        westBtn.label = "Move West (A)";
-        westBtn.onClick = [gameContext]() {
-            gameContext->movePlayer(gameContext->gridX - 1, gameContext->gridY);
-        };
-        gameContext->activeButtons.push_back(westBtn);
-
-        actionButton eastBtn;
-        eastBtn.label = "Move East (D)";
-        eastBtn.onClick = [gameContext]() {
-            gameContext->movePlayer(gameContext->gridX + 1, gameContext->gridY);
-        };
-        gameContext->activeButtons.push_back(eastBtn);
-
         if (gameContext->map)
         {
             auto& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
@@ -437,5 +410,30 @@ void ActionGridManager::refresh(game* gameContext)
             gameContext->changeState(std::make_unique<CombatState>(pParty, eParty));
         };
         gameContext->activeButtons.push_back(combatBtn);
+
+        actionButton waitBtn;
+        waitBtn.label = "Wait / Rest (1 hr)";
+        waitBtn.onClick = [gameContext]() {
+            gameContext->gameTime.advanceTime(60);
+            gameContext->refreshActionGrid();
+        };
+        gameContext->activeButtons.push_back(waitBtn);
+
+        actionButton saveBtn;
+        saveBtn.label = "QuickSave (F5)";
+        saveBtn.onClick = [gameContext]() {
+            saveManager::saveNamedGame(gameContext, "QuickSave");
+        };
+        gameContext->activeButtons.push_back(saveBtn);
+
+        actionButton loadBtn;
+        loadBtn.label = "QuickLoad (F9)";
+        loadBtn.onClick = [gameContext]() {
+            entity* p = gameContext->getPlayer();
+            std::string charName = (p && !p->name.empty()) ? p->name : "Hero";
+            saveManager::loadFromFile(gameContext, charName + "_QuickSave.json");
+            gameContext->refreshActionGrid();
+        };
+        gameContext->activeButtons.push_back(loadBtn);
     }
 }
