@@ -654,24 +654,30 @@ void uiRenderer::renderBottomActionGrid(SDL_Renderer* renderer, game* gameContex
     auto mousePos = gameContext->input.getMousePosition();
     bool clicked = gameContext->input.isLeftMouseJustClicked();
 
-    for (int i = startIndex; i < endIndex; ++i)
+    for (int slotIdx = 0; slotIdx < BUTTONS_PER_PAGE; ++slotIdx)
     {
-        int slotIdx = i - startIndex;
         int col = slotIdx % cols;
         int row = slotIdx / cols;
-
         SDL_FRect btnRect = { padX + col * (btnWidth + spaceX), startY + row * (btnHeight + spaceY), btnWidth, btnHeight };
 
-        bool hovered = (mousePos.x >= btnRect.x && mousePos.x <= btnRect.x + btnRect.w &&
-                        mousePos.y >= btnRect.y && mousePos.y <= btnRect.y + btnRect.h);
-
-        UIWidget::drawButton(renderer, btnRect, buttons[i].label, hovered, buttons[i].isEnabled, false, uiScale);
-
-        if (hovered && clicked && buttons[i].isEnabled && buttons[i].onClick)
+        int buttonIdx = startIndex + slotIdx;
+        if (buttonIdx < endIndex)
         {
-            buttons[i].onClick();
-            gameContext->input.consumeMouseClick();
-            break;
+            bool hovered = (mousePos.x >= btnRect.x && mousePos.x <= btnRect.x + btnRect.w &&
+                            mousePos.y >= btnRect.y && mousePos.y <= btnRect.y + btnRect.h);
+
+            UIWidget::drawButton(renderer, btnRect, buttons[buttonIdx].label, hovered, buttons[buttonIdx].isEnabled, false, uiScale);
+
+            if (hovered && clicked && buttons[buttonIdx].isEnabled && buttons[buttonIdx].onClick)
+            {
+                buttons[buttonIdx].onClick();
+                gameContext->input.consumeMouseClick();
+            }
+        }
+        else
+        {
+            // Empty inactive slot panel
+            UIWidget::drawPanel(renderer, btnRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
         }
     }
 
@@ -792,13 +798,12 @@ float uiRenderer::renderWidgetRadar(SDL_Renderer* renderer, game* gameContext, c
     if (!m) return 0.0f;
 
     float startY = curY;
-    const int radius = 3;
-    const int gridSize = (radius * 2) + 1; // 7
-    // Calculate static grid dimensions independent of current scroll offset
+    const int radius = 2; // 5x5 grid
+    const int gridSize = (radius * 2) + 1; // 5
     const float availableW = std::max(20.0f, rect.w - (20.0f * uiScale));
     const float availableH = std::max(20.0f, rect.h - (20.0f * uiScale));
     const float maxDimension = std::min(availableW, availableH);
-    const float tileSize = std::max(4.0f, std::min(30.0f * uiScale, maxDimension / static_cast<float>(gridSize)));
+    const float tileSize = std::max(6.0f, std::min(36.0f * uiScale, maxDimension / static_cast<float>(gridSize)));
     const float totalGridW = tileSize * static_cast<float>(gridSize);
 
     const float padX = rect.x + ((rect.w - totalGridW) / 2.0f);
@@ -818,32 +823,53 @@ float uiRenderer::renderWidgetRadar(SDL_Renderer* renderer, game* gameContext, c
             };
 
             Tile t = m->getTile(mapX, mapY);
-            SDL_Color tileColor = Theme::colors.bgDark;
+            int dist = std::max(std::abs(dx), std::abs(dy));
+            bool isWalkedOn = (t.discovery == STATE_REVEALED);
+
+            SDL_Color tileColor;
+            SDL_Color borderColor = SDL_Color{ 25, 25, 35, 255 };
             std::string label = "";
 
-            if (t.discovery == STATE_HIDDEN)
+            if (dx == 0 && dy == 0)
             {
-                tileColor = SDL_Color{ 15, 15, 20, 255 };
+                // Player Center Tile
+                tileColor = Theme::colors.borderButton;
+                borderColor = Theme::colors.textGold;
+                label = "@";
+            }
+            else if (isWalkedOn)
+            {
+                // Tier 1: Walked on / Discovered (brightest)
+                if (t.type == TILE_WALL) { tileColor = Theme::colors.bgHeader; }
+                else if (t.type == TILE_DOOR) { tileColor = Theme::colors.textGold; label = "D"; }
+                else { tileColor = Theme::colors.bgSlot; }
+                borderColor = Theme::colors.borderNormal;
+            }
+            else if (dist == 1)
+            {
+                // Tier 2: 1 tile away, never walked on (darker than walked on, lighter than >1)
+                if (t.type == TILE_WALL) { tileColor = SDL_Color{ 24, 24, 34, 255 }; }
+                else if (t.type == TILE_DOOR) { tileColor = SDL_Color{ 110, 85, 20, 255 }; label = "d"; }
+                else { tileColor = SDL_Color{ 18, 18, 26, 255 }; }
+                borderColor = SDL_Color{ 32, 32, 44, 255 };
             }
             else
             {
-                if (t.type == TILE_WALL) tileColor = Theme::colors.bgHeader;
-                else if (t.type == TILE_FLOOR) tileColor = Theme::colors.bgSlot;
-                else if (t.type == TILE_DOOR) { tileColor = Theme::colors.textGold; label = "D"; }
-
-                if (dx == 0 && dy == 0)
-                {
-                    tileColor = Theme::colors.borderButton;
-                    label = "@";
-                }
+                // Tier 3: >1 tile away, never walked on (very dark, but visible)
+                tileColor = SDL_Color{ 10, 10, 14, 255 };
+                borderColor = SDL_Color{ 16, 16, 22, 255 };
             }
+
+            // Draw tile border and fill
+            SDL_SetRenderDrawColor(renderer, borderColor.r, borderColor.g, borderColor.b, borderColor.a);
+            SDL_RenderRect(renderer, &tileRect);
 
             SDL_SetRenderDrawColor(renderer, tileColor.r, tileColor.g, tileColor.b, tileColor.a);
             SDL_RenderFillRect(renderer, &tileRect);
 
-            if (!label.empty() && tileSize >= 14.0f * uiScale)
+            if (!label.empty() && tileSize >= 12.0f * uiScale)
             {
-                UIWidget::drawText(renderer, label, tileRect.x + (tileSize * 0.25f), tileRect.y + (tileSize * 0.1f), Theme::colors.textGold, uiScale * (tileSize / 24.0f));
+                UIWidget::drawText(renderer, label, tileRect.x + (tileSize * 0.25f), tileRect.y + (tileSize * 0.1f), Theme::colors.textGold, uiScale * (tileSize / 22.0f));
             }
         }
     }

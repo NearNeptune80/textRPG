@@ -18,8 +18,6 @@
             "type": "LEAF",
             "name": "Character Bio & Vitals",
             "widgets": [
-              "widget_char_overview",
-              "widget_vitals_gauges",
               "widget_lt_character_card"
             ]
           },
@@ -28,7 +26,6 @@
             "type": "LEAF",
             "name": "Radar & Navigation Toolstrip",
             "widgets": [
-              "widget_minimap_radar",
               "widget_lt_dpad_radar"
             ]
           }
@@ -69,7 +66,6 @@
             "type": "LEAF",
             "name": "Characters Present",
             "widgets": [
-              "widget_target_inspector",
               "widget_lt_characters_present"
             ]
           },
