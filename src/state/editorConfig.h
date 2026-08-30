@@ -108,8 +108,15 @@ struct EditorConfig {
     }
 
     static std::string calculateBodyShape(const std::string& muscle, const std::string& bodySize) {
-        int m = (muscle == "Soft") ? 0 : (muscle == "Lightly muscled" ? 1 : (muscle == "Toned" ? 2 : (muscle == "Muscular" ? 3 : 4)));
-        int s = (bodySize == "Skinny") ? 0 : (bodySize == "Slender" ? 1 : (bodySize == "Average" ? 2 : (bodySize == "Muscular" || bodySize == "Large" ? 3 : 4)));
+        auto toLower = [](std::string str) {
+            for (char& c : str) c = std::tolower(static_cast<unsigned char>(c));
+            return str;
+        };
+        std::string mStr = toLower(muscle);
+        std::string sStr = toLower(bodySize);
+
+        int m = (mStr == "soft") ? 0 : (mStr == "lightly muscled" ? 1 : (mStr == "toned" ? 2 : (mStr == "muscular" ? 3 : 4)));
+        int s = (sStr == "skinny") ? 0 : (sStr == "slender") ? 1 : (sStr == "average") ? 2 : (sStr == "muscular" || sStr == "large") ? 3 : 4;
 
         if (s == 0) return (m >= 3) ? "Wiry / Lean" : (m >= 2 ? "Slender / Toned" : "Frail / Delicate");
         if (s == 1) return (m >= 3) ? "Athletic / Cut" : (m >= 2 ? "Toned / Fit" : "Slender / Graceful");

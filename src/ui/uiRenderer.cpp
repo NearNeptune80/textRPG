@@ -2710,18 +2710,18 @@ float uiRenderer::renderCharacterCreationView(SDL_Renderer* renderer, game* game
         // 4. Starting Month
         if (cc->config.isOptionEnabled("start_month"))
         {
-            float monthCardH = 72.0f * uiScale;
+            float monthCardH = 68.0f * uiScale;
             SDL_FRect monthRect = { padX, curY, availableW, monthCardH };
             UIWidget::drawPanel(renderer, monthRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
-            UIWidget::drawText(renderer, "Starting Month:", padX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.90f);
-            UIWidget::drawText(renderer, "Select the calendar month in which your adventure begins.", padX + (10.0f * uiScale), curY + (22.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.78f);
+            UIWidget::drawText(renderer, "Starting Month:", padX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.88f);
+            UIWidget::drawText(renderer, "Select the calendar month in which your adventure begins.", padX + (10.0f * uiScale), curY + (20.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.74f);
 
             static const char* months[12] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
             static const char* fullMonths[12] = { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" };
 
             float mBtnW = (availableW - (7 * 6.0f * uiScale)) / 6.0f;
-            float mBtnH = 20.0f * uiScale;
-            float mGridY = curY + (38.0f * uiScale);
+            float mBtnH = 18.0f * uiScale;
+            float mGridY = curY + (36.0f * uiScale);
 
             for (int m = 0; m < 12; ++m)
             {
@@ -2740,8 +2740,8 @@ float uiRenderer::renderCharacterCreationView(SDL_Renderer* renderer, game* game
                 SDL_SetRenderDrawColor(renderer, border.r, border.g, border.b, border.a);
                 SDL_RenderRect(renderer, &mr);
 
-                float labelW = UIWidget::getTextWidth(months[m], uiScale * 0.72f);
-                UIWidget::drawText(renderer, months[m], mr.x + ((mr.w - labelW) / 2.0f), mr.y + (3.0f * uiScale), txt, uiScale * 0.72f);
+                float labelW = UIWidget::getTextWidth(months[m], uiScale * 0.70f);
+                UIWidget::drawText(renderer, months[m], mr.x + ((mr.w - labelW) / 2.0f), mr.y + (2.0f * uiScale), txt, uiScale * 0.70f);
 
                 if (mHover && clicked)
                 {
@@ -2750,7 +2750,86 @@ float uiRenderer::renderCharacterCreationView(SDL_Renderer* renderer, game* game
                     gameContext->input.consumeMouseClick();
                 }
             }
-            curY += monthCardH + (10.0f * uiScale);
+            curY += monthCardH + (8.0f * uiScale);
+        }
+
+        // 5. Birthday (Day, Month, Age)
+        float bdayCardH = 46.0f * uiScale;
+        SDL_FRect bdayRect = { padX, curY, availableW, bdayCardH };
+        UIWidget::drawPanel(renderer, bdayRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+        UIWidget::drawText(renderer, "Birthday & Age:", padX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.88f);
+        std::string bdayDesc = std::format("Born on the {} of {}, making you {} years old.", cc->birthDay, cc->birthMonth, cc->birthAge);
+        UIWidget::drawText(renderer, bdayDesc, padX + (10.0f * uiScale), curY + (24.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.74f);
+
+        float bBtnW = 26.0f * uiScale;
+        float bBtnH = 18.0f * uiScale;
+        float bdayControlsX = padX + availableW - (210.0f * uiScale);
+        
+        SDL_FRect dayM = { bdayControlsX, curY + (13.0f * uiScale), bBtnW, bBtnH };
+        SDL_FRect dayP = { bdayControlsX + bBtnW + (40.0f * uiScale), curY + (13.0f * uiScale), bBtnW, bBtnH };
+        UIWidget::drawColoredButton(renderer, dayM, "-", SDL_Color{ 160, 45, 55, 240 }, Theme::colors.textPrimary, false, uiScale * 0.65f);
+        UIWidget::drawText(renderer, std::format("D: {}", cc->birthDay), bdayControlsX + bBtnW + (4.0f * uiScale), curY + (15.0f * uiScale), Theme::colors.textGold, uiScale * 0.72f);
+        UIWidget::drawColoredButton(renderer, dayP, "+", SDL_Color{ 45, 120, 65, 240 }, Theme::colors.textPrimary, false, uiScale * 0.65f);
+
+        float ageControlsX = bdayControlsX + (105.0f * uiScale);
+        SDL_FRect ageM = { ageControlsX, curY + (13.0f * uiScale), bBtnW, bBtnH };
+        SDL_FRect ageP = { ageControlsX + bBtnW + (40.0f * uiScale), curY + (13.0f * uiScale), bBtnW, bBtnH };
+        UIWidget::drawColoredButton(renderer, ageM, "-", SDL_Color{ 160, 45, 55, 240 }, Theme::colors.textPrimary, false, uiScale * 0.65f);
+        UIWidget::drawText(renderer, std::format("Age: {}", cc->birthAge), ageControlsX + bBtnW + (4.0f * uiScale), curY + (15.0f * uiScale), Theme::colors.textGold, uiScale * 0.72f);
+        UIWidget::drawColoredButton(renderer, ageP, "+", SDL_Color{ 45, 120, 65, 240 }, Theme::colors.textPrimary, false, uiScale * 0.65f);
+
+        if (clicked)
+        {
+            auto check = [&](const SDL_FRect& r) { return (mousePos.x >= r.x && mousePos.x <= r.x + r.w && mousePos.y >= r.y && mousePos.y <= r.y + r.h); };
+            if (check(dayM)) { cc->birthDay = (cc->birthDay <= 1) ? 31 : (cc->birthDay - 1); gameContext->input.consumeMouseClick(); }
+            else if (check(dayP)) { cc->birthDay = (cc->birthDay >= 31) ? 1 : (cc->birthDay + 1); gameContext->input.consumeMouseClick(); }
+            else if (check(ageM)) { cc->birthAge = std::max(18, cc->birthAge - 1); gameContext->input.consumeMouseClick(); }
+            else if (check(ageP)) { cc->birthAge = std::min(99, cc->birthAge + 1); gameContext->input.consumeMouseClick(); }
+        }
+        curY += bdayCardH + (8.0f * uiScale);
+
+        // 6. Personality Traits Chips
+        if (cc->config.isOptionEnabled("personality_traits"))
+        {
+            static const std::vector<std::string> allP = { "Confident", "Shy", "Kind", "Selfish", "Naive", "Cynical", "Brave", "Cowardly", "Lewd", "Innocent", "Prude" };
+            float pCardH = 64.0f * uiScale;
+            SDL_FRect pRect = { padX, curY, availableW, pCardH };
+            UIWidget::drawPanel(renderer, pRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+            UIWidget::drawText(renderer, "Personality Traits:", padX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.88f);
+            UIWidget::drawText(renderer, "Click traits to toggle them. Influences roleplaying choices.", padX + (10.0f * uiScale), curY + (20.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.70f);
+
+            float tBtnW = (availableW - (7 * 4.0f * uiScale)) / 6.0f;
+            float tBtnH = 16.0f * uiScale;
+            float tGridY = curY + (36.0f * uiScale);
+
+            for (size_t t = 0; t < allP.size(); ++t)
+            {
+                int r = static_cast<int>(t / 6);
+                int c = static_cast<int>(t % 6);
+                SDL_FRect tr = { padX + (6.0f * uiScale) + (c * (tBtnW + 4.0f * uiScale)), tGridY + (r * (tBtnH + 4.0f * uiScale)), tBtnW, tBtnH };
+                bool isSel = (cc->personalityTraits.contains(allP[t]));
+                bool tHover = (mousePos.x >= tr.x && mousePos.x <= tr.x + tr.w && mousePos.y >= tr.y && mousePos.y <= tr.y + tr.h);
+
+                SDL_Color bg = isSel ? SDL_Color{ 45, 65, 55, 255 } : (tHover ? SDL_Color{ 48, 52, 60, 255 } : Theme::colors.bgButton);
+                SDL_Color border = isSel ? Theme::colors.companion : (tHover ? Theme::colors.textGold : Theme::colors.borderButton);
+                SDL_Color txt = isSel ? Theme::colors.companion : (tHover ? Theme::colors.textGold : Theme::colors.textMuted);
+
+                SDL_SetRenderDrawColor(renderer, bg.r, bg.g, bg.b, bg.a);
+                SDL_RenderFillRect(renderer, &tr);
+                SDL_SetRenderDrawColor(renderer, border.r, border.g, border.b, border.a);
+                SDL_RenderRect(renderer, &tr);
+
+                float labelW = UIWidget::getTextWidth(allP[t], uiScale * 0.62f);
+                UIWidget::drawText(renderer, allP[t], tr.x + ((tr.w - labelW) / 2.0f), tr.y + (2.0f * uiScale), txt, uiScale * 0.62f);
+
+                if (tHover && clicked)
+                {
+                    if (isSel) cc->personalityTraits.erase(allP[t]);
+                    else cc->personalityTraits.insert(allP[t]);
+                    gameContext->input.consumeMouseClick();
+                }
+            }
+            curY += pCardH + (8.0f * uiScale);
         }
     }
     else if (currentTab == EditorTabId::BODY)
@@ -2766,86 +2845,62 @@ float uiRenderer::renderCharacterCreationView(SDL_Renderer* renderer, game* game
             });
         }
 
-        // 2. Body Size
-        if (cc->config.isOptionEnabled("body_size"))
-        {
-            static const std::vector<std::string> allSizes = { "Skinny", "Slender", "Average", "Muscular", "Chubby" };
-            auto sizeOpts = cc->config.filterChoices("body_size", allSizes);
-            int sizeIdx = 2;
-            for (size_t i = 0; i < sizeOpts.size(); ++i) if (cc->bodySize == sizeOpts[i]) sizeIdx = static_cast<int>(i);
-            renderChoiceCard("Body Frame", "General physical body build and fat distribution.", sizeOpts, sizeIdx, [&](int i) {
-                cc->bodySize = sizeOpts[i];
-            });
-        }
-
-        // 3. Muscle Definition
-        if (cc->config.isOptionEnabled("muscle"))
-        {
-            static const std::vector<std::string> allMusc = { "Soft", "Lightly muscled", "Toned", "Muscular", "Ripped" };
-            auto muscOpts = cc->config.filterChoices("muscle", allMusc);
-            int muscIdx = 1;
-            for (size_t i = 0; i < muscOpts.size(); ++i) if (cc->muscleDefinition == muscOpts[i]) muscIdx = static_cast<int>(i);
-            renderChoiceCard("Muscle Tone", "Muscular definition across arms, torso, and legs.", muscOpts, muscIdx, [&](int i) {
-                cc->muscleDefinition = muscOpts[i];
-            });
-        }
-
-        // 4. Skin Tone
+        // 2. Skin Tone
         if (cc->config.isOptionEnabled("skin_tone"))
         {
-            static const std::vector<std::string> allSkins = { "Fair", "Pale", "Tan", "Olive", "Dark", "Ebony" };
+            static const std::vector<std::string> allSkins = { "pale", "light", "porcelain", "rosy", "olive", "tanned", "dark", "ebony" };
             auto skinOpts = cc->config.filterChoices("skin_tone", allSkins);
-            int skinIdx = 0;
+            int skinIdx = 1;
             for (size_t i = 0; i < skinOpts.size(); ++i) if (cc->skinPrimaryColor == skinOpts[i]) skinIdx = static_cast<int>(i);
-            renderChoiceCard("Skin Tone", "Primary skin complexion and pigment.", skinOpts, skinIdx, [&](int i) {
+            renderChoiceCard("Skin Colour", "The colour of the skin that's covering your body.", skinOpts, skinIdx, [&](int i) {
                 cc->skinPrimaryColor = skinOpts[i];
             });
         }
 
-        // 5. Skin Covering (if enabled)
-        if (cc->config.isOptionEnabled("skin_covering"))
+        // 3. Body Size
+        if (cc->config.isOptionEnabled("body_size"))
         {
-            static const std::vector<std::string> allCov = { "Skin", "Fur", "Scales", "Feathers", "Chitin" };
-            auto covOpts = cc->config.filterChoices("skin_covering", allCov);
-            int covIdx = 0;
-            for (size_t i = 0; i < covOpts.size(); ++i) if (cc->skinCovering == covOpts[i]) covIdx = static_cast<int>(i);
-            renderChoiceCard("Covering Type", "Epidermal material covering the body.", covOpts, covIdx, [&](int i) {
-                cc->skinCovering = covOpts[i];
+            static const std::vector<std::string> allSizes = { "skinny", "slender", "average", "large", "huge" };
+            auto sizeOpts = cc->config.filterChoices("body_size", allSizes);
+            int sizeIdx = 2;
+            for (size_t i = 0; i < sizeOpts.size(); ++i) if (cc->bodySize == sizeOpts[i]) sizeIdx = static_cast<int>(i);
+            renderChoiceCard("Body Size", "How much fat your body carries.", sizeOpts, sizeIdx, [&](int i) {
+                cc->bodySize = sizeOpts[i];
             });
         }
 
-        // 6. Chest Size (if creation mode)
-        if (cc->config.isOptionEnabled("chest_size") && cc->config.isNewGameCreation)
+        // 4. Muscle Definition
+        if (cc->config.isOptionEnabled("muscle"))
         {
-            static const std::vector<std::string> allCups = { "Flat", "A", "B", "C", "D", "DD" };
-            auto cupOpts = cc->config.filterChoices("chest_size", allCups);
-            int cupIdx = std::clamp(cc->breastCupSize, 0, (int)cupOpts.size() - 1);
-            renderChoiceCard("Chest Size", "Breast and chest cup measurement.", cupOpts, cupIdx, [&](int i) {
-                cc->breastCupSize = i;
+            static const std::vector<std::string> allMusc = { "soft", "lightly muscled", "toned", "muscular", "ripped" };
+            auto muscOpts = cc->config.filterChoices("muscle", allMusc);
+            int muscIdx = 1;
+            for (size_t i = 0; i < muscOpts.size(); ++i) if (cc->muscleDefinition == muscOpts[i]) muscIdx = static_cast<int>(i);
+            renderChoiceCard("Muscle", "How muscular your body is.", muscOpts, muscIdx, [&](int i) {
+                cc->muscleDefinition = muscOpts[i];
             });
         }
 
-        // 7. Genitals (if creation mode)
-        if (cc->config.isOptionEnabled("genitals") && cc->config.isNewGameCreation)
-        {
-            if (cc->gender == "Male")
-            {
-                auto* rule = cc->config.getRule("genitals");
-                float minL = rule ? rule->minRange : 6.0f;
-                float maxL = rule ? rule->maxRange : 35.0f;
-                renderStepperCard("Penis Length", std::format("{:.1f} cm", cc->penisLengthCm), [&](int delta) {
-                    cc->penisLengthCm = std::clamp(cc->penisLengthCm + static_cast<float>(delta), minL, maxL);
-                });
-            }
-            else
-            {
-                static const std::vector<std::string> wetOpts = { "Dry", "Moist", "Wet", "Dripping" };
-                int wetIdx = std::clamp(cc->vaginaWetness, 0, 3);
-                renderChoiceCard("Vaginal Wetness", "Natural lubrication level.", wetOpts, wetIdx, [&](int i) {
-                    cc->vaginaWetness = i;
-                });
-            }
-        }
+        // 5. Ass Size
+        static const std::vector<std::string> allAssSizes = { "tiny", "small", "average-sized", "large", "huge" };
+        int assIdx = std::clamp(cc->assSize, 0, 4);
+        renderChoiceCard("Ass Size", "How large your ass is.", allAssSizes, assIdx, [&](int i) {
+            cc->assSize = i;
+        });
+
+        // 6. Hip Size
+        static const std::vector<std::string> allHipSizes = { "tiny", "small", "average-sized", "large", "huge" };
+        int hipIdx = std::clamp(cc->hipSize, 0, 4);
+        renderChoiceCard("Hip Size", "How wide your hips are.", allHipSizes, hipIdx, [&](int i) {
+            cc->hipSize = i;
+        });
+
+        // 7. Bleached Anus
+        static const std::vector<std::string> bleachOpts = { "Bleached", "Natural" };
+        int bleachIdx = cc->anusBleached ? 0 : 1;
+        renderChoiceCard("Bleached Anus", "Whether you've bleached around your anus.", bleachOpts, bleachIdx, [&](int i) {
+            cc->anusBleached = (i == 0);
+        });
 
         // 8. Composite Body Shape Indicator
         std::string shapeRating = EditorConfig::calculateBodyShape(cc->muscleDefinition, cc->bodySize);
@@ -2858,30 +2913,52 @@ float uiRenderer::renderCharacterCreationView(SDL_Renderer* renderer, game* game
     }
     else if (currentTab == EditorTabId::FACE_HAIR)
     {
-        // 1. Eye Color
+        // 1. Lip Size
+        static const std::vector<std::string> allLips = { "thin", "average-sized", "full", "plump", "huge" };
+        int lipIdx = std::clamp(cc->lipSize, 0, 4);
+        renderChoiceCard("Lip Size", "How large your lips are.", allLips, lipIdx, [&](int i) {
+            cc->lipSize = i;
+        });
+
+        // 2. Puffy Lips
+        static const std::vector<std::string> puffyLipOpts = { "Puffy", "Natural" };
+        int pLipIdx = cc->puffyLips ? 0 : 1;
+        renderChoiceCard("Puffy Lips", "Whether your lips are extra puffy.", puffyLipOpts, pLipIdx, [&](int i) {
+            cc->puffyLips = (i == 0);
+        });
+
+        // 3. Iris Colour
         if (cc->config.isOptionEnabled("eye_color"))
         {
-            static const std::vector<std::string> allEyes = { "Blue", "Green", "Brown", "Amber", "Hazel", "Red", "Violet", "Black" };
+            static const std::vector<std::string> allEyes = { "brown", "hazel", "green", "blue", "grey", "amber" };
             auto eyeOpts = cc->config.filterChoices("eye_color", allEyes);
             int eyeIdx = 0;
             for (size_t i = 0; i < eyeOpts.size(); ++i) if (cc->eyeColor == eyeOpts[i]) eyeIdx = static_cast<int>(i);
-            renderChoiceCard("Eye Colour", "Iris coloration and eye shade.", eyeOpts, eyeIdx, [&](int i) {
+            renderChoiceCard("Iris Colour", "The colour of your eye's irises.", eyeOpts, eyeIdx, [&](int i) {
                 cc->eyeColor = eyeOpts[i];
             });
         }
 
-        // 2. Hair Length
+        // 4. Hair Length
         if (cc->config.isOptionEnabled("hair_length"))
         {
-            auto* rule = cc->config.getRule("hair_length");
-            int minL = rule ? static_cast<int>(rule->minRange) : 0;
-            int maxL = rule ? static_cast<int>(rule->maxRange) : 120;
-            renderStepperCard("Hair Length", std::format("{} cm", cc->hairLengthCm), [&](int delta) {
-                cc->hairLengthCm = std::clamp(cc->hairLengthCm + delta, minL, maxL);
+            static const std::vector<std::string> hairLengths = { "bald", "very short", "short", "shoulder-length", "long", "very long", "incredibly long" };
+            int hLenIdx = 2;
+            if (cc->hairLengthCm <= 0) hLenIdx = 0;
+            else if (cc->hairLengthCm <= 5) hLenIdx = 1;
+            else if (cc->hairLengthCm <= 15) hLenIdx = 2;
+            else if (cc->hairLengthCm <= 30) hLenIdx = 3;
+            else if (cc->hairLengthCm <= 60) hLenIdx = 4;
+            else if (cc->hairLengthCm <= 90) hLenIdx = 5;
+            else hLenIdx = 6;
+
+            renderChoiceCard("Hair Length", "Choose how long your hair is.", hairLengths, hLenIdx, [&](int i) {
+                static const int lenVals[7] = { 0, 5, 15, 30, 60, 90, 120 };
+                cc->hairLengthCm = lenVals[i];
             });
         }
 
-        // 3. Hair Style (Filtered by Length Requirement)
+        // 5. Hair Style (Filtered by Length Requirement)
         if (cc->config.isOptionEnabled("hair_style"))
         {
             auto validStyles = EditorConfig::getValidHairstyles(cc->hairLengthCm);
@@ -2899,24 +2976,24 @@ float uiRenderer::renderCharacterCreationView(SDL_Renderer* renderer, game* game
                 cc->hairStyle = styleOpts[0];
                 styleIdx = 0;
             }
-            renderChoiceCard("Hair Style", "Haircut cut and aesthetic style (filtered by length threshold).", styleOpts, styleIdx, [&](int i) {
+            renderChoiceCard("Hair Style", "Choose your hair style. Certain hair styles are unavailable at shorter hair lengths.", styleOpts, styleIdx, [&](int i) {
                 cc->hairStyle = styleOpts[i];
             });
         }
 
-        // 4. Hair Color
+        // 6. Hair Color
         if (cc->config.isOptionEnabled("hair_color"))
         {
-            static const std::vector<std::string> allHColors = { "Black", "Dark Brown", "Auburn", "Blonde", "Platinum", "Silver", "Red" };
+            static const std::vector<std::string> allHColors = { "black", "dark brown", "brown", "auburn", "ginger", "blonde", "platinum", "grey", "white", "pink" };
             auto colorOpts = cc->config.filterChoices("hair_color", allHColors);
-            int colorIdx = 1;
+            int colorIdx = 2;
             for (size_t i = 0; i < colorOpts.size(); ++i) if (cc->hairColor == colorOpts[i]) colorIdx = static_cast<int>(i);
-            renderChoiceCard("Hair Colour", "Primary hair coloration.", colorOpts, colorIdx, [&](int i) {
+            renderChoiceCard("Hair Colour", "The colour of your hair.", colorOpts, colorIdx, [&](int i) {
                 cc->hairColor = colorOpts[i];
             });
         }
 
-        // 5. Ear Type
+        // 7. Ear Type
         if (cc->config.isOptionEnabled("ear_type"))
         {
             static const std::vector<std::string> allEars = { "Human", "Cat", "Dog", "Elf", "Demon", "Cow", "Rabbit", "Dragon" };
@@ -2930,160 +3007,177 @@ float uiRenderer::renderCharacterCreationView(SDL_Renderer* renderer, game* game
     }
     else if (currentTab == EditorTabId::BREASTS)
     {
-        // Cup Size
-        if (cc->config.isOptionEnabled("chest_size"))
-        {
-            static const std::vector<std::string> allCups = { "Flat", "A", "B", "C", "D", "DD", "E", "F", "G", "H" };
-            auto cupOpts = cc->config.filterChoices("chest_size", allCups);
-            int cupIdx = std::clamp(cc->breastCupSize, 0, (int)cupOpts.size() - 1);
-            renderChoiceCard("Cup Size", "Breast and chest cup measurement.", cupOpts, cupIdx, [&](int i) {
-                cc->breastCupSize = i;
-            });
-        }
+        // 1. Breast Size
+        static const std::vector<std::string> allCups = { "flat", "AA-cup", "A-cup", "B-cup", "C-cup", "D-cup", "DD-cup", "E-cup", "F-cup", "FF-cup", "G-cup", "GG-cup", "H-cup" };
+        auto cupOpts = cc->config.filterChoices("chest_size", allCups);
+        int cupIdx = std::clamp(cc->breastCupSize, 0, (int)cupOpts.size() - 1);
+        renderChoiceCard("Breast Size", "How large your breasts are.", cupOpts, cupIdx, [&](int i) {
+            cc->breastCupSize = i;
+        });
 
-        // Breast Shape
-        static const std::vector<std::string> allBShapes = { "Round", "Pointy", "Perky", "Wide", "Side-set", "Narrow" };
+        // 2. Breast Shape
+        static const std::vector<std::string> allBShapes = { "round", "pointy", "perky", "side-set", "wide", "narrow" };
         int bShapeIdx = 0;
         for (size_t i = 0; i < allBShapes.size(); ++i) if (cc->breastShape == allBShapes[i]) bShapeIdx = static_cast<int>(i);
-        renderChoiceCard("Breast Shape", "Natural contour and aesthetic curve.", allBShapes, bShapeIdx, [&](int i) {
+        renderChoiceCard("Breast Shape", "The shape of your breasts.", allBShapes, bShapeIdx, [&](int i) {
             cc->breastShape = allBShapes[i];
         });
 
-        // Nipple Size
-        if (cc->config.isOptionEnabled("nipple_size"))
-        {
-            static const std::vector<std::string> allNips = { "Small", "Normal", "Puffy", "Large" };
-            auto nipOpts = cc->config.filterChoices("nipple_size", allNips);
-            int nipIdx = std::clamp(cc->nippleSize, 0, (int)nipOpts.size() - 1);
-            renderChoiceCard("Nipple Size", "Size and prominence of nipples.", nipOpts, nipIdx, [&](int i) {
-                cc->nippleSize = i;
-            });
-        }
+        // 3. Nipple Size
+        static const std::vector<std::string> allNipSizes = { "tiny", "small", "average-sized", "large", "huge" };
+        int nipIdx = std::clamp(cc->nippleSize, 0, 4);
+        renderChoiceCard("Nipple Size", "How large your nipples are.", allNipSizes, nipIdx, [&](int i) {
+            cc->nippleSize = i;
+        });
 
-        // Lactation
-        if (cc->config.isOptionEnabled("lactation"))
-        {
-            static const std::vector<std::string> lactOpts = { "None", "Lactating" };
-            int lactIdx = cc->isLactating ? 1 : 0;
-            renderChoiceCard("Lactation", "Milk production status.", lactOpts, lactIdx, [&](int i) {
-                cc->isLactating = (i == 1);
-            });
-        }
+        // 4. Areolae Size
+        static const std::vector<std::string> allAreSizes = { "tiny", "small", "average-sized", "large", "huge" };
+        int areIdx = std::clamp(cc->areolaeSize, 0, 4);
+        renderChoiceCard("Areolae Size", "How large your areolae are.", allAreSizes, areIdx, [&](int i) {
+            cc->areolaeSize = i;
+        });
+
+        // 5. Puffy Nipples
+        static const std::vector<std::string> pNipOpts = { "Puffy", "Natural" };
+        int pNipIdx = cc->puffyNipples ? 0 : 1;
+        renderChoiceCard("Puffy Nipples", "Whether your nipples are puffy.", pNipOpts, pNipIdx, [&](int i) {
+            cc->puffyNipples = (i == 0);
+        });
+
+        // 6. Lactation
+        static const std::vector<std::string> lactTiers = { "none", "a trickle", "a small amount", "a decent amount", "a large amount", "a huge amount", "an extreme amount", "a monstrous amount" };
+        int lactIdx = std::clamp(cc->lactationTier, 0, 7);
+        renderChoiceCard("Lactation", "How much milk your breasts produce.", lactTiers, lactIdx, [&](int i) {
+            cc->lactationTier = i;
+            cc->isLactating = (i > 0);
+        });
     }
     else if (currentTab == EditorTabId::GENITALIA)
     {
-        if (cc->gender == "Male")
+        if (cc->gender == "Female")
         {
-            if (cc->config.isOptionEnabled("genitals"))
-            {
-                auto* rule = cc->config.getRule("genitals");
-                float minL = rule ? rule->minRange : 5.0f;
-                float maxL = rule ? rule->maxRange : 40.0f;
-                renderStepperCard("Penis Length", std::format("{:.1f} cm", cc->penisLengthCm), [&](int delta) {
-                    cc->penisLengthCm = std::clamp(cc->penisLengthCm + static_cast<float>(delta), minL, maxL);
-                });
-                renderStepperCard("Penis Diameter", std::format("{:.1f} cm", cc->penisDiameterCm), [&](int delta) {
-                    cc->penisDiameterCm = std::clamp(cc->penisDiameterCm + (delta * 0.2f), 2.0f, 10.0f);
-                });
-            }
+            // Capacity
+            static const std::vector<std::string> allSizes5 = { "tiny", "small", "average-sized", "large", "huge" };
+            int capIdx = std::clamp(cc->vaginaCapacity, 0, 4);
+            renderChoiceCard("Capacity", "How accommodating your vagina is.", allSizes5, capIdx, [&](int i) {
+                cc->vaginaCapacity = i;
+            });
+
+            // Labia Size
+            int labIdx = std::clamp(cc->labiaSize, 0, 4);
+            renderChoiceCard("Labia Size", "How large your labia are.", allSizes5, labIdx, [&](int i) {
+                cc->labiaSize = i;
+            });
+
+            // Clitoris Size
+            int clitIdx = std::clamp(cc->clitorisSize, 0, 4);
+            renderChoiceCard("Clitoris Size", "How large your clitoris is.", allSizes5, clitIdx, [&](int i) {
+                cc->clitorisSize = i;
+            });
         }
         else
         {
-            if (cc->config.isOptionEnabled("wetness"))
-            {
-                static const std::vector<std::string> wetOpts = { "Dry", "Moist", "Wet", "Dripping" };
-                int wetIdx = std::clamp(cc->vaginaWetness, 0, 3);
-                renderChoiceCard("Vaginal Wetness", "Natural lubrication level.", wetOpts, wetIdx, [&](int i) {
-                    cc->vaginaWetness = i;
-                });
-            }
-        }
-    }
-    else if (currentTab == EditorTabId::APPENDAGES)
-    {
-        // Horns
-        if (cc->config.isOptionEnabled("horns"))
-        {
-            static const std::vector<std::string> allHorns = { "None", "Demon", "Dragon", "Goat", "Bull", "Unicorn" };
-            auto hornOpts = cc->config.filterChoices("horns", allHorns);
-            int hornIdx = 0;
-            for (size_t i = 0; i < hornOpts.size(); ++i) if (cc->hornsType == hornOpts[i]) hornIdx = static_cast<int>(i);
-            renderChoiceCard("Horns", "Cranial horns morphology.", hornOpts, hornIdx, [&](int i) {
-                cc->hornsType = hornOpts[i];
+            // Penis Length
+            auto* rule = cc->config.getRule("genitals");
+            float minL = rule ? rule->minRange : 5.0f;
+            float maxL = rule ? rule->maxRange : 40.0f;
+            renderStepperCard("Penis Length", std::format("{:.1f} cm", cc->penisLengthCm), [&](int delta) {
+                cc->penisLengthCm = std::clamp(cc->penisLengthCm + static_cast<float>(delta), minL, maxL);
             });
-        }
 
-        // Wings
-        if (cc->config.isOptionEnabled("wings"))
-        {
-            static const std::vector<std::string> allWings = { "None", "Feathered", "Leathery", "Insectoid", "Energy" };
-            auto wingOpts = cc->config.filterChoices("wings", allWings);
-            int wingIdx = 0;
-            for (size_t i = 0; i < wingOpts.size(); ++i) if (cc->wingsType == wingOpts[i]) wingIdx = static_cast<int>(i);
-            renderChoiceCard("Wings", "Back appendage wings for flight.", wingOpts, wingIdx, [&](int i) {
-                cc->wingsType = wingOpts[i];
+            // Testicle Size
+            static const std::vector<std::string> allSizes5 = { "tiny", "small", "average-sized", "large", "huge" };
+            int testIdx = std::clamp(cc->testicleSize, 0, 4);
+            renderChoiceCard("Testicle Size", "How large your testicles are.", allSizes5, testIdx, [&](int i) {
+                cc->testicleSize = i;
             });
-        }
 
-        // Tails
-        if (cc->config.isOptionEnabled("tails"))
-        {
-            static const std::vector<std::string> allTails = { "None", "Cat", "Dog", "Fox", "Horse", "Demon", "Dragon" };
-            auto tailOpts = cc->config.filterChoices("tails", allTails);
-            int tailIdx = 0;
-            for (size_t i = 0; i < tailOpts.size(); ++i) if (cc->tailsType == tailOpts[i]) tailIdx = static_cast<int>(i);
-            renderChoiceCard("Tail", "Spinal caudal appendage.", tailOpts, tailIdx, [&](int i) {
-                cc->tailsType = tailOpts[i];
+            // Cum Production
+            static const std::vector<std::string> cumTiers = { "none", "a trickle", "a small amount", "a decent amount", "a large amount", "a huge amount", "an extreme amount", "a monstrous amount" };
+            int cumIdx = std::clamp(cc->cumProductionTier, 0, 7);
+            renderChoiceCard("Cum Production", "How much cum your body produces.", cumTiers, cumIdx, [&](int i) {
+                cc->cumProductionTier = i;
             });
         }
     }
     else if (currentTab == EditorTabId::COSMETICS)
     {
-        // Makeup
-        if (cc->config.isOptionEnabled("makeup"))
+        static const std::vector<std::string> makeColors = { "none", "black", "white", "red", "dark red", "light red", "pink", "light pink", "purple", "light purple", "blue", "light blue", "gold", "silver", "clear" };
+
+        // 1. Blusher
+        int blushIdx = 0;
+        for (size_t i = 0; i < makeColors.size(); ++i) if (cc->blusher == makeColors[i]) blushIdx = static_cast<int>(i);
+        renderChoiceCard("Blusher", "Blusher (also called rouge) is used to colour the cheeks.", makeColors, blushIdx, [&](int i) {
+            cc->blusher = makeColors[i];
+        });
+
+        // 2. Lipstick
+        int lipstIdx = 0;
+        for (size_t i = 0; i < makeColors.size(); ++i) if (cc->lipstick == makeColors[i]) lipstIdx = static_cast<int>(i);
+        renderChoiceCard("Lipstick", "Lipstick is used to provide colour, texture, and protection to lips.", makeColors, lipstIdx, [&](int i) {
+            cc->lipstick = makeColors[i];
+        });
+
+        // 3. Eyeliner
+        int eyelnIdx = 0;
+        for (size_t i = 0; i < makeColors.size(); ++i) if (cc->eyeliner == makeColors[i]) eyelnIdx = static_cast<int>(i);
+        renderChoiceCard("Eyeliner", "Eyeliner is applied around the contours of the eyes.", makeColors, eyelnIdx, [&](int i) {
+            cc->eyeliner = makeColors[i];
+        });
+
+        // 4. Eye Shadow
+        int eyeshIdx = 0;
+        for (size_t i = 0; i < makeColors.size(); ++i) if (cc->eyeshadow == makeColors[i]) eyeshIdx = static_cast<int>(i);
+        renderChoiceCard("Eye shadow", "Eye shadow is used to make the wearer's eyes stand out.", makeColors, eyeshIdx, [&](int i) {
+            cc->eyeshadow = makeColors[i];
+        });
+
+        // 5. Nail Polish
+        int nailIdx = 0;
+        for (size_t i = 0; i < makeColors.size(); ++i) if (cc->nailPolish == makeColors[i]) nailIdx = static_cast<int>(i);
+        renderChoiceCard("Nail polish", "Nail polish is used to colour and protect fingernails.", makeColors, nailIdx, [&](int i) {
+            cc->nailPolish = makeColors[i];
+        });
+
+        // 6. Toenail Polish
+        int toenaIdx = 0;
+        for (size_t i = 0; i < makeColors.size(); ++i) if (cc->toenailPolish == makeColors[i]) toenaIdx = static_cast<int>(i);
+        renderChoiceCard("Toenail polish", "Toenail polish is used to colour and protect toenails.", makeColors, toenaIdx, [&](int i) {
+            cc->toenailPolish = makeColors[i];
+        });
+
+        // 7. Piercings Section
+        static const std::vector<std::string> pSockets = { "ear", "nose", "lip", "tongue", "navel", "nipple" };
+        for (const auto& s : pSockets)
         {
-            static const std::vector<std::string> allMakeup = { "None", "Subtle", "Glamour", "Goth", "Festive" };
-            auto makeupOpts = cc->config.filterChoices("makeup", allMakeup);
-            int mkIdx = 0;
-            for (size_t i = 0; i < makeupOpts.size(); ++i) if (cc->makeupStyle == makeupOpts[i]) mkIdx = static_cast<int>(i);
-            renderChoiceCard("Makeup Style", "Facial cosmetics and aesthetic accents.", makeupOpts, mkIdx, [&](int i) {
-                cc->makeupStyle = makeupOpts[i];
+            static const std::vector<std::string> piercStates = { "Unpierced", "Pierced" };
+            int pState = cc->piercings[s] ? 1 : 0;
+            std::string sTitle = s + " piercing";
+            sTitle[0] = std::toupper(sTitle[0]);
+            renderChoiceCard(sTitle, "Piercing through " + s + ".", piercStates, pState, [&cc, s](int i) {
+                cc->piercings[s] = (i == 1);
             });
         }
 
-        // Tattoos
-        if (cc->config.isOptionEnabled("tattoos"))
-        {
-            static const std::vector<std::string> allTats = { "None", "Back", "Chest", "Arm", "Thigh", "Lower Back" };
-            auto tatOpts = cc->config.filterChoices("tattoos", allTats);
-            int tatIdx = 0;
-            for (size_t i = 0; i < tatOpts.size(); ++i) if (cc->tattooLocation == tatOpts[i]) tatIdx = static_cast<int>(i);
-            renderChoiceCard("Tattoo Location", "Body art ink placement.", tatOpts, tatIdx, [&](int i) {
-                cc->tattooLocation = tatOpts[i];
-            });
-        }
+        // 8. Body Hair
+        static const std::vector<std::string> bhGroom = { "none", "stubble", "manicured", "trimmed", "natural", "unkempt", "bushy", "wild" };
+        int pubIdx = 4;
+        for (size_t i = 0; i < bhGroom.size(); ++i) if (cc->pubicHair == bhGroom[i]) pubIdx = static_cast<int>(i);
+        renderChoiceCard("Pubic hair", "The body hair found in the genital area.", bhGroom, pubIdx, [&](int i) {
+            cc->pubicHair = bhGroom[i];
+        });
 
-        // Piercings
-        if (cc->config.isOptionEnabled("piercings"))
-        {
-            static const std::vector<std::string> piercOpts = { "No Piercings", "Ears Pierced" };
-            int pIdx = cc->hasEarPiercings ? 1 : 0;
-            renderChoiceCard("Ear Piercings", "Jewelry piercings through ear cartilage.", piercOpts, pIdx, [&](int i) {
-                cc->hasEarPiercings = (i == 1);
-            });
-        }
+        int armIdx = 0;
+        for (size_t i = 0; i < bhGroom.size(); ++i) if (cc->underarmHair == bhGroom[i]) armIdx = static_cast<int>(i);
+        renderChoiceCard("Underarm hair", "The body hair found in your armpits.", bhGroom, armIdx, [&](int i) {
+            cc->underarmHair = bhGroom[i];
+        });
 
-        // Pubic Hair
-        if (cc->config.isOptionEnabled("pubic_hair"))
-        {
-            static const std::vector<std::string> allPub = { "Hairless", "Trimmed", "Natural", "Bushy" };
-            auto pubOpts = cc->config.filterChoices("pubic_hair", allPub);
-            int pubIdx = 2;
-            for (size_t i = 0; i < pubOpts.size(); ++i) if (cc->pubicHair == pubOpts[i]) pubIdx = static_cast<int>(i);
-            renderChoiceCard("Pubic Hair", "Intimate grooming and hair style.", pubOpts, pubIdx, [&](int i) {
-                cc->pubicHair = pubOpts[i];
-            });
-        }
+        int aHairIdx = 0;
+        for (size_t i = 0; i < bhGroom.size(); ++i) if (cc->assHair == bhGroom[i]) aHairIdx = static_cast<int>(i);
+        renderChoiceCard("Ass hair", "The body hair found around your asshole.", bhGroom, aHairIdx, [&](int i) {
+            cc->assHair = bhGroom[i];
+        });
     }
     else if (currentTab == EditorTabId::WARDROBE)
     {

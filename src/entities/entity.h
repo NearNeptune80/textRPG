@@ -32,6 +32,14 @@ public:
     std::unordered_map<std::string, int> essences;
     std::vector<StatusEffect> statusEffects;
 
+    // Customization & Cosmetics Tracking
+    std::unordered_map<std::string, std::string> cosmetics;
+    std::unordered_map<std::string, bool> piercings;
+    std::unordered_map<std::string, std::string> tattoos;
+    std::unordered_map<std::string, std::string> bodyHair;
+    std::vector<std::string> personalityTraits;
+    std::string startingOccupation = "Student";
+
     entity(std::string entityId, std::string entityName);
 
     std::array<std::string, 10> preparedCombatSlots; // Holds action/spell IDs for Primary Tab

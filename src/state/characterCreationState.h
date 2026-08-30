@@ -82,16 +82,17 @@ public:
     // Breasts
     int breastCupSize = 0; // 0 = Flat, 1 = A, 2 = B, 3 = C, 4 = D, 5 = DD, 6 = E, 7 = F, 8 = G, 9 = H
     std::string breastShape = "Round"; // Round, Pointy, Perky, Wide, Side-set, Narrow
-    int nippleSize = 1; // 0 = Small, 1 = Normal, 2 = Puffy, 3 = Large
-    int areolaeSize = 1; // 0 = Tiny, 1 = Small, 2 = Average, 3 = Large
+    int nippleSize = 2; // 0 = Tiny, 1 = Small, 2 = Average-sized, 3 = Large, 4 = Huge
+    int areolaeSize = 2; // 0 = Tiny, 1 = Small, 2 = Average-sized, 3 = Large, 4 = Huge
     bool puffyNipples = false;
     bool puffyLips = false;
+    int lactationTier = 0; // 0 = None .. 7 = Monstrous
     bool isLactating = false;
     float milkCapacityMl = 0.0f;
     
     // Ass & Hips
-    int hipSize = 2; // 0 = Very narrow, 1 = Narrow, 2 = Average, 3 = Wide, 4 = Very wide
-    int assSize = 2; // 0 = Flat, 1 = Small, 2 = Average, 3 = Plump, 4 = Enormous
+    int hipSize = 2; // 0 = Tiny, 1 = Small, 2 = Average-sized, 3 = Large, 4 = Huge
+    int assSize = 2; // 0 = Tiny, 1 = Small, 2 = Average-sized, 3 = Large, 4 = Huge
     bool anusBleached = false;
     float anusElasticity = 60.0f;
     
@@ -99,9 +100,11 @@ public:
     float penisLengthCm = 16.0f;
     float penisDiameterCm = 3.8f;
     float cumCapacityMl = 20.0f;
-    int testicleSize = 2; // 1 = Small, 2 = Average, 3 = Large, 4 = Enormous
-    float clitSizeCm = 1.0f;
-    int labiaSize = 1;
+    int testicleSize = 2; // 0 = Tiny, 1 = Small, 2 = Average-sized, 3 = Large, 4 = Huge
+    int cumProductionTier = 3; // 0 = None .. 7 = Monstrous
+    int vaginaCapacity = 2; // 0 = Tiny, 1 = Small, 2 = Average-sized, 3 = Large, 4 = Huge
+    int labiaSize = 2; // 0 = Tiny, 1 = Small, 2 = Average-sized, 3 = Large, 4 = Huge
+    int clitorisSize = 0; // 0 = Tiny, 1 = Small, 2 = Average-sized, 3 = Large, 4 = Huge
     int vaginaWetness = 2;
     float vaginaElasticity = 70.0f;
     bool isVirgin = true;
@@ -112,30 +115,36 @@ public:
     std::string tailsType = "None"; // None, Cat, Dog, Fox, Horse, Demon, Dragon
     int tailsCount = 1;
 
-    // Markings & Extra
-    std::string makeupStyle = "None"; // None, Subtle, Glamour, Goth, Festive
-    std::string makeupLipstick = "None";
-    std::string makeupEyeliner = "None";
-    std::string makeupEyeshadow = "None";
-    std::string makeupBlusher = "None";
-    std::string makeupNails = "None";
+    // Cosmetics (Blusher, Lipstick, Eyeliner, Eyeshadow, Nail polish, Toenail polish)
+    std::string blusher = "none";
+    std::string lipstick = "none";
+    std::string eyeliner = "none";
+    std::string eyeshadow = "none";
+    std::string nailPolish = "none";
+    std::string toenailPolish = "none";
 
-    bool hasEarPiercings = false;
-    bool hasNosePiercing = false;
-    bool hasNavelPiercing = false;
-    bool hasNipplePiercings = false;
-    bool hasLipPiercing = false;
-    bool hasTonguePiercing = false;
+    // Piercings (8 Sockets)
+    std::unordered_map<std::string, bool> piercings = {
+        {"ear", false}, {"nose", false}, {"lip", false}, {"tongue", false},
+        {"navel", false}, {"nipple", false}, {"vagina", false}, {"penis", false}
+    };
 
-    std::string tattooLocation = "None"; // None, Back, Chest, Arm, Thigh, Lower Back
-    std::string pubicHair = "Natural"; // Hairless, Trimmed, Natural, Bushy
-    std::string underarmHair = "Hairless"; // Hairless, Stubble, Natural
-    std::string facialHair = "None"; // None, Stubble, Short Beard, Full Beard, Goatee, Moustache
-    std::string assHair = "Hairless"; // Hairless, Natural
+    // Tattoos (25 Sockets)
+    std::unordered_map<std::string, std::string> tattoos;
+
+    // Body Hair
+    std::string bodyHairColour = "brown";
+    std::string facialHair = "none"; // none, stubble, short beard, full beard, goatee, moustache
+    std::string pubicHair = "natural"; // none, stubble, manicured, trimmed, natural, unkempt, bushy, wild
+    std::string underarmHair = "none"; // none, stubble, manicured, trimmed, natural, unkempt, bushy, wild
+    std::string assHair = "none"; // none, stubble, manicured, trimmed, natural, unkempt, bushy, wild
 
     // Background & Occupation
     std::string startingOccupation = "Student"; // Student, Office Worker, Athlete, Bartender, Artist, Unemployed
     bool skipPrologue = false;
+
+    // Live Dynamic Body Description Generator
+    std::string generateAppearanceDescription() const;
 
     // Step 4 (Evening's Attire / Wardrobe) properties
     std::vector<std::shared_ptr<item>> availableWardrobe;

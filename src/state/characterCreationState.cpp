@@ -433,6 +433,72 @@ std::string characterCreationState::getDecencyStatus() const
     return missing;
 }
 
+std::string characterCreationState::generateAppearanceDescription() const
+{
+    std::string desc = "";
+    int totalInches = static_cast<int>(heightCm / 2.54f);
+    int feet = totalInches / 12;
+    int inches = totalInches % 12;
+
+    std::string ageStr = (birthAge < 30) ? "twenties" : ((birthAge < 40) ? "thirties" : "forties");
+    std::string compositeShape = EditorConfig::calculateBodyShape(muscleDefinition, bodySize);
+
+    desc += std::format("Standing at full height, you measure {}cm ({}'{}\"). You are a {} human {} in your {}.\n\n",
+                         heightCm, feet, inches, femininity, gender, ageStr);
+
+    desc += std::format("You have a {} human face, with {} skin. You have {} hair, which has been styled into {} ({}cm). You have {} eyes, with round irises. You have a pair of {} ears.\n\n",
+                         femininity, skinPrimaryColor, hairColor, hairStyle, hairLengthCm, eyeColor, earType);
+
+    static const char* s_lipSizes[5] = { "thin", "average-sized", "full", "plump", "huge" };
+    std::string lipStr = (lipSize >= 0 && lipSize < 5) ? s_lipSizes[lipSize] : "average-sized";
+    desc += std::format("You have {} lips{}.\n\n", lipStr, (puffyLips ? " that are extra puffy" : ""));
+
+    desc += std::format("Your body is human in form, and is covered in {} skin. You have a {}, {} body, giving you an appearance of being: {}.\n\n",
+                         skinPrimaryColor, bodySize, muscleDefinition, compositeShape);
+
+    if (breastCupSize == 0)
+    {
+        desc += "You have a flat human chest.\n\n";
+    }
+    else
+    {
+        static const char* s_cups[13] = { "flat", "AA-cup", "A-cup", "B-cup", "C-cup", "D-cup", "DD-cup", "E-cup", "F-cup", "FF-cup", "G-cup", "GG-cup", "H-cup" };
+        static const char* s_sizes5[5] = { "tiny", "small", "average-sized", "large", "huge" };
+        std::string cupStr = (breastCupSize >= 0 && breastCupSize < 13) ? s_cups[breastCupSize] : "C-cup";
+        std::string nipStr = (nippleSize >= 0 && nippleSize < 5) ? s_sizes5[nippleSize] : "average-sized";
+        std::string areStr = (areolaeSize >= 0 && areolaeSize < 5) ? s_sizes5[areolaeSize] : "average-sized";
+
+        desc += std::format("You have a pair of {} breasts, which fit comfortably into a {} bra. On each of your {} breasts, you have {} nipples{}, surrounded by {} areolae.\n\n",
+                             breastShape, cupStr, breastShape, nipStr, (puffyNipples ? " (puffy)" : ""), areStr);
+    }
+
+    desc += "You have a pair of human arms and legs, ending in plantigrade feet. ";
+    if (underarmHair == "none" || underarmHair == "Hairless") desc += "There is no trace of any hair in your armpits.\n\n";
+    else desc += std::format("You have {} underarm hair.\n\n", underarmHair);
+
+    static const char* s_sizes5[5] = { "tiny", "small", "average-sized", "large", "huge" };
+    std::string hipStr = (hipSize >= 0 && hipSize < 5) ? s_sizes5[hipSize] : "average-sized";
+    std::string assStr = (assSize >= 0 && assSize < 5) ? s_sizes5[assSize] : "average-sized";
+    desc += std::format("Your {} hips and {} ass are covered in the same {} skin as the rest of your body.{}\n\n",
+                         hipStr, assStr, skinPrimaryColor, (anusBleached ? " You have a bleached anus." : ""));
+
+    if (gender == "Female")
+    {
+        std::string capStr = (vaginaCapacity >= 0 && vaginaCapacity < 5) ? s_sizes5[vaginaCapacity] : "average-sized";
+        std::string labStr = (labiaSize >= 0 && labiaSize < 5) ? s_sizes5[labiaSize] : "average-sized";
+        std::string clitStr = (clitorisSize >= 0 && clitorisSize < 5) ? s_sizes5[clitorisSize] : "tiny";
+        desc += std::format("You have a human vagina, with {} labia, a {} clit, and {} capacity.\n\n",
+                             labStr, clitStr, capStr);
+    }
+    else
+    {
+        std::string testStr = (testicleSize >= 0 && testicleSize < 5) ? s_sizes5[testicleSize] : "average-sized";
+        desc += std::format("You have a {:.1f}cm human penis and {} testicles.\n\n", penisLengthCm, testStr);
+    }
+
+    return desc;
+}
+
 void characterCreationState::finalizeCharacter(game* gameContext)
 {
     if (!gameContext) return;
@@ -526,7 +592,7 @@ void characterCreationState::finalizeCharacter(game* gameContext)
         breasts.race = "Human";
         breasts.cupSize = breastCupSize;
         breasts.primaryColor = skinPrimaryColor;
-        breasts.isLactating = isLactating;
+        breasts.isLactating = (lactationTier > 0 || isLactating);
         breasts.maxFluidMl = milkCapacityMl;
         breasts.currentFluidMl = isLactating ? milkCapacityMl * 0.5f : 0.0f;
         player->anatomy.setPart(bodySlot::BREASTS, breasts);
@@ -610,6 +676,31 @@ void characterCreationState::finalizeCharacter(game* gameContext)
         feet.primaryColor = skinPrimaryColor;
         feet.covering = stringToCoveringType(skinCovering);
         player->anatomy.setPart(bodySlot::FEET, feet);
+
+        // Transfer Cosmetics
+        player->cosmetics["blusher"] = blusher;
+        player->cosmetics["lipstick"] = lipstick;
+        player->cosmetics["eyeliner"] = eyeliner;
+        player->cosmetics["eyeshadow"] = eyeshadow;
+        player->cosmetics["nailPolish"] = nailPolish;
+        player->cosmetics["toenailPolish"] = toenailPolish;
+
+        // Transfer Piercings
+        player->piercings = piercings;
+
+        // Transfer Tattoos
+        player->tattoos = tattoos;
+
+        // Transfer Body Hair
+        player->bodyHair["colour"] = bodyHairColour;
+        player->bodyHair["facial"] = facialHair;
+        player->bodyHair["pubic"] = pubicHair;
+        player->bodyHair["underarm"] = underarmHair;
+        player->bodyHair["ass"] = assHair;
+
+        // Transfer Personality & Occupation
+        for (const auto& tr : personalityTraits) player->personalityTraits.push_back(tr);
+        player->startingOccupation = startingOccupation;
 
         // Starting core stats & currency
         player->stats.setBaseStat("currency", 5000.0f);

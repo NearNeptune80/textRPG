@@ -632,22 +632,139 @@ namespace EngineTests
         allPassed &= (mentionsGroin && mentionsChest);
 
         // 4. Equip wardrobe pile items back
-        for (size_t i = 0; i < cc.availableWardrobe.size(); ++i)
+        while (!cc.availableWardrobe.empty())
         {
-            if (cc.availableWardrobe[i]->targetSlot == equipSlot::FEET ||
-                cc.availableWardrobe[i]->targetSlot == equipSlot::TORSO_OVER ||
-                cc.availableWardrobe[i]->targetSlot == equipSlot::LEGS_OUTER ||
-                cc.availableWardrobe[i]->targetSlot == equipSlot::GROIN_OVER ||
-                cc.availableWardrobe[i]->targetSlot == equipSlot::CHEST_WEAR)
+            size_t beforeSize = cc.availableWardrobe.size();
+            for (size_t i = 0; i < cc.availableWardrobe.size(); ++i)
             {
-                cc.equipWardrobeItem(i);
-                --i; // Re-evaluate index after erase
+                if (cc.availableWardrobe[i]->targetSlot == equipSlot::FEET ||
+                    cc.availableWardrobe[i]->targetSlot == equipSlot::TORSO_OVER ||
+                    cc.availableWardrobe[i]->targetSlot == equipSlot::LEGS_OUTER ||
+                    cc.availableWardrobe[i]->targetSlot == equipSlot::GROIN_OVER ||
+                    cc.availableWardrobe[i]->targetSlot == equipSlot::CHEST_WEAR)
+                {
+                    cc.equipWardrobeItem(i);
+                    break;
+                }
             }
+            if (cc.availableWardrobe.size() == beforeSize) break;
         }
 
         bool reEquippedDecent = cc.isClothedEnough();
         logResult("Re-equipping wardrobe garments restores Decent status", reEquippedDecent);
         allPassed &= reEquippedDecent;
+
+        return allPassed;
+    }
+
+    bool testFullCustomizationTrackingAndAppearanceDescription()
+    {
+        std::cout << "\n--- Running Test 11: Full Customization Tracking & Dynamic Appearance Description ---\n";
+        bool allPassed = true;
+
+        itemDatabase::loadDatabase("data/items.json");
+
+        characterCreationState cc;
+        cc.gender = "Female";
+        cc.femininity = "Very Feminine";
+        cc.heightCm = 172;
+        cc.bodySize = "slender";
+        cc.muscleDefinition = "toned";
+        cc.skinPrimaryColor = "porcelain";
+        cc.lipSize = 3; // plump
+        cc.puffyLips = true;
+        cc.eyeColor = "hazel";
+        cc.hairColor = "auburn";
+        cc.hairStyle = "wavy";
+        cc.hairLengthCm = 60;
+        cc.breastCupSize = 5; // D-cup (0=flat, 1=AA, 2=A, 3=B, 4=C, 5=D)
+        cc.breastShape = "perky";
+        cc.nippleSize = 3; // large
+        cc.areolaeSize = 2; // average
+        cc.puffyNipples = true;
+        cc.lactationTier = 3; // decent amount
+        cc.assSize = 3; // large
+        cc.hipSize = 3; // large
+        cc.anusBleached = true;
+        cc.vaginaCapacity = 2;
+        cc.labiaSize = 3;
+        cc.clitorisSize = 1;
+
+        cc.blusher = "pink";
+        cc.lipstick = "red";
+        cc.eyeliner = "black";
+        cc.nailPolish = "gold";
+
+        cc.piercings["ear"] = true;
+        cc.piercings["navel"] = true;
+        cc.piercings["nipple"] = true;
+
+        cc.pubicHair = "trimmed";
+        cc.underarmHair = "none";
+        cc.assHair = "none";
+
+        cc.personalityTraits.insert("Confident");
+        cc.personalityTraits.insert("Kind");
+        cc.personalityTraits.insert("Lewd");
+
+        // 1. Verify Dynamic Appearance Text Description
+        std::string desc = cc.generateAppearanceDescription();
+        bool hasCup = (desc.find("D-cup") != std::string::npos);
+        bool hasPerky = (desc.find("perky") != std::string::npos);
+        bool hasPlump = (desc.find("plump lips that are extra puffy") != std::string::npos);
+        bool hasNip = (desc.find("large nipples (puffy)") != std::string::npos);
+        bool hasBleached = (desc.find("bleached anus") != std::string::npos);
+
+        bool textDescAccurate = hasCup && hasPerky && hasPlump && hasNip && hasBleached;
+        if (!textDescAccurate)
+        {
+            std::cout << "[DEBUG] hasCup=" << hasCup << ", hasPerky=" << hasPerky 
+                      << ", hasPlump=" << hasPlump << ", hasNip=" << hasNip 
+                      << ", hasBleached=" << hasBleached << "\n"
+                      << "Desc:\n" << desc << "\n";
+        }
+        logResult("Dynamic Appearance Description renders breasts, lips, nipples, and anus attributes", textDescAccurate);
+        allPassed &= textDescAccurate;
+
+        // 2. Finalize into game entity
+        game gameCtx;
+        gameCtx.init();
+        cc.finalizeCharacter(&gameCtx);
+        entity* p = gameCtx.getPlayer();
+
+        bool pExists = (p != nullptr);
+        logResult("Player entity created during finalization", pExists);
+        allPassed &= pExists;
+
+        if (p)
+        {
+            // Verify Cosmetics
+            bool lipMatch = (p->cosmetics["lipstick"] == "red");
+            bool nailMatch = (p->cosmetics["nailPolish"] == "gold");
+            logResult("Cosmetics (lipstick, nail polish) transferred to entity", lipMatch && nailMatch);
+            allPassed &= (lipMatch && nailMatch);
+
+            // Verify Piercings
+            bool piercMatch = (p->piercings["navel"] && p->piercings["nipple"] && p->piercings["ear"]);
+            logResult("Piercings (navel, nipple, ear) transferred to entity", piercMatch);
+            allPassed &= piercMatch;
+
+            // Verify Body Hair
+            bool hairMatch = (p->bodyHair["pubic"] == "trimmed" && p->bodyHair["underarm"] == "none");
+            logResult("Body hair grooming (pubic, underarm) transferred to entity", hairMatch);
+            allPassed &= hairMatch;
+
+            // Verify Personality Traits
+            bool traitMatch = (std::find(p->personalityTraits.begin(), p->personalityTraits.end(), "Lewd") != p->personalityTraits.end());
+            logResult("Personality traits transferred to entity", traitMatch);
+            allPassed &= traitMatch;
+
+            // Verify Anatomy & Lactation
+            const bodyPart* bPart = p->anatomy.getPart(bodySlot::BREASTS);
+            bool bPartMatch = (bPart != nullptr && bPart->cupSize == 5 && bPart->isLactating);
+            logResult("Anatomy component cup size and lactation status transferred to entity", bPartMatch);
+            allPassed &= bPartMatch;
+        }
 
         return allPassed;
     }
@@ -671,6 +788,7 @@ namespace EngineTests
         bool t8 = testGranularEditorOptionMasking();
         bool t9 = testHairstyleGatingAndBodyShape();
         bool t10 = testWardrobeDecencySystem();
+        bool t11 = testFullCustomizationTrackingAndAppearanceDescription();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";
