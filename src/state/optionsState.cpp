@@ -32,7 +32,7 @@ void optionsState::goBack(game* gameContext)
     {
         gameContext->changeState(std::move(m_returnState));
     }
-    else if (gameContext->getActiveMap())
+    else if (gameContext->getPlayer() != nullptr)
     {
         gameContext->changeState(std::make_unique<explorationState>());
     }

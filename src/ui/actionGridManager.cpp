@@ -76,7 +76,7 @@ void ActionGridManager::refresh(game* gameContext)
         actionButton optBtn;
         optBtn.label = "Options";
         optBtn.onClick = [gameContext]() {
-            gameContext->changeState(std::make_unique<optionsState>(OptionsScreenMode::GENERAL_OPTIONS));
+            gameContext->changeState(std::make_unique<optionsState>(OptionsScreenMode::GENERAL_OPTIONS, std::make_unique<mainMenuState>()));
         };
         gameContext->activeButtons.push_back(optBtn);
 
@@ -84,7 +84,7 @@ void ActionGridManager::refresh(game* gameContext)
         actionButton contentOptBtn;
         contentOptBtn.label = "Content Options";
         contentOptBtn.onClick = [gameContext]() {
-            gameContext->changeState(std::make_unique<optionsState>(OptionsScreenMode::CONTENT_OPTIONS));
+            gameContext->changeState(std::make_unique<optionsState>(OptionsScreenMode::CONTENT_OPTIONS, std::make_unique<mainMenuState>()));
         };
         gameContext->activeButtons.push_back(contentOptBtn);
 
