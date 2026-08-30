@@ -948,19 +948,69 @@ void ActionGridManager::refresh(game* gameContext)
     // 2. Inventory State Actions
     if (dynamic_cast<inventoryState*>(currentState))
     {
-        actionButton closeBtn;
-        closeBtn.label = "Close Inventory (I)";
-        closeBtn.onClick = [gameContext]() {
-            gameContext->changeState(std::make_unique<explorationState>());
-        };
-        gameContext->activeButtons.push_back(closeBtn);
+        if (gameContext->selectedEquipmentSlot != equipSlot::NONE)
+        {
+            actionButton unequipBtn;
+            unequipBtn.label = "Unequip";
+            unequipBtn.onClick = [gameContext]() {
+                gameContext->handleUnequipAction(gameContext->selectedEquipmentSlot);
+            };
+            gameContext->activeButtons.push_back(unequipBtn);
 
-        if (gameContext->selectedInventoryIndex != -1)
+            actionButton pullAsideBtn;
+            pullAsideBtn.label = "Pull Aside";
+            pullAsideBtn.onClick = [gameContext]() {
+                entity* p = gameContext->getPlayer();
+                if (p)
+                {
+                    p->inventory.setDisplacement(gameContext->selectedEquipmentSlot, DisplacementMode::PULL_ASIDE);
+                    gameContext->refreshActionGrid();
+                }
+            };
+            gameContext->activeButtons.push_back(pullAsideBtn);
+
+            actionButton pullUpBtn;
+            pullUpBtn.label = "Pull Up / Down";
+            pullUpBtn.onClick = [gameContext]() {
+                entity* p = gameContext->getPlayer();
+                if (p)
+                {
+                    p->inventory.setDisplacement(gameContext->selectedEquipmentSlot, DisplacementMode::LIFT_UP);
+                    gameContext->refreshActionGrid();
+                }
+            };
+            gameContext->activeButtons.push_back(pullUpBtn);
+
+            actionButton unbuttonBtn;
+            unbuttonBtn.label = "Unbutton / Open";
+            unbuttonBtn.onClick = [gameContext]() {
+                entity* p = gameContext->getPlayer();
+                if (p)
+                {
+                    p->inventory.setDisplacement(gameContext->selectedEquipmentSlot, DisplacementMode::UNBUTTON);
+                    gameContext->refreshActionGrid();
+                }
+            };
+            gameContext->activeButtons.push_back(unbuttonBtn);
+
+            actionButton resetDispBtn;
+            resetDispBtn.label = "Reset Fit";
+            resetDispBtn.onClick = [gameContext]() {
+                entity* p = gameContext->getPlayer();
+                if (p)
+                {
+                    p->inventory.setDisplacement(gameContext->selectedEquipmentSlot, DisplacementMode::NONE);
+                    gameContext->refreshActionGrid();
+                }
+            };
+            gameContext->activeButtons.push_back(resetDispBtn);
+        }
+        else if (gameContext->selectedInventoryIndex != -1)
         {
             if (gameContext->selectedInventorySide == 0)
             {
                 actionButton equipBtn;
-                equipBtn.label = "Equip";
+                equipBtn.label = "Equip / Use";
                 equipBtn.onClick = [gameContext]() {
                     gameContext->handleEquipAction(gameContext->selectedInventoryIndex);
                 };
@@ -972,6 +1022,13 @@ void ActionGridManager::refresh(game* gameContext)
                     gameContext->handleDropAction(gameContext->selectedInventoryIndex, 1);
                 };
                 gameContext->activeButtons.push_back(dropBtn);
+
+                actionButton dropAllBtn;
+                dropAllBtn.label = "Drop All";
+                dropAllBtn.onClick = [gameContext]() {
+                    gameContext->handleDropAction(gameContext->selectedInventoryIndex, 999);
+                };
+                gameContext->activeButtons.push_back(dropAllBtn);
             }
             else if (gameContext->selectedInventorySide == 1)
             {
@@ -981,50 +1038,66 @@ void ActionGridManager::refresh(game* gameContext)
                     gameContext->handlePickupAction(gameContext->selectedInventoryIndex, 1);
                 };
                 gameContext->activeButtons.push_back(pickBtn);
+
+                actionButton pickAllBtn;
+                pickAllBtn.label = "Pickup All";
+                pickAllBtn.onClick = [gameContext]() {
+                    gameContext->handlePickupAction(gameContext->selectedInventoryIndex, 999);
+                };
+                gameContext->activeButtons.push_back(pickAllBtn);
             }
         }
-        else if (gameContext->selectedEquipmentSlot != equipSlot::NONE)
+
+        // Pad to slot 14
+        while (gameContext->activeButtons.size() < 14)
         {
-            actionButton unequipBtn;
-            unequipBtn.label = "Unequip";
-            unequipBtn.onClick = [gameContext]() {
-                gameContext->handleUnequipAction(gameContext->selectedEquipmentSlot);
-            };
-            gameContext->activeButtons.push_back(unequipBtn);
+            actionButton blank;
+            blank.label = "";
+            blank.isEnabled = false;
+            gameContext->activeButtons.push_back(blank);
         }
+
+        // Slot 14 (CTRL+5): Close Inventory
+        actionButton closeBtn;
+        closeBtn.label = "Close (I / ESC)";
+        closeBtn.onClick = [gameContext]() {
+            gameContext->changeState(std::make_unique<explorationState>());
+        };
+        gameContext->activeButtons.push_back(closeBtn);
         return;
     }
 
     // 3. Combat State Actions
     if (auto combat = dynamic_cast<CombatState*>(currentState))
     {
-        actionButton winBtn;
-        winBtn.label = "Victory (Simulate Win)";
-        winBtn.onClick = [gameContext]() {
-            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "WIN" });
-        };
-        gameContext->activeButtons.push_back(winBtn);
-
-        actionButton lossBtn;
-        lossBtn.label = "Defeat (Simulate Loss)";
-        lossBtn.onClick = [gameContext]() {
-            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "DEFEAT" });
-        };
-        gameContext->activeButtons.push_back(lossBtn);
-
-        actionButton escBtn;
-        escBtn.label = "Escape (Flee Combat)";
-        escBtn.onClick = [gameContext]() {
-            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "ESCAPE" });
-        };
-        gameContext->activeButtons.push_back(escBtn);
-
+        // Row 1: Physical Attacks
         actionButton strikeBtn;
-        strikeBtn.label = "Strike (Attack)";
+        strikeBtn.label = "Strike (1 AP)";
         strikeBtn.onClick = [gameContext]() {
             gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "STRIKE" });
         };
         gameContext->activeButtons.push_back(strikeBtn);
+
+        actionButton heavyBtn;
+        heavyBtn.label = "Heavy Strike (2 AP)";
+        heavyBtn.onClick = [gameContext]() {
+            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "HEAVY_STRIKE" });
+        };
+        gameContext->activeButtons.push_back(heavyBtn);
+
+        actionButton defBtn;
+        defBtn.label = "Defend (1 AP)";
+        defBtn.onClick = [gameContext]() {
+            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "DEFEND" });
+        };
+        gameContext->activeButtons.push_back(defBtn);
+
+        actionButton disBtn;
+        disBtn.label = "Disarm (2 AP)";
+        disBtn.onClick = [gameContext]() {
+            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "DISARM" });
+        };
+        gameContext->activeButtons.push_back(disBtn);
 
         actionButton endTurnBtn;
         endTurnBtn.label = "End Turn";
@@ -1032,6 +1105,78 @@ void ActionGridManager::refresh(game* gameContext)
             combat->handleEndTurn(gameContext);
         };
         gameContext->activeButtons.push_back(endTurnBtn);
+
+        // Row 2: Spells & Magic
+        actionButton dartBtn;
+        dartBtn.label = "Arcane Dart (10 MP)";
+        dartBtn.onClick = [gameContext]() {
+            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SPELL_DART" });
+        };
+        gameContext->activeButtons.push_back(dartBtn);
+
+        actionButton fbBtn;
+        fbBtn.label = "Fireball (25 MP)";
+        fbBtn.onClick = [gameContext]() {
+            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SPELL_FIREBALL" });
+        };
+        gameContext->activeButtons.push_back(fbBtn);
+
+        actionButton shBtn;
+        shBtn.label = "Shield (15 MP)";
+        shBtn.onClick = [gameContext]() {
+            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SPELL_SHIELD" });
+        };
+        gameContext->activeButtons.push_back(shBtn);
+
+        actionButton clBtn;
+        clBtn.label = "Cleanse (20 MP)";
+        clBtn.onClick = [gameContext]() {
+            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SPELL_CLEANSE" });
+        };
+        gameContext->activeButtons.push_back(clBtn);
+
+        actionButton blBtn;
+        blBtn.label = "Blink (30 MP)";
+        blBtn.onClick = [gameContext]() {
+            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SPELL_BLINK" });
+        };
+        gameContext->activeButtons.push_back(blBtn);
+
+        // Row 3: Items & Utility
+        actionButton potBtn;
+        potBtn.label = "Potion (+50 HP)";
+        potBtn.onClick = [gameContext]() {
+            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "ITEM_POTION" });
+        };
+        gameContext->activeButtons.push_back(potBtn);
+
+        actionButton manaBtn;
+        manaBtn.label = "Mana (+50 MP)";
+        manaBtn.onClick = [gameContext]() {
+            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "ITEM_MANA" });
+        };
+        gameContext->activeButtons.push_back(manaBtn);
+
+        actionButton surrBtn;
+        surrBtn.label = "Surrender";
+        surrBtn.onClick = [gameContext]() {
+            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SURRENDER" });
+        };
+        gameContext->activeButtons.push_back(surrBtn);
+
+        actionButton escBtn;
+        escBtn.label = "Escape";
+        escBtn.onClick = [gameContext]() {
+            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "ESCAPE" });
+        };
+        gameContext->activeButtons.push_back(escBtn);
+
+        actionButton winBtn;
+        winBtn.label = "Victory (Skip)";
+        winBtn.onClick = [gameContext]() {
+            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "WIN" });
+        };
+        gameContext->activeButtons.push_back(winBtn);
         return;
     }
 

@@ -45,17 +45,57 @@ public:
     std::string surname = "";
     int activeNameField = 0; // 0 = Masc, 1 = Andro, 2 = Fem, 3 = Surname
 
-    // Step 3 (Customization Overview / Core Body) properties
-    int subView = 0; // 0 = Overview ("In the Museum"), 1 = Core Body Appearance, 2 = Face, etc.
+    // Step 3 (Customization Overview & Sub-views) properties
+    int subView = 0; // 0 = Overview ("In the Museum"), 1 = Core, 2 = Face, 3 = Hair, 4 = Breasts, 5 = Ass/Hips, 6 = Genitals, 7 = Makeup, 8 = Piercings, 9 = Tattoos, 10 = Extra Hair
     int heightCm = 180;
     std::string skinPattern = "Plain"; // Plain, Freckled (face), Freckled
-    std::string skinPrimaryColor = "Light";
-    int skinColorIdx = 3; // Light beige
-    std::string bodySize = "Average"; // Skinny, Slender, Average, Large, Huge
+    std::string skinCovering = "Skin"; // Skin, Fur, Scales, Feathers
+    std::string skinPrimaryColor = "Fair"; // Fair, Pale, Tan, Olive, Dark, Ebony, Pale Blue, Green, Lilac, Deep Red
+    int skinColorIdx = 0;
+    std::string bodySize = "Average"; // Skinny, Slender, Average, Muscular, Chubby
     std::string muscleDefinition = "Lightly muscled"; // Soft, Lightly muscled, Toned, Muscular, Ripped
-    std::string hairLength = "short";
-    std::string hairColor = "brown";
-    std::string eyeColor = "brown";
+    
+    // Face & Head
+    std::string eyeColor = "Blue"; // Blue, Green, Brown, Amber, Hazel, Red, Violet, Black
+    int lipSize = 1; // 0 = Thin, 1 = Average, 2 = Full, 3 = Plump
+    std::string earType = "Human"; // Human, Cat, Dog, Elf, Demon
+    
+    // Hair
+    int hairLengthCm = 15;
+    std::string hairStyle = "Short"; // Short, Bob, Shoulder-length, Long, Braided, Ponytail, Messy
+    std::string hairColor = "Brown"; // Black, Dark Brown, Auburn, Blonde, Platinum, Silver, Red, Blue, Pink, Purple
+    
+    // Breasts
+    int breastCupSize = 0; // 0 = Flat, 1 = A, 2 = B, 3 = C, 4 = D, 5 = DD, 6 = E, 7 = F, 8 = G, 9 = H
+    int nippleSize = 1; // 0 = Small, 1 = Normal, 2 = Puffy, 3 = Large
+    bool isLactating = false;
+    float milkCapacityMl = 0.0f;
+    
+    // Ass & Hips
+    int hipSize = 2; // 0 = Very narrow, 1 = Narrow, 2 = Average, 3 = Wide, 4 = Very wide
+    int assSize = 2; // 0 = Flat, 1 = Small, 2 = Average, 3 = Plump, 4 = Enormous
+    float anusElasticity = 60.0f;
+    
+    // Genitals
+    float penisLengthCm = 16.0f;
+    float penisDiameterCm = 3.8f;
+    float cumCapacityMl = 20.0f;
+    int testicleSize = 2; // 1 = Small, 2 = Average, 3 = Large, 4 = Enormous
+    float clitSizeCm = 1.0f;
+    int labiaSize = 1;
+    int vaginaWetness = 2;
+    float vaginaElasticity = 70.0f;
+    bool isVirgin = true;
+
+    // Markings & Extra
+    std::string makeupStyle = "None"; // None, Subtle, Glamour, Goth, Festive
+    bool hasEarPiercings = false;
+    bool hasNosePiercing = false;
+    bool hasNavelPiercing = false;
+    bool hasNipplePiercings = false;
+    std::string tattooLocation = "None"; // None, Back, Chest, Arm, Thigh, Lower Back
+    std::string pubicHair = "Natural"; // Hairless, Trimmed, Natural, Bushy
+    std::string underarmHair = "Hairless"; // Hairless, Stubble, Natural
 
     // Step 4 (Evening's Attire) properties
     int activeBagSlot = 0;

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <random>
 #include "core/game.h"
+#include "items/itemDatabase.h"
 #include "state/explorationState.h"
 #include "state/mainMenuState.h"
 
@@ -139,6 +140,12 @@ void characterCreationState::finalizeCharacter(game* gameContext)
 {
     if (!gameContext) return;
 
+    if (!gameContext->getPlayer())
+    {
+        gameContext->playerEntity = std::make_shared<entity>("player_main", "Hero");
+        gameContext->Player = gameContext->playerEntity.get();
+    }
+
     entity* player = gameContext->getPlayer();
     if (player)
     {
@@ -160,52 +167,172 @@ void characterCreationState::finalizeCharacter(game* gameContext)
             player->name = chosenName;
         }
 
-        // Apply anatomy based on gender selection
+        player->anatomy.heightMeters = static_cast<float>(heightCm) / 100.0f;
+
+        // Head & Hair
+        bodyPart hair;
+        hair.id = "hair_human";
+        hair.name = "Hair";
+        hair.race = "Human";
+        hair.primaryColor = hairColor;
+        hair.style = hairStyle;
+        hair.length = static_cast<float>(hairLengthCm);
+        hair.covering = CoveringType::HAIR_COVERING;
+        player->anatomy.setPart(bodySlot::HAIR, hair);
+
+        bodyPart head;
+        head.id = "head_human";
+        head.name = "Head";
+        head.race = "Human";
+        head.primaryColor = skinPrimaryColor;
+        head.covering = stringToCoveringType(skinCovering);
+        player->anatomy.setPart(bodySlot::HEAD, head);
+
+        bodyPart eyes;
+        eyes.id = "eyes_human";
+        eyes.name = "Eyes";
+        eyes.race = "Human";
+        eyes.primaryColor = eyeColor;
+        eyes.covering = CoveringType::IRIS;
+        player->anatomy.setPart(bodySlot::EYES, eyes);
+
+        bodyPart ears;
+        ears.id = "ears_" + earType;
+        ears.name = earType + " Ears";
+        ears.race = (earType == "Human") ? "Human" : earType + "-morph";
+        ears.primaryColor = skinPrimaryColor;
+        player->anatomy.setPart(bodySlot::EARS, ears);
+
+        bodyPart mouth;
+        mouth.id = "mouth_human";
+        mouth.name = "Mouth";
+        mouth.race = "Human";
+        mouth.covering = CoveringType::FLESH;
+        mouth.orifice.exists = true;
+        mouth.orifice.elasticity = 70.0f;
+        mouth.orifice.maxCapacityMl = 50.0f;
+        mouth.orifice.depthCm = 15.0f;
+        player->anatomy.setPart(bodySlot::MOUTH, mouth);
+
+        bodyPart torso;
+        torso.id = "torso_human";
+        torso.name = "Torso";
+        torso.race = "Human";
+        torso.primaryColor = skinPrimaryColor;
+        torso.covering = stringToCoveringType(skinCovering);
+        player->anatomy.setPart(bodySlot::TORSO, torso);
+
+        // Breasts
+        bodyPart breasts;
+        breasts.id = "breasts_human";
+        breasts.name = "Breasts";
+        breasts.race = "Human";
+        breasts.cupSize = breastCupSize;
+        breasts.primaryColor = skinPrimaryColor;
+        breasts.isLactating = isLactating;
+        breasts.maxFluidMl = milkCapacityMl;
+        breasts.currentFluidMl = isLactating ? milkCapacityMl * 0.5f : 0.0f;
+        player->anatomy.setPart(bodySlot::BREASTS, breasts);
+
+        bodyPart arms;
+        arms.id = "arms_human";
+        arms.name = "Arms";
+        arms.race = "Human";
+        arms.primaryColor = skinPrimaryColor;
+        arms.covering = stringToCoveringType(skinCovering);
+        player->anatomy.setPart(bodySlot::ARMS, arms);
+
+        bodyPart hands;
+        hands.id = "hands_human";
+        hands.name = "Hands";
+        hands.race = "Human";
+        hands.primaryColor = skinPrimaryColor;
+        hands.covering = stringToCoveringType(skinCovering);
+        player->anatomy.setPart(bodySlot::HANDS, hands);
+
+        bodyPart hips;
+        hips.id = "hips_human";
+        hips.name = "Hips";
+        hips.race = "Human";
+        hips.primaryColor = skinPrimaryColor;
+        player->anatomy.setPart(bodySlot::HIPS, hips);
+
+        bodyPart ass;
+        ass.id = "ass_human";
+        ass.name = "Ass";
+        ass.race = "Human";
+        ass.primaryColor = skinPrimaryColor;
+        ass.orifice.exists = true;
+        ass.orifice.elasticity = anusElasticity;
+        ass.orifice.maxCapacityMl = 80.0f;
+        ass.orifice.depthCm = 18.0f;
+        player->anatomy.setPart(bodySlot::ASS, ass);
+
+        // Genitals
         if (gender == "Female")
         {
-            bodyPart breasts;
-            breasts.id = "breasts_human";
-            breasts.name = "Breasts";
-            breasts.race = "Human";
-            breasts.cupSize = 2; // B-Cup
-            breasts.primaryColor = "fair";
-            player->anatomy.setPart(bodySlot::BREASTS, breasts);
-
             bodyPart vagina;
             vagina.id = "vagina_human";
             vagina.name = "Vagina";
             vagina.race = "Human";
             vagina.tags.push_back("vagina");
+            vagina.orifice.exists = true;
+            vagina.orifice.elasticity = vaginaElasticity;
+            vagina.orifice.wetnessLevel = vaginaWetness;
+            vagina.orifice.maxCapacityMl = 120.0f;
+            vagina.orifice.depthCm = 14.0f;
             player->anatomy.setPart(bodySlot::GROIN, vagina);
         }
         else
         {
-            bodyPart breasts;
-            breasts.id = "breasts_human";
-            breasts.name = "Breasts";
-            breasts.race = "Human";
-            breasts.cupSize = 0;
-            breasts.primaryColor = "fair";
-            player->anatomy.setPart(bodySlot::BREASTS, breasts);
-
             bodyPart penis;
             penis.id = "penis_human";
             penis.name = "Penis";
             penis.race = "Human";
+            penis.length = penisLengthCm;
+            penis.diameter = penisDiameterCm;
+            penis.currentFluidMl = cumCapacityMl * 0.75f;
+            penis.maxFluidMl = cumCapacityMl;
+            penis.fluidRegenPerHour = 3.0f;
             penis.tags.push_back("penis");
             player->anatomy.setPart(bodySlot::GROIN, penis);
         }
 
-        // Starting stats & currency for Lilaya's Home F1 prologue completion
+        bodyPart legs;
+        legs.id = "legs_human";
+        legs.name = "Legs";
+        legs.race = "Human";
+        legs.primaryColor = skinPrimaryColor;
+        legs.covering = stringToCoveringType(skinCovering);
+        player->anatomy.setPart(bodySlot::LEGS, legs);
+
+        bodyPart feet;
+        feet.id = "feet_human";
+        feet.name = "Feet";
+        feet.race = "Human";
+        feet.primaryColor = skinPrimaryColor;
+        feet.covering = stringToCoveringType(skinCovering);
+        player->anatomy.setPart(bodySlot::FEET, feet);
+
+        // Starting core stats & currency
         player->stats.setBaseStat("currency", 5000.0f);
         player->stats.setBaseStat("health", 40.0f);
         player->stats.setBaseStat("mana", 108.0f);
         player->stats.setBaseStat("lust", 0.0f);
         player->stats.setBaseStat("arcaneEssence", 20.0f);
+
+        // Starting inventory items
+        auto phone = itemDatabase::getItem("item_smartphone");
+        if (phone) player->inventory.addItem(phone);
+
+        auto stone = itemDatabase::getItem("item_opaque_demonstone");
+        if (stone) player->inventory.addItem(stone);
     }
 
     if (gameContext)
     {
+        gameContext->loadMap("overworld", 1, 1);
+        gameContext->gameTime.day = 29;
         gameContext->gameTime.hour = 21;
         gameContext->gameTime.minute = 47;
     }

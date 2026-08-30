@@ -125,23 +125,136 @@ void CombatState::handleCommand(game* gameContext, const UICommand& cmd)
             handleSurrender(gameContext);
             return;
         }
-        else if (cmd.stringPayload == "STRIKE")
+        else if (cmd.stringPayload == "STRIKE" || cmd.stringPayload == "HEAVY_STRIKE" ||
+                 cmd.stringPayload == "DEFEND" || cmd.stringPayload == "DISARM" ||
+                 cmd.stringPayload == "SPELL_DART" || cmd.stringPayload == "SPELL_FIREBALL" ||
+                 cmd.stringPayload == "SPELL_SHIELD" || cmd.stringPayload == "SPELL_CLEANSE" ||
+                 cmd.stringPayload == "SPELL_BLINK" || cmd.stringPayload == "ITEM_POTION" ||
+                 cmd.stringPayload == "ITEM_MANA")
         {
             if (!m_engine.getPlayerParty().empty() && !m_engine.getEnemyParty().empty())
             {
+                entity* player = m_engine.getPlayerParty()[0].character.get();
                 entity* target = m_engine.getEnemyParty()[0].character.get();
-                CombatAction strike;
-                strike.id = "action_basic_strike";
-                strike.name = "Strike";
-                strike.baseApCost = 1;
+                if (!player || !target) return;
 
-                SpellEffectNode dmgNode;
-                dmgNode.effectType = "DAMAGE";
-                dmgNode.element = "Physical";
-                dmgNode.baseMagnitude = m_engine.getPlayerParty()[0].character ? m_engine.getPlayerParty()[0].character->getStat("physique") : 10.0f;
-                strike.effectNodes.push_back(dmgNode);
+                CombatAction act;
+                if (cmd.stringPayload == "STRIKE")
+                {
+                    act.id = "action_strike";
+                    act.name = "Strike";
+                    act.baseApCost = 1;
+                    SpellEffectNode node;
+                    node.effectType = "DAMAGE";
+                    node.element = "Physical";
+                    node.baseMagnitude = std::max(8.0f, player->getStat("physique") * 0.8f);
+                    act.effectNodes.push_back(node);
+                }
+                else if (cmd.stringPayload == "HEAVY_STRIKE")
+                {
+                    act.id = "action_heavy_strike";
+                    act.name = "Heavy Strike";
+                    act.baseApCost = 2;
+                    SpellEffectNode node;
+                    node.effectType = "DAMAGE";
+                    node.element = "Physical";
+                    node.baseMagnitude = std::max(18.0f, player->getStat("physique") * 1.8f);
+                    act.effectNodes.push_back(node);
+                }
+                else if (cmd.stringPayload == "DEFEND")
+                {
+                    act.id = "action_defend";
+                    act.name = "Defensive Stance";
+                    act.baseApCost = 1;
+                    SpellEffectNode node;
+                    node.effectType = "SHIELD";
+                    node.element = "Physical";
+                    node.baseMagnitude = 20.0f;
+                    act.effectNodes.push_back(node);
+                }
+                else if (cmd.stringPayload == "DISARM")
+                {
+                    act.id = "action_disarm";
+                    act.name = "Disarm";
+                    act.baseApCost = 2;
+                    SpellEffectNode node;
+                    node.effectType = "DAMAGE";
+                    node.element = "Physical";
+                    node.baseMagnitude = 12.0f;
+                    act.effectNodes.push_back(node);
+                }
+                else if (cmd.stringPayload == "SPELL_DART")
+                {
+                    if (player->getStat("mana") < 10.0f) { m_engine.appendLog("[Combat] Not enough mana for Arcane Dart!"); return; }
+                    player->stats.modifyBaseStat("mana", -10.0f);
+                    act.id = "spell_arcane_dart";
+                    act.name = "Arcane Dart";
+                    act.baseApCost = 1;
+                    SpellEffectNode node;
+                    node.effectType = "DAMAGE";
+                    node.element = "Arcane";
+                    node.baseMagnitude = 25.0f;
+                    act.effectNodes.push_back(node);
+                }
+                else if (cmd.stringPayload == "SPELL_FIREBALL")
+                {
+                    if (player->getStat("mana") < 25.0f) { m_engine.appendLog("[Combat] Not enough mana for Fireball!"); return; }
+                    player->stats.modifyBaseStat("mana", -25.0f);
+                    act.id = "spell_fireball";
+                    act.name = "Fireball";
+                    act.baseApCost = 2;
+                    SpellEffectNode node;
+                    node.effectType = "DAMAGE";
+                    node.element = "Fire";
+                    node.baseMagnitude = 55.0f;
+                    act.effectNodes.push_back(node);
+                }
+                else if (cmd.stringPayload == "SPELL_SHIELD")
+                {
+                    if (player->getStat("mana") < 15.0f) { m_engine.appendLog("[Combat] Not enough mana for Arcane Shield!"); return; }
+                    player->stats.modifyBaseStat("mana", -15.0f);
+                    act.id = "spell_arcane_shield";
+                    act.name = "Arcane Shield";
+                    act.baseApCost = 1;
+                    SpellEffectNode node;
+                    node.effectType = "SHIELD";
+                    node.element = "Arcane";
+                    node.baseMagnitude = 35.0f;
+                    act.effectNodes.push_back(node);
+                }
+                else if (cmd.stringPayload == "SPELL_CLEANSE")
+                {
+                    if (player->getStat("mana") < 20.0f) { m_engine.appendLog("[Combat] Not enough mana for Cleanse!"); return; }
+                    player->stats.modifyBaseStat("mana", -20.0f);
+                    player->stats.modifyBaseStat("health", 40.0f);
+                    m_engine.appendLog(std::format("[Spell] {} cast Cleanse and restored 40 HP!", player->name));
+                    m_engine.resolveTurn(gameContext);
+                    return;
+                }
+                else if (cmd.stringPayload == "SPELL_BLINK")
+                {
+                    if (player->getStat("mana") < 30.0f) { m_engine.appendLog("[Combat] Not enough mana for Blink!"); return; }
+                    player->stats.modifyBaseStat("mana", -30.0f);
+                    m_engine.appendLog(std::format("[Spell] {} cast Blink, vanishing into arcane mist!", player->name));
+                    m_engine.resolveTurn(gameContext);
+                    return;
+                }
+                else if (cmd.stringPayload == "ITEM_POTION")
+                {
+                    player->stats.modifyBaseStat("health", 50.0f);
+                    m_engine.appendLog(std::format("[Item] {} consumed a Health Potion and recovered 50 HP!", player->name));
+                    m_engine.resolveTurn(gameContext);
+                    return;
+                }
+                else if (cmd.stringPayload == "ITEM_MANA")
+                {
+                    player->stats.modifyBaseStat("mana", 50.0f);
+                    m_engine.appendLog(std::format("[Item] {} consumed a Mana Crystal and recovered 50 MP!", player->name));
+                    m_engine.resolveTurn(gameContext);
+                    return;
+                }
 
-                m_engine.queuePlayerAction(0, strike, target);
+                m_engine.queuePlayerAction(0, act, target);
                 m_engine.resolveTurn(gameContext);
             }
             return;
