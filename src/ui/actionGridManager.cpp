@@ -99,56 +99,42 @@ void ActionGridManager::refresh(game* gameContext)
     // 2. Character Creation
     if (auto cc = dynamic_cast<characterCreationState*>(currentState))
     {
-        if (cc->step == 0)
+        // Category Step Tabs (Row 1)
+        addBtn(gameContext, "1. Identity", [cc, gameContext]() { cc->step = 0; gameContext->refreshActionGrid(); }, true, cc->step == 0);
+        addBtn(gameContext, "2. Body", [cc, gameContext]() { cc->step = 1; gameContext->refreshActionGrid(); }, true, cc->step == 1);
+        addBtn(gameContext, "3. Face & Hair", [cc, gameContext]() { cc->step = 2; gameContext->refreshActionGrid(); }, true, cc->step == 2);
+        addBtn(gameContext, "4. Personality", [cc, gameContext]() { cc->step = 3; gameContext->refreshActionGrid(); }, true, cc->step == 3);
+        addBtn(gameContext, "5. Name & Finish", [cc, gameContext]() { cc->step = 4; gameContext->refreshActionGrid(); }, true, cc->step == 4);
+
+        // Row 2: Step Navigation & Start
+        if (cc->step > 0)
         {
-            addBtn(gameContext, "Continue", [cc, gameContext]() { cc->step = 1; gameContext->refreshActionGrid(); });
-            addBackBtn(gameContext, "Back", [gameContext]() { gameContext->changeState(std::make_unique<mainMenuState>()); });
-            return;
+            addBtn(gameContext, "Previous Step", [cc, gameContext]() { cc->step--; gameContext->refreshActionGrid(); });
         }
-        if (cc->step == 1)
+        else
         {
-            addBtn(gameContext, "Continue", [cc, gameContext]() { cc->step = 2; gameContext->refreshActionGrid(); });
-            addBackBtn(gameContext, "Back", [cc, gameContext]() { cc->step = 0; gameContext->refreshActionGrid(); });
-            return;
+            padButtonsTo(gameContext, 6);
         }
-        if (cc->step == 2)
+
+        if (cc->step < 4)
         {
-            addBtn(gameContext, "Continue", [cc, gameContext]() { cc->step = 3; cc->subView = 0; gameContext->refreshActionGrid(); });
-            addBtn(gameContext, "Random", [cc, gameContext]() { cc->randomizeFirstNames(); gameContext->refreshActionGrid(); });
-            addBtn(gameContext, "Random Surname", [cc, gameContext]() { cc->randomizeSurname(); gameContext->refreshActionGrid(); });
-            addBackBtn(gameContext, "Back", [cc, gameContext]() { cc->step = 1; gameContext->refreshActionGrid(); });
-            return;
+            addBtn(gameContext, "Next Step", [cc, gameContext]() { cc->step++; gameContext->refreshActionGrid(); });
         }
-        if (cc->step == 3)
+        else
         {
-            if (cc->subView == 0)
-            {
-                addBtn(gameContext, "Continue", [cc, gameContext]() { cc->step = 4; gameContext->refreshActionGrid(); });
-                addBtn(gameContext, "Core", [cc, gameContext]() { cc->subView = 1; gameContext->refreshActionGrid(); });
-                addBtn(gameContext, "Face", [cc, gameContext]() { cc->subView = 2; gameContext->refreshActionGrid(); });
-                addBtn(gameContext, "Hair", [cc, gameContext]() { cc->subView = 3; gameContext->refreshActionGrid(); });
-                addBtn(gameContext, "Breasts", [cc, gameContext]() { cc->subView = 4; gameContext->refreshActionGrid(); });
-                addBtn(gameContext, "Ass & Hips", [cc, gameContext]() { cc->subView = 5; gameContext->refreshActionGrid(); });
-                addBtn(gameContext, "Genitals", [cc, gameContext]() { cc->subView = 6; gameContext->refreshActionGrid(); });
-                addBtn(gameContext, "Makeup", [cc, gameContext]() { cc->subView = 7; gameContext->refreshActionGrid(); });
-                addBtn(gameContext, "Piercings", [cc, gameContext]() { cc->subView = 8; gameContext->refreshActionGrid(); });
-                addBtn(gameContext, "Tattoos", [cc, gameContext]() { cc->subView = 9; gameContext->refreshActionGrid(); });
-                addBtn(gameContext, "Extra hair", [cc, gameContext]() { cc->subView = 10; gameContext->refreshActionGrid(); });
-                addBackBtn(gameContext, "Back", [cc, gameContext]() { cc->step = 2; gameContext->refreshActionGrid(); });
-            }
-            else
-            {
-                addBackBtn(gameContext, "Back", [cc, gameContext]() { cc->subView = 0; gameContext->refreshActionGrid(); });
-            }
-            return;
+            addBtn(gameContext, "Start Game", [cc, gameContext]() { cc->finalizeCharacter(gameContext); }, true, true);
         }
-        if (cc->step == 4)
-        {
-            addBtn(gameContext, "To the stage", [cc, gameContext]() { cc->finalizeCharacter(gameContext); });
-            addBtn(gameContext, "Unequip all", []() {});
-            addBackBtn(gameContext, "Back", [cc, gameContext]() { cc->step = 3; cc->subView = 0; gameContext->refreshActionGrid(); });
-            return;
-        }
+
+        padButtonsTo(gameContext, 9);
+        addBtn(gameContext, "Start Game", [cc, gameContext]() { cc->finalizeCharacter(gameContext); });
+
+        // Row 3: Utilities & Return
+        padButtonsTo(gameContext, 10);
+        addBtn(gameContext, "Randomize All", [cc, gameContext]() { cc->randomizeAll(); gameContext->refreshActionGrid(); });
+
+        padButtonsTo(gameContext, 14);
+        addBackBtn(gameContext, "Back to Menu", [gameContext]() { gameContext->changeState(std::make_unique<mainMenuState>()); });
+        return;
     }
 
     // 3. Load / Save Game State

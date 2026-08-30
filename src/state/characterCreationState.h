@@ -103,5 +103,6 @@ public:
 
     void randomizeFirstNames();
     void randomizeSurname();
+    void randomizeAll();
     void finalizeCharacter(game* gameContext);
 };

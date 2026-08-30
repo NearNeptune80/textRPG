@@ -110,27 +110,14 @@ int main(int argc, char* argv[])
         {
             engine.changeState(std::make_unique<loadGameState>(SaveMenuMode::SAVE_AND_LOAD, std::make_unique<mainMenuState>()));
         }
-        else if (screenshotState == "character_creation" || screenshotState == "cc")
-        {
-            engine.changeState(std::make_unique<characterCreationState>(0));
-        }
-        else if (screenshotState == "character_creation_step1")
+        else if (screenshotState == "character_creation" || screenshotState == "cc" || screenshotState.starts_with("cc_step") || screenshotState.starts_with("character_creation_step"))
         {
             auto cc = std::make_unique<characterCreationState>(0);
-            cc->step = 1;
-            engine.changeState(std::move(cc));
-        }
-        else if (screenshotState == "character_creation_step2")
-        {
-            auto cc = std::make_unique<characterCreationState>(0);
-            cc->step = 2;
-            engine.changeState(std::move(cc));
-        }
-        else if (screenshotState == "character_creation_museum")
-        {
-            auto cc = std::make_unique<characterCreationState>(0);
-            cc->step = 3;
-            cc->subView = 0;
+            if (screenshotState == "cc_step1" || screenshotState == "character_creation_step1") cc->step = 1;
+            else if (screenshotState == "cc_step2" || screenshotState == "character_creation_step2") cc->step = 2;
+            else if (screenshotState == "cc_step3" || screenshotState == "character_creation_step3") cc->step = 3;
+            else if (screenshotState == "cc_step4" || screenshotState == "character_creation_step4") cc->step = 4;
+            else cc->step = 0;
             engine.changeState(std::move(cc));
         }
 

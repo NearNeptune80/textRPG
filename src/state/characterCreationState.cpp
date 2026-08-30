@@ -136,6 +136,68 @@ void characterCreationState::randomizeSurname()
     surname = SURNAMES[distS(gen)];
 }
 
+void characterCreationState::randomizeAll()
+{
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+
+    randomizeFirstNames();
+    randomizeSurname();
+
+    static const char* genders[] = { "Male", "Female" };
+    static const char* femLevels[] = { "Very Masculine", "Masculine", "Androgynous", "Feminine", "Very Feminine" };
+    static const char* orients[] = { "Androphilic", "Ambiphilic", "Gynephilic" };
+    static const char* skins[] = { "Fair", "Pale", "Tan", "Olive", "Dark", "Ebony" };
+    static const char* bodySizes[] = { "Skinny", "Slender", "Average", "Muscular", "Chubby" };
+    static const char* muscles[] = { "Soft", "Lightly muscled", "Toned", "Muscular", "Ripped" };
+    static const char* eyes[] = { "Blue", "Green", "Brown", "Amber", "Hazel", "Violet" };
+    static const char* hairStyles[] = { "Short", "Bob", "Shoulder-length", "Long", "Braided", "Ponytail", "Messy" };
+    static const char* hairColors[] = { "Black", "Dark Brown", "Auburn", "Blonde", "Silver", "Red" };
+    static const char* traitsList[] = { "Confident", "Lewd", "Shy", "Bold", "Inquisitive", "Dominant", "Submissive" };
+
+    std::uniform_int_distribution<int> dG(0, 1);
+    gender = genders[dG(gen)];
+
+    std::uniform_int_distribution<int> dF(0, 4);
+    femininity = femLevels[dF(gen)];
+
+    std::uniform_int_distribution<int> dO(0, 2);
+    orientation = orients[dO(gen)];
+
+    std::uniform_int_distribution<int> dH(155, 195);
+    heightCm = dH(gen);
+
+    std::uniform_int_distribution<int> dSkin(0, 5);
+    skinPrimaryColor = skins[dSkin(gen)];
+
+    std::uniform_int_distribution<int> dBody(0, 4);
+    bodySize = bodySizes[dBody(gen)];
+
+    std::uniform_int_distribution<int> dM(0, 4);
+    muscleDefinition = muscles[dM(gen)];
+
+    std::uniform_int_distribution<int> dE(0, 5);
+    eyeColor = eyes[dE(gen)];
+
+    std::uniform_int_distribution<int> dHS(0, 6);
+    hairStyle = hairStyles[dHS(gen)];
+
+    std::uniform_int_distribution<int> dHC(0, 5);
+    hairColor = hairColors[dHC(gen)];
+
+    std::uniform_int_distribution<int> dHL(5, 50);
+    hairLengthCm = dHL(gen);
+
+    personalityTraits.clear();
+    std::uniform_int_distribution<int> dTraitCount(1, 3);
+    int tCount = dTraitCount(gen);
+    for (int t = 0; t < tCount; ++t)
+    {
+        std::uniform_int_distribution<int> dTr(0, 6);
+        personalityTraits.insert(traitsList[dTr(gen)]);
+    }
+}
+
 void characterCreationState::finalizeCharacter(game* gameContext)
 {
     if (!gameContext) return;
