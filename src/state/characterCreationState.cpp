@@ -150,8 +150,8 @@ void characterCreationState::finalizeCharacter(game* gameContext)
     if (player)
     {
         std::string chosenName = masculineName;
-        if (femininity == "Androgynous") chosenName = androgynousName;
-        else if (femininity == "Feminine" || femininity == "Very Feminine") chosenName = feminineName;
+        if (gender == "Female" || femininity == "Feminine" || femininity == "Very Feminine") chosenName = feminineName;
+        else if (femininity == "Androgynous") chosenName = androgynousName;
 
         if (chosenName == "Unknown" || chosenName.empty())
         {
@@ -321,12 +321,18 @@ void characterCreationState::finalizeCharacter(game* gameContext)
         player->stats.setBaseStat("lust", 0.0f);
         player->stats.setBaseStat("arcaneEssence", 20.0f);
 
-        // Starting inventory items
-        auto phone = itemDatabase::getItem("item_smartphone");
-        if (phone) player->inventory.addItem(phone);
+        // Starting inventory items & equipment
+        auto shirt = itemDatabase::getItem("item_linen_shirt");
+        if (shirt) { player->inventory.addItem(shirt); player->inventory.equipItem(player->inventory.backpack.size() - 1, equipSlot::TORSO_UNDER); }
 
-        auto stone = itemDatabase::getItem("item_opaque_demonstone");
-        if (stone) player->inventory.addItem(stone);
+        auto trousers = itemDatabase::getItem("item_leather_trousers");
+        if (trousers) { player->inventory.addItem(trousers); player->inventory.equipItem(player->inventory.backpack.size() - 1, equipSlot::LEGS_OUTER); }
+
+        auto boots = itemDatabase::getItem("item_leather_boots");
+        if (boots) { player->inventory.addItem(boots); player->inventory.equipItem(player->inventory.backpack.size() - 1, equipSlot::FEET); }
+
+        auto pendant = itemDatabase::getItem("item_golden_pendant");
+        if (pendant) player->inventory.addItem(pendant);
     }
 
     if (gameContext)

@@ -164,9 +164,22 @@ void ActionGridManager::refresh(game* gameContext)
     // 4. Options State
     if (auto opt = dynamic_cast<optionsState*>(currentState))
     {
+        if (opt->isKeybindsOpen)
+        {
+            padButtonsTo(gameContext, 14);
+            addBackBtn(gameContext, "Close (ESC)", [gameContext, opt]() {
+                opt->isKeybindsOpen = false;
+                gameContext->refreshActionGrid();
+            });
+            return;
+        }
+
         if (opt->screenMode == OptionsScreenMode::GENERAL_OPTIONS)
         {
-            addBtn(gameContext, "Keybinds", []() {});
+            addBtn(gameContext, "Keybinds", [gameContext, opt]() {
+                opt->isKeybindsOpen = true;
+                gameContext->refreshActionGrid();
+            });
 
             std::string_view themeLabel = "Dark Fantasy";
             const auto& curTheme = gameContext->settings.display.activeTheme;
@@ -201,6 +214,11 @@ void ActionGridManager::refresh(game* gameContext)
                 gameContext->refreshActionGrid();
             });
 
+            padButtonsTo(gameContext, 10);
+            addBtn(gameContext, "Defaults", [gameContext, opt]() {
+                opt->resetAllDefaults(gameContext);
+            });
+
             addBackBtn(gameContext, "Back", [gameContext, opt]() { opt->goBack(gameContext); });
             return;
         }
@@ -210,7 +228,7 @@ void ActionGridManager::refresh(game* gameContext)
             addBtn(gameContext, "Gameplay", [opt, gameContext]() { opt->contentCategory = ContentOptionsCategory::GAMEPLAY; gameContext->refreshActionGrid(); }, true, opt->contentCategory == ContentOptionsCategory::GAMEPLAY);
             addBtn(gameContext, "Sex & Fetishes", [opt, gameContext]() { opt->contentCategory = ContentOptionsCategory::SEX_AND_FETISHES; gameContext->refreshActionGrid(); }, true, opt->contentCategory == ContentOptionsCategory::SEX_AND_FETISHES);
             addBtn(gameContext, "Bodies", [opt, gameContext]() { opt->contentCategory = ContentOptionsCategory::BODIES; gameContext->refreshActionGrid(); }, true, opt->contentCategory == ContentOptionsCategory::BODIES);
-            addBtn(gameContext, "Reset", [gameContext]() { gameContext->refreshActionGrid(); });
+            addBtn(gameContext, "Reset Category", [opt, gameContext]() { opt->resetCategoryDefaults(gameContext); });
 
             addBtn(gameContext, "Gender preferences", [opt, gameContext]() { opt->contentCategory = ContentOptionsCategory::GENDER_PREFS; gameContext->refreshActionGrid(); }, true, opt->contentCategory == ContentOptionsCategory::GENDER_PREFS);
             addBtn(gameContext, "Orientation preferences", [opt, gameContext]() { opt->contentCategory = ContentOptionsCategory::ORIENTATION_PREFS; gameContext->refreshActionGrid(); }, true, opt->contentCategory == ContentOptionsCategory::ORIENTATION_PREFS);
@@ -218,7 +236,7 @@ void ActionGridManager::refresh(game* gameContext)
             addBtn(gameContext, "Furry preferences", [opt, gameContext]() { opt->contentCategory = ContentOptionsCategory::FURRY_PREFS; gameContext->refreshActionGrid(); }, true, opt->contentCategory == ContentOptionsCategory::FURRY_PREFS);
             addBtn(gameContext, "Fetish preferences", [opt, gameContext]() { opt->contentCategory = ContentOptionsCategory::FETISH_PREFS; gameContext->refreshActionGrid(); }, true, opt->contentCategory == ContentOptionsCategory::FETISH_PREFS);
 
-            addBtn(gameContext, "Defaults", [gameContext]() { gameContext->refreshActionGrid(); });
+            addBtn(gameContext, "Reset All", [opt, gameContext]() { opt->resetAllDefaults(gameContext); });
             addBackBtn(gameContext, "Back", [gameContext, opt]() { opt->goBack(gameContext); });
             return;
         }

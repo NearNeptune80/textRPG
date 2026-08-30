@@ -1609,6 +1609,41 @@ float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, c
     auto mousePos = gameContext->input.getMousePosition();
     bool clicked = gameContext->input.isLeftMouseJustClicked();
 
+    if (opt->isKeybindsOpen)
+    {
+        float cardW = std::min(availableW, 600.0f * uiScale);
+        float cardH = 34.0f * uiScale;
+        UIWidget::drawCenteredHeaderCard(renderer, centerX, curY, cardW, cardH, "Controls & Keybindings", Theme::colors.textPrimary, uiScale);
+        curY += cardH + (20.0f * uiScale);
+
+        float panelW = std::min(availableW, 720.0f * uiScale);
+        float panelX = centerX - (panelW / 2.0f);
+        float panelH = 320.0f * uiScale;
+        SDL_FRect kbRect = { panelX, curY, panelW, panelH };
+        UIWidget::drawPanel(renderer, kbRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+
+        float rowY = curY + (16.0f * uiScale);
+        auto drawKbRow = [&](std::string_view section, std::string_view keys, std::string_view desc) {
+            UIWidget::drawText(renderer, std::string(section), panelX + (16.0f * uiScale), rowY, Theme::colors.textGold, uiScale * 0.88f);
+            UIWidget::drawText(renderer, std::string(keys), panelX + (180.0f * uiScale), rowY, Theme::colors.textPrimary, uiScale * 0.88f);
+            UIWidget::drawText(renderer, std::string(desc), panelX + (360.0f * uiScale), rowY, Theme::colors.textSecondary, uiScale * 0.82f);
+            rowY += (24.0f * uiScale);
+        };
+
+        drawKbRow("Grid Row 1", "1, 2, 3, 4, 5", "Execute slots 0 through 4");
+        drawKbRow("Grid Row 2", "SHIFT + 1 .. 5", "Execute slots 5 through 9");
+        drawKbRow("Grid Row 3", "CTRL + 1 .. 5", "Execute slots 10 through 14");
+        rowY += (8.0f * uiScale);
+        drawKbRow("Exploration", "W, A, S, D / Arrows", "Move player on grid map");
+        drawKbRow("Pages", "Q / E", "Previous / Next action grid page");
+        drawKbRow("Quick Menus", "I (Inventory)", "Toggle inventory / equipment");
+        drawKbRow("Save / Load", "F5 (QuickSave) / F9 (Load)", "Quick save / Quick load");
+        drawKbRow("Back / Close", "ESC / Backspace", "Return to previous screen");
+
+        curY += panelH + (20.0f * uiScale);
+        return (curY - startY);
+    }
+
     if (opt->screenMode == OptionsScreenMode::GENERAL_OPTIONS)
     {
         // 1. Centered Header Card: Options
@@ -1620,23 +1655,30 @@ float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, c
         float textW = std::min(availableW, 700.0f * uiScale);
         float textX = centerX - (textW / 2.0f);
 
-        // Section: Light/Dark theme
-        UIWidget::drawText(renderer, "Light/Dark theme:", textX, curY, Theme::colors.textPrimary, uiScale * 0.95f);
+        // Section: Active Theme
+        std::string curThemeName = gameContext->settings.display.activeTheme;
+        if (curThemeName.empty() || curThemeName == "default") curThemeName = "Lilith Midnight";
+        else if (curThemeName == "theme_cyber_neon") curThemeName = "Cyber Neon";
+        else if (curThemeName == "theme_dark_fantasy") curThemeName = "Dark Fantasy";
+        else if (curThemeName == "theme_parchment") curThemeName = "Arcane Parchment";
+
+        UIWidget::drawText(renderer, "Visual Theme:", textX, curY, Theme::colors.textPrimary, uiScale * 0.95f);
         curY += (18.0f * uiScale);
-        float descH1 = UIWidget::drawTextWrapped(renderer, "This switches the main display between a light and dark theme. (Work in progress!)", textX, curY, textW, Theme::colors.textSecondary, uiScale * 0.86f);
+        std::string themeDesc = std::format("Currently Active Theme: {}. Cycles between Dark Fantasy, Cyber Neon, Arcane Parchment, and Lilith Midnight palettes.", curThemeName);
+        float descH1 = UIWidget::drawTextWrapped(renderer, themeDesc, textX, curY, textW, Theme::colors.textSecondary, uiScale * 0.86f);
         curY += descH1 + (18.0f * uiScale);
 
         // Section: Font-size
         UIWidget::drawText(renderer, "Font-size:", textX, curY, Theme::colors.textPrimary, uiScale * 0.95f);
         curY += (18.0f * uiScale);
-        std::string fontDesc = std::format("This cycles the game's base font size. This currently only affects the size of the text in the main dialogue, but in the future I'll expand it to include every display element.\nMinimum font size is 12. Default font size is 18. Maximum font size is 36.\nCurrent font size: {}.", opt->fontSize);
+        std::string fontDesc = std::format("This cycles the game's base font size. Affects main dialogue, descriptions, and UI text scaling.\nMinimum font size is 12. Default font size is 18. Maximum font size is 36.\nCurrent font size: {}.", opt->fontSize);
         float descH2 = UIWidget::drawTextWrapped(renderer, fontDesc, textX, curY, textW, Theme::colors.textSecondary, uiScale * 0.86f);
         curY += descH2 + (18.0f * uiScale);
 
         // Section: Fade-in
         UIWidget::drawText(renderer, "Fade-in:", textX, curY, Theme::colors.textPrimary, uiScale * 0.95f);
         curY += (18.0f * uiScale);
-        float descH3 = UIWidget::drawTextWrapped(renderer, "This option is responsible for fading in the main part of the text each time a new scene is displayed. Although it makes scene transitions a little prettier, it is off by default, as it can cause some annoying lag in inventory screens.", textX, curY, textW, Theme::colors.textSecondary, uiScale * 0.86f);
+        float descH3 = UIWidget::drawTextWrapped(renderer, "This option is responsible for fading in the main part of the text each time a new scene is displayed.", textX, curY, textW, Theme::colors.textSecondary, uiScale * 0.86f);
         curY += descH3 + (18.0f * uiScale);
 
         // Section: Difficulty
@@ -1648,11 +1690,11 @@ float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, c
         // Colored difficulty tiers
         struct DiffTier { std::string name; std::string desc; SDL_Color col; };
         static const DiffTier tiers[5] = {
-            { "Human", "The way the game is meant to be played. No level scaling and no damage modifications.", Theme::colors.textPrimary },
+            { "Human", "The standard gameplay experience. Balanced level progression and baseline enemy stats.", Theme::colors.textPrimary },
             { "Morph", "Enemies level up alongside your character, but do normal damage.", SDL_Color{ 180, 140, 200, 255 } },
             { "Demon", "Enemies level up alongside your character and do 200% damage.", SDL_Color{ 190, 120, 220, 255 } },
             { "Lilin", "Enemies level up alongside your character, do 200% damage, and take only 50% damage from all sources.", SDL_Color{ 210, 110, 240, 255 } },
-            { "Lilith", "Enemies are always 2x your character's level, do 400% damage, and take only 25% damage from all sources. Be prepared to lose. A lot.", SDL_Color{ 240, 90, 110, 255 } }
+            { "Lilith", "Enemies are always 2x your character's level, do 400% damage, and take only 25% damage from all sources. Prepare for intense tactical challenge.", SDL_Color{ 240, 90, 110, 255 } }
         };
 
         for (int i = 0; i < 5; ++i)
@@ -1696,7 +1738,7 @@ float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, c
             float dropH = 26.0f * uiScale;
             SDL_FRect dropRect = { padX, curY, dropW, dropH };
             UIWidget::drawPanel(renderer, dropRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
-            std::string infoStr = "► Click for more info.";
+            std::string infoStr = "> Click for more info.";
             float strW = UIWidget::getTextWidth(infoStr, uiScale * 0.86f);
             UIWidget::drawText(renderer, infoStr, padX + ((dropW - strW) / 2.0f), curY + (5.0f * uiScale), SDL_Color{ 180, 130, 255, 255 }, uiScale * 0.86f);
             curY += dropH + (12.0f * uiScale);
@@ -1734,7 +1776,7 @@ float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, c
             UIWidget::drawText(renderer, title + ":", padX + (10.0f * uiScale), curY + (7.0f * uiScale), titleCol, uiScale * 0.88f);
             float titleW = UIWidget::getTextWidth(title + ":", uiScale * 0.88f);
 
-            float descH = UIWidget::drawTextWrapped(renderer, description, padX + (10.0f * uiScale) + titleW, curY + (7.0f * uiScale), leftW - titleW - (10.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.82f);
+            float descH = UIWidget::drawTextWrapped(renderer, description, padX + (10.0f * uiScale) + titleW + (8.0f * uiScale), curY + (7.0f * uiScale), leftW - titleW - (18.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.82f);
 
             float pillTotalW = 150.0f * uiScale;
             float pillH = 24.0f * uiScale;
@@ -2066,8 +2108,8 @@ float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, c
                 SDL_FRect rowRect = { padX, curY, cardWidth, rowMinH };
                 UIWidget::drawPanel(renderer, rowRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
-                UIWidget::drawText(renderer, "ⓘ", padX + (10.0f * uiScale), curY + (8.0f * uiScale), Theme::colors.textMuted, uiScale * 0.85f);
-                UIWidget::drawText(renderer, fetishes[i], padX + (28.0f * uiScale), curY + (8.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.88f);
+                UIWidget::drawText(renderer, "[i]", padX + (10.0f * uiScale), curY + (8.0f * uiScale), Theme::colors.textMuted, uiScale * 0.85f);
+                UIWidget::drawText(renderer, fetishes[i], padX + (36.0f * uiScale), curY + (8.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.88f);
 
                 float pillTotalW = 340.0f * uiScale;
                 float pillH = 22.0f * uiScale;
@@ -2089,8 +2131,8 @@ float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, c
                     SDL_SetRenderDrawColor(renderer, borderCol.r, borderCol.g, borderCol.b, borderCol.a);
                     SDL_RenderRect(renderer, &pRect);
 
-                    float labelW = fetPills[p].size() * (5.5f * uiScale);
-                    UIWidget::drawText(renderer, fetPills[p], pRect.x + ((pRect.w - labelW) / 2.0f), pRect.y + (3.0f * uiScale), pTextCol, uiScale * 0.72f);
+                    float labelW = UIWidget::getTextWidth(std::string(fetPills[p]), uiScale * 0.72f);
+                    UIWidget::drawText(renderer, std::string(fetPills[p]), pRect.x + ((pRect.w - labelW) / 2.0f), pRect.y + (3.0f * uiScale), pTextCol, uiScale * 0.72f);
                 }
 
                 curY += rowMinH + (6.0f * uiScale);

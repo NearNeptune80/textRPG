@@ -40,6 +40,7 @@ public:
     int difficultyLevel = 0; // 0: Human, 1: Morph, 2: Demon, 3: Lilin, 4: Lilith
     std::string genderPronounMode = "Normal";
     std::string unitPreference = "Metric";
+    bool isKeybindsOpen = false;
 
     void initialise(game* gameContext) override;
     void handleInput(game* gameContext, const SDL_Event& event) override;
@@ -50,6 +51,8 @@ public:
     void onExit(game* gameContext) override;
 
     void goBack(game* gameContext);
+    void resetCategoryDefaults(game* gameContext);
+    void resetAllDefaults(game* gameContext);
 
 private:
     std::unique_ptr<iGameState> m_returnState;

@@ -77,3 +77,50 @@ void optionsState::handleCommand(game* gameContext, const UICommand& cmd)
         gameContext->refreshActionGrid();
     }
 }
+
+void optionsState::resetCategoryDefaults(game* gameContext)
+{
+    if (!gameContext) return;
+    if (contentCategory == ContentOptionsCategory::GENDER_PREFS)
+    {
+        gameContext->settings.demographics.percentMale = 30.0f;
+        gameContext->settings.demographics.percentFemale = 40.0f;
+        gameContext->settings.demographics.percentHermaphrodite = 15.0f;
+        gameContext->settings.demographics.percentGynomorph = 7.0f;
+        gameContext->settings.demographics.percentAndromorph = 5.0f;
+        gameContext->settings.demographics.percentNull = 3.0f;
+    }
+    else if (contentCategory == ContentOptionsCategory::ORIENTATION_PREFS)
+    {
+        gameContext->settings.demographics.percentHetero = 40.0f;
+        gameContext->settings.demographics.percentBi = 30.0f;
+        gameContext->settings.demographics.percentHomo = 20.0f;
+        gameContext->settings.demographics.percentAsexual = 10.0f;
+    }
+    else if (contentCategory == ContentOptionsCategory::GAMEPLAY || contentCategory == ContentOptionsCategory::MISC)
+    {
+        gameContext->settings.gameplay.autoSaveOnMapChange = true;
+        gameContext->settings.gameplay.autoSaveOnSceneExit = true;
+        gameContext->settings.gameplay.maxAutoSaves = 3;
+    }
+    else if (contentCategory == ContentOptionsCategory::SEX_AND_FETISHES || contentCategory == ContentOptionsCategory::BODIES)
+    {
+        gameContext->settings.content.pregnancyEnabled = true;
+        gameContext->settings.content.lactationEnabled = true;
+        gameContext->settings.content.fluidMultiplier = 1.0f;
+        gameContext->settings.content.transformationSpeedMultiplier = 1.0f;
+    }
+    gameContext->refreshActionGrid();
+}
+
+void optionsState::resetAllDefaults(game* gameContext)
+{
+    if (!gameContext) return;
+    gameContext->settings = GameSettings{};
+    difficultyLevel = 0;
+    fontSize = 18;
+    fadeInEnabled = false;
+    genderPronounMode = "Normal";
+    unitPreference = "Metric";
+    gameContext->refreshActionGrid();
+}

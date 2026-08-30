@@ -153,14 +153,27 @@ void printStateDetails(game& engine)
     }
 }
 
+#include "core/engineTests.h"
+
 int main(int argc, char* argv[])
 {
+    // Check for automated test execution flag
+    for (int i = 1; i < argc; ++i)
+    {
+        std::string arg = argv[i];
+        if (arg == "--test" || arg == "--test-all" || arg == "-t")
+        {
+            bool success = EngineTests::runAllTests();
+            return success ? 0 : 1;
+        }
+    }
+
     std::cout << "Booting textRPG Headless CLI Test Harness...\n";
 
     game engine;
     engine.init();
 
-    std::cout << "Engine initialized successfully. Type 'help' for command list.\n";
+    std::cout << "Engine initialized successfully. Type 'help' for command list or 'test' to run regression suite.\n";
 
     std::string line;
     while (engine.isRunning)
@@ -210,8 +223,13 @@ int main(int argc, char* argv[])
                       << "  load <name>       - Load named save\n"
                       << "  win / defeat      - Simulate combat outcome if in combat\n"
                       << "  loot / strip / sex / subjugate / release - Resolution hub sub-actions\n"
+                      << "  test              - Run autonomous regression test suite\n"
                       << "  leave             - Leave resolution hub\n"
                       << "  quit              - Exit test harness\n";
+        }
+        else if (cmd == "test")
+        {
+            EngineTests::runAllTests();
         }
         else if (cmd == "w")
         {
