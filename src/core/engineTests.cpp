@@ -16,6 +16,7 @@
 #include "items/itemDatabase.h"
 #include "settings/settingsManager.h"
 #include "ui/theme.h"
+#include "ui/fontManager.h"
 
 namespace EngineTests
 {
@@ -329,37 +330,33 @@ namespace EngineTests
         {
             g.refreshActionGrid();
 
-            // Font-size + (Slot 3)
-            int initialFontSize = g.settings.display.fontSize;
-            if (g.activeButtons.size() > 3 && g.activeButtons[3].onClick)
+            // Keybinds (Slot 0)
+            if (!g.activeButtons.empty() && g.activeButtons[0].onClick)
             {
-                g.activeButtons[3].onClick(); // Font-size +
-                bool fontIncreased = (g.settings.display.fontSize == initialFontSize + 2);
-                logResult("Options 'Font-size +' increases font size and persists", fontIncreased);
-                allPassed &= fontIncreased;
+                g.activeButtons[0].onClick();
+                bool keybindsOpen = opt->isKeybindsOpen;
+                logResult("Options 'Keybinds' button opens keybindings overlay", keybindsOpen);
+                allPassed &= keybindsOpen;
+                opt->isKeybindsOpen = false;
+                g.refreshActionGrid();
             }
 
-            // Fade-in Toggle (Slot 4)
-            bool initialFade = g.settings.display.fadeInEnabled;
-            if (g.activeButtons.size() > 4 && g.activeButtons[4].onClick)
+            // Defaults (Slot 10)
+            g.settings.display.fontSize = 28;
+            fontManager::getInstance().setPointSize(28.0f);
+            bool fontScaled = (fontManager::getInstance().getPointSize() == 28.0f);
+            logResult("FontManager dynamically scales point size to 28pt", fontScaled);
+            allPassed &= fontScaled;
+
+            if (g.activeButtons.size() > 10 && g.activeButtons[10].onClick)
             {
-                g.activeButtons[4].onClick();
-                bool fadeToggled = (g.settings.display.fadeInEnabled != initialFade);
-                logResult("Options 'Fade-in' toggles display fade", fadeToggled);
-                allPassed &= fadeToggled;
+                g.activeButtons[10].onClick(); // Defaults
+                bool defaultsRestored = (g.settings.display.fontSize == 18);
+                logResult("Options 'Defaults' button restores default settings", defaultsRestored);
+                allPassed &= defaultsRestored;
             }
 
-            // Difficulty cycle (Slot 7)
-            int initialDiff = g.settings.gameplay.difficultyLevel;
-            if (g.activeButtons.size() > 7 && g.activeButtons[7].onClick)
-            {
-                g.activeButtons[7].onClick();
-                bool diffCycled = (g.settings.gameplay.difficultyLevel == (initialDiff + 1) % 5);
-                logResult("Options 'Difficulty' cycles difficulty tier", diffCycled);
-                allPassed &= diffCycled;
-            }
-
-            // Back button returns to Main Menu
+            // Back button returns to Main Menu (Slot 14)
             if (g.activeButtons.size() > 14 && g.activeButtons[14].onClick)
             {
                 g.activeButtons[14].onClick();

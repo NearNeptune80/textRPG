@@ -21,6 +21,7 @@ public:
 
     bool loadFont(const std::string& fontPath, float pointSize = 14.0f);
     void setScale(float scale);
+    void setPointSize(float pointSize);
 
     void drawText(SDL_Renderer* renderer, const std::string& text, float x, float y, SDL_Color color, float scale = 1.0f);
     float drawTextWrapped(SDL_Renderer* renderer, const std::string& text, float x, float y, float maxWidth, SDL_Color color, float scale = 1.0f);
@@ -30,6 +31,7 @@ public:
 
     bool hasLoadedFont() const { return m_font != nullptr; }
     const std::string& getLoadedFontPath() const { return m_currentFontPath; }
+    float getPointSize() const { return m_basePointSize; }
 
 private:
     fontManager();

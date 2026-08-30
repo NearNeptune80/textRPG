@@ -99,6 +99,19 @@ void fontManager::setScale(float scale)
     }
 }
 
+void fontManager::setPointSize(float pointSize)
+{
+    float clampedSize = std::clamp(pointSize, 10.0f, 36.0f);
+    if (std::abs(m_basePointSize - clampedSize) > 0.5f)
+    {
+        m_basePointSize = clampedSize;
+        if (!m_currentFontPath.empty() && m_font)
+        {
+            loadFont(m_currentFontPath, m_basePointSize);
+        }
+    }
+}
+
 float fontManager::getTextWidth(const std::string& text, float scale)
 {
     if (text.empty()) return 0.0f;

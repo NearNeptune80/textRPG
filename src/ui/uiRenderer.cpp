@@ -79,6 +79,7 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
     SDL_GetRenderOutputSize(renderer, &winW, &winH);
 
     float uiScale = std::clamp(static_cast<float>(winH) / 720.0f, 0.75f, 3.0f);
+    fontManager::getInstance().setPointSize(static_cast<float>(gameContext->settings.display.fontSize));
     fontManager::getInstance().setScale(uiScale);
 
     std::string stateKey = "";
@@ -1808,9 +1809,10 @@ float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, c
         UIWidget::drawText(renderer, "Fade-in:", textX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.95f);
         UIWidget::drawText(renderer, "Fades in main narrative text upon entering new scenes.", textX + (10.0f * uiScale), curY + (24.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.84f);
 
-        float pillW = 48.0f * uiScale;
-        SDL_FRect offPill = { textX + textW - (pillW * 2.0f) - (14.0f * uiScale), curY + (12.0f * uiScale), pillW, 22.0f * uiScale };
-        SDL_FRect onPill = { textX + textW - pillW - (8.0f * uiScale), curY + (12.0f * uiScale), pillW, 22.0f * uiScale };
+        float fadeW = 55.0f * uiScale;
+        float fadeStartX = textX + textW - (fadeW * 2.0f) - (12.0f * uiScale);
+        SDL_FRect offPill = { fadeStartX, curY + (11.0f * uiScale), fadeW, 24.0f * uiScale };
+        SDL_FRect onPill = { fadeStartX + fadeW, curY + (11.0f * uiScale), fadeW, 24.0f * uiScale };
 
         bool offHovered = (mousePos.x >= offPill.x && mousePos.x <= offPill.x + offPill.w && mousePos.y >= offPill.y && mousePos.y <= offPill.y + offPill.h);
         bool onHovered = (mousePos.x >= onPill.x && mousePos.x <= onPill.x + onPill.w && mousePos.y >= onPill.y && mousePos.y <= onPill.y + onPill.h);
@@ -1835,7 +1837,79 @@ float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, c
             gameContext->refreshActionGrid();
             gameContext->input.consumeMouseClick();
         }
-        curY += fadeInRect.h + (14.0f * uiScale);
+        curY += fadeInRect.h + (12.0f * uiScale);
+
+        // Section: Pronouns
+        SDL_FRect pronounRect = { textX, curY, textW, 46.0f * uiScale };
+        UIWidget::drawPanel(renderer, pronounRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+        UIWidget::drawText(renderer, "Gender Pronouns:", textX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.95f);
+        UIWidget::drawText(renderer, "Set pronoun style for narrative text (Normal vs Custom gender neutral).", textX + (10.0f * uiScale), curY + (24.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.84f);
+
+        float proW = 68.0f * uiScale;
+        float proStartX = textX + textW - (proW * 2.0f) - (12.0f * uiScale);
+        SDL_FRect normalPill = { proStartX, curY + (11.0f * uiScale), proW, 24.0f * uiScale };
+        SDL_FRect customPill = { proStartX + proW, curY + (11.0f * uiScale), proW, 24.0f * uiScale };
+
+        bool normHovered = (mousePos.x >= normalPill.x && mousePos.x <= normalPill.x + normalPill.w && mousePos.y >= normalPill.y && mousePos.y <= normalPill.y + normalPill.h);
+        bool custHovered = (mousePos.x >= customPill.x && mousePos.x <= customPill.x + customPill.w && mousePos.y >= customPill.y && mousePos.y <= customPill.y + customPill.h);
+
+        bool isNorm = (gameContext->settings.gameplay.genderPronounMode == "Normal");
+        UIWidget::drawColoredButton(renderer, normalPill, "Normal", isNorm ? SDL_Color{ 45, 120, 65, 240 } : Theme::colors.bgButton, isNorm ? Theme::colors.textPrimary : Theme::colors.textMuted, isNorm, uiScale * 0.72f);
+        UIWidget::drawColoredButton(renderer, customPill, "Custom", !isNorm ? SDL_Color{ 45, 120, 65, 240 } : Theme::colors.bgButton, !isNorm ? Theme::colors.textPrimary : Theme::colors.textMuted, !isNorm, uiScale * 0.72f);
+
+        if (normHovered && clicked)
+        {
+            gameContext->settings.gameplay.genderPronounMode = "Normal";
+            opt->genderPronounMode = "Normal";
+            settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+            gameContext->refreshActionGrid();
+            gameContext->input.consumeMouseClick();
+        }
+        else if (custHovered && clicked)
+        {
+            gameContext->settings.gameplay.genderPronounMode = "Custom";
+            opt->genderPronounMode = "Custom";
+            settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+            gameContext->refreshActionGrid();
+            gameContext->input.consumeMouseClick();
+        }
+        curY += pronounRect.h + (12.0f * uiScale);
+
+        // Section: Measurement Units
+        SDL_FRect unitsRect = { textX, curY, textW, 46.0f * uiScale };
+        UIWidget::drawPanel(renderer, unitsRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+        UIWidget::drawText(renderer, "Measurement Units:", textX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.95f);
+        UIWidget::drawText(renderer, "Set units for height, length, and volume measurements.", textX + (10.0f * uiScale), curY + (24.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.84f);
+
+        float unitW = 68.0f * uiScale;
+        float unitStartX = textX + textW - (unitW * 2.0f) - (12.0f * uiScale);
+        SDL_FRect metricPill = { unitStartX, curY + (11.0f * uiScale), unitW, 24.0f * uiScale };
+        SDL_FRect imperialPill = { unitStartX + unitW, curY + (11.0f * uiScale), unitW, 24.0f * uiScale };
+
+        bool metricHovered = (mousePos.x >= metricPill.x && mousePos.x <= metricPill.x + metricPill.w && mousePos.y >= metricPill.y && mousePos.y <= metricPill.y + metricPill.h);
+        bool impHovered = (mousePos.x >= imperialPill.x && mousePos.x <= imperialPill.x + imperialPill.w && mousePos.y >= imperialPill.y && mousePos.y <= imperialPill.y + imperialPill.h);
+
+        bool isMetric = (gameContext->settings.gameplay.unitPreference == "Metric");
+        UIWidget::drawColoredButton(renderer, metricPill, "Metric", isMetric ? SDL_Color{ 45, 120, 65, 240 } : Theme::colors.bgButton, isMetric ? Theme::colors.textPrimary : Theme::colors.textMuted, isMetric, uiScale * 0.72f);
+        UIWidget::drawColoredButton(renderer, imperialPill, "Imperial", !isMetric ? SDL_Color{ 45, 120, 65, 240 } : Theme::colors.bgButton, !isMetric ? Theme::colors.textPrimary : Theme::colors.textMuted, !isMetric, uiScale * 0.72f);
+
+        if (metricHovered && clicked)
+        {
+            gameContext->settings.gameplay.unitPreference = "Metric";
+            opt->unitPreference = "Metric";
+            settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+            gameContext->refreshActionGrid();
+            gameContext->input.consumeMouseClick();
+        }
+        else if (impHovered && clicked)
+        {
+            gameContext->settings.gameplay.unitPreference = "Imperial";
+            opt->unitPreference = "Imperial";
+            settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+            gameContext->refreshActionGrid();
+            gameContext->input.consumeMouseClick();
+        }
+        curY += unitsRect.h + (14.0f * uiScale);
 
         // Section: Difficulty
         static const char* diffNames[] = { "Human", "Morph", "Demon", "Lilin", "Lilith" };
