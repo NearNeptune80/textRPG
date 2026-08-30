@@ -447,6 +447,56 @@
           }
         ]
       }
+    },
+    "CHARACTER_CREATION": {
+      "enabled": true,
+      "rootNode": {
+        "id": "cc_root_column",
+        "type": "CONTAINER",
+        "direction": "COLUMN",
+        "sizes": [78.0, 22.0],
+        "children": [
+          {
+            "id": "cc_center_pane",
+            "type": "LEAF",
+            "name": "Character Creation & Transformation Studio",
+            "widgets": [
+              "widget_character_creation"
+            ]
+          },
+          {
+            "id": "cc_bottom_actions",
+            "type": "LEAF",
+            "name": "Step Navigation & Creation Actions",
+            "widgets": ["widget_action_commands"]
+          }
+        ]
+      }
+    },
+    "PHONE_APP": {
+      "enabled": true,
+      "rootNode": {
+        "id": "phone_root_column",
+        "type": "CONTAINER",
+        "direction": "COLUMN",
+        "sizes": [78.0, 22.0],
+        "children": [
+          {
+            "id": "phone_center_pane",
+            "type": "LEAF",
+            "name": "Mobile Phone & Diagnostic Apps",
+            "widgets": [
+              "widget_phone_menu"
+            ]
+          },
+          {
+            "id": "phone_bottom_actions",
+            "type": "LEAF",
+            "name": "Phone Navigation Actions",
+            "widgets": ["widget_action_commands"]
+          }
+        ]
+      }
     }
   }
 }
