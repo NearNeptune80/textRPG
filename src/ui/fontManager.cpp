@@ -108,7 +108,8 @@ float fontManager::getTextWidth(const std::string& text, float scale)
         int w = 0, h = 0;
         if (TTF_GetStringSize(m_font, text.c_str(), text.length(), &w, &h))
         {
-            return static_cast<float>(w);
+            float scaleFactor = (m_currentScale > 0.0f) ? (scale / m_currentScale) : 1.0f;
+            return static_cast<float>(w) * scaleFactor;
         }
     }
     return text.length() * (8.0f * scale);
@@ -116,9 +117,10 @@ float fontManager::getTextWidth(const std::string& text, float scale)
 
 float fontManager::getLineHeight(float scale)
 {
+    float scaleFactor = (m_currentScale > 0.0f) ? (scale / m_currentScale) : 1.0f;
     if (m_font)
     {
-        return static_cast<float>(TTF_GetFontLineSkip(m_font));
+        return static_cast<float>(TTF_GetFontLineSkip(m_font)) * scaleFactor;
     }
     return 14.0f * scale;
 }
@@ -202,7 +204,8 @@ void fontManager::drawText(SDL_Renderer* renderer, const std::string& text, floa
         return;
     }
 
-    SDL_FRect dstRect = { x, y, static_cast<float>(surface->w), static_cast<float>(surface->h) };
+    float scaleFactor = (m_currentScale > 0.0f) ? (scale / m_currentScale) : 1.0f;
+    SDL_FRect dstRect = { x, y, static_cast<float>(surface->w) * scaleFactor, static_cast<float>(surface->h) * scaleFactor };
     SDL_RenderTexture(renderer, texture, nullptr, &dstRect);
 
     SDL_DestroyTexture(texture);

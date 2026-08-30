@@ -119,8 +119,9 @@ namespace UIWidget
         // Draw subtle hotkey badge in top right corner
         if (!hotkey.empty())
         {
-            float hotkeyW = hotkey.size() * (5.5f * scale);
-            drawText(renderer, hotkey, rect.x + rect.w - hotkeyW - (4.0f * scale), rect.y + (3.0f * scale), isSelected ? Theme::colors.textGold : SDL_Color{ 110, 115, 125, 190 }, scale * 0.65f);
+            float hkScale = scale * 0.65f;
+            float hotkeyW = getTextWidth(hotkey, hkScale);
+            drawText(renderer, hotkey, rect.x + rect.w - hotkeyW - (6.0f * scale), rect.y + (3.0f * scale), isSelected ? Theme::colors.textGold : SDL_Color{ 110, 115, 125, 190 }, hkScale);
         }
 
         // Draw centered button label
@@ -128,41 +129,42 @@ namespace UIWidget
         {
             SDL_Color textCol = isEnabled ? (isSelected ? Theme::colors.textGold : (isHovered ? Theme::colors.textGold : Theme::colors.textPrimary)) : Theme::colors.textMuted;
 
-            float labelW = label.size() * (7.0f * scale);
+            float labelScale = scale * 0.85f;
+            float labelW = getTextWidth(label, labelScale);
             float labelX = rect.x + std::max(6.0f * scale, (rect.w - labelW) / 2.0f);
             float labelY = rect.y + ((rect.h - (12.0f * scale)) / 2.0f);
 
             if (label == "Reset")
             {
-                drawText(renderer, label, labelX, labelY, SDL_Color{ 255, 120, 140, 255 }, scale * 0.85f);
+                drawText(renderer, label, labelX, labelY, SDL_Color{ 255, 120, 140, 255 }, labelScale);
             }
             else if (label == "Quests" || label == "Encyclopedia")
             {
-                drawText(renderer, label, labelX, labelY, Theme::colors.textGold, scale * 0.85f);
+                drawText(renderer, label, labelX, labelY, Theme::colors.textGold, labelScale);
             }
             else if (label == "Masturbate")
             {
-                drawText(renderer, label, labelX, labelY, SDL_Color{ 255, 120, 180, 255 }, scale * 0.85f);
+                drawText(renderer, label, labelX, labelY, SDL_Color{ 255, 120, 180, 255 }, labelScale);
             }
             else if (label.find(": OFF") != std::string_view::npos)
             {
                 size_t colonPos = label.find(':');
                 std::string_view prefix = label.substr(0, colonPos + 2);
-                drawText(renderer, prefix, labelX, labelY, textCol, scale * 0.85f);
-                float prefixW = prefix.size() * (7.0f * scale);
-                drawText(renderer, "OFF", labelX + prefixW, labelY, Theme::colors.enemy, scale * 0.85f);
+                drawText(renderer, prefix, labelX, labelY, textCol, labelScale);
+                float prefixW = getTextWidth(prefix, labelScale);
+                drawText(renderer, "OFF", labelX + prefixW, labelY, Theme::colors.enemy, labelScale);
             }
             else if (label.find(": ON") != std::string_view::npos)
             {
                 size_t colonPos = label.find(':');
                 std::string_view prefix = label.substr(0, colonPos + 2);
-                drawText(renderer, prefix, labelX, labelY, textCol, scale * 0.85f);
-                float prefixW = prefix.size() * (7.0f * scale);
-                drawText(renderer, "ON", labelX + prefixW, labelY, Theme::colors.companion, scale * 0.85f);
+                drawText(renderer, prefix, labelX, labelY, textCol, labelScale);
+                float prefixW = getTextWidth(prefix, labelScale);
+                drawText(renderer, "ON", labelX + prefixW, labelY, Theme::colors.companion, labelScale);
             }
             else
             {
-                drawText(renderer, label, labelX, labelY, textCol, scale * 0.85f);
+                drawText(renderer, label, labelX, labelY, textCol, labelScale);
             }
         }
 
@@ -177,5 +179,15 @@ namespace UIWidget
     float drawTextWrapped(SDL_Renderer* renderer, std::string_view text, float x, float y, float maxWidth, SDL_Color color, float scale)
     {
         return ::fontManager::getInstance().drawTextWrapped(renderer, std::string(text), x, y, maxWidth, color, scale);
+    }
+
+    float getTextWidth(std::string_view text, float scale)
+    {
+        return ::fontManager::getInstance().getTextWidth(std::string(text), scale);
+    }
+
+    float getLineHeight(float scale)
+    {
+        return ::fontManager::getInstance().getLineHeight(scale);
     }
 }

@@ -566,7 +566,8 @@ float uiRenderer::renderPhoneAppView(SDL_Renderer* renderer, game* gameContext, 
                             UIWidget::drawText(renderer, title, padX + (8.0f * uiScale), curY + (4.0f * uiScale), Theme::colors.textGold, uiScale * 0.85f);
                             if (!subtitle.empty())
                             {
-                                UIWidget::drawText(renderer, subtitle, padX + (8.0f * uiScale) + (title.size() * 7.5f * uiScale), curY + (5.0f * uiScale), Theme::colors.textAccent, uiScale * 0.72f);
+                                float titleW = UIWidget::getTextWidth(title, uiScale * 0.85f);
+                                UIWidget::drawText(renderer, subtitle, padX + (12.0f * uiScale) + titleW, curY + (5.0f * uiScale), Theme::colors.textAccent, uiScale * 0.72f);
                             }
                             UIWidget::drawTextWrapped(renderer, desc, padX + (8.0f * uiScale), curY + (18.0f * uiScale), innerW - (16.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.75f);
                         }
@@ -604,7 +605,8 @@ float uiRenderer::renderPhoneAppView(SDL_Renderer* renderer, game* gameContext, 
                 {
                     UIWidget::drawText(renderer, sName, padX + (8.0f * uiScale), curY + (4.0f * uiScale), Theme::colors.textGold, uiScale * 0.85f);
                     std::string meta = std::format("{} | Cost: {} MP", school, mp);
-                    UIWidget::drawText(renderer, meta, padX + innerW - (meta.size() * 6.5f * uiScale) - (8.0f * uiScale), curY + (4.0f * uiScale), Theme::colors.arcane, uiScale * 0.75f);
+                    float metaW = UIWidget::getTextWidth(meta, uiScale * 0.75f);
+                    UIWidget::drawText(renderer, meta, padX + innerW - metaW - (8.0f * uiScale), curY + (4.0f * uiScale), Theme::colors.arcane, uiScale * 0.75f);
                     UIWidget::drawTextWrapped(renderer, desc, padX + (8.0f * uiScale), curY + (18.0f * uiScale), innerW - (16.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.75f);
                 }
                 else
@@ -636,7 +638,8 @@ float uiRenderer::renderPhoneAppView(SDL_Renderer* renderer, game* gameContext, 
 
                 UIWidget::drawText(renderer, pName, padX + (8.0f * uiScale), curY + (4.0f * uiScale), unlocked ? Theme::colors.textGold : Theme::colors.textPrimary, uiScale * 0.85f);
                 std::string status = unlocked ? "UNLOCKED" : std::format("Cost: {} Point", cost);
-                UIWidget::drawText(renderer, status, padX + innerW - (status.size() * 6.5f * uiScale) - (8.0f * uiScale), curY + (4.0f * uiScale), unlocked ? Theme::colors.friendly : Theme::colors.textAccent, uiScale * 0.75f);
+                float statusW = UIWidget::getTextWidth(status, uiScale * 0.75f);
+                UIWidget::drawText(renderer, status, padX + innerW - statusW - (8.0f * uiScale), curY + (4.0f * uiScale), unlocked ? Theme::colors.friendly : Theme::colors.textAccent, uiScale * 0.75f);
                 UIWidget::drawTextWrapped(renderer, desc, padX + (8.0f * uiScale), curY + (18.0f * uiScale), innerW - (16.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.75f);
 
                 curY += pkRect.h + (6.0f * uiScale);
@@ -664,10 +667,12 @@ float uiRenderer::renderPhoneAppView(SDL_Renderer* renderer, game* gameContext, 
                 UIWidget::drawPanel(renderer, ctRect);
 
                 UIWidget::drawText(renderer, cName, padX + (8.0f * uiScale), curY + (4.0f * uiScale), Theme::colors.textGold, uiScale * 0.85f);
-                UIWidget::drawText(renderer, title, padX + (8.0f * uiScale) + (cName.size() * 8.0f * uiScale), curY + (5.0f * uiScale), Theme::colors.textAccent, uiScale * 0.72f);
+                float cNameW = UIWidget::getTextWidth(cName, uiScale * 0.85f);
+                UIWidget::drawText(renderer, title, padX + (12.0f * uiScale) + cNameW, curY + (5.0f * uiScale), Theme::colors.textAccent, uiScale * 0.72f);
                 
                 std::string statusMeta = std::format("{} | Aff: {}", status, aff);
-                UIWidget::drawText(renderer, statusMeta, padX + innerW - (statusMeta.size() * 6.5f * uiScale) - (8.0f * uiScale), curY + (4.0f * uiScale), (status == "Available") ? Theme::colors.friendly : Theme::colors.textSecondary, uiScale * 0.75f);
+                float statusMetaW = UIWidget::getTextWidth(statusMeta, uiScale * 0.75f);
+                UIWidget::drawText(renderer, statusMeta, padX + innerW - statusMetaW - (8.0f * uiScale), curY + (4.0f * uiScale), (status == "Available") ? Theme::colors.friendly : Theme::colors.textSecondary, uiScale * 0.75f);
                 
                 UIWidget::drawText(renderer, std::format("Location: {}", loc), padX + (8.0f * uiScale), curY + (18.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.72f);
                 UIWidget::drawTextWrapped(renderer, desc, padX + (8.0f * uiScale), curY + (30.0f * uiScale), innerW - (16.0f * uiScale), Theme::colors.textMuted, uiScale * 0.72f);
@@ -878,7 +883,7 @@ float uiRenderer::renderExplorationView(SDL_Renderer* renderer, game* gameContex
     if (gameContext->isPhoneMenuOpen)
     {
         std::string phoneTitle = "Phone home screen";
-        float titleW = phoneTitle.size() * (9.5f * uiScale);
+        float titleW = UIWidget::getTextWidth(phoneTitle, uiScale * 1.15f);
         UIWidget::drawText(renderer, phoneTitle, centerX - (titleW / 2.0f), curY, SDL_Color{ 255, 240, 200, 255 }, uiScale * 1.15f);
         curY += (28.0f * uiScale);
 
@@ -900,7 +905,7 @@ float uiRenderer::renderExplorationView(SDL_Renderer* renderer, game* gameContex
         locTitle = m->getName();
     }
 
-    float titleW = locTitle.size() * (10.0f * uiScale);
+    float titleW = UIWidget::getTextWidth(locTitle, uiScale * 1.15f);
     UIWidget::drawText(renderer, locTitle, centerX - (titleW / 2.0f), curY, SDL_Color{ 255, 240, 200, 255 }, uiScale * 1.15f);
     curY += (28.0f * uiScale);
 
@@ -1315,21 +1320,21 @@ float uiRenderer::renderMainMenu(SDL_Renderer* renderer, game* gameContext, cons
 
     curY += (28.0f * uiScale);
 
-    // Title: Lilith's Throne in glowing purple/pink
-    std::string mainTitle = "Lilith's Throne";
-    float titleTextW = mainTitle.size() * (13.0f * uiScale);
+    // Title: TextRPG Engine in glowing purple/pink
+    std::string_view mainTitle = "TextRPG Engine";
+    float titleTextW = UIWidget::getTextWidth(mainTitle, uiScale * 1.8f);
     UIWidget::drawText(renderer, mainTitle, centerX - (titleTextW / 2.0f), curY, SDL_Color{ 235, 145, 255, 255 }, uiScale * 1.8f);
     curY += (38.0f * uiScale);
 
-    // Subtitle: Created by Innoxia
-    std::string subTitle = "Created by Innoxia";
-    float subTextW = subTitle.size() * (8.5f * uiScale);
+    // Subtitle: Studio Edition
+    std::string_view subTitle = "Studio Edition";
+    float subTextW = UIWidget::getTextWidth(subTitle, uiScale * 1.15f);
     UIWidget::drawText(renderer, subTitle, centerX - (subTextW / 2.0f), curY, SDL_Color{ 200, 140, 235, 255 }, uiScale * 1.15f);
     curY += (34.0f * uiScale);
 
-    // Paragraph 1: Disclaimer
+    // Paragraph 1: Welcome
     float p1H = UIWidget::drawTextWrapped(renderer,
-        "This game is a text-based erotic RPG, and contains a lot of graphic sexual content. You must agree to the game's disclaimer before playing this game!",
+        "Welcome to TextRPG. Explore dynamic text-driven adventures, manage inventory and clothing displacement, customize character anatomy, and engage in interactive encounters.",
         textX, curY, textW, Theme::colors.textPrimary, uiScale * 0.92f);
     curY += p1H + (20.0f * uiScale);
 
@@ -1339,15 +1344,15 @@ float uiRenderer::renderMainMenu(SDL_Renderer* renderer, game* gameContext, cons
         textX, curY, textW, Theme::colors.textSecondary, uiScale * 0.9f);
     curY += p2H + (20.0f * uiScale);
 
-    // Paragraph 3: Old saves note
+    // Paragraph 3: Saves note
     float p3H = UIWidget::drawTextWrapped(renderer,
-        "Copy over the contents of your 'data' folder to use your old saves in this version!",
+        "All characters, items, maps, and dialogue scenes are data-driven and fully editable in the Studio web app.",
         textX, curY, textW, Theme::colors.textPrimary, uiScale * 0.9f);
     curY += p3H + (24.0f * uiScale);
 
     // Engine version
-    std::string verText = "Your engine version: 0.4.11.3 Alpha (C++ Edition)";
-    float verW = verText.size() * (6.5f * uiScale);
+    std::string_view verText = "Engine Version: 0.5.0 Alpha (C++ Edition)";
+    float verW = UIWidget::getTextWidth(verText, uiScale * 0.85f);
     UIWidget::drawText(renderer, verText, centerX - (verW / 2.0f), curY, Theme::colors.textMuted, uiScale * 0.85f);
     curY += (24.0f * uiScale);
 
@@ -1653,7 +1658,7 @@ float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, c
         for (int i = 0; i < 5; ++i)
         {
             UIWidget::drawText(renderer, tiers[i].name, textX, curY, tiers[i].col, uiScale * 0.88f);
-            float nameOffset = (tiers[i].name.size() * (8.5f * uiScale)) + (6.0f * uiScale);
+            float nameOffset = UIWidget::getTextWidth(tiers[i].name, uiScale * 0.88f) + (8.0f * uiScale);
             float tierH = UIWidget::drawTextWrapped(renderer, tiers[i].desc, textX + nameOffset, curY, textW - nameOffset, Theme::colors.textSecondary, uiScale * 0.85f);
             curY += std::max(tierH, 18.0f * uiScale) + (6.0f * uiScale);
         }
@@ -1692,7 +1697,7 @@ float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, c
             SDL_FRect dropRect = { padX, curY, dropW, dropH };
             UIWidget::drawPanel(renderer, dropRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
             std::string infoStr = "► Click for more info.";
-            float strW = infoStr.size() * (7.0f * uiScale);
+            float strW = UIWidget::getTextWidth(infoStr, uiScale * 0.86f);
             UIWidget::drawText(renderer, infoStr, padX + ((dropW - strW) / 2.0f), curY + (5.0f * uiScale), SDL_Color{ 180, 130, 255, 255 }, uiScale * 0.86f);
             curY += dropH + (12.0f * uiScale);
         };
@@ -1705,19 +1710,16 @@ float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, c
             for (const auto& s : segments) total += s.first;
             if (total <= 0.0f) total = 1.0f;
 
-            float accX = padX;
-            for (const auto& s : segments)
+            float curBarX = padX;
+            for (const auto& seg : segments)
             {
-                float segW = (s.first / total) * barW;
-                if (segW > 0.0f)
-                {
-                    SDL_FRect segRect = { accX, curY, segW, barH };
-                    SDL_SetRenderDrawColor(renderer, s.second.r, s.second.g, s.second.b, s.second.a);
-                    SDL_RenderFillRect(renderer, &segRect);
-                    accX += segW;
-                }
+                float segW = barW * (seg.first / total);
+                SDL_FRect segRect = { curBarX, curY, segW, barH };
+                SDL_SetRenderDrawColor(renderer, seg.second.r, seg.second.g, seg.second.b, seg.second.a);
+                SDL_RenderFillRect(renderer, &segRect);
+                curBarX += segW;
             }
-            curY += barH + (14.0f * uiScale);
+            curY += barH + (12.0f * uiScale);
         };
 
         // Helper lambda: Setting Row with Segments (e.g. OFF / ON)
@@ -1730,7 +1732,7 @@ float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, c
             UIWidget::drawPanel(renderer, cardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
             UIWidget::drawText(renderer, title + ":", padX + (10.0f * uiScale), curY + (7.0f * uiScale), titleCol, uiScale * 0.88f);
-            float titleW = (title.size() + 2) * (7.5f * uiScale);
+            float titleW = UIWidget::getTextWidth(title + ":", uiScale * 0.88f);
 
             float descH = UIWidget::drawTextWrapped(renderer, description, padX + (10.0f * uiScale) + titleW, curY + (7.0f * uiScale), leftW - titleW - (10.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.82f);
 
@@ -1756,7 +1758,7 @@ float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, c
                 SDL_RenderRect(renderer, &pRect);
 
                 SDL_Color pTextCol = isSelected ? Theme::colors.textPrimary : (pHovered ? Theme::colors.textGold : Theme::colors.textMuted);
-                float labelW = pillLabels[p].size() * (6.0f * uiScale);
+                float labelW = UIWidget::getTextWidth(pillLabels[p], uiScale * 0.78f);
                 UIWidget::drawText(renderer, pillLabels[p], pRect.x + ((pRect.w - labelW) / 2.0f), pRect.y + (4.0f * uiScale), pTextCol, uiScale * 0.78f);
 
                 if (pHovered && clicked)
@@ -1802,8 +1804,8 @@ float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, c
                 SDL_RenderRect(renderer, &pRect);
 
                 SDL_Color pTextCol = isSelected ? SDL_Color{ 255, 220, 245, 255 } : (pHovered ? Theme::colors.textGold : Theme::colors.textMuted);
-                float labelW = freqLabels[p].size() * (6.0f * uiScale);
-                UIWidget::drawText(renderer, freqLabels[p], pRect.x + ((pRect.w - labelW) / 2.0f), pRect.y + (3.0f * uiScale), pTextCol, uiScale * 0.75f);
+                float labelW = UIWidget::getTextWidth(std::string(freqLabels[p]), uiScale * 0.75f);
+                UIWidget::drawText(renderer, std::string(freqLabels[p]), pRect.x + ((pRect.w - labelW) / 2.0f), pRect.y + (3.0f * uiScale), pTextCol, uiScale * 0.75f);
 
                 if (pHovered && clicked)
                 {
