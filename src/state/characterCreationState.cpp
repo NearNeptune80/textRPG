@@ -65,9 +65,6 @@ std::vector<EditorTabId> characterCreationState::getActiveTabs() const
     if (config.hasAnyOptionInList({ "wardrobe" }))
         tabs.push_back(EditorTabId::WARDROBE);
 
-    if (config.hasAnyOptionInList({ "personality_traits" }))
-        tabs.push_back(EditorTabId::PERSONALITY);
-
     if (config.hasAnyOptionInList({ "first_name", "surname" }) || config.isNewGameCreation)
         tabs.push_back(EditorTabId::NAME_FINISH);
 

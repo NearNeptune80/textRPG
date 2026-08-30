@@ -499,21 +499,20 @@ namespace EngineTests
         std::cout << "\n--- Running Test 8: Granular Editor Option Masking & Dynamic Tab Pruning ---\n";
         bool allPassed = true;
 
-        // 1. New Game Preset: Exactly 6 tabs (including Wardrobe)
+        // 1. New Game Preset: Exactly 5 tabs (Identity, Body, Face & Hair, Wardrobe, Name & Finish)
         auto ccNew = std::make_unique<characterCreationState>(EditorConfig::newGamePreset(), 0);
         auto newTabs = ccNew->getActiveTabs();
-        bool newTabCountValid = (newTabs.size() == 6);
-        logResult("New Game Preset activates exactly 6 tabs", newTabCountValid);
+        bool newTabCountValid = (newTabs.size() == 5);
+        logResult("New Game Preset activates exactly 5 tabs", newTabCountValid);
         allPassed &= newTabCountValid;
 
         bool hasIdentity = (newTabs[0] == EditorTabId::IDENTITY);
         bool hasBody = (newTabs[1] == EditorTabId::BODY);
         bool hasFace = (newTabs[2] == EditorTabId::FACE_HAIR);
         bool hasWardrobe = (newTabs[3] == EditorTabId::WARDROBE);
-        bool hasPersonality = (newTabs[4] == EditorTabId::PERSONALITY);
-        bool hasFinish = (newTabs[5] == EditorTabId::NAME_FINISH);
-        bool tabsInOrder = (hasIdentity && hasBody && hasFace && hasWardrobe && hasPersonality && hasFinish);
-        logResult("New Game Preset contains [Identity, Body, Face & Hair, Wardrobe, Personality, Name & Finish]", tabsInOrder);
+        bool hasFinish = (newTabs[4] == EditorTabId::NAME_FINISH);
+        bool tabsInOrder = (hasIdentity && hasBody && hasFace && hasWardrobe && hasFinish);
+        logResult("New Game Preset contains [Identity, Body, Face & Hair, Wardrobe, Name & Finish]", tabsInOrder);
         allPassed &= tabsInOrder;
 
         // Verify choice filtering (Human only ears in new game)

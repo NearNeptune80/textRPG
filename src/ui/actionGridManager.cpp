@@ -121,7 +121,7 @@ void ActionGridManager::refresh(game* gameContext)
             addBtn(gameContext, cc->getTabName(activeTabs[0]), [cc, gameContext]() {}, true, true);
         }
 
-        // Row 2: Step Navigation & Finish Action
+        // Row 2: Step Navigation & Finish Action (Shift + 1..5)
         padButtonsTo(gameContext, 5);
         if (cc->step > 0 && tabCount > 1)
         {
@@ -142,26 +142,25 @@ void ActionGridManager::refresh(game* gameContext)
                 gameContext->refreshActionGrid();
             });
         }
-        else
+
+        // Only place finish button in Slot 9 (Shift + 5) when on the final step
+        if (cc->step == tabCount - 1)
         {
-            addBtn(gameContext, cc->config.isNewGameCreation ? "Start Game" : "Apply Changes", [cc, gameContext]() {
+            padButtonsTo(gameContext, 9);
+            std::string finishBtnLabel = cc->config.isNewGameCreation ? "Start Game" : "Apply Changes";
+            addBtn(gameContext, finishBtnLabel, [cc, gameContext]() {
                 cc->finalizeCharacter(gameContext);
             }, true, true);
         }
 
-        padButtonsTo(gameContext, 9);
-        addBtn(gameContext, cc->config.isNewGameCreation ? "Start Game" : "Apply Changes", [cc, gameContext]() {
-            cc->finalizeCharacter(gameContext);
-        });
-
-        // Row 3: Utilities, Skip Prologue & Return
+        // Row 3: Utilities, Skip Prologue & Return (Ctrl + 1..5)
         padButtonsTo(gameContext, 10);
         addBtn(gameContext, "Randomize All", [cc, gameContext]() {
             cc->randomizeAll();
             gameContext->refreshActionGrid();
         });
 
-        if (cc->config.isNewGameCreation)
+        if (cc->config.isNewGameCreation && cc->step == tabCount - 1)
         {
             padButtonsTo(gameContext, 11);
             addBtn(gameContext, "Skip Prologue", [cc, gameContext]() {
