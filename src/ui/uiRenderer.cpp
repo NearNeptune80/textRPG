@@ -2536,6 +2536,57 @@ float uiRenderer::renderCharacterCreationView(SDL_Renderer* renderer, game* game
 
     // Helper: Option Row with pill options
     auto renderChoiceCard = [&](const std::string& title, const std::string& description, const std::vector<std::string>& labels, int selectedIndex, std::function<void(int)> onSelect) {
+        if (labels.size() > 7)
+        {
+            // Multi-row wrap grid layout for large choice sets
+            int cols = 8;
+            int rows = (static_cast<int>(labels.size()) + cols - 1) / cols;
+            float pillW = (availableW - (20.0f * uiScale) - ((cols - 1) * 4.0f * uiScale)) / static_cast<float>(cols);
+            float pillH = 22.0f * uiScale;
+            float cardH = (36.0f * uiScale) + (rows * (pillH + 4.0f * uiScale)) + (6.0f * uiScale);
+
+            SDL_FRect cardRect = { padX, curY, availableW, cardH };
+            UIWidget::drawPanel(renderer, cardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+
+            UIWidget::drawText(renderer, title + ":", padX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.88f);
+            UIWidget::drawText(renderer, description, padX + (10.0f * uiScale), curY + (20.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.72f);
+
+            float pillFontScale = uiScale * 0.62f;
+            float gridStartY = curY + (36.0f * uiScale);
+
+            for (size_t i = 0; i < labels.size(); ++i)
+            {
+                int r = static_cast<int>(i / cols);
+                int c = static_cast<int>(i % cols);
+                SDL_FRect pRect = { padX + (10.0f * uiScale) + (c * (pillW + 4.0f * uiScale)), gridStartY + (r * (pillH + 4.0f * uiScale)), pillW, pillH };
+
+                bool isSel = (static_cast<int>(i) == selectedIndex);
+                bool pHover = (mousePos.x >= pRect.x && mousePos.x <= pRect.x + pRect.w &&
+                               mousePos.y >= pRect.y && mousePos.y <= pRect.y + pRect.h);
+
+                SDL_Color bg = isSel ? SDL_Color{ 45, 55, 68, 255 } : (pHover ? SDL_Color{ 48, 52, 60, 255 } : Theme::colors.bgButton);
+                SDL_Color border = isSel ? Theme::colors.borderSelected : (pHover ? Theme::colors.textGold : Theme::colors.borderButton);
+                SDL_Color txt = isSel ? Theme::colors.companion : (pHover ? Theme::colors.textGold : Theme::colors.textMuted);
+
+                SDL_SetRenderDrawColor(renderer, bg.r, bg.g, bg.b, bg.a);
+                SDL_RenderFillRect(renderer, &pRect);
+                SDL_SetRenderDrawColor(renderer, border.r, border.g, border.b, border.a);
+                SDL_RenderRect(renderer, &pRect);
+
+                float labelW = UIWidget::getTextWidth(labels[i], pillFontScale);
+                UIWidget::drawText(renderer, labels[i], pRect.x + ((pRect.w - labelW) / 2.0f), pRect.y + (3.0f * uiScale), txt, pillFontScale);
+
+                if (pHover && clicked)
+                {
+                    onSelect(static_cast<int>(i));
+                    gameContext->input.consumeMouseClick();
+                }
+            }
+            curY += cardH + (8.0f * uiScale);
+            return;
+        }
+
+        // Single-row horizontal layout for <= 7 choices
         float pillW = std::clamp((availableW * 0.54f) / std::max(1, (int)labels.size()), 44.0f * uiScale, 84.0f * uiScale);
         float pillTotalW = pillW * labels.size();
         float pillStartX = padX + availableW - pillTotalW - (10.0f * uiScale);
@@ -2551,7 +2602,7 @@ float uiRenderer::renderCharacterCreationView(SDL_Renderer* renderer, game* game
         UIWidget::drawText(renderer, title + ":", padX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.88f);
         UIWidget::drawTextWrapped(renderer, description, padX + (10.0f * uiScale), curY + (22.0f * uiScale), descW, Theme::colors.textSecondary, uiScale * 0.74f);
 
-        float pillFontScale = (labels.size() >= 7) ? (uiScale * 0.62f) : (labels.size() >= 5 ? (uiScale * 0.67f) : (uiScale * 0.70f));
+        float pillFontScale = (labels.size() >= 5 ? (uiScale * 0.67f) : (uiScale * 0.70f));
 
         for (size_t i = 0; i < labels.size(); ++i)
         {
@@ -2795,6 +2846,15 @@ float uiRenderer::renderCharacterCreationView(SDL_Renderer* renderer, game* game
                 });
             }
         }
+
+        // 8. Composite Body Shape Indicator
+        std::string shapeRating = EditorConfig::calculateBodyShape(cc->muscleDefinition, cc->bodySize);
+        SDL_FRect shapeRect = { padX, curY, availableW, 34.0f * uiScale };
+        UIWidget::drawPanel(renderer, shapeRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+        UIWidget::drawText(renderer, "Composite Body Shape:", padX + (10.0f * uiScale), curY + (8.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.82f);
+        float ratingW = UIWidget::getTextWidth(shapeRating, uiScale * 0.88f);
+        UIWidget::drawText(renderer, shapeRating, padX + availableW - ratingW - (12.0f * uiScale), curY + (8.0f * uiScale), Theme::colors.textGold, uiScale * 0.88f);
+        curY += (42.0f * uiScale);
     }
     else if (currentTab == EditorTabId::FACE_HAIR)
     {
@@ -2810,19 +2870,41 @@ float uiRenderer::renderCharacterCreationView(SDL_Renderer* renderer, game* game
             });
         }
 
-        // 2. Hair Style
+        // 2. Hair Length
+        if (cc->config.isOptionEnabled("hair_length"))
+        {
+            auto* rule = cc->config.getRule("hair_length");
+            int minL = rule ? static_cast<int>(rule->minRange) : 0;
+            int maxL = rule ? static_cast<int>(rule->maxRange) : 120;
+            renderStepperCard("Hair Length", std::format("{} cm", cc->hairLengthCm), [&](int delta) {
+                cc->hairLengthCm = std::clamp(cc->hairLengthCm + delta, minL, maxL);
+            });
+        }
+
+        // 3. Hair Style (Filtered by Length Requirement)
         if (cc->config.isOptionEnabled("hair_style"))
         {
-            static const std::vector<std::string> allStyles = { "Short", "Bob", "Shoulder", "Long", "Braided", "Ponytail", "Messy" };
-            auto styleOpts = cc->config.filterChoices("hair_style", allStyles);
+            auto validStyles = EditorConfig::getValidHairstyles(cc->hairLengthCm);
+            auto styleOpts = cc->config.filterChoices("hair_style", validStyles);
             int styleIdx = 0;
-            for (size_t i = 0; i < styleOpts.size(); ++i) if (cc->hairStyle == styleOpts[i]) styleIdx = static_cast<int>(i);
-            renderChoiceCard("Hair Style", "Haircut cut and aesthetic style.", styleOpts, styleIdx, [&](int i) {
+            bool foundStyle = false;
+            for (size_t i = 0; i < styleOpts.size(); ++i) {
+                if (cc->hairStyle == styleOpts[i]) {
+                    styleIdx = static_cast<int>(i);
+                    foundStyle = true;
+                    break;
+                }
+            }
+            if (!foundStyle && !styleOpts.empty()) {
+                cc->hairStyle = styleOpts[0];
+                styleIdx = 0;
+            }
+            renderChoiceCard("Hair Style", "Haircut cut and aesthetic style (filtered by length threshold).", styleOpts, styleIdx, [&](int i) {
                 cc->hairStyle = styleOpts[i];
             });
         }
 
-        // 3. Hair Color
+        // 4. Hair Color
         if (cc->config.isOptionEnabled("hair_color"))
         {
             static const std::vector<std::string> allHColors = { "Black", "Dark Brown", "Auburn", "Blonde", "Platinum", "Silver", "Red" };
@@ -2831,17 +2913,6 @@ float uiRenderer::renderCharacterCreationView(SDL_Renderer* renderer, game* game
             for (size_t i = 0; i < colorOpts.size(); ++i) if (cc->hairColor == colorOpts[i]) colorIdx = static_cast<int>(i);
             renderChoiceCard("Hair Colour", "Primary hair coloration.", colorOpts, colorIdx, [&](int i) {
                 cc->hairColor = colorOpts[i];
-            });
-        }
-
-        // 4. Hair Length
-        if (cc->config.isOptionEnabled("hair_length"))
-        {
-            auto* rule = cc->config.getRule("hair_length");
-            int minL = rule ? static_cast<int>(rule->minRange) : 2;
-            int maxL = rule ? static_cast<int>(rule->maxRange) : 120;
-            renderStepperCard("Hair Length", std::format("{} cm", cc->hairLengthCm), [&](int delta) {
-                cc->hairLengthCm = std::clamp(cc->hairLengthCm + delta, minL, maxL);
             });
         }
 
@@ -2869,6 +2940,14 @@ float uiRenderer::renderCharacterCreationView(SDL_Renderer* renderer, game* game
                 cc->breastCupSize = i;
             });
         }
+
+        // Breast Shape
+        static const std::vector<std::string> allBShapes = { "Round", "Pointy", "Perky", "Wide", "Side-set", "Narrow" };
+        int bShapeIdx = 0;
+        for (size_t i = 0; i < allBShapes.size(); ++i) if (cc->breastShape == allBShapes[i]) bShapeIdx = static_cast<int>(i);
+        renderChoiceCard("Breast Shape", "Natural contour and aesthetic curve.", allBShapes, bShapeIdx, [&](int i) {
+            cc->breastShape = allBShapes[i];
+        });
 
         // Nipple Size
         if (cc->config.isOptionEnabled("nipple_size"))
@@ -3005,6 +3084,116 @@ float uiRenderer::renderCharacterCreationView(SDL_Renderer* renderer, game* game
                 cc->pubicHair = pubOpts[i];
             });
         }
+    }
+    else if (currentTab == EditorTabId::WARDROBE)
+    {
+        if (!cc->wardrobeInitialized) cc->initializeWardrobe();
+
+        // 1. Wardrobe Header Card & Decency Status
+        bool decent = cc->isClothedEnough();
+        std::string decencyStatus = cc->getDecencyStatus();
+
+        float bannerH = 48.0f * uiScale;
+        SDL_FRect bannerRect = { padX, curY, availableW, bannerH };
+        SDL_Color bannerBg = decent ? SDL_Color{ 25, 45, 32, 255 } : SDL_Color{ 50, 25, 25, 255 };
+        SDL_Color bannerBorder = decent ? SDL_Color{ 60, 160, 80, 255 } : SDL_Color{ 200, 60, 60, 255 };
+        UIWidget::drawPanel(renderer, bannerRect, bannerBg, bannerBorder);
+
+        UIWidget::drawText(renderer, "Evening Wardrobe & Attire:", padX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textGold, uiScale * 0.88f);
+        UIWidget::drawText(renderer, decencyStatus, padX + (10.0f * uiScale), curY + (24.0f * uiScale), decent ? Theme::colors.companion : SDL_Color{ 240, 100, 100, 255 }, uiScale * 0.78f);
+        curY += bannerH + (10.0f * uiScale);
+
+        // 2. Equipped Slots (Worn Items)
+        float wornSectionH = 120.0f * uiScale;
+        SDL_FRect wornRect = { padX, curY, availableW, wornSectionH };
+        UIWidget::drawPanel(renderer, wornRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+        UIWidget::drawText(renderer, "Currently Worn Garments (Click 'Strip' to remove):", padX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.82f);
+
+        struct SlotDisplay { equipSlot slot; std::string name; };
+        static const SlotDisplay s_displaySlots[6] = {
+            { equipSlot::TORSO_OVER, "Overgarment" },
+            { equipSlot::TORSO_UNDER, "Top / Shirt" },
+            { equipSlot::CHEST_WEAR, "Bra / Underwear" },
+            { equipSlot::LEGS_OUTER, "Pants / Skirt" },
+            { equipSlot::GROIN_OVER, "Underwear" },
+            { equipSlot::FEET, "Footwear" }
+        };
+
+        float slotW = (availableW - (4.0f * 10.0f * uiScale)) / 3.0f;
+        float slotH = 38.0f * uiScale;
+
+        for (int i = 0; i < 6; ++i)
+        {
+            int r = i / 3;
+            int c = i % 3;
+            float sx = padX + (10.0f * uiScale) + (c * (slotW + 10.0f * uiScale));
+            float sy = curY + (26.0f * uiScale) + (r * (slotH + 8.0f * uiScale));
+            SDL_FRect sBox = { sx, sy, slotW, slotH };
+
+            auto itemPtr = cc->wardrobeEquipped[static_cast<size_t>(s_displaySlots[i].slot)];
+            UIWidget::drawPanel(renderer, sBox, itemPtr ? SDL_Color{ 32, 38, 48, 255 } : SDL_Color{ 20, 22, 26, 255 }, itemPtr ? Theme::colors.borderSelected : Theme::colors.borderNormal);
+
+            UIWidget::drawText(renderer, s_displaySlots[i].name + ":", sx + (6.0f * uiScale), sy + (3.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.68f);
+            std::string itemName = itemPtr ? itemPtr->name : "(Empty)";
+            UIWidget::drawText(renderer, itemName, sx + (6.0f * uiScale), sy + (18.0f * uiScale), itemPtr ? Theme::colors.textPrimary : Theme::colors.textMuted, uiScale * 0.74f);
+
+            if (itemPtr)
+            {
+                float uBtnW = 44.0f * uiScale;
+                float uBtnH = 18.0f * uiScale;
+                SDL_FRect uBtn = { sx + slotW - uBtnW - (4.0f * uiScale), sy + (10.0f * uiScale), uBtnW, uBtnH };
+                bool uHover = (mousePos.x >= uBtn.x && mousePos.x <= uBtn.x + uBtn.w && mousePos.y >= uBtn.y && mousePos.y <= uBtn.y + uBtn.h);
+                UIWidget::drawColoredButton(renderer, uBtn, "Strip", Theme::colors.bgButton, uHover ? Theme::colors.textGold : Theme::colors.textMuted, false, uiScale * 0.64f);
+                if (uHover && clicked)
+                {
+                    cc->unequipWardrobeItem(s_displaySlots[i].slot);
+                    gameContext->input.consumeMouseClick();
+                }
+            }
+        }
+        curY += wornSectionH + (10.0f * uiScale);
+
+        // 3. Available Wardrobe Pile
+        float pileH = 110.0f * uiScale;
+        SDL_FRect pileRect = { padX, curY, availableW, pileH };
+        UIWidget::drawPanel(renderer, pileRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+        UIWidget::drawText(renderer, "Wardrobe Pile (Click 'Equip' to put on):", padX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.82f);
+
+        if (cc->availableWardrobe.empty())
+        {
+            UIWidget::drawText(renderer, "Nothing left in the wardrobe pile.", padX + (10.0f * uiScale), curY + (30.0f * uiScale), Theme::colors.textMuted, uiScale * 0.76f);
+        }
+        else
+        {
+            float pItemW = (availableW - (3.0f * 10.0f * uiScale)) / 2.0f;
+            float pItemH = 32.0f * uiScale;
+            for (size_t j = 0; j < std::min((size_t)4, cc->availableWardrobe.size()); ++j)
+            {
+                int r = static_cast<int>(j / 2);
+                int c = static_cast<int>(j % 2);
+                float px = padX + (10.0f * uiScale) + (c * (pItemW + 10.0f * uiScale));
+                float py = curY + (26.0f * uiScale) + (r * (pItemH + 8.0f * uiScale));
+                SDL_FRect piBox = { px, py, pItemW, pItemH };
+
+                auto itPtr = cc->availableWardrobe[j];
+                UIWidget::drawPanel(renderer, piBox, SDL_Color{ 25, 28, 34, 255 }, Theme::colors.borderButton);
+                UIWidget::drawText(renderer, itPtr->name, px + (6.0f * uiScale), py + (3.0f * uiScale), Theme::colors.textGold, uiScale * 0.74f);
+                UIWidget::drawText(renderer, itPtr->description.substr(0, 35) + "...", px + (6.0f * uiScale), py + (16.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.62f);
+
+                float eqBtnW = 44.0f * uiScale;
+                float eqBtnH = 18.0f * uiScale;
+                SDL_FRect eqBtn = { px + pItemW - eqBtnW - (4.0f * uiScale), py + (7.0f * uiScale), eqBtnW, eqBtnH };
+                bool eqHover = (mousePos.x >= eqBtn.x && mousePos.x <= eqBtn.x + eqBtn.w && mousePos.y >= eqBtn.y && mousePos.y <= eqBtn.y + eqBtn.h);
+                UIWidget::drawColoredButton(renderer, eqBtn, "Equip", Theme::colors.bgButton, eqHover ? Theme::colors.companion : Theme::colors.textMuted, false, uiScale * 0.64f);
+                if (eqHover && clicked)
+                {
+                    cc->equipWardrobeItem(j);
+                    gameContext->input.consumeMouseClick();
+                    break;
+                }
+            }
+        }
+        curY += pileH + (10.0f * uiScale);
     }
     else if (currentTab == EditorTabId::PERSONALITY)
     {

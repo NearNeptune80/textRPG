@@ -499,20 +499,21 @@ namespace EngineTests
         std::cout << "\n--- Running Test 8: Granular Editor Option Masking & Dynamic Tab Pruning ---\n";
         bool allPassed = true;
 
-        // 1. New Game Preset: Exactly 5 tabs
+        // 1. New Game Preset: Exactly 6 tabs (including Wardrobe)
         auto ccNew = std::make_unique<characterCreationState>(EditorConfig::newGamePreset(), 0);
         auto newTabs = ccNew->getActiveTabs();
-        bool newTabCountValid = (newTabs.size() == 5);
-        logResult("New Game Preset activates exactly 5 tabs", newTabCountValid);
+        bool newTabCountValid = (newTabs.size() == 6);
+        logResult("New Game Preset activates exactly 6 tabs", newTabCountValid);
         allPassed &= newTabCountValid;
 
         bool hasIdentity = (newTabs[0] == EditorTabId::IDENTITY);
         bool hasBody = (newTabs[1] == EditorTabId::BODY);
         bool hasFace = (newTabs[2] == EditorTabId::FACE_HAIR);
-        bool hasPersonality = (newTabs[3] == EditorTabId::PERSONALITY);
-        bool hasFinish = (newTabs[4] == EditorTabId::NAME_FINISH);
-        bool tabsInOrder = (hasIdentity && hasBody && hasFace && hasPersonality && hasFinish);
-        logResult("New Game Preset contains [Identity, Body, Face & Hair, Personality, Name & Finish]", tabsInOrder);
+        bool hasWardrobe = (newTabs[3] == EditorTabId::WARDROBE);
+        bool hasPersonality = (newTabs[4] == EditorTabId::PERSONALITY);
+        bool hasFinish = (newTabs[5] == EditorTabId::NAME_FINISH);
+        bool tabsInOrder = (hasIdentity && hasBody && hasFace && hasWardrobe && hasPersonality && hasFinish);
+        logResult("New Game Preset contains [Identity, Body, Face & Hair, Wardrobe, Personality, Name & Finish]", tabsInOrder);
         allPassed &= tabsInOrder;
 
         // Verify choice filtering (Human only ears in new game)
@@ -550,6 +551,107 @@ namespace EngineTests
         return allPassed;
     }
 
+    bool testHairstyleGatingAndBodyShape()
+    {
+        std::cout << "\n--- Running Test 9: Hairstyle Length Gating & Body Shape Calculations ---\n";
+        bool allPassed = true;
+
+        // 1. Hairstyle length thresholds
+        auto baldStyles = EditorConfig::getValidHairstyles(0);
+        bool baldOnly = (baldStyles.size() == 1 && baldStyles[0] == "Bald");
+        logResult("0 cm hair length only allows 'Bald'", baldOnly);
+        allPassed &= baldOnly;
+
+        auto shortStyles = EditorConfig::getValidHairstyles(5);
+        bool hasShort = (std::find(shortStyles.begin(), shortStyles.end(), "Short") != shortStyles.end());
+        bool noPonytail = (std::find(shortStyles.begin(), shortStyles.end(), "Ponytail") == shortStyles.end());
+        logResult("5 cm hair length allows 'Short' but blocks 'Ponytail'", hasShort && noPonytail);
+        allPassed &= (hasShort && noPonytail);
+
+        auto longStyles = EditorConfig::getValidHairstyles(25);
+        bool hasPonytail = (std::find(longStyles.begin(), longStyles.end(), "Ponytail") != longStyles.end());
+        bool hasBraided = (std::find(longStyles.begin(), longStyles.end(), "Braided") != longStyles.end());
+        logResult("25 cm hair length unlocks 'Ponytail' and 'Braided'", hasPonytail && hasBraided);
+        allPassed &= (hasPonytail && hasBraided);
+
+        // 2. Composite Body Shape calculations
+        std::string shape1 = EditorConfig::calculateBodyShape("Soft", "Skinny");
+        bool isFrail = (shape1 == "Frail / Delicate");
+        logResult("Soft muscle + Skinny body = 'Frail / Delicate'", isFrail);
+        allPassed &= isFrail;
+
+        std::string shape2 = EditorConfig::calculateBodyShape("Ripped", "Muscular");
+        bool isHeroic = (shape2 == "Heroic / Bodybuilder");
+        logResult("Ripped muscle + Muscular body = 'Heroic / Bodybuilder'", isHeroic);
+        allPassed &= isHeroic;
+
+        std::string shape3 = EditorConfig::calculateBodyShape("Toned", "Slender");
+        bool isAthletic = (shape3 == "Toned / Fit");
+        logResult("Toned muscle + Slender body = 'Toned / Fit'", isAthletic);
+        allPassed &= isAthletic;
+
+        return allPassed;
+    }
+
+    bool testWardrobeDecencySystem()
+    {
+        std::cout << "\n--- Running Test 10: Wardrobe Dressing & Decency Validation System ---\n";
+        bool allPassed = true;
+
+        itemDatabase::loadDatabase("data/items.json");
+
+        characterCreationState cc;
+        cc.gender = "Female";
+        cc.femininity = "Feminine";
+        cc.initializeWardrobe();
+
+        // 1. Initial outfit is decent
+        bool initDecent = cc.isClothedEnough();
+        logResult("Initial populated wardrobe setup is Decent", initDecent);
+        allPassed &= initDecent;
+
+        // 2. Strip footwear -> Indecent
+        cc.unequipWardrobeItem(equipSlot::FEET);
+        bool noShoesIndecent = !cc.isClothedEnough();
+        std::string status1 = cc.getDecencyStatus();
+        bool mentionsShoes = (status1.find("Must put on footwear") != std::string::npos);
+        logResult("Stripping footwear flags indecency with warning", noShoesIndecent && mentionsShoes);
+        allPassed &= (noShoesIndecent && mentionsShoes);
+
+        // 3. Strip all clothing -> Multiple warnings
+        cc.unequipWardrobeItem(equipSlot::TORSO_OVER);
+        cc.unequipWardrobeItem(equipSlot::TORSO_UNDER);
+        cc.unequipWardrobeItem(equipSlot::CHEST_WEAR);
+        cc.unequipWardrobeItem(equipSlot::LEGS_OUTER);
+        cc.unequipWardrobeItem(equipSlot::GROIN_OVER);
+
+        std::string statusNaked = cc.getDecencyStatus();
+        bool mentionsGroin = (statusNaked.find("Must conceal groin") != std::string::npos);
+        bool mentionsChest = (statusNaked.find("Must conceal chest") != std::string::npos);
+        logResult("Fully stripped character flags groin and chest indecency", mentionsGroin && mentionsChest);
+        allPassed &= (mentionsGroin && mentionsChest);
+
+        // 4. Equip wardrobe pile items back
+        for (size_t i = 0; i < cc.availableWardrobe.size(); ++i)
+        {
+            if (cc.availableWardrobe[i]->targetSlot == equipSlot::FEET ||
+                cc.availableWardrobe[i]->targetSlot == equipSlot::TORSO_OVER ||
+                cc.availableWardrobe[i]->targetSlot == equipSlot::LEGS_OUTER ||
+                cc.availableWardrobe[i]->targetSlot == equipSlot::GROIN_OVER ||
+                cc.availableWardrobe[i]->targetSlot == equipSlot::CHEST_WEAR)
+            {
+                cc.equipWardrobeItem(i);
+                --i; // Re-evaluate index after erase
+            }
+        }
+
+        bool reEquippedDecent = cc.isClothedEnough();
+        logResult("Re-equipping wardrobe garments restores Decent status", reEquippedDecent);
+        allPassed &= reEquippedDecent;
+
+        return allPassed;
+    }
+
     bool runAllTests()
     {
         g_passCount = 0;
@@ -567,6 +669,8 @@ namespace EngineTests
         bool t6 = testSubmenuButtonFunctionality();
         bool t7 = testContentOptionsAllCategories();
         bool t8 = testGranularEditorOptionMasking();
+        bool t9 = testHairstyleGatingAndBodyShape();
+        bool t10 = testWardrobeDecencySystem();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";

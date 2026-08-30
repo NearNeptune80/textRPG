@@ -62,6 +62,9 @@ std::vector<EditorTabId> characterCreationState::getActiveTabs() const
     if (config.hasAnyOptionInList({ "piercings", "tattoos", "makeup", "pubic_hair" }))
         tabs.push_back(EditorTabId::COSMETICS);
 
+    if (config.hasAnyOptionInList({ "wardrobe" }))
+        tabs.push_back(EditorTabId::WARDROBE);
+
     if (config.hasAnyOptionInList({ "personality_traits" }))
         tabs.push_back(EditorTabId::PERSONALITY);
 
@@ -100,6 +103,7 @@ std::string characterCreationState::getTabName(EditorTabId tab) const
     case EditorTabId::GENITALIA: return "Genitalia";
     case EditorTabId::APPENDAGES: return "Appendages";
     case EditorTabId::COSMETICS: return "Cosmetics";
+    case EditorTabId::WARDROBE: return "Wardrobe";
     case EditorTabId::PERSONALITY: return "Personality";
     case EditorTabId::NAME_FINISH: return config.isNewGameCreation ? "Name & Finish" : "Finalize";
     default: return "Customization";
@@ -270,6 +274,163 @@ void characterCreationState::randomizeAll()
         std::uniform_int_distribution<int> dTr(0, 6);
         personalityTraits.insert(traitsList[dTr(gen)]);
     }
+}
+
+void characterCreationState::initializeWardrobe()
+{
+    if (wardrobeInitialized) return;
+    wardrobeInitialized = true;
+    availableWardrobe.clear();
+    for (auto& s : wardrobeEquipped) s = nullptr;
+
+    bool isFem = (gender == "Female" || femininity == "Feminine" || femininity == "Very Feminine");
+
+    auto shirt = itemDatabase::getItem("item_linen_shirt");
+    auto trousers = itemDatabase::getItem("item_leather_trousers");
+    auto boots = itemDatabase::getItem("item_leather_boots");
+    auto suit = itemDatabase::getItem("item_formal_suit");
+    auto dress = itemDatabase::getItem("item_evening_dress");
+    auto skirt = itemDatabase::getItem("item_leather_skirt");
+    auto boxers = itemDatabase::getItem("item_cotton_boxers");
+    auto panties = itemDatabase::getItem("item_silk_panties");
+    auto bra = itemDatabase::getItem("item_silk_bra");
+    auto heels = itemDatabase::getItem("item_high_heels");
+    auto dressShoes = itemDatabase::getItem("item_dress_shoes");
+    auto choker = itemDatabase::getItem("item_leather_choker");
+    auto gloves = itemDatabase::getItem("item_cloth_gloves");
+
+    if (isFem)
+    {
+        if (dress) wardrobeEquipped[static_cast<size_t>(equipSlot::TORSO_OVER)] = dress;
+        else if (shirt) wardrobeEquipped[static_cast<size_t>(equipSlot::TORSO_UNDER)] = shirt;
+
+        if (skirt) wardrobeEquipped[static_cast<size_t>(equipSlot::LEGS_OUTER)] = skirt;
+        if (panties) wardrobeEquipped[static_cast<size_t>(equipSlot::GROIN_OVER)] = panties;
+        if (bra) wardrobeEquipped[static_cast<size_t>(equipSlot::CHEST_WEAR)] = bra;
+        if (heels) wardrobeEquipped[static_cast<size_t>(equipSlot::FEET)] = heels;
+        else if (boots) wardrobeEquipped[static_cast<size_t>(equipSlot::FEET)] = boots;
+
+        if (shirt && wardrobeEquipped[static_cast<size_t>(equipSlot::TORSO_UNDER)] != shirt) availableWardrobe.push_back(shirt);
+        if (trousers) availableWardrobe.push_back(trousers);
+        if (boots && wardrobeEquipped[static_cast<size_t>(equipSlot::FEET)] != boots) availableWardrobe.push_back(boots);
+        if (suit) availableWardrobe.push_back(suit);
+        if (boxers) availableWardrobe.push_back(boxers);
+        if (choker) availableWardrobe.push_back(choker);
+        if (gloves) availableWardrobe.push_back(gloves);
+    }
+    else
+    {
+        if (shirt) wardrobeEquipped[static_cast<size_t>(equipSlot::TORSO_UNDER)] = shirt;
+        if (trousers) wardrobeEquipped[static_cast<size_t>(equipSlot::LEGS_OUTER)] = trousers;
+        if (boxers) wardrobeEquipped[static_cast<size_t>(equipSlot::GROIN_OVER)] = boxers;
+        if (dressShoes) wardrobeEquipped[static_cast<size_t>(equipSlot::FEET)] = dressShoes;
+        else if (boots) wardrobeEquipped[static_cast<size_t>(equipSlot::FEET)] = boots;
+
+        if (suit) availableWardrobe.push_back(suit);
+        if (dress) availableWardrobe.push_back(dress);
+        if (skirt) availableWardrobe.push_back(skirt);
+        if (panties) availableWardrobe.push_back(panties);
+        if (bra) availableWardrobe.push_back(bra);
+        if (heels) availableWardrobe.push_back(heels);
+        if (boots && wardrobeEquipped[static_cast<size_t>(equipSlot::FEET)] != boots) availableWardrobe.push_back(boots);
+        if (choker) availableWardrobe.push_back(choker);
+        if (gloves) availableWardrobe.push_back(gloves);
+    }
+}
+
+bool characterCreationState::equipWardrobeItem(size_t wardrobeIndex)
+{
+    if (wardrobeIndex >= availableWardrobe.size()) return false;
+    auto itemToEquip = availableWardrobe[wardrobeIndex];
+    if (!itemToEquip || !itemToEquip->isEquippable) return false;
+
+    equipSlot target = itemToEquip->targetSlot;
+    if (target == equipSlot::NONE) return false;
+
+    size_t slotIdx = static_cast<size_t>(target);
+    auto existingItem = wardrobeEquipped[slotIdx];
+
+    // Remove from wardrobe pile
+    availableWardrobe.erase(availableWardrobe.begin() + wardrobeIndex);
+
+    // If an item was already equipped, return it to wardrobe pile
+    if (existingItem)
+    {
+        availableWardrobe.push_back(existingItem);
+    }
+
+    wardrobeEquipped[slotIdx] = itemToEquip;
+    return true;
+}
+
+bool characterCreationState::unequipWardrobeItem(equipSlot slot)
+{
+    if (slot == equipSlot::NONE) return false;
+    size_t slotIdx = static_cast<size_t>(slot);
+    auto equipped = wardrobeEquipped[slotIdx];
+    if (!equipped) return false;
+
+    wardrobeEquipped[slotIdx] = nullptr;
+    availableWardrobe.push_back(equipped);
+    return true;
+}
+
+bool characterCreationState::isClothedEnough() const
+{
+    // 1. Must wear footwear
+    if (!wardrobeEquipped[static_cast<size_t>(equipSlot::FEET)]) return false;
+
+    // 2. Must cover groin
+    bool groinCovered = (wardrobeEquipped[static_cast<size_t>(equipSlot::GROIN_OVER)] != nullptr ||
+                         wardrobeEquipped[static_cast<size_t>(equipSlot::LEGS_OUTER)] != nullptr ||
+                         (wardrobeEquipped[static_cast<size_t>(equipSlot::TORSO_OVER)] &&
+                          wardrobeEquipped[static_cast<size_t>(equipSlot::TORSO_OVER)]->id == "item_evening_dress"));
+    if (!groinCovered) return false;
+
+    // 3. Must cover chest if breasts exist or character is feminine
+    bool isFem = (gender == "Female" || femininity == "Feminine" || femininity == "Very Feminine" || breastCupSize > 0);
+    if (isFem)
+    {
+        bool chestCovered = (wardrobeEquipped[static_cast<size_t>(equipSlot::CHEST_WEAR)] != nullptr ||
+                             wardrobeEquipped[static_cast<size_t>(equipSlot::TORSO_UNDER)] != nullptr ||
+                             wardrobeEquipped[static_cast<size_t>(equipSlot::TORSO_OVER)] != nullptr);
+        if (!chestCovered) return false;
+    }
+
+    return true;
+}
+
+std::string characterCreationState::getDecencyStatus() const
+{
+    if (isClothedEnough())
+    {
+        return "Decent: Ready to attend the museum opening gala.";
+    }
+
+    std::string missing = "Indecent: ";
+    bool hasFeet = (wardrobeEquipped[static_cast<size_t>(equipSlot::FEET)] != nullptr);
+    bool hasGroin = (wardrobeEquipped[static_cast<size_t>(equipSlot::GROIN_OVER)] != nullptr ||
+                     wardrobeEquipped[static_cast<size_t>(equipSlot::LEGS_OUTER)] != nullptr ||
+                     (wardrobeEquipped[static_cast<size_t>(equipSlot::TORSO_OVER)] &&
+                      wardrobeEquipped[static_cast<size_t>(equipSlot::TORSO_OVER)]->id == "item_evening_dress"));
+    bool isFem = (gender == "Female" || femininity == "Feminine" || femininity == "Very Feminine" || breastCupSize > 0);
+    bool hasChest = (!isFem ||
+                     wardrobeEquipped[static_cast<size_t>(equipSlot::CHEST_WEAR)] != nullptr ||
+                     wardrobeEquipped[static_cast<size_t>(equipSlot::TORSO_UNDER)] != nullptr ||
+                     wardrobeEquipped[static_cast<size_t>(equipSlot::TORSO_OVER)] != nullptr);
+
+    std::vector<std::string> parts;
+    if (!hasFeet) parts.push_back("Must put on footwear");
+    if (!hasGroin) parts.push_back("Must conceal groin");
+    if (!hasChest) parts.push_back("Must conceal chest");
+
+    for (size_t i = 0; i < parts.size(); ++i)
+    {
+        if (i > 0) missing += ", ";
+        missing += parts[i];
+    }
+    missing += ".";
+    return missing;
 }
 
 void characterCreationState::finalizeCharacter(game* gameContext)
@@ -457,15 +618,20 @@ void characterCreationState::finalizeCharacter(game* gameContext)
         player->stats.setBaseStat("lust", 0.0f);
         player->stats.setBaseStat("arcaneEssence", 20.0f);
 
-        // Starting inventory items & equipment
-        auto shirt = itemDatabase::getItem("item_linen_shirt");
-        if (shirt) { player->inventory.addItem(shirt); player->inventory.equipItem(player->inventory.backpack.size() - 1, equipSlot::TORSO_UNDER); }
-
-        auto trousers = itemDatabase::getItem("item_leather_trousers");
-        if (trousers) { player->inventory.addItem(trousers); player->inventory.equipItem(player->inventory.backpack.size() - 1, equipSlot::LEGS_OUTER); }
-
-        auto boots = itemDatabase::getItem("item_leather_boots");
-        if (boots) { player->inventory.addItem(boots); player->inventory.equipItem(player->inventory.backpack.size() - 1, equipSlot::FEET); }
+        // Transfer custom wardrobe choices
+        if (!wardrobeInitialized) initializeWardrobe();
+        for (size_t s = 0; s < EQUIP_SLOT_COUNT; ++s)
+        {
+            if (wardrobeEquipped[s])
+            {
+                player->inventory.addItem(wardrobeEquipped[s]);
+                player->inventory.equipItem(player->inventory.backpack.size() - 1, static_cast<equipSlot>(s));
+            }
+        }
+        for (const auto& it : availableWardrobe)
+        {
+            if (it) player->inventory.addItem(it);
+        }
 
         auto pendant = itemDatabase::getItem("item_golden_pendant");
         if (pendant) player->inventory.addItem(pendant);

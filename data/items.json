@@ -173,6 +173,110 @@
         { "statName": "arcane", "flatValue": 3.0, "percentValue": 0.05 }
       ],
       "supportedDisplacements": {}
+    },
+    {
+      "id": "item_cotton_boxers",
+      "name": "Cotton Boxers",
+      "description": "Comfortable, breathable cotton boxer shorts with an elastic waistband.",
+      "baseValue": 10,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "GROIN_OVER",
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [],
+      "supportedDisplacements": {
+        "PULL_DOWN": ["GROIN", "ASS"],
+        "PULL_ASIDE": ["GROIN", "ASS"]
+      }
+    },
+    {
+      "id": "item_evening_dress",
+      "name": "Silk Evening Dress",
+      "description": "An elegant, tailored evening dress crafted from midnight-blue silk with delicate lace hems.",
+      "baseValue": 60,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "TORSO_OVER",
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        { "statName": "allure", "flatValue": 2.0, "percentValue": 0.0 }
+      ],
+      "supportedDisplacements": {
+        "LIFT_UP": ["TORSO", "BREASTS", "GROIN", "ASS"],
+        "PULL_ASIDE": ["BREASTS"]
+      }
+    },
+    {
+      "id": "item_formal_suit",
+      "name": "Tailored Suit Jacket",
+      "description": "A crisp, sharply tailored formal suit jacket made from fine charcoal wool.",
+      "baseValue": 65,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "TORSO_OVER",
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        { "statName": "physique", "flatValue": 1.0, "percentValue": 0.0 }
+      ],
+      "supportedDisplacements": {
+        "UNBUTTON": ["TORSO", "BREASTS"]
+      }
+    },
+    {
+      "id": "item_leather_skirt",
+      "name": "Pleated Skirt",
+      "description": "A stylish, flared pleated skirt that stops just above the knees.",
+      "baseValue": 25,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "LEGS_OUTER",
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [],
+      "supportedDisplacements": {
+        "LIFT_UP": ["GROIN", "ASS"]
+      }
+    },
+    {
+      "id": "item_high_heels",
+      "name": "Evening Stilettos",
+      "description": "Polished black high heel stilettos that accentuate posture and leg definition.",
+      "baseValue": 35,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "FEET",
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [],
+      "supportedDisplacements": {}
+    },
+    {
+      "id": "item_dress_shoes",
+      "name": "Oxford Shoes",
+      "description": "Polished leather Oxford dress shoes suitable for formal evening functions.",
+      "baseValue": 30,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "FEET",
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [],
+      "supportedDisplacements": {}
     }
   ]
 }

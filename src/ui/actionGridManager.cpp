@@ -103,10 +103,11 @@ void ActionGridManager::refresh(game* gameContext)
         int tabCount = static_cast<int>(activeTabs.size());
         if (cc->step >= tabCount) cc->step = std::max(0, tabCount - 1);
 
-        // Row 1: Dynamic Category Step Tabs (up to 5 tabs per row)
+        // Row 1: Dynamic Category Step Tabs (up to 5 tabs per row page)
         if (tabCount > 1)
         {
-            for (int i = 0; i < std::min(5, tabCount); ++i)
+            int startIdx = (cc->step >= 5 && tabCount > 5) ? 5 : 0;
+            for (int i = startIdx; i < std::min(startIdx + 5, tabCount); ++i)
             {
                 std::string btnLabel = std::format("{}. {}", i + 1, cc->getTabName(activeTabs[i]));
                 addBtn(gameContext, btnLabel, [cc, gameContext, i]() {
@@ -153,12 +154,21 @@ void ActionGridManager::refresh(game* gameContext)
             cc->finalizeCharacter(gameContext);
         });
 
-        // Row 3: Utilities & Return
+        // Row 3: Utilities, Skip Prologue & Return
         padButtonsTo(gameContext, 10);
         addBtn(gameContext, "Randomize All", [cc, gameContext]() {
             cc->randomizeAll();
             gameContext->refreshActionGrid();
         });
+
+        if (cc->config.isNewGameCreation)
+        {
+            padButtonsTo(gameContext, 11);
+            addBtn(gameContext, "Skip Prologue", [cc, gameContext]() {
+                cc->skipPrologue = true;
+                cc->finalizeCharacter(gameContext);
+            });
+        }
 
         padButtonsTo(gameContext, 14);
         std::string backLabel = cc->config.isNewGameCreation ? "Back to Menu" : "Cancel";

@@ -13,6 +13,7 @@ enum class EditorTabId {
     GENITALIA,
     APPENDAGES,
     COSMETICS,
+    WARDROBE,
     PERSONALITY,
     NAME_FINISH
 };
@@ -58,6 +59,65 @@ struct EditorConfig {
         return allChoices;
     }
 
+    struct HairstyleDef {
+        std::string name;
+        int minLengthCm;
+    };
+
+    static const std::vector<HairstyleDef>& getAllHairstyles() {
+        static const std::vector<HairstyleDef> s_styles = {
+            { "Bald", 0 },
+            { "Stubble", 1 },
+            { "Short", 3 },
+            { "Messy", 3 },
+            { "Slicked-back", 5 },
+            { "Pixie-cut", 5 },
+            { "Mohawk", 5 },
+            { "Afro", 5 },
+            { "Sidecut", 5 },
+            { "Bob Cut", 10 },
+            { "Straight", 15 },
+            { "Wavy", 15 },
+            { "Curly", 15 },
+            { "Topknot", 15 },
+            { "Dreadlocks", 15 },
+            { "Shoulder-length", 20 },
+            { "Ponytail", 20 },
+            { "Low Ponytail", 20 },
+            { "Bun", 25 },
+            { "Chignon", 25 },
+            { "Braided", 25 },
+            { "Twin Tails", 25 },
+            { "Twin Braids", 25 },
+            { "Crown Braid", 30 },
+            { "Hime Cut", 30 },
+            { "Floor-length", 80 }
+        };
+        return s_styles;
+    }
+
+    static std::vector<std::string> getValidHairstyles(int hairLengthCm) {
+        std::vector<std::string> valid;
+        for (const auto& h : getAllHairstyles()) {
+            if (hairLengthCm >= h.minLengthCm) {
+                valid.push_back(h.name);
+            }
+        }
+        if (valid.empty()) valid.push_back("Bald");
+        return valid;
+    }
+
+    static std::string calculateBodyShape(const std::string& muscle, const std::string& bodySize) {
+        int m = (muscle == "Soft") ? 0 : (muscle == "Lightly muscled" ? 1 : (muscle == "Toned" ? 2 : (muscle == "Muscular" ? 3 : 4)));
+        int s = (bodySize == "Skinny") ? 0 : (bodySize == "Slender" ? 1 : (bodySize == "Average" ? 2 : (bodySize == "Muscular" || bodySize == "Large" ? 3 : 4)));
+
+        if (s == 0) return (m >= 3) ? "Wiry / Lean" : (m >= 2 ? "Slender / Toned" : "Frail / Delicate");
+        if (s == 1) return (m >= 3) ? "Athletic / Cut" : (m >= 2 ? "Toned / Fit" : "Slender / Graceful");
+        if (s == 2) return (m >= 3) ? "Muscular / Athletic" : (m >= 2 ? "Fit / Defined" : "Average / Smooth");
+        if (s == 3) return (m >= 4) ? "Heroic / Bodybuilder" : (m >= 2 ? "Powerful / Broad" : "Stocky / Solid");
+        return (m >= 3) ? "Colossal / Juggernaut" : (m >= 2 ? "Brawny / Heavy" : "Full-figured / Chubby");
+    }
+
     bool hasAnyOptionInList(const std::vector<std::string>& keys) const {
         for (const auto& k : keys) {
             if (isOptionEnabled(k)) return true;
@@ -91,6 +151,9 @@ struct EditorConfig {
         cfg.rules["hair_color"] = { .enabled = true, .allowedChoices = {"Black", "Dark Brown", "Auburn", "Blonde", "Platinum", "Silver", "Red"} };
         cfg.rules["hair_length"] = { .enabled = true, .minRange = 2.0f, .maxRange = 120.0f };
         cfg.rules["ear_type"] = { .enabled = true, .allowedChoices = {"Human"} };
+
+        // Wardrobe
+        cfg.rules["wardrobe"] = { .enabled = true };
 
         // Personality
         cfg.rules["personality_traits"] = { .enabled = true };

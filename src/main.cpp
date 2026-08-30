@@ -128,13 +128,14 @@ int main(int argc, char* argv[])
             auto cc = std::make_unique<characterCreationState>(EditorConfig::fullTransformationPreset(), tStep);
             engine.changeState(std::move(cc));
         }
-        else if (screenshotState == "character_creation" || screenshotState == "cc" || screenshotState.starts_with("cc_step") || screenshotState.starts_with("character_creation_step"))
+        else if (screenshotState == "character_creation" || screenshotState == "cc" || screenshotState == "cc_wardrobe" || screenshotState.starts_with("cc_step") || screenshotState.starts_with("character_creation_step"))
         {
             auto cc = std::make_unique<characterCreationState>(0);
             if (screenshotState == "cc_step1" || screenshotState == "character_creation_step1") cc->step = 1;
             else if (screenshotState == "cc_step2" || screenshotState == "character_creation_step2") cc->step = 2;
-            else if (screenshotState == "cc_step3" || screenshotState == "character_creation_step3") cc->step = 3;
+            else if (screenshotState == "cc_step3" || screenshotState == "character_creation_step3" || screenshotState == "cc_wardrobe") cc->step = 3;
             else if (screenshotState == "cc_step4" || screenshotState == "character_creation_step4") cc->step = 4;
+            else if (screenshotState == "cc_step5" || screenshotState == "character_creation_step5") cc->step = 5;
             else cc->step = 0;
             engine.changeState(std::move(cc));
         }

@@ -1,11 +1,14 @@
 #pragma once
 
+#include <array>
 #include <memory>
 #include <set>
 #include <string>
 #include <vector>
 #include <SDL3/SDL.h>
 
+#include "common/enums.h"
+#include "items/item.h"
 #include "state/iGameState.h"
 #include "state/editorConfig.h"
 
@@ -78,13 +81,18 @@ public:
     
     // Breasts
     int breastCupSize = 0; // 0 = Flat, 1 = A, 2 = B, 3 = C, 4 = D, 5 = DD, 6 = E, 7 = F, 8 = G, 9 = H
+    std::string breastShape = "Round"; // Round, Pointy, Perky, Wide, Side-set, Narrow
     int nippleSize = 1; // 0 = Small, 1 = Normal, 2 = Puffy, 3 = Large
+    int areolaeSize = 1; // 0 = Tiny, 1 = Small, 2 = Average, 3 = Large
+    bool puffyNipples = false;
+    bool puffyLips = false;
     bool isLactating = false;
     float milkCapacityMl = 0.0f;
     
     // Ass & Hips
     int hipSize = 2; // 0 = Very narrow, 1 = Narrow, 2 = Average, 3 = Wide, 4 = Very wide
     int assSize = 2; // 0 = Flat, 1 = Small, 2 = Average, 3 = Plump, 4 = Enormous
+    bool anusBleached = false;
     float anusElasticity = 60.0f;
     
     // Genitals
@@ -106,17 +114,39 @@ public:
 
     // Markings & Extra
     std::string makeupStyle = "None"; // None, Subtle, Glamour, Goth, Festive
+    std::string makeupLipstick = "None";
+    std::string makeupEyeliner = "None";
+    std::string makeupEyeshadow = "None";
+    std::string makeupBlusher = "None";
+    std::string makeupNails = "None";
+
     bool hasEarPiercings = false;
     bool hasNosePiercing = false;
     bool hasNavelPiercing = false;
     bool hasNipplePiercings = false;
+    bool hasLipPiercing = false;
+    bool hasTonguePiercing = false;
+
     std::string tattooLocation = "None"; // None, Back, Chest, Arm, Thigh, Lower Back
     std::string pubicHair = "Natural"; // Hairless, Trimmed, Natural, Bushy
     std::string underarmHair = "Hairless"; // Hairless, Stubble, Natural
+    std::string facialHair = "None"; // None, Stubble, Short Beard, Full Beard, Goatee, Moustache
+    std::string assHair = "Hairless"; // Hairless, Natural
 
-    // Step 4 (Evening's Attire) properties
-    int activeBagSlot = 0;
-    int wardrobePage = 1;
+    // Background & Occupation
+    std::string startingOccupation = "Student"; // Student, Office Worker, Athlete, Bartender, Artist, Unemployed
+    bool skipPrologue = false;
+
+    // Step 4 (Evening's Attire / Wardrobe) properties
+    std::vector<std::shared_ptr<item>> availableWardrobe;
+    std::array<std::shared_ptr<item>, EQUIP_SLOT_COUNT> wardrobeEquipped{};
+    bool wardrobeInitialized = false;
+
+    void initializeWardrobe();
+    bool equipWardrobeItem(size_t wardrobeIndex);
+    bool unequipWardrobeItem(equipSlot slot);
+    bool isClothedEnough() const;
+    std::string getDecencyStatus() const;
 
     void randomizeFirstNames();
     void randomizeSurname();
