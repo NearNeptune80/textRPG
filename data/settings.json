@@ -1,32 +1,70 @@
 {
-    "demographics": {
-        "percentHetero": 40.0,
-        "percentBi": 30.0,
-        "percentHomo": 20.0,
-        "percentAsexual": 10.0,
-        "percentMale": 30.0,
-        "percentFemale": 40.0,
-        "percentHermaphrodite": 15.0,
-        "percentGynomorph": 7.0,
-        "percentAndromorph": 5.0,
-        "percentNull": 3.0
-    },
     "content": {
-        "pregnancyEnabled": true,
+        "extremeContentEnabled": false,
+        "fetishPreferences": {
+            "Anal": 6,
+            "Breasts": 3,
+            "Breasts lover": 5,
+            "Buttslut": 3,
+            "Lactation": 3,
+            "Milk lover": 3,
+            "Oral": 1,
+            "Oral performer": 3,
+            "Pussy slut": 3,
+            "Vaginal": 3
+        },
+        "fluidMultiplier": 4.0,
         "lactationEnabled": true,
-        "fluidMultiplier": 1.0,
-        "transformationSpeedMultiplier": 1.0
+        "nonConEnabled": true,
+        "pregnancyEnabled": false,
+        "publicSexEnabled": true,
+        "transformationSpeedMultiplier": 2.0
     },
-    "gameplay": {
-        "difficultyMultiplier": 1.0,
-        "currencyLossOnDefeatPercent": 0.15,
-        "autoSaveOnMapChange": true,
-        "autoSaveOnSceneExit": true,
-        "maxAutoSaves": 3
+    "demographics": {
+        "percentAdult": 35.0,
+        "percentAndromorph": 5.0,
+        "percentAnthro": 15.0,
+        "percentAsexual": 10.0,
+        "percentBi": 80.0,
+        "percentElder": 5.0,
+        "percentFemale": 40.0,
+        "percentFeral": 5.0,
+        "percentGynomorph": 7.0,
+        "percentHermaphrodite": 15.0,
+        "percentHetero": 10.0,
+        "percentHomo": 20.0,
+        "percentHuman": 50.0,
+        "percentMale": 30.0,
+        "percentMature": 20.0,
+        "percentNull": 3.0,
+        "percentPartial": 30.0,
+        "percentYoungAdult": 40.0
     },
     "display": {
-        "descriptionVerbosity": 0,
+        "activeLayout": "data/layouts/default_layout.json",
         "activeTheme": "default",
-        "activeLayout": "default"
+        "descriptionVerbosity": 0,
+        "fadeInEnabled": true,
+        "fontSize": 20,
+        "showArtwork": false,
+        "showThumbnails": true
+    },
+    "gameplay": {
+        "autoLoot": false,
+        "autoSaveFrequency": 2,
+        "autoSaveOnMapChange": true,
+        "autoSaveOnSceneExit": true,
+        "badEndsEnabled": false,
+        "currencyLossOnDefeatPercent": 0.5,
+        "difficultyLevel": 1,
+        "difficultyMultiplier": 1.25,
+        "enchantmentInstability": true,
+        "genderPronounMode": "Normal",
+        "levelDrainEnabled": true,
+        "maxAutoSaves": 3,
+        "opportunisticAttackers": true,
+        "sharedEncyclopedia": false,
+        "stormInterruptions": false,
+        "unitPreference": "Metric"
     }
 }

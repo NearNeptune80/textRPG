@@ -302,6 +302,201 @@ namespace EngineTests
         return allPassed;
     }
 
+    bool testSubmenuButtonFunctionality()
+    {
+        std::cout << "\n--- Running Test 6: Submenu Button Functionality & Interactive Actions ---\n";
+        bool allPassed = true;
+
+        game g;
+        g.init();
+
+        // 1. Test Main Menu Buttons
+        g.changeState(std::make_unique<mainMenuState>());
+        g.refreshActionGrid();
+
+        // Click "Options" in Action Grid (Slot 5)
+        if (g.activeButtons.size() > 5 && g.activeButtons[5].onClick)
+        {
+            g.activeButtons[5].onClick();
+            bool isOptions = (dynamic_cast<optionsState*>(g.getActiveState()) != nullptr);
+            logResult("Main Menu 'Options' button launches optionsState", isOptions);
+            allPassed &= isOptions;
+        }
+
+        // 2. Test Options Action Grid in General Mode
+        auto* opt = dynamic_cast<optionsState*>(g.getActiveState());
+        if (opt)
+        {
+            g.refreshActionGrid();
+
+            // Font-size + (Slot 3)
+            int initialFontSize = g.settings.display.fontSize;
+            if (g.activeButtons.size() > 3 && g.activeButtons[3].onClick)
+            {
+                g.activeButtons[3].onClick(); // Font-size +
+                bool fontIncreased = (g.settings.display.fontSize == initialFontSize + 2);
+                logResult("Options 'Font-size +' increases font size and persists", fontIncreased);
+                allPassed &= fontIncreased;
+            }
+
+            // Fade-in Toggle (Slot 4)
+            bool initialFade = g.settings.display.fadeInEnabled;
+            if (g.activeButtons.size() > 4 && g.activeButtons[4].onClick)
+            {
+                g.activeButtons[4].onClick();
+                bool fadeToggled = (g.settings.display.fadeInEnabled != initialFade);
+                logResult("Options 'Fade-in' toggles display fade", fadeToggled);
+                allPassed &= fadeToggled;
+            }
+
+            // Difficulty cycle (Slot 7)
+            int initialDiff = g.settings.gameplay.difficultyLevel;
+            if (g.activeButtons.size() > 7 && g.activeButtons[7].onClick)
+            {
+                g.activeButtons[7].onClick();
+                bool diffCycled = (g.settings.gameplay.difficultyLevel == (initialDiff + 1) % 5);
+                logResult("Options 'Difficulty' cycles difficulty tier", diffCycled);
+                allPassed &= diffCycled;
+            }
+
+            // Back button returns to Main Menu
+            if (g.activeButtons.size() > 14 && g.activeButtons[14].onClick)
+            {
+                g.activeButtons[14].onClick();
+                bool backToMenu = (dynamic_cast<mainMenuState*>(g.getActiveState()) != nullptr);
+                logResult("Options 'Back' button returns to Main Menu", backToMenu);
+                allPassed &= backToMenu;
+            }
+        }
+
+        // 3. Test Save/Load State Actions
+        g.changeState(std::make_unique<loadGameState>(SaveMenuMode::SAVE_AND_LOAD, std::make_unique<mainMenuState>()));
+        auto* loadState = dynamic_cast<loadGameState*>(g.getActiveState());
+        if (loadState)
+        {
+            g.refreshActionGrid();
+
+            // Toggle confirmations (Slot 0)
+            bool initConfirm = loadState->confirmationsEnabled;
+            if (!g.activeButtons.empty() && g.activeButtons[0].onClick)
+            {
+                g.activeButtons[0].onClick();
+                bool confirmToggled = (loadState->confirmationsEnabled != initConfirm);
+                logResult("Save/Load 'Confirmations' toggle functions", confirmToggled);
+                allPassed &= confirmToggled;
+            }
+
+            // Toggle Sort Name (Slot 2)
+            if (g.activeButtons.size() > 2 && g.activeButtons[2].onClick)
+            {
+                g.activeButtons[2].onClick();
+                bool sortNameSet = (loadState->sortMode == 1);
+                logResult("Save/Load 'Sort: Name' activates name sorting", sortNameSet);
+                allPassed &= sortNameSet;
+            }
+        }
+
+        return allPassed;
+    }
+
+    bool testContentOptionsAllCategories()
+    {
+        std::cout << "\n--- Running Test 7: Content Options 9 Categories & Demographic Logic ---\n";
+        bool allPassed = true;
+
+        game g;
+        g.init();
+
+        auto opt = std::make_unique<optionsState>(OptionsScreenMode::CONTENT_OPTIONS, std::make_unique<mainMenuState>());
+        auto* optPtr = opt.get();
+        g.changeState(std::move(opt));
+
+        // 1. Misc Category
+        optPtr->contentCategory = ContentOptionsCategory::MISC;
+        g.settings.gameplay.autoSaveFrequency = 2; // Weekly
+        g.settings.display.showArtwork = false;
+        g.settings.gameplay.stormInterruptions = false;
+
+        // 2. Gameplay Category
+        optPtr->contentCategory = ContentOptionsCategory::GAMEPLAY;
+        g.settings.gameplay.badEndsEnabled = false;
+        g.settings.gameplay.autoLoot = false;
+        g.settings.gameplay.currencyLossOnDefeatPercent = 0.50f;
+
+        // 3. Sex & Fetishes Category
+        optPtr->contentCategory = ContentOptionsCategory::SEX_AND_FETISHES;
+        g.settings.content.nonConEnabled = true;
+        g.settings.content.fluidMultiplier = 4.0f;
+
+        // 4. Bodies Category
+        optPtr->contentCategory = ContentOptionsCategory::BODIES;
+        g.settings.content.pregnancyEnabled = false;
+        g.settings.content.transformationSpeedMultiplier = 2.0f;
+
+        // 5. Gender Prefs Category
+        optPtr->contentCategory = ContentOptionsCategory::GENDER_PREFS;
+        g.settings.demographics.percentMale = 50.0f;
+        g.settings.demographics.percentFemale = 50.0f;
+        g.settings.demographics.percentHermaphrodite = 0.0f;
+
+        // 6. Orientation Prefs Category
+        optPtr->contentCategory = ContentOptionsCategory::ORIENTATION_PREFS;
+        g.settings.demographics.percentHetero = 10.0f;
+        g.settings.demographics.percentBi = 80.0f;
+
+        // 7. Fetish Prefs Category
+        optPtr->contentCategory = ContentOptionsCategory::FETISH_PREFS;
+        g.settings.content.fetishPreferences["Anal"] = 6; // Always
+        g.settings.content.fetishPreferences["Breasts lover"] = 5; // Love
+        g.settings.content.fetishPreferences["Oral"] = 1; // Hate
+
+        // Persist all settings
+        const std::string testOptFile = "data/test_content_options.json";
+        settingsManager::saveToFile(g.settings, testOptFile);
+
+        // Load back and verify data integrity
+        GameSettings verified;
+        settingsManager::loadFromFile(verified, testOptFile);
+
+        bool miscMatch = (verified.gameplay.autoSaveFrequency == 2 && !verified.display.showArtwork && !verified.gameplay.stormInterruptions);
+        logResult("Content Category 0 (Misc) Persisted Accurately", miscMatch);
+        allPassed &= miscMatch;
+
+        bool gpMatch = (!verified.gameplay.badEndsEnabled && !verified.gameplay.autoLoot && verified.gameplay.currencyLossOnDefeatPercent == 0.50f);
+        logResult("Content Category 1 (Gameplay) Persisted Accurately", gpMatch);
+        allPassed &= gpMatch;
+
+        bool sexMatch = (verified.content.nonConEnabled && verified.content.fluidMultiplier == 4.0f);
+        logResult("Content Category 2 (Sex & Fetishes) Persisted Accurately", sexMatch);
+        allPassed &= sexMatch;
+
+        bool bodiesMatch = (!verified.content.pregnancyEnabled && verified.content.transformationSpeedMultiplier == 2.0f);
+        logResult("Content Category 3 (Bodies) Persisted Accurately", bodiesMatch);
+        allPassed &= bodiesMatch;
+
+        bool demoMatch = (verified.demographics.percentMale == 50.0f && verified.demographics.percentBi == 80.0f);
+        logResult("Content Categories 4-7 (Demographics) Persisted Accurately", demoMatch);
+        allPassed &= demoMatch;
+
+        bool fetishMatch = (verified.content.fetishPreferences["Anal"] == 6 &&
+                            verified.content.fetishPreferences["Breasts lover"] == 5 &&
+                            verified.content.fetishPreferences["Oral"] == 1);
+        logResult("Content Category 8 (Fetish Ratings) Persisted Accurately", fetishMatch);
+        allPassed &= fetishMatch;
+
+        // Test Reset Category Defaults
+        optPtr->contentCategory = ContentOptionsCategory::GENDER_PREFS;
+        optPtr->resetCategoryDefaults(&g);
+        bool resetMatch = (g.settings.demographics.percentMale == 30.0f && g.settings.demographics.percentFemale == 40.0f);
+        logResult("Reset Category Defaults Restores Submenu Archetypes", resetMatch);
+        allPassed &= resetMatch;
+
+        std::error_code ec;
+        std::filesystem::remove(testOptFile, ec);
+
+        return allPassed;
+    }
+
     bool runAllTests()
     {
         g_passCount = 0;
@@ -316,6 +511,8 @@ namespace EngineTests
         bool t3 = testSaveLoadRoundtrip();
         bool t4 = testClothingDisplacement();
         bool t5 = testSettingsAndThemes();
+        bool t6 = testSubmenuButtonFunctionality();
+        bool t7 = testContentOptionsAllCategories();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";

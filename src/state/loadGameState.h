@@ -54,6 +54,8 @@ public:
     bool isEditingSaveName = false;
     std::string pendingOverwriteSaveName = "";
     std::string pendingDeleteFileName = "";
+    bool confirmationsEnabled = true;
+    int sortMode = 0; // 0 = Date, 1 = Name
 
     void goBack(game* gameContext);
 

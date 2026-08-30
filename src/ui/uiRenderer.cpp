@@ -1476,6 +1476,51 @@ float uiRenderer::renderLoadGameView(SDL_Renderer* renderer, game* gameContext, 
         curY += modalRect.h + (14.0f * uiScale);
     }
 
+    // New Save Input Row (when in Save mode or Player entity active)
+    if (isSaveMode || player != nullptr)
+    {
+        float inputRowH = 32.0f * uiScale;
+        SDL_FRect inputRowRect = { padX, curY, availableW, inputRowH };
+        UIWidget::drawPanel(renderer, inputRowRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+
+        UIWidget::drawText(renderer, "New save name:", padX + (10.0f * uiScale), curY + (7.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.88f);
+
+        float saveBtnW = 100.0f * uiScale;
+        float btnH = 24.0f * uiScale;
+        SDL_FRect saveBtnRect = { padX + availableW - saveBtnW - (6.0f * uiScale), curY + (4.0f * uiScale), saveBtnW, btnH };
+        bool saveHovered = (mousePos.x >= saveBtnRect.x && mousePos.x <= saveBtnRect.x + saveBtnRect.w &&
+                            mousePos.y >= saveBtnRect.y && mousePos.y <= saveBtnRect.y + saveBtnRect.h);
+
+        float nameBoxX = padX + (140.0f * uiScale);
+        float nameBoxW = availableW - (150.0f * uiScale) - saveBtnW - (12.0f * uiScale);
+        SDL_FRect nameBoxRect = { nameBoxX, curY + (4.0f * uiScale), nameBoxW, btnH };
+        bool boxHovered = (mousePos.x >= nameBoxRect.x && mousePos.x <= nameBoxRect.x + nameBoxRect.w &&
+                           mousePos.y >= nameBoxRect.y && mousePos.y <= nameBoxRect.y + nameBoxRect.h);
+
+        SDL_Color boxBorder = (loadState && loadState->isEditingSaveName) ? Theme::colors.textGold : (boxHovered ? Theme::colors.borderSelected : Theme::colors.borderButton);
+        UIWidget::drawPanel(renderer, nameBoxRect, Theme::colors.bgPanel, boxBorder);
+
+        std::string dispInput = loadState ? loadState->newSaveNameInput : "Manual_Save";
+        if (loadState && loadState->isEditingSaveName) dispInput += "_";
+        UIWidget::drawText(renderer, dispInput, nameBoxX + (8.0f * uiScale), curY + (7.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.82f);
+
+        if (boxHovered && clicked && loadState)
+        {
+            loadState->isEditingSaveName = true;
+            gameContext->input.consumeMouseClick();
+        }
+
+        UIWidget::drawButton(renderer, saveBtnRect, "Save Game", saveHovered, true, false, uiScale * 0.78f);
+        if (saveHovered && clicked && loadState)
+        {
+            saveManager::saveNamedGame(gameContext, loadState->newSaveNameInput);
+            loadState->isEditingSaveName = false;
+            gameContext->input.consumeMouseClick();
+        }
+
+        curY += inputRowH + (12.0f * uiScale);
+    }
+
     // 3. Table Column Headers: Time | Name | Save | Load | Delete
     float tableX = padX;
     float timeColW = 160.0f * uiScale;
@@ -1488,6 +1533,21 @@ float uiRenderer::renderLoadGameView(SDL_Renderer* renderer, game* gameContext, 
 
     // 4. Character Groups & Saves
     auto characterGroups = saveManager::getSavesGroupedByCharacter();
+
+    if (loadState && loadState->sortMode == 1)
+    {
+        // Alphabetical sort
+        std::sort(characterGroups.begin(), characterGroups.end(), [](const CharacterSaveGroup& a, const CharacterSaveGroup& b) {
+            return a.characterName < b.characterName;
+        });
+        for (auto& grp : characterGroups)
+        {
+            std::sort(grp.saves.begin(), grp.saves.end(), [](const SaveMetaData& a, const SaveMetaData& b) {
+                return a.saveName < b.saveName;
+            });
+        }
+    }
+
     if (characterGroups.empty())
     {
         UIWidget::drawText(renderer, "No save game files found.", textX, curY, Theme::colors.textMuted, uiScale * 0.88f);
@@ -1547,7 +1607,14 @@ float uiRenderer::renderLoadGameView(SDL_Renderer* renderer, game* gameContext, 
                     UIWidget::drawButton(renderer, delBtnRect, "Delete", delHovered, true, false, uiScale * 0.72f);
                     if (delHovered && clicked && loadState)
                     {
-                        loadState->pendingDeleteFileName = save.fileName;
+                        if (loadState->confirmationsEnabled)
+                        {
+                            loadState->pendingDeleteFileName = save.fileName;
+                        }
+                        else
+                        {
+                            saveManager::deleteSave(save.fileName);
+                        }
                         gameContext->input.consumeMouseClick();
                     }
                     rightOffset += delBtnW + (6.0f * uiScale);
@@ -1580,7 +1647,14 @@ float uiRenderer::renderLoadGameView(SDL_Renderer* renderer, game* gameContext, 
                         UIWidget::drawButton(renderer, saveBtnRect, "Save", saveHovered, true, false, uiScale * 0.72f);
                         if (saveHovered && clicked && loadState)
                         {
-                            loadState->pendingOverwriteSaveName = save.saveName.empty() ? save.fileName : save.saveName;
+                            if (loadState->confirmationsEnabled)
+                            {
+                                loadState->pendingOverwriteSaveName = save.saveName.empty() ? save.fileName : save.saveName;
+                            }
+                            else
+                            {
+                                saveManager::saveNamedGame(gameContext, save.saveName.empty() ? save.fileName : save.saveName);
+                            }
                             gameContext->input.consumeMouseClick();
                         }
                     }
@@ -1618,22 +1692,21 @@ float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, c
 
         float panelW = std::min(availableW, 720.0f * uiScale);
         float panelX = centerX - (panelW / 2.0f);
-        float panelH = 320.0f * uiScale;
-        SDL_FRect kbRect = { panelX, curY, panelW, panelH };
-        UIWidget::drawPanel(renderer, kbRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+        float panelH = 280.0f * uiScale;
+        SDL_FRect panelRect = { panelX, curY, panelW, panelH };
+        UIWidget::drawPanel(renderer, panelRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
-        float rowY = curY + (16.0f * uiScale);
-        auto drawKbRow = [&](std::string_view section, std::string_view keys, std::string_view desc) {
-            UIWidget::drawText(renderer, std::string(section), panelX + (16.0f * uiScale), rowY, Theme::colors.textGold, uiScale * 0.88f);
-            UIWidget::drawText(renderer, std::string(keys), panelX + (180.0f * uiScale), rowY, Theme::colors.textPrimary, uiScale * 0.88f);
-            UIWidget::drawText(renderer, std::string(desc), panelX + (360.0f * uiScale), rowY, Theme::colors.textSecondary, uiScale * 0.82f);
-            rowY += (24.0f * uiScale);
+        float kbRowY = curY + (14.0f * uiScale);
+        auto drawKbRow = [&](const std::string& section, const std::string& keys, const std::string& desc) {
+            UIWidget::drawText(renderer, section, panelX + (16.0f * uiScale), kbRowY, Theme::colors.textGold, uiScale * 0.85f);
+            UIWidget::drawText(renderer, keys, panelX + (160.0f * uiScale), kbRowY, Theme::colors.textPrimary, uiScale * 0.85f);
+            UIWidget::drawText(renderer, desc, panelX + (360.0f * uiScale), kbRowY, Theme::colors.textSecondary, uiScale * 0.85f);
+            kbRowY += (24.0f * uiScale);
         };
 
         drawKbRow("Grid Row 1", "1, 2, 3, 4, 5", "Execute slots 0 through 4");
         drawKbRow("Grid Row 2", "SHIFT + 1 .. 5", "Execute slots 5 through 9");
         drawKbRow("Grid Row 3", "CTRL + 1 .. 5", "Execute slots 10 through 14");
-        rowY += (8.0f * uiScale);
         drawKbRow("Exploration", "W, A, S, D / Arrows", "Move player on grid map");
         drawKbRow("Pages", "Q / E", "Previous / Next action grid page");
         drawKbRow("Quick Menus", "I (Inventory)", "Toggle inventory / equipment");
@@ -1662,32 +1735,115 @@ float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, c
         else if (curThemeName == "theme_dark_fantasy") curThemeName = "Dark Fantasy";
         else if (curThemeName == "theme_parchment") curThemeName = "Arcane Parchment";
 
-        UIWidget::drawText(renderer, "Visual Theme:", textX, curY, Theme::colors.textPrimary, uiScale * 0.95f);
-        curY += (18.0f * uiScale);
-        std::string themeDesc = std::format("Currently Active Theme: {}. Cycles between Dark Fantasy, Cyber Neon, Arcane Parchment, and Lilith Midnight palettes.", curThemeName);
-        float descH1 = UIWidget::drawTextWrapped(renderer, themeDesc, textX, curY, textW, Theme::colors.textSecondary, uiScale * 0.86f);
-        curY += descH1 + (18.0f * uiScale);
+        SDL_FRect themeCardRect = { textX, curY, textW, 46.0f * uiScale };
+        bool themeHovered = (mousePos.x >= themeCardRect.x && mousePos.x <= themeCardRect.x + themeCardRect.w &&
+                             mousePos.y >= themeCardRect.y && mousePos.y <= themeCardRect.y + themeCardRect.h);
+        UIWidget::drawPanel(renderer, themeCardRect, Theme::colors.bgSlot, themeHovered ? Theme::colors.borderSelected : Theme::colors.borderNormal);
+
+        UIWidget::drawText(renderer, "Visual Theme:", textX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.95f);
+        std::string themeDesc = std::format("Currently Active Theme: {} (Click to cycle themes).", curThemeName);
+        UIWidget::drawText(renderer, themeDesc, textX + (10.0f * uiScale), curY + (24.0f * uiScale), themeHovered ? Theme::colors.textGold : Theme::colors.textSecondary, uiScale * 0.85f);
+
+        if (themeHovered && clicked)
+        {
+            auto& cur = gameContext->settings.display.activeTheme;
+            if (cur == "theme_dark_fantasy" || cur == "dark_fantasy") cur = "theme_cyber_neon";
+            else if (cur == "theme_cyber_neon" || cur == "cyber_neon") cur = "theme_parchment";
+            else if (cur == "theme_parchment" || cur == "parchment") cur = "default";
+            else cur = "theme_dark_fantasy";
+
+            Theme::applyTheme(cur);
+            settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+            gameContext->refreshActionGrid();
+            gameContext->input.consumeMouseClick();
+        }
+        curY += themeCardRect.h + (12.0f * uiScale);
 
         // Section: Font-size
-        UIWidget::drawText(renderer, "Font-size:", textX, curY, Theme::colors.textPrimary, uiScale * 0.95f);
-        curY += (18.0f * uiScale);
-        std::string fontDesc = std::format("This cycles the game's base font size. Affects main dialogue, descriptions, and UI text scaling.\nMinimum font size is 12. Default font size is 18. Maximum font size is 36.\nCurrent font size: {}.", opt->fontSize);
-        float descH2 = UIWidget::drawTextWrapped(renderer, fontDesc, textX, curY, textW, Theme::colors.textSecondary, uiScale * 0.86f);
-        curY += descH2 + (18.0f * uiScale);
+        SDL_FRect fontCardRect = { textX, curY, textW, 58.0f * uiScale };
+        UIWidget::drawPanel(renderer, fontCardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+        UIWidget::drawText(renderer, "Font-size:", textX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.95f);
+
+        std::string fontDesc = std::format("Adjusts UI base font size (Min 12, Max 36). Current: {}pt.", gameContext->settings.display.fontSize);
+        UIWidget::drawText(renderer, fontDesc, textX + (10.0f * uiScale), curY + (24.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.84f);
+
+        float btnW = 32.0f * uiScale;
+        float btnH = 22.0f * uiScale;
+        SDL_FRect minusBtn = { textX + textW - (btnW * 2.0f) - (14.0f * uiScale), curY + (16.0f * uiScale), btnW, btnH };
+        SDL_FRect plusBtn = { textX + textW - btnW - (8.0f * uiScale), curY + (16.0f * uiScale), btnW, btnH };
+
+        bool minusHovered = (mousePos.x >= minusBtn.x && mousePos.x <= minusBtn.x + minusBtn.w && mousePos.y >= minusBtn.y && mousePos.y <= minusBtn.y + minusBtn.h);
+        bool plusHovered = (mousePos.x >= plusBtn.x && mousePos.x <= plusBtn.x + plusBtn.w && mousePos.y >= plusBtn.y && mousePos.y <= plusBtn.y + plusBtn.h);
+
+        UIWidget::drawButton(renderer, minusBtn, "-", minusHovered, true, false, uiScale * 0.8f);
+        UIWidget::drawButton(renderer, plusBtn, "+", plusHovered, true, false, uiScale * 0.8f);
+
+        if (minusHovered && clicked)
+        {
+            if (gameContext->settings.display.fontSize > 12)
+            {
+                gameContext->settings.display.fontSize -= 2;
+                opt->fontSize = gameContext->settings.display.fontSize;
+                settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                gameContext->refreshActionGrid();
+            }
+            gameContext->input.consumeMouseClick();
+        }
+        else if (plusHovered && clicked)
+        {
+            if (gameContext->settings.display.fontSize < 36)
+            {
+                gameContext->settings.display.fontSize += 2;
+                opt->fontSize = gameContext->settings.display.fontSize;
+                settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                gameContext->refreshActionGrid();
+            }
+            gameContext->input.consumeMouseClick();
+        }
+        curY += fontCardRect.h + (12.0f * uiScale);
 
         // Section: Fade-in
-        UIWidget::drawText(renderer, "Fade-in:", textX, curY, Theme::colors.textPrimary, uiScale * 0.95f);
-        curY += (18.0f * uiScale);
-        float descH3 = UIWidget::drawTextWrapped(renderer, "This option is responsible for fading in the main part of the text each time a new scene is displayed.", textX, curY, textW, Theme::colors.textSecondary, uiScale * 0.86f);
-        curY += descH3 + (18.0f * uiScale);
+        SDL_FRect fadeInRect = { textX, curY, textW, 46.0f * uiScale };
+        UIWidget::drawPanel(renderer, fadeInRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+        UIWidget::drawText(renderer, "Fade-in:", textX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.95f);
+        UIWidget::drawText(renderer, "Fades in main narrative text upon entering new scenes.", textX + (10.0f * uiScale), curY + (24.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.84f);
+
+        float pillW = 48.0f * uiScale;
+        SDL_FRect offPill = { textX + textW - (pillW * 2.0f) - (14.0f * uiScale), curY + (12.0f * uiScale), pillW, 22.0f * uiScale };
+        SDL_FRect onPill = { textX + textW - pillW - (8.0f * uiScale), curY + (12.0f * uiScale), pillW, 22.0f * uiScale };
+
+        bool offHovered = (mousePos.x >= offPill.x && mousePos.x <= offPill.x + offPill.w && mousePos.y >= offPill.y && mousePos.y <= offPill.y + offPill.h);
+        bool onHovered = (mousePos.x >= onPill.x && mousePos.x <= onPill.x + onPill.w && mousePos.y >= onPill.y && mousePos.y <= onPill.y + onPill.h);
+
+        bool isFadeOn = gameContext->settings.display.fadeInEnabled;
+        UIWidget::drawColoredButton(renderer, offPill, "OFF", !isFadeOn ? SDL_Color{ 160, 45, 55, 240 } : Theme::colors.bgButton, !isFadeOn ? Theme::colors.textPrimary : Theme::colors.textMuted, !isFadeOn, uiScale * 0.72f);
+        UIWidget::drawColoredButton(renderer, onPill, "ON", isFadeOn ? SDL_Color{ 45, 120, 65, 240 } : Theme::colors.bgButton, isFadeOn ? Theme::colors.textPrimary : Theme::colors.textMuted, isFadeOn, uiScale * 0.72f);
+
+        if (offHovered && clicked)
+        {
+            gameContext->settings.display.fadeInEnabled = false;
+            opt->fadeInEnabled = false;
+            settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+            gameContext->refreshActionGrid();
+            gameContext->input.consumeMouseClick();
+        }
+        else if (onHovered && clicked)
+        {
+            gameContext->settings.display.fadeInEnabled = true;
+            opt->fadeInEnabled = true;
+            settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+            gameContext->refreshActionGrid();
+            gameContext->input.consumeMouseClick();
+        }
+        curY += fadeInRect.h + (14.0f * uiScale);
 
         // Section: Difficulty
         static const char* diffNames[] = { "Human", "Morph", "Demon", "Lilin", "Lilith" };
-        std::string diffHeader = std::format("Difficulty (Currently set to {}):", diffNames[opt->difficultyLevel]);
+        std::string diffHeader = std::format("Difficulty (Currently set to {}):", diffNames[gameContext->settings.gameplay.difficultyLevel % 5]);
         UIWidget::drawText(renderer, diffHeader, textX, curY, Theme::colors.textPrimary, uiScale * 0.95f);
         curY += (20.0f * uiScale);
 
-        // Colored difficulty tiers
+        // Colored difficulty tiers (interactive cards)
         struct DiffTier { std::string name; std::string desc; SDL_Color col; };
         static const DiffTier tiers[5] = {
             { "Human", "The standard gameplay experience. Balanced level progression and baseline enemy stats.", Theme::colors.textPrimary },
@@ -1699,10 +1855,31 @@ float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, c
 
         for (int i = 0; i < 5; ++i)
         {
-            UIWidget::drawText(renderer, tiers[i].name, textX, curY, tiers[i].col, uiScale * 0.88f);
-            float nameOffset = UIWidget::getTextWidth(tiers[i].name, uiScale * 0.88f) + (8.0f * uiScale);
-            float tierH = UIWidget::drawTextWrapped(renderer, tiers[i].desc, textX + nameOffset, curY, textW - nameOffset, Theme::colors.textSecondary, uiScale * 0.85f);
-            curY += std::max(tierH, 18.0f * uiScale) + (6.0f * uiScale);
+            bool isCurrentDiff = (gameContext->settings.gameplay.difficultyLevel == i);
+            float cardH2 = 32.0f * uiScale;
+            SDL_FRect tierRect = { textX, curY, textW, cardH2 };
+            bool tierHovered = (mousePos.x >= tierRect.x && mousePos.x <= tierRect.x + tierRect.w && mousePos.y >= tierRect.y && mousePos.y <= tierRect.y + tierRect.h);
+
+            SDL_Color tierBg = isCurrentDiff ? SDL_Color{ 50, 20, 40, 255 } : (tierHovered ? SDL_Color{ 45, 48, 56, 255 } : Theme::colors.bgSlot);
+            SDL_Color tierBorder = isCurrentDiff ? Theme::colors.borderSelected : (tierHovered ? Theme::colors.textGold : Theme::colors.borderNormal);
+            UIWidget::drawPanel(renderer, tierRect, tierBg, tierBorder);
+
+            UIWidget::drawText(renderer, tiers[i].name, textX + (10.0f * uiScale), curY + (6.0f * uiScale), tiers[i].col, uiScale * 0.88f);
+            float nameOffset = UIWidget::getTextWidth(tiers[i].name, uiScale * 0.88f) + (18.0f * uiScale);
+            UIWidget::drawText(renderer, tiers[i].desc, textX + nameOffset, curY + (6.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.82f);
+
+            if (tierHovered && clicked)
+            {
+                gameContext->settings.gameplay.difficultyLevel = i;
+                opt->difficultyLevel = i;
+                static constexpr float diffMults[] = { 1.0f, 1.25f, 2.0f, 2.5f, 4.0f };
+                gameContext->settings.gameplay.difficultyMultiplier = diffMults[i];
+                settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                gameContext->refreshActionGrid();
+                gameContext->input.consumeMouseClick();
+            }
+
+            curY += cardH2 + (6.0f * uiScale);
         }
 
         return (curY - startY);
@@ -1864,229 +2041,289 @@ float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, c
             curY += rowMinH + (6.0f * uiScale);
         };
 
+        auto freqIdxToFloat = [](int idx) -> float {
+            static constexpr float vals[] = { 0.0f, 5.0f, 15.0f, 30.0f, 60.0f, 100.0f };
+            return (idx >= 0 && idx < 6) ? vals[idx] : 30.0f;
+        };
+
+        auto floatToFreqIdx = [](float val) -> int {
+            if (val < 2.5f) return 0;
+            if (val < 10.0f) return 1;
+            if (val < 22.5f) return 2;
+            if (val < 45.0f) return 3;
+            if (val < 80.0f) return 4;
+            return 5;
+        };
+
         if (opt->contentCategory == ContentOptionsCategory::MISC)
         {
-            renderOptionCard("Autosave Frequency", Theme::colors.companion, "Choose how often want the game to autosave when you transition from one map to another.", { "Always", "Daily", "Weekly" }, 0, [](int idx) {});
-            renderOptionCard("Artwork", SDL_Color{ 100, 200, 255, 255 }, "Enables artwork to be displayed in characters' information screens.", { "OFF", "ON" }, 1, [](int idx) {});
-            renderOptionCard("Thumbnails", SDL_Color{ 100, 200, 255, 255 }, "Enables tooltips containing thumbnail images of the character.", { "OFF", "ON" }, 1, [](int idx) {});
-            renderOptionCard("Shared Encyclopedia", Theme::colors.textGold, "When enabled, your character will use the shared Encyclopedia across playthroughs.", { "OFF", "ON" }, 0, [](int idx) {});
-            renderOptionCard("Storm interruptions", SDL_Color{ 235, 140, 255, 255 }, "When enabled, arcane storms will interrupt dialogue to let you know that they've started.", { "OFF", "ON" }, 1, [](int idx) {});
+            renderOptionCard("Autosave Frequency", Theme::colors.companion, "Choose how often want the game to autosave when you transition from one map to another.",
+                             { "Always", "Daily", "Weekly", "Off" },
+                             gameContext->settings.gameplay.autoSaveFrequency,
+                             [&](int idx) {
+                                 gameContext->settings.gameplay.autoSaveFrequency = idx;
+                                 settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                             });
+
+            renderOptionCard("Artwork", SDL_Color{ 100, 200, 255, 255 }, "Enables artwork to be displayed in characters' information screens.",
+                             { "OFF", "ON" },
+                             gameContext->settings.display.showArtwork ? 1 : 0,
+                             [&](int idx) {
+                                 gameContext->settings.display.showArtwork = (idx == 1);
+                                 settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                             });
+
+            renderOptionCard("Thumbnails", SDL_Color{ 100, 200, 255, 255 }, "Enables tooltips containing thumbnail images of the character.",
+                             { "OFF", "ON" },
+                             gameContext->settings.display.showThumbnails ? 1 : 0,
+                             [&](int idx) {
+                                 gameContext->settings.display.showThumbnails = (idx == 1);
+                                 settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                             });
+
+            renderOptionCard("Shared Encyclopedia", Theme::colors.textGold, "When enabled, your character will use the shared Encyclopedia across playthroughs.",
+                             { "OFF", "ON" },
+                             gameContext->settings.gameplay.sharedEncyclopedia ? 1 : 0,
+                             [&](int idx) {
+                                 gameContext->settings.gameplay.sharedEncyclopedia = (idx == 1);
+                                 settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                             });
+
+            renderOptionCard("Storm interruptions", SDL_Color{ 235, 140, 255, 255 }, "When enabled, arcane storms will interrupt dialogue to let you know that they've started.",
+                             { "OFF", "ON" },
+                             gameContext->settings.gameplay.stormInterruptions ? 1 : 0,
+                             [&](int idx) {
+                                 gameContext->settings.gameplay.stormInterruptions = (idx == 1);
+                                 settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                             });
         }
         else if (opt->contentCategory == ContentOptionsCategory::GAMEPLAY)
         {
-            renderOptionCard("Enchantment Instability", SDL_Color{ 235, 140, 255, 255 }, "Toggle the 'enchantment instability' mechanic, restricting enchanted items.", { "OFF", "ON" }, 1, [](int idx) {});
-            renderOptionCard("Bad Ends", SDL_Color{ 255, 110, 120, 255 }, "Toggle the ability to trigger 'bad ends', which end the game when encountered.", { "OFF", "ON" }, 1, [](int idx) {});
-            renderOptionCard("Level Drain", SDL_Color{ 255, 90, 100, 255 }, "Toggle the use of the 'orgasmic level drain' perk by unique NPCs.", { "OFF", "ON" }, 1, [](int idx) {});
-            renderOptionCard("Opportunistic attackers", SDL_Color{ 255, 110, 120, 255 }, "Makes random attacks more likely when you're high on lust, low health, or exposed.", { "OFF", "ON" }, 1, [](int idx) {});
-            renderOptionCard("Offspring Encounters", SDL_Color{ 160, 160, 255, 255 }, "Enables you to randomly encounter your offspring throughout the world.", { "OFF", "ON" }, 1, [](int idx) {});
+            renderOptionCard("Enchantment Instability", SDL_Color{ 235, 140, 255, 255 }, "Toggle the 'enchantment instability' mechanic, restricting enchanted items.",
+                             { "OFF", "ON" },
+                             gameContext->settings.gameplay.enchantmentInstability ? 1 : 0,
+                             [&](int idx) {
+                                 gameContext->settings.gameplay.enchantmentInstability = (idx == 1);
+                                 settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                             });
+
+            renderOptionCard("Bad Ends", SDL_Color{ 255, 110, 120, 255 }, "Toggle the ability to trigger 'bad ends', which end the game when encountered.",
+                             { "OFF", "ON" },
+                             gameContext->settings.gameplay.badEndsEnabled ? 1 : 0,
+                             [&](int idx) {
+                                 gameContext->settings.gameplay.badEndsEnabled = (idx == 1);
+                                 settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                             });
+
+            renderOptionCard("Level Drain", SDL_Color{ 255, 90, 100, 255 }, "Toggle the use of the 'orgasmic level drain' perk by unique NPCs.",
+                             { "OFF", "ON" },
+                             gameContext->settings.gameplay.levelDrainEnabled ? 1 : 0,
+                             [&](int idx) {
+                                 gameContext->settings.gameplay.levelDrainEnabled = (idx == 1);
+                                 settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                             });
+
+            renderOptionCard("Opportunistic attackers", SDL_Color{ 255, 110, 120, 255 }, "Makes random attacks more likely when you're high on lust, low health, or exposed.",
+                             { "OFF", "ON" },
+                             gameContext->settings.gameplay.opportunisticAttackers ? 1 : 0,
+                             [&](int idx) {
+                                 gameContext->settings.gameplay.opportunisticAttackers = (idx == 1);
+                                 settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                             });
+
+            renderOptionCard("Auto-Loot Defeated Enemies", SDL_Color{ 100, 200, 255, 255 }, "Automatically collects dropped coin and essentials upon combat victory.",
+                             { "OFF", "ON" },
+                             gameContext->settings.gameplay.autoLoot ? 1 : 0,
+                             [&](int idx) {
+                                 gameContext->settings.gameplay.autoLoot = (idx == 1);
+                                 settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                             });
+
+            int curLossIdx = (gameContext->settings.gameplay.currencyLossOnDefeatPercent < 0.05f) ? 0 :
+                             (gameContext->settings.gameplay.currencyLossOnDefeatPercent < 0.20f ? 1 :
+                             (gameContext->settings.gameplay.currencyLossOnDefeatPercent < 0.40f ? 2 : 3));
+            renderOptionCard("Currency Loss on Defeat", SDL_Color{ 255, 180, 80, 255 }, "Percentage of carried gold dropped when suffering a defeat.",
+                             { "0%", "10%", "25%", "50%" },
+                             curLossIdx,
+                             [&](int idx) {
+                                 static constexpr float lossPcts[] = { 0.0f, 0.10f, 0.25f, 0.50f };
+                                 gameContext->settings.gameplay.currencyLossOnDefeatPercent = lossPcts[idx];
+                                 settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                             });
         }
         else if (opt->contentCategory == ContentOptionsCategory::SEX_AND_FETISHES)
         {
-            renderOptionCard("Non-consent", SDL_Color{ 255, 95, 120, 255 }, "This enables the 'resist' pace in sex scenes, which contains some more extreme non-consensual descriptions, as well as dialogue references and actions related to this content. Please note that bad ends involve non-con content, regardless of whether or not this option is enabled.", { "OFF", "ON" }, 1, [](int idx) {});
-            renderOptionCard("Sadistic sex", SDL_Color{ 255, 95, 120, 255 }, "This unlocks 'sadistic' sex actions, such as choking, slapping, and spitting on partners in sex.", { "OFF", "ON" }, 1, [](int idx) {});
-            renderOptionCard("Lipstick marking", SDL_Color{ 255, 105, 180, 255 }, "This enables lipstick marking of body parts via kisses during sex.", { "OFF", "ON" }, 1, [](int idx) {});
-            renderOptionCard("Voluntary NTR", SDL_Color{ 255, 130, 160, 255 }, "When enabled, you will get the option to offer certain enemies sex with your companions as a way to avoid combat.", { "OFF", "ON" }, 1, [](int idx) {});
-            renderOptionCard("Involuntary NTR", SDL_Color{ 255, 95, 120, 255 }, "When enabled, enemies might choose to only have sex with your companion after beating your party in combat. When disabled, all post-combat-loss sex scenes will involve you.", { "OFF", "ON" }, 0, [](int idx) {});
-            renderOptionCard("Incest", SDL_Color{ 190, 130, 255, 255 }, "This will enable sexual actions between closely related characters.", { "OFF", "ON" }, 1, [](int idx) {});
+            renderOptionCard("Non-consent", SDL_Color{ 255, 95, 120, 255 }, "This enables the 'resist' pace in sex scenes, which contains more extreme non-consensual descriptions.",
+                             { "OFF", "ON" },
+                             gameContext->settings.content.nonConEnabled ? 1 : 0,
+                             [&](int idx) {
+                                 gameContext->settings.content.nonConEnabled = (idx == 1);
+                                 settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                             });
+
+            renderOptionCard("Sadistic sex / Extreme", SDL_Color{ 255, 95, 120, 255 }, "This unlocks 'sadistic' sex actions such as rough treatment and heavy restraints.",
+                             { "OFF", "ON" },
+                             gameContext->settings.content.extremeContentEnabled ? 1 : 0,
+                             [&](int idx) {
+                                 gameContext->settings.content.extremeContentEnabled = (idx == 1);
+                                 settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                             });
+
+            renderOptionCard("Public Sex Exposure", SDL_Color{ 255, 105, 180, 255 }, "Allows public exhibitionism and onlookers during intimate encounters in open zones.",
+                             { "OFF", "ON" },
+                             gameContext->settings.content.publicSexEnabled ? 1 : 0,
+                             [&](int idx) {
+                                 gameContext->settings.content.publicSexEnabled = (idx == 1);
+                                 settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                             });
+
+            int fluidIdx = (gameContext->settings.content.fluidMultiplier <= 0.3f) ? 0 :
+                           (gameContext->settings.content.fluidMultiplier <= 0.7f ? 1 :
+                           (gameContext->settings.content.fluidMultiplier <= 1.5f ? 2 :
+                           (gameContext->settings.content.fluidMultiplier <= 3.0f ? 3 : 4)));
+            renderOptionCard("Fluid Multiplier", SDL_Color{ 100, 210, 255, 255 }, "Scales fluid volume generated during climax and bodily transformations.",
+                             { "0.25x", "0.5x", "1.0x", "2.0x", "4.0x" },
+                             fluidIdx,
+                             [&](int idx) {
+                                 static constexpr float flVals[] = { 0.25f, 0.5f, 1.0f, 2.0f, 4.0f };
+                                 gameContext->settings.content.fluidMultiplier = flVals[idx];
+                                 settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                             });
         }
         else if (opt->contentCategory == ContentOptionsCategory::BODIES)
         {
-            renderOptionCard("Age", SDL_Color{ 185, 230, 110, 255 }, "This enables descriptions of the age that characters appear to be.", { "OFF", "ON" }, 1, [](int idx) {});
-            renderOptionCard("Feral", SDL_Color{ 240, 180, 80, 255 }, "This enables feral content, which contains sexual and non-sexual interactions with sapient characters who have fully-animal bodies.", { "OFF", "ON" }, 1, [](int idx) {});
-            renderOptionCard("Cum Regeneration", SDL_Color{ 100, 210, 255, 255 }, "This enables cum regeneration related content, such as decreasing quantity for multiple orgasms in one session and the full balls status effect. When disabled, balls will always be treated as full, but without any negative effects.", { "OFF", "ON" }, 1, [](int idx) {});
-            renderOptionCard("Futanari Testicles", SDL_Color{ 255, 80, 200, 255 }, "When enabled, futanari NPCs will be able to have external testicles. When disabled, they are locked to always being internal.", { "OFF", "ON" }, 1, [](int idx) {});
-            renderOptionCard("Bipedal Cloacas", SDL_Color{ 255, 80, 200, 255 }, "When enabled, certain bipedal races (such as harpies and alligator-morphs) will have cloacas. When disabled, all bipeds with cloacas will be treated as having a regular genitalia configuration. Some special races, such as lamia, always have cloacas, and are not affected by this.", { "OFF", "ON" }, 1, [](int idx) {});
+            renderOptionCard("Pregnancy", SDL_Color{ 185, 230, 110, 255 }, "Enables insemination, gestation progression, and progeny generation mechanics.",
+                             { "OFF", "ON" },
+                             gameContext->settings.content.pregnancyEnabled ? 1 : 0,
+                             [&](int idx) {
+                                 gameContext->settings.content.pregnancyEnabled = (idx == 1);
+                                 settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                             });
+
+            renderOptionCard("Lactation", SDL_Color{ 100, 210, 255, 255 }, "Enables breast engorgement, milk production, and related dialogue / feeding actions.",
+                             { "OFF", "ON" },
+                             gameContext->settings.content.lactationEnabled ? 1 : 0,
+                             [&](int idx) {
+                                 gameContext->settings.content.lactationEnabled = (idx == 1);
+                                 settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                             });
+
+            int tfIdx = (gameContext->settings.content.transformationSpeedMultiplier >= 5.0f) ? 0 :
+                        (gameContext->settings.content.transformationSpeedMultiplier >= 1.5f ? 1 :
+                        (gameContext->settings.content.transformationSpeedMultiplier >= 0.8f ? 2 :
+                        (gameContext->settings.content.transformationSpeedMultiplier > 0.0f ? 3 : 4)));
+            renderOptionCard("Transformation Speed", SDL_Color{ 240, 180, 80, 255 }, "Governs speed of anatomical mutations and bodily reshaping.",
+                             { "Instant", "Fast", "Normal", "Slow", "Off" },
+                             tfIdx,
+                             [&](int idx) {
+                                 static constexpr float tfVals[] = { 10.0f, 2.0f, 1.0f, 0.5f, 0.0f };
+                                 gameContext->settings.content.transformationSpeedMultiplier = tfVals[idx];
+                                 settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                             });
         }
         else if (opt->contentCategory == ContentOptionsCategory::GENDER_PREFS)
         {
-            renderFrequencyRow("Butch", SDL_Color{ 100, 160, 255, 255 }, "Butchs have a vagina, no penis, and breasts.", 0, [](int idx) {});
-            renderFrequencyRow("Cuntboy", SDL_Color{ 100, 160, 255, 255 }, "Cuntboys have a vagina, no penis, and no breasts.", 0, [](int idx) {});
-            renderFrequencyRow("Mannequin", SDL_Color{ 100, 160, 255, 255 }, "Mannequins have no vagina, no penis, and breasts.", 0, [](int idx) {});
-            renderFrequencyRow("Mannequin", SDL_Color{ 100, 160, 255, 255 }, "Mannequins have no vagina, no penis, and no breasts.", 0, [](int idx) {});
+            renderInfoDropdown();
 
-            renderDistributionBar({ { 45.0f, SDL_Color{ 100, 160, 255, 255 } }, { 10.0f, SDL_Color{ 140, 90, 120, 255 } }, { 5.0f, SDL_Color{ 190, 130, 160, 255 } }, { 40.0f, SDL_Color{ 255, 170, 215, 255 } } });
+            auto& d = gameContext->settings.demographics;
+            renderFrequencyRow("Male / Masculine", SDL_Color{ 100, 160, 255, 255 }, "Masculine bodies with male anatomy.", floatToFreqIdx(d.percentMale),
+                               [&](int idx) { d.percentMale = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
 
-            UIWidget::drawText(renderer, "Androgynous", centerX - (45.0f * uiScale), curY, SDL_Color{ 180, 130, 255, 255 }, uiScale * 0.95f);
-            curY += (20.0f * uiScale);
+            renderFrequencyRow("Female / Feminine", SDL_Color{ 255, 120, 180, 255 }, "Feminine bodies with female anatomy.", floatToFreqIdx(d.percentFemale),
+                               [&](int idx) { d.percentFemale = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
 
-            renderFrequencyRow("Hermaphrodite", SDL_Color{ 180, 130, 255, 255 }, "Hermaphrodites have a vagina, a penis, and breasts.", 0, [](int idx) {});
-            renderFrequencyRow("Hermaphrodite", SDL_Color{ 180, 130, 255, 255 }, "Hermaphrodites have a vagina, a penis, and no breasts.", 0, [](int idx) {});
+            renderFrequencyRow("Hermaphrodite", SDL_Color{ 180, 130, 255, 255 }, "Dual sex anatomy with breasts and penis.", floatToFreqIdx(d.percentHermaphrodite),
+                               [&](int idx) { d.percentHermaphrodite = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
+
+            renderFrequencyRow("Gynomorph", SDL_Color{ 255, 140, 220, 255 }, "Feminine frame with penis and breasts.", floatToFreqIdx(d.percentGynomorph),
+                               [&](int idx) { d.percentGynomorph = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
+
+            renderFrequencyRow("Andromorph", SDL_Color{ 120, 190, 255, 255 }, "Masculine frame with vagina and flat chest.", floatToFreqIdx(d.percentAndromorph),
+                               [&](int idx) { d.percentAndromorph = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
+
+            renderFrequencyRow("Asexual / Null", SDL_Color{ 180, 180, 190, 255 }, "Neutral form with smooth groin.", floatToFreqIdx(d.percentNull),
+                               [&](int idx) { d.percentNull = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
+
+            renderDistributionBar({
+                { d.percentMale, SDL_Color{ 100, 160, 255, 255 } },
+                { d.percentFemale, SDL_Color{ 255, 120, 180, 255 } },
+                { d.percentHermaphrodite, SDL_Color{ 180, 130, 255, 255 } },
+                { d.percentGynomorph, SDL_Color{ 255, 140, 220, 255 } },
+                { d.percentAndromorph, SDL_Color{ 120, 190, 255, 255 } },
+                { d.percentNull, SDL_Color{ 180, 180, 190, 255 } }
+            });
         }
         else if (opt->contentCategory == ContentOptionsCategory::ORIENTATION_PREFS)
         {
             renderInfoDropdown();
 
-            renderFrequencyRow("Androphilic", SDL_Color{ 100, 160, 255, 255 }, "", 3, [](int idx) {});
-            renderFrequencyRow("Ambiphilic", SDL_Color{ 180, 130, 255, 255 }, "", 3, [](int idx) {});
-            renderFrequencyRow("Gynephilic", SDL_Color{ 255, 110, 180, 255 }, "", 3, [](int idx) {});
+            auto& d = gameContext->settings.demographics;
+            renderFrequencyRow("Heterosexual", SDL_Color{ 100, 160, 255, 255 }, "Attracted to opposite sex.", floatToFreqIdx(d.percentHetero),
+                               [&](int idx) { d.percentHetero = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
 
-            curY += (8.0f * uiScale);
-            renderDistributionBar({ { 33.3f, SDL_Color{ 100, 160, 255, 255 } }, { 33.3f, SDL_Color{ 180, 130, 255, 255 } }, { 33.4f, SDL_Color{ 255, 170, 215, 255 } } });
+            renderFrequencyRow("Bisexual", SDL_Color{ 180, 130, 255, 255 }, "Attracted to both sexes.", floatToFreqIdx(d.percentBi),
+                               [&](int idx) { d.percentBi = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
+
+            renderFrequencyRow("Homosexual", SDL_Color{ 255, 110, 180, 255 }, "Attracted to same sex.", floatToFreqIdx(d.percentHomo),
+                               [&](int idx) { d.percentHomo = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
+
+            renderFrequencyRow("Asexual", SDL_Color{ 180, 180, 190, 255 }, "Low or no sexual interest.", floatToFreqIdx(d.percentAsexual),
+                               [&](int idx) { d.percentAsexual = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
+
+            renderDistributionBar({
+                { d.percentHetero, SDL_Color{ 100, 160, 255, 255 } },
+                { d.percentBi, SDL_Color{ 180, 130, 255, 255 } },
+                { d.percentHomo, SDL_Color{ 255, 110, 180, 255 } },
+                { d.percentAsexual, SDL_Color{ 180, 180, 190, 255 } }
+            });
         }
         else if (opt->contentCategory == ContentOptionsCategory::AGE_PREFS)
         {
             renderInfoDropdown();
 
-            UIWidget::drawText(renderer, "Masculine", centerX - (38.0f * uiScale), curY, SDL_Color{ 100, 160, 255, 255 }, uiScale * 0.95f);
-            curY += (20.0f * uiScale);
+            auto& d = gameContext->settings.demographics;
+            renderFrequencyRow("Young Adult (18-25)", SDL_Color{ 140, 220, 110, 255 }, "", floatToFreqIdx(d.percentYoungAdult),
+                               [&](int idx) { d.percentYoungAdult = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
 
-            renderFrequencyRow("Late teens", Theme::colors.textPrimary, "", 4, [](int idx) {});
-            renderFrequencyRow("Early twenties", Theme::colors.textPrimary, "", 5, [](int idx) {});
-            renderFrequencyRow("Mid-twenties", Theme::colors.textPrimary, "", 5, [](int idx) {});
-            renderFrequencyRow("Late twenties", Theme::colors.textPrimary, "", 4, [](int idx) {});
-            renderFrequencyRow("Early thirties", Theme::colors.textPrimary, "", 3, [](int idx) {});
-            renderFrequencyRow("Mid-thirties", Theme::colors.textPrimary, "", 3, [](int idx) {});
-            renderFrequencyRow("Late thirties", Theme::colors.textPrimary, "", 2, [](int idx) {});
-            renderFrequencyRow("Early forties", Theme::colors.textPrimary, "", 2, [](int idx) {});
-            renderFrequencyRow("Mid-forties", Theme::colors.textPrimary, "", 1, [](int idx) {});
+            renderFrequencyRow("Adult (26-40)", SDL_Color{ 100, 200, 255, 255 }, "", floatToFreqIdx(d.percentAdult),
+                               [&](int idx) { d.percentAdult = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
+
+            renderFrequencyRow("Mature (41-60)", SDL_Color{ 220, 180, 90, 255 }, "", floatToFreqIdx(d.percentMature),
+                               [&](int idx) { d.percentMature = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
+
+            renderFrequencyRow("Elder (60+)", SDL_Color{ 200, 140, 140, 255 }, "", floatToFreqIdx(d.percentElder),
+                               [&](int idx) { d.percentElder = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
+
+            renderDistributionBar({
+                { d.percentYoungAdult, SDL_Color{ 140, 220, 110, 255 } },
+                { d.percentAdult, SDL_Color{ 100, 200, 255, 255 } },
+                { d.percentMature, SDL_Color{ 220, 180, 90, 255 } },
+                { d.percentElder, SDL_Color{ 200, 140, 140, 255 } }
+            });
         }
         else if (opt->contentCategory == ContentOptionsCategory::FURRY_PREFS)
         {
             renderInfoDropdown();
 
-            // 3 Rate Cards in a row: Human Spawn Rate, Taur Spawn Rate, Half-Demon Spawn Rate
-            float rateCardW = (availableW - (16.0f * uiScale)) / 3.0f;
-            float rateCardH = 48.0f * uiScale;
-            struct RateInfo { std::string title; SDL_Color col; int val; };
-            RateInfo rates[3] = {
-                { "Human Spawn Rate", Theme::colors.textPrimary, 5 },
-                { "Taur Spawn Rate", SDL_Color{ 200, 160, 120, 255 }, 5 },
-                { "Half-Demon Spawn Rate", SDL_Color{ 180, 130, 255, 255 }, 5 }
-            };
+            auto& d = gameContext->settings.demographics;
+            renderFrequencyRow("Human / Pureblood", Theme::colors.textPrimary, "Regular human bodies without morph features.", floatToFreqIdx(d.percentHuman),
+                               [&](int idx) { d.percentHuman = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
 
-            for (int r = 0; r < 3; ++r)
-            {
-                SDL_FRect rRect = { padX + (r * (rateCardW + 8.0f * uiScale)), curY, rateCardW, rateCardH };
-                UIWidget::drawPanel(renderer, rRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
-                float titleW = rates[r].title.size() * (6.0f * uiScale);
-                UIWidget::drawText(renderer, rates[r].title, rRect.x + ((rRect.w - titleW) / 2.0f), rRect.y + (5.0f * uiScale), rates[r].col, uiScale * 0.82f);
+            renderFrequencyRow("Partial Morph (Ears/Tail)", SDL_Color{ 200, 160, 120, 255 }, "Humanoid bodies with animal ears, tails, or horns.", floatToFreqIdx(d.percentPartial),
+                               [&](int idx) { d.percentPartial = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
 
-                float btnW = 16.0f * uiScale;
-                float btnH = 16.0f * uiScale;
-                float stepY = rRect.y + (24.0f * uiScale);
-                float midX = rRect.x + (rRect.w / 2.0f);
+            renderFrequencyRow("Anthropomorphic", SDL_Color{ 180, 130, 255, 255 }, "Full fur, muzzle, and digitigrade anatomy on bipedal form.", floatToFreqIdx(d.percentAnthro),
+                               [&](int idx) { d.percentAnthro = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
 
-                SDL_FRect m1 = { midX - (45.0f * uiScale), stepY, btnW, btnH };
-                SDL_FRect m2 = { midX - (25.0f * uiScale), stepY, btnW, btnH };
-                SDL_FRect p1 = { midX + (12.0f * uiScale), stepY, btnW, btnH };
-                SDL_FRect p2 = { midX + (32.0f * uiScale), stepY, btnW, btnH };
+            renderFrequencyRow("Feral / Bestial", SDL_Color{ 240, 110, 110, 255 }, "Quadrupedal / animalistic body structures.", floatToFreqIdx(d.percentFeral),
+                               [&](int idx) { d.percentFeral = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
 
-                UIWidget::drawColoredButton(renderer, m1, "-", SDL_Color{ 160, 45, 55, 240 }, Theme::colors.textPrimary, false, uiScale * 0.7f);
-                UIWidget::drawColoredButton(renderer, m2, "-", SDL_Color{ 160, 45, 55, 240 }, Theme::colors.textPrimary, false, uiScale * 0.7f);
-                UIWidget::drawText(renderer, std::format("{}%", rates[r].val), midX - (8.0f * uiScale), stepY + (2.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.8f);
-                UIWidget::drawColoredButton(renderer, p1, "+", SDL_Color{ 45, 120, 65, 240 }, Theme::colors.textPrimary, false, uiScale * 0.7f);
-                UIWidget::drawColoredButton(renderer, p2, "+", SDL_Color{ 45, 120, 65, 240 }, Theme::colors.textPrimary, false, uiScale * 0.7f);
-            }
-            curY += rateCardH + (12.0f * uiScale);
-
-            // Tauric Upper-body Furriness
-            float taurH = 54.0f * uiScale;
-            SDL_FRect taurRect = { padX, curY, availableW, taurH };
-            UIWidget::drawPanel(renderer, taurRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
-            UIWidget::drawText(renderer, "Tauric Upper-body Furriness:", padX + (10.0f * uiScale), curY + (6.0f * uiScale), SDL_Color{ 200, 160, 120, 255 }, uiScale * 0.85f);
-            UIWidget::drawTextWrapped(renderer, "Set how furry you prefer the upper bodies of taurs to be.", padX + (10.0f * uiScale), curY + (24.0f * uiScale), availableW * 0.48f, Theme::colors.textSecondary, uiScale * 0.8f);
-
-            static const char* taurOpts[6] = { "Untouched", "Human", "Minimum", "Lesser", "Greater", "Maximum" };
-            float optBtnW = 60.0f * uiScale;
-            float optBtnH = 20.0f * uiScale;
-            float optStartX = padX + availableW - (3 * (optBtnW + 4.0f * uiScale)) - (8.0f * uiScale);
-
-            for (int i = 0; i < 6; ++i)
-            {
-                int r = i / 3;
-                int c = i % 3;
-                SDL_FRect bRect = { optStartX + (c * (optBtnW + 4.0f * uiScale)), curY + (6.0f * uiScale) + (r * (optBtnH + 4.0f * uiScale)), optBtnW, optBtnH };
-                bool isMin = (i == 2);
-                SDL_Color bCol = isMin ? SDL_Color{ 75, 24, 55, 255 } : Theme::colors.bgButton;
-                SDL_Color tCol = isMin ? SDL_Color{ 255, 220, 245, 255 } : Theme::colors.textMuted;
-                UIWidget::drawColoredButton(renderer, bRect, taurOpts[i], bCol, tCol, isMin, uiScale * 0.72f);
-            }
-            curY += taurH + (12.0f * uiScale);
-
-            // Bulk Setters
-            auto renderBulkRow = [&](const std::string& label, const std::vector<std::string>& pills) {
-                float bH = 28.0f * uiScale;
-                SDL_FRect bRect = { padX, curY, availableW, bH };
-                UIWidget::drawPanel(renderer, bRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
-                UIWidget::drawText(renderer, label, padX + (12.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.85f);
-                float pW = 52.0f * uiScale;
-                float pStartX = padX + availableW - (pills.size() * (pW + 4.0f * uiScale)) - (8.0f * uiScale);
-                for (size_t i = 0; i < pills.size(); ++i)
-                {
-                    SDL_FRect pr = { pStartX + (i * (pW + 4.0f * uiScale)), curY + (4.0f * uiScale), pW, 20.0f * uiScale };
-                    UIWidget::drawColoredButton(renderer, pr, pills[i], Theme::colors.bgButton, Theme::colors.textMuted, false, uiScale * 0.7f);
-                }
-                curY += bH + (6.0f * uiScale);
-            };
-
-            renderBulkRow("Set all furry preferences:", { "Disabled", "Minimum", "Lesser", "Greater", "Maximum" });
-            renderBulkRow("Set all spawn frequencies:", { "Off", "Low", "Average", "High", "Abundant" });
-            curY += (8.0f * uiScale);
-
-            // Furry Race Table Header
-            float headerColsX = padX + (availableW * 0.45f);
-            UIWidget::drawText(renderer, "Furry Preference", headerColsX, curY, SDL_Color{ 140, 220, 110, 255 }, uiScale * 0.88f);
-            UIWidget::drawText(renderer, "Spawn frequency", headerColsX + (150.0f * uiScale), curY, SDL_Color{ 230, 210, 100, 255 }, uiScale * 0.88f);
-            curY += (20.0f * uiScale);
-
-            // Furry Race Rows
-            struct FurryRace { std::string femaleName; std::string maleName; };
-            static const FurryRace races[8] = {
-                { "Alligator-girl", "Alligator-boy" },
-                { "Bat-girl", "Bat-boy" },
-                { "Cat-girl", "Cat-boy" },
-                { "Dog-girl", "Dog-boy" },
-                { "Fox-girl", "Fox-boy" },
-                { "Horse-girl", "Horse-boy" },
-                { "Rabbit-girl", "Rabbit-boy" },
-                { "Wolf-girl", "Wolf-boy" }
-            };
-
-            for (int i = 0; i < 8; ++i)
-            {
-                float rowH = 44.0f * uiScale;
-                SDL_FRect rowRect = { padX, curY, availableW, rowH };
-                UIWidget::drawPanel(renderer, rowRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
-
-                UIWidget::drawText(renderer, "ⓘ", padX + (8.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textMuted, uiScale * 0.85f);
-                UIWidget::drawText(renderer, races[i].femaleName, padX + (28.0f * uiScale), curY + (5.0f * uiScale), SDL_Color{ 255, 120, 180, 255 }, uiScale * 0.85f);
-                UIWidget::drawText(renderer, races[i].maleName, padX + (28.0f * uiScale), curY + (23.0f * uiScale), SDL_Color{ 100, 160, 255, 255 }, uiScale * 0.85f);
-
-                float pW = 20.0f * uiScale;
-                float pH = 16.0f * uiScale;
-                float group1X = headerColsX;
-                float group2X = headerColsX + (150.0f * uiScale);
-
-                // Row 1 (Girl):
-                for (int p = 0; p < 5; ++p)
-                {
-                    SDL_FRect pr1 = { group1X + (p * (pW + 2.0f * uiScale)), curY + (4.0f * uiScale), pW, pH };
-                    bool sel1 = (p == 3);
-                    SDL_Color bCol = sel1 ? SDL_Color{ 75, 24, 55, 255 } : Theme::colors.bgButton;
-                    UIWidget::drawColoredButton(renderer, pr1, std::to_string(p), bCol, sel1 ? Theme::colors.textPrimary : Theme::colors.textMuted, sel1, uiScale * 0.65f);
-
-                    SDL_FRect pr2 = { group2X + (p * (pW + 2.0f * uiScale)), curY + (4.0f * uiScale), pW, pH };
-                    bool sel2 = (p == 4);
-                    SDL_Color bCol2 = sel2 ? SDL_Color{ 75, 24, 55, 255 } : Theme::colors.bgButton;
-                    UIWidget::drawColoredButton(renderer, pr2, std::to_string(p), bCol2, sel2 ? Theme::colors.textPrimary : Theme::colors.textMuted, sel2, uiScale * 0.65f);
-                }
-
-                // Row 2 (Boy):
-                for (int p = 0; p < 5; ++p)
-                {
-                    SDL_FRect pr1 = { group1X + (p * (pW + 2.0f * uiScale)), curY + (22.0f * uiScale), pW, pH };
-                    bool sel1 = (p == 3);
-                    SDL_Color bCol = sel1 ? SDL_Color{ 75, 24, 55, 255 } : Theme::colors.bgButton;
-                    UIWidget::drawColoredButton(renderer, pr1, std::to_string(p), bCol, sel1 ? Theme::colors.textPrimary : Theme::colors.textMuted, sel1, uiScale * 0.65f);
-
-                    SDL_FRect pr2 = { group2X + (p * (pW + 2.0f * uiScale)), curY + (22.0f * uiScale), pW, pH };
-                    bool sel2 = (p == 4);
-                    SDL_Color bCol2 = sel2 ? SDL_Color{ 75, 24, 55, 255 } : Theme::colors.bgButton;
-                    UIWidget::drawColoredButton(renderer, pr2, std::to_string(p), bCol2, sel2 ? Theme::colors.textPrimary : Theme::colors.textMuted, sel2, uiScale * 0.65f);
-                }
-
-                curY += rowH + (6.0f * uiScale);
-            }
+            renderDistributionBar({
+                { d.percentHuman, Theme::colors.textPrimary },
+                { d.percentPartial, SDL_Color{ 200, 160, 120, 255 } },
+                { d.percentAnthro, SDL_Color{ 180, 130, 255, 255 } },
+                { d.percentFeral, SDL_Color{ 240, 110, 110, 255 } }
+            });
         }
         else if (opt->contentCategory == ContentOptionsCategory::FETISH_PREFS)
         {
@@ -2117,14 +2354,40 @@ float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, c
                 float pillStartX = padX + cardWidth - pillTotalW - (10.0f * uiScale);
                 float pillY = curY + (6.0f * uiScale);
 
+                int curRating = 3;
+                auto it = gameContext->settings.content.fetishPreferences.find(fetishes[i]);
+                if (it != gameContext->settings.content.fetishPreferences.end())
+                {
+                    curRating = it->second;
+                }
+
                 for (size_t p = 0; p < std::size(fetPills); ++p)
                 {
                     SDL_FRect pRect = { pillStartX + (p * (pillItemW + 4.0f * uiScale)), pillY, pillItemW, pillH };
-                    bool isNeutral = (p == 3);
+                    bool pHovered = (mousePos.x >= pRect.x && mousePos.x <= pRect.x + pRect.w &&
+                                     mousePos.y >= pRect.y && mousePos.y <= pRect.y + pRect.h);
+                    bool isSelected = (static_cast<int>(p) == curRating);
 
-                    SDL_Color bgCol = isNeutral ? SDL_Color{ 75, 24, 55, 255 } : Theme::colors.bgButton;
-                    SDL_Color borderCol = isNeutral ? SDL_Color{ 245, 80, 175, 255 } : Theme::colors.borderButton;
-                    SDL_Color pTextCol = isNeutral ? SDL_Color{ 255, 220, 245, 255 } : Theme::colors.textMuted;
+                    SDL_Color bgCol = Theme::colors.bgButton;
+                    SDL_Color borderCol = Theme::colors.borderButton;
+                    SDL_Color pTextCol = Theme::colors.textMuted;
+
+                    if (isSelected)
+                    {
+                        if (p == 0) { bgCol = SDL_Color{ 45, 45, 52, 255 }; borderCol = SDL_Color{ 90, 90, 100, 255 }; pTextCol = Theme::colors.textMuted; }
+                        else if (p == 1) { bgCol = SDL_Color{ 100, 20, 25, 255 }; borderCol = SDL_Color{ 220, 50, 60, 255 }; pTextCol = Theme::colors.textPrimary; }
+                        else if (p == 2) { bgCol = SDL_Color{ 90, 45, 25, 255 }; borderCol = SDL_Color{ 200, 90, 50, 255 }; pTextCol = Theme::colors.textPrimary; }
+                        else if (p == 3) { bgCol = SDL_Color{ 75, 24, 55, 255 }; borderCol = SDL_Color{ 245, 80, 175, 255 }; pTextCol = SDL_Color{ 255, 220, 245, 255 }; }
+                        else if (p == 4) { bgCol = SDL_Color{ 24, 75, 45, 255 }; borderCol = SDL_Color{ 60, 200, 110, 255 }; pTextCol = SDL_Color{ 220, 255, 230, 255 }; }
+                        else if (p == 5) { bgCol = SDL_Color{ 20, 85, 100, 255 }; borderCol = SDL_Color{ 50, 220, 240, 255 }; pTextCol = SDL_Color{ 210, 255, 255, 255 }; }
+                        else { bgCol = SDL_Color{ 95, 75, 20, 255 }; borderCol = SDL_Color{ 255, 215, 60, 255 }; pTextCol = SDL_Color{ 255, 245, 200, 255 }; }
+                    }
+                    else if (pHovered)
+                    {
+                        bgCol = SDL_Color{ 50, 54, 62, 255 };
+                        borderCol = Theme::colors.textGold;
+                        pTextCol = Theme::colors.textGold;
+                    }
 
                     SDL_SetRenderDrawColor(renderer, bgCol.r, bgCol.g, bgCol.b, bgCol.a);
                     SDL_RenderFillRect(renderer, &pRect);
@@ -2133,14 +2396,17 @@ float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, c
 
                     float labelW = UIWidget::getTextWidth(std::string(fetPills[p]), uiScale * 0.72f);
                     UIWidget::drawText(renderer, std::string(fetPills[p]), pRect.x + ((pRect.w - labelW) / 2.0f), pRect.y + (3.0f * uiScale), pTextCol, uiScale * 0.72f);
+
+                    if (pHovered && clicked)
+                    {
+                        gameContext->settings.content.fetishPreferences[fetishes[i]] = static_cast<int>(p);
+                        settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                        gameContext->input.consumeMouseClick();
+                    }
                 }
 
                 curY += rowMinH + (6.0f * uiScale);
             }
-        }
-        else
-        {
-            renderFrequencyRow("Sub-category Tuning", Theme::colors.textGold, "Fine-tune generation frequencies and preference distributions.", 3, [](int idx) {});
         }
 
         return (curY - startY);

@@ -154,9 +154,21 @@ void ActionGridManager::refresh(game* gameContext)
     // 3. Load / Save Game State
     if (auto loadState = dynamic_cast<loadGameState*>(currentState))
     {
-        addBtn(gameContext, "Confirmations: ON", []() {});
-        addBtn(gameContext, "Sort: Date", []() {});
-        addBtn(gameContext, "Sort: Name", []() {});
+        addBtn(gameContext, loadState->confirmationsEnabled ? "Confirmations: ON" : "Confirmations: OFF", [gameContext, loadState]() {
+            loadState->confirmationsEnabled = !loadState->confirmationsEnabled;
+            gameContext->refreshActionGrid();
+        }, true, loadState->confirmationsEnabled);
+
+        addBtn(gameContext, "Sort: Date", [gameContext, loadState]() {
+            loadState->sortMode = 0;
+            gameContext->refreshActionGrid();
+        }, true, loadState->sortMode == 0);
+
+        addBtn(gameContext, "Sort: Name", [gameContext, loadState]() {
+            loadState->sortMode = 1;
+            gameContext->refreshActionGrid();
+        }, true, loadState->sortMode == 1);
+
         addBackBtn(gameContext, "Back", [gameContext, loadState]() { loadState->goBack(gameContext); });
         return;
     }
@@ -199,15 +211,47 @@ void ActionGridManager::refresh(game* gameContext)
                 gameContext->refreshActionGrid();
             });
 
-            addBtn(gameContext, "Font-size -", [opt, gameContext]() { if (opt->fontSize > 12) opt->fontSize -= 2; gameContext->refreshActionGrid(); });
-            addBtn(gameContext, "Font-size +", [opt, gameContext]() { if (opt->fontSize < 36) opt->fontSize += 2; gameContext->refreshActionGrid(); });
-            addBtn(gameContext, opt->fadeInEnabled ? "Fade-in: ON" : "Fade-in: OFF", [opt, gameContext]() { opt->fadeInEnabled = !opt->fadeInEnabled; gameContext->refreshActionGrid(); });
-            addBtn(gameContext, "Gender pronouns", [opt, gameContext]() { opt->genderPronounMode = (opt->genderPronounMode == "Normal") ? "Custom" : "Normal"; gameContext->refreshActionGrid(); });
-            addBtn(gameContext, "Unit preferences", [opt, gameContext]() { opt->unitPreference = (opt->unitPreference == "Metric") ? "Imperial" : "Metric"; gameContext->refreshActionGrid(); });
+            addBtn(gameContext, "Font-size -", [opt, gameContext]() {
+                if (gameContext->settings.display.fontSize > 12)
+                {
+                    gameContext->settings.display.fontSize -= 2;
+                    opt->fontSize = gameContext->settings.display.fontSize;
+                    settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                    gameContext->refreshActionGrid();
+                }
+            });
+            addBtn(gameContext, "Font-size +", [opt, gameContext]() {
+                if (gameContext->settings.display.fontSize < 36)
+                {
+                    gameContext->settings.display.fontSize += 2;
+                    opt->fontSize = gameContext->settings.display.fontSize;
+                    settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                    gameContext->refreshActionGrid();
+                }
+            });
+            addBtn(gameContext, gameContext->settings.display.fadeInEnabled ? "Fade-in: ON" : "Fade-in: OFF", [opt, gameContext]() {
+                gameContext->settings.display.fadeInEnabled = !gameContext->settings.display.fadeInEnabled;
+                opt->fadeInEnabled = gameContext->settings.display.fadeInEnabled;
+                settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                gameContext->refreshActionGrid();
+            });
+            addBtn(gameContext, std::format("Pronouns: {}", gameContext->settings.gameplay.genderPronounMode), [opt, gameContext]() {
+                gameContext->settings.gameplay.genderPronounMode = (gameContext->settings.gameplay.genderPronounMode == "Normal") ? "Custom" : "Normal";
+                opt->genderPronounMode = gameContext->settings.gameplay.genderPronounMode;
+                settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                gameContext->refreshActionGrid();
+            });
+            addBtn(gameContext, std::format("Units: {}", gameContext->settings.gameplay.unitPreference), [opt, gameContext]() {
+                gameContext->settings.gameplay.unitPreference = (gameContext->settings.gameplay.unitPreference == "Metric") ? "Imperial" : "Metric";
+                opt->unitPreference = gameContext->settings.gameplay.unitPreference;
+                settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                gameContext->refreshActionGrid();
+            });
 
             static constexpr std::string_view diffNames[] = { "Human", "Morph", "Demon", "Lilin", "Lilith" };
-            addBtn(gameContext, std::format("Difficulty: {}", diffNames[opt->difficultyLevel % 5]), [opt, gameContext]() {
-                opt->difficultyLevel = (opt->difficultyLevel + 1) % 5;
+            addBtn(gameContext, std::format("Difficulty: {}", diffNames[gameContext->settings.gameplay.difficultyLevel % 5]), [opt, gameContext]() {
+                opt->difficultyLevel = (gameContext->settings.gameplay.difficultyLevel + 1) % 5;
+                gameContext->settings.gameplay.difficultyLevel = opt->difficultyLevel;
                 static constexpr float diffMults[] = { 1.0f, 1.25f, 2.0f, 2.5f, 4.0f };
                 gameContext->settings.gameplay.difficultyMultiplier = diffMults[opt->difficultyLevel];
                 settingsManager::saveToFile(gameContext->settings, "data/settings.json");

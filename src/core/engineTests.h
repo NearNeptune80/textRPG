@@ -15,4 +15,6 @@ namespace EngineTests
     bool testSaveLoadRoundtrip();
     bool testClothingDisplacement();
     bool testSettingsAndThemes();
+    bool testSubmenuButtonFunctionality();
+    bool testContentOptionsAllCategories();
 }
