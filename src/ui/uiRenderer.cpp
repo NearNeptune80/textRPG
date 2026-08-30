@@ -1779,14 +1779,14 @@ float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, c
 
             UIWidget::drawText(renderer, title, padX + (12.0f * uiScale), curY + (6.0f * uiScale), titleCol, uiScale * 0.9f);
 
-            static const std::vector<std::string> freqLabels = { "Off", "Minimal", "Low", "Average", "High", "Abundant" };
+            static constexpr std::string_view freqLabels[] = { "Off", "Minimal", "Low", "Average", "High", "Abundant" };
             float pillTotalW = 280.0f * uiScale;
             float pillH = 22.0f * uiScale;
             float pillItemW = (pillTotalW - (5.0f * 4.0f * uiScale)) / 6.0f;
             float pillStartX = padX + cardWidth - pillTotalW - (12.0f * uiScale);
             float pillY = curY + (5.0f * uiScale);
 
-            for (size_t p = 0; p < freqLabels.size(); ++p)
+            for (size_t p = 0; p < std::size(freqLabels); ++p)
             {
                 SDL_FRect pRect = { pillStartX + (p * (pillItemW + 4.0f * uiScale)), pillY, pillItemW, pillH };
                 bool pHovered = (mousePos.x >= pRect.x && mousePos.x <= pRect.x + pRect.w &&
@@ -2053,7 +2053,7 @@ float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, c
                 "Oral performer", "Breasts lover", "Breasts", "Milk lover", "Lactation"
             };
 
-            static const std::vector<std::string> fetPills = {
+            static constexpr std::string_view fetPills[] = {
                 "Disabled", "Hate", "Dislike", "Neutral", "Like", "Love", "Always"
             };
 
@@ -2073,7 +2073,7 @@ float uiRenderer::renderOptionsView(SDL_Renderer* renderer, game* gameContext, c
                 float pillStartX = padX + cardWidth - pillTotalW - (10.0f * uiScale);
                 float pillY = curY + (6.0f * uiScale);
 
-                for (size_t p = 0; p < fetPills.size(); ++p)
+                for (size_t p = 0; p < std::size(fetPills); ++p)
                 {
                     SDL_FRect pRect = { pillStartX + (p * (pillItemW + 4.0f * uiScale)), pillY, pillItemW, pillH };
                     bool isNeutral = (p == 3);
@@ -2397,7 +2397,7 @@ float uiRenderer::renderCharacterCreationView(SDL_Renderer* renderer, game* game
         UIWidget::drawText(renderer, "Personality", persRect.x + ((persRect.w - (50.0f * uiScale)) / 2.0f), curY + (6.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.9f);
         UIWidget::drawTextWrapped(renderer, "Your personality will have a minor influence in some situations. It will not lock out any options during the game, and is more for roleplaying purposes.", persRect.x + (12.0f * uiScale), curY + (22.0f * uiScale), availableW - (24.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.8f);
 
-        static const std::vector<std::string> traits = {
+        static constexpr std::string_view traits[] = {
             "Confident", "Shy", "Kind", "Selfish", "Naive", "Cynical",
             "Brave", "Cowardly", "Lewd", "Innocent", "Prude", "Lisp",
             "Stutter", "Slovenly"
@@ -2407,13 +2407,13 @@ float uiRenderer::renderCharacterCreationView(SDL_Renderer* renderer, game* game
         float tBtnH = 18.0f * uiScale;
         float tGridY = curY + (44.0f * uiScale);
 
-        for (size_t t = 0; t < traits.size(); ++t)
+        for (size_t t = 0; t < std::size(traits); ++t)
         {
             int r = t / 6;
             int c = t % 6;
             if (r == 2) c += 2;
             SDL_FRect tbRect = { padX + (6.0f * uiScale) + (c * (tBtnW + 5.0f * uiScale)), tGridY + (r * (tBtnH + 4.0f * uiScale)), tBtnW, tBtnH };
-            bool isSel = (cc->personalityTraits.find(traits[t]) != cc->personalityTraits.end());
+            bool isSel = (cc->personalityTraits.find(std::string(traits[t])) != cc->personalityTraits.end());
             bool tHover = (mousePos.x >= tbRect.x && mousePos.x <= tbRect.x + tbRect.w &&
                            mousePos.y >= tbRect.y && mousePos.y <= tbRect.y + tbRect.h);
 
@@ -2427,12 +2427,12 @@ float uiRenderer::renderCharacterCreationView(SDL_Renderer* renderer, game* game
             SDL_RenderRect(renderer, &tbRect);
 
             float labelW = traits[t].size() * (5.5f * uiScale);
-            UIWidget::drawText(renderer, traits[t], tbRect.x + ((tbRect.w - labelW) / 2.0f), tbRect.y + (2.0f * uiScale), txt, uiScale * 0.72f);
+            UIWidget::drawText(renderer, std::string(traits[t]), tbRect.x + ((tbRect.w - labelW) / 2.0f), tbRect.y + (2.0f * uiScale), txt, uiScale * 0.72f);
 
             if (tHover && clicked)
             {
-                if (isSel) cc->personalityTraits.erase(traits[t]);
-                else cc->personalityTraits.insert(traits[t]);
+                if (isSel) cc->personalityTraits.erase(std::string(traits[t]));
+                else cc->personalityTraits.insert(std::string(traits[t]));
                 gameContext->input.consumeMouseClick();
             }
         }
@@ -3330,15 +3330,15 @@ float uiRenderer::renderEnchantingView(SDL_Renderer* renderer, game* gameContext
     curY += (3 * (btnSize + gap)) + (12.0f * uiScale);
 
     // 2. Strength Selector Buttons Row
-    static const std::vector<std::string> tiers = { "Major Drain", "Drain", "Minor Drain", "Minor Boost", "Boost", "Major Boost" };
+    static constexpr std::string_view tiers[] = { "Major Drain", "Drain", "Minor Drain", "Minor Boost", "Boost", "Major Boost" };
     float tierW = (availableW - (gap * 5)) / 6.0f;
     float tierH = 22.0f * uiScale;
 
-    for (size_t i = 0; i < tiers.size(); ++i)
+    for (size_t i = 0; i < std::size(tiers); ++i)
     {
         SDL_FRect tRect = { padX + (i * (tierW + gap)), curY, tierW, tierH };
         bool isSelected = (i == 5); // Major Boost
-        UIWidget::drawButton(renderer, tRect, tiers[i], isSelected, true, isSelected, uiScale * 0.8f);
+        UIWidget::drawButton(renderer, tRect, std::string(tiers[i]), isSelected, true, isSelected, uiScale * 0.8f);
     }
     curY += tierH + (10.0f * uiScale);
 
@@ -3371,7 +3371,7 @@ float uiRenderer::renderEnchantingView(SDL_Renderer* renderer, game* gameContext
     UIWidget::drawPanel(renderer, nameInputRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
     UIWidget::drawText(renderer, "Bovine elixir", nameInputRect.x + (6.0f * uiScale), nameInputRect.y + (3.0f * uiScale), Theme::colors.textGold, uiScale * 0.85f);
 
-    static const std::vector<std::string> appliedEffects = {
+    static constexpr std::string_view appliedEffects[] = {
         "Bovine tail transformation.",
         "Bovine ears transformation.",
         "Grows curved horns.",
@@ -3519,7 +3519,7 @@ float uiRenderer::renderWidgetEventLog(SDL_Renderer* renderer, game* gameContext
         UIWidget::drawText(renderer, "Event Log", padX + (availableW * 0.3f), curY, Theme::colors.textPrimary, uiScale * 0.88f);
         curY += (18.0f * uiScale);
 
-        static const std::vector<std::string> startingEquipLog = {
+        static constexpr std::string_view startingEquipLog[] = {
             "Equipped: Silver masculine watch",
             "Equipped: Silver ring",
             "Equipped: Black men's shoes",
@@ -3531,7 +3531,7 @@ float uiRenderer::renderWidgetEventLog(SDL_Renderer* renderer, game* gameContext
 
         for (const auto& entry : startingEquipLog)
         {
-            float descH = UIWidget::drawTextWrapped(renderer, entry, padX, curY, availableW, Theme::colors.textSecondary, uiScale * 0.8f);
+            float descH = UIWidget::drawTextWrapped(renderer, std::string(entry), padX, curY, availableW, Theme::colors.textSecondary, uiScale * 0.8f);
             curY += descH + (6.0f * uiScale);
         }
         return (curY - startY);
@@ -3735,14 +3735,14 @@ float uiRenderer::renderWidgetCharacterCard(SDL_Renderer* renderer, game* gameCo
     cardCurY += (barH + 6.0f * uiScale);
 
     // Row E: Status trait badges (hand, shield/cloud, gender, potion)
-    static const std::vector<std::string> statusBadges = { "✋", "🛡", "⚥", "🧪" };
+    static constexpr std::string_view statusBadges[] = { "✋", "🛡", "⚥", "🧪" };
     float badgeW = (cardInnerW - (3.0f * 4.0f * uiScale)) / 4.0f;
     float badgeH = 16.0f * uiScale;
-    for (size_t i = 0; i < statusBadges.size(); ++i)
+    for (size_t i = 0; i < std::size(statusBadges); ++i)
     {
         SDL_FRect bRect = { innerPadX + (i * (badgeW + 4.0f * uiScale)), cardCurY, badgeW, badgeH };
         UIWidget::drawPanel(renderer, bRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
-        UIWidget::drawText(renderer, statusBadges[i], bRect.x + ((bRect.w - (10.0f * uiScale)) / 2.0f), bRect.y + (1.0f * uiScale), Theme::colors.textGold, uiScale * 0.75f);
+        UIWidget::drawText(renderer, std::string(statusBadges[i]), bRect.x + ((bRect.w - (10.0f * uiScale)) / 2.0f), bRect.y + (1.0f * uiScale), Theme::colors.textGold, uiScale * 0.75f);
     }
 
     curY += cardRect.h + (8.0f * uiScale);

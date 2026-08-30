@@ -11,7 +11,7 @@ using json = nlohmann::json;
 
 std::unordered_map<std::string, std::shared_ptr<item>> itemDatabase::registry;
 
-equipSlot stringToEquipSlot(const std::string& str)
+equipSlot stringToEquipSlot(std::string_view str)
 {
     if (str == "EYEWEAR" || str == "EYES")                  return equipSlot::EYEWEAR;
     if (str == "HEADWEAR" || str == "HEAD")                 return equipSlot::HEADWEAR;
@@ -54,8 +54,12 @@ equipSlot stringToEquipSlot(const std::string& str)
     if (str == "PENIS_WEAR" || str == "PENIS")              return equipSlot::PENIS_WEAR;
     if (str == "VAGINA_WEAR" || str == "VAGINA")            return equipSlot::VAGINA_WEAR;
 
-    try { return static_cast<equipSlot>(std::stoi(str)); }
-    catch (...) { return equipSlot::NONE; }
+    if (!str.empty() && (str[0] >= '0' && str[0] <= '9'))
+    {
+        try { return static_cast<equipSlot>(std::stoi(std::string(str))); }
+        catch (...) {}
+    }
+    return equipSlot::NONE;
 }
 
 std::string equipSlotToString(equipSlot slot)

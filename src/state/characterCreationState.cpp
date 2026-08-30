@@ -7,22 +7,22 @@
 #include "state/explorationState.h"
 #include "state/mainMenuState.h"
 
-static const std::vector<std::string> MASC_NAMES = {
+static constexpr std::string_view MASC_NAMES[] = {
     "Arthur", "James", "Thomas", "William", "Alexander", "Edward",
     "Henry", "Charles", "Oliver", "George", "Harry", "Jack", "Samuel", "David"
 };
 
-static const std::vector<std::string> ANDRO_NAMES = {
+static constexpr std::string_view ANDRO_NAMES[] = {
     "Alex", "Sam", "Chris", "Taylor", "Jordan", "Morgan",
     "Riley", "Robin", "Casey", "Jamie", "Quinn", "Avery"
 };
 
-static const std::vector<std::string> FEM_NAMES = {
+static constexpr std::string_view FEM_NAMES[] = {
     "Lily", "Victoria", "Alice", "Charlotte", "Eleanor", "Grace",
     "Sophia", "Emma", "Olivia", "Rose", "Emily", "Isabella"
 };
 
-static const std::vector<std::string> SURNAMES = {
+static constexpr std::string_view SURNAMES[] = {
     "Blackwood", "Sterling", "Ashford", "Montgomery", "Pemberton",
     "Sinclair", "Vance", "Harrington", "Kensington", "Thorne"
 };
@@ -118,9 +118,9 @@ void characterCreationState::randomizeFirstNames()
     static std::random_device rd;
     static std::mt19937 gen(rd());
 
-    std::uniform_int_distribution<size_t> distM(0, MASC_NAMES.size() - 1);
-    std::uniform_int_distribution<size_t> distA(0, ANDRO_NAMES.size() - 1);
-    std::uniform_int_distribution<size_t> distF(0, FEM_NAMES.size() - 1);
+    std::uniform_int_distribution<size_t> distM(0, std::size(MASC_NAMES) - 1);
+    std::uniform_int_distribution<size_t> distA(0, std::size(ANDRO_NAMES) - 1);
+    std::uniform_int_distribution<size_t> distF(0, std::size(FEM_NAMES) - 1);
 
     masculineName = MASC_NAMES[distM(gen)];
     androgynousName = ANDRO_NAMES[distA(gen)];
@@ -132,7 +132,7 @@ void characterCreationState::randomizeSurname()
     static std::random_device rd;
     static std::mt19937 gen(rd());
 
-    std::uniform_int_distribution<size_t> distS(0, SURNAMES.size() - 1);
+    std::uniform_int_distribution<size_t> distS(0, std::size(SURNAMES) - 1);
     surname = SURNAMES[distS(gen)];
 }
 

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstddef>
+#include <string>
+#include <string_view>
 
 /**
  * Anatomical sockets for body parts.
@@ -105,7 +107,7 @@ inline std::string sexualOrientationToString(SexualOrientation so)
     }
 }
 
-inline SexualOrientation stringToSexualOrientation(const std::string& str)
+inline SexualOrientation stringToSexualOrientation(std::string_view str)
 {
     if (str == "Bisexual" || str == "BI")         return SexualOrientation::BISEXUAL;
     if (str == "Homosexual" || str == "HOMO")     return SexualOrientation::HOMOSEXUAL;
@@ -127,7 +129,7 @@ inline std::string genderArchetypeToString(GenderArchetype ga)
     }
 }
 
-inline GenderArchetype stringToGenderArchetype(const std::string& str)
+inline GenderArchetype stringToGenderArchetype(std::string_view str)
 {
     if (str == "Male")          return GenderArchetype::MALE;
     if (str == "Hermaphrodite") return GenderArchetype::HERMAPHRODITE;

@@ -79,11 +79,11 @@ std::string timeManager::getPhaseString() const
 
 std::string timeManager::getDayOfWeekName() const
 {
-    static const std::vector<std::string> days = {
+    static constexpr std::string_view days[7] = {
         "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
     };
     int idx = std::clamp(dayOfWeek, 0, 6);
-    return days[idx];
+    return std::string(days[idx]);
 }
 
 std::string timeManager::getFormattedTime() const
@@ -93,12 +93,12 @@ std::string timeManager::getFormattedTime() const
 
 std::string timeManager::getFormattedDate() const
 {
-    static const std::vector<std::string> months = {
+    static constexpr std::string_view months[13] = {
         "", "January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December"
     };
 
-    std::string suffix = "th";
+    std::string_view suffix = "th";
     int d = day % 100;
     if (d < 11 || d > 13)
     {
@@ -110,7 +110,7 @@ std::string timeManager::getFormattedDate() const
         }
     }
 
-    std::string monthStr = (month >= 1 && month <= 12) ? months[month] : "Month";
+    std::string_view monthStr = (month >= 1 && month <= 12) ? months[month] : "Month";
     std::string dayName = getDayOfWeekName();
     return std::format("{}, {}{} {}", dayName, day, suffix, monthStr);
 }

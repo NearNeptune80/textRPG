@@ -1,6 +1,7 @@
 #include "items/inventory.h"
 
 #include <algorithm>
+#include <span>
 #include <unordered_map>
 
 static bool hasTag(const std::vector<std::string>& tags, const std::string& target)
@@ -8,35 +9,53 @@ static bool hasTag(const std::vector<std::string>& tags, const std::string& targ
     return std::find(tags.begin(), tags.end(), target) != tags.end();
 }
 
-static std::vector<bodySlot> getCoveredBodySlotsForEquipSlot(equipSlot slot)
+static std::span<const bodySlot> getCoveredBodySlotsForEquipSlot(equipSlot slot)
 {
+    static constexpr bodySlot headSlots[] = { bodySlot::HEAD };
+    static constexpr bodySlot eyesSlots[] = { bodySlot::EYES };
+    static constexpr bodySlot hairSlots[] = { bodySlot::HAIR };
+    static constexpr bodySlot hornsSlots[] = { bodySlot::HORNS };
+    static constexpr bodySlot mouthSlots[] = { bodySlot::MOUTH };
+    static constexpr bodySlot neckSlots[] = { bodySlot::NECK };
+    static constexpr bodySlot torsoSlots[] = { bodySlot::TORSO, bodySlot::BREASTS, bodySlot::STOMACH };
+    static constexpr bodySlot chestSlots[] = { bodySlot::BREASTS, bodySlot::NIPPLES };
+    static constexpr bodySlot handsSlots[] = { bodySlot::HANDS, bodySlot::ARMS };
+    static constexpr bodySlot hipsSlots[] = { bodySlot::HIPS, bodySlot::STOMACH };
+    static constexpr bodySlot fingerSlots[] = { bodySlot::FINGERS };
+    static constexpr bodySlot legsOuterSlots[] = { bodySlot::LEGS, bodySlot::HIPS, bodySlot::GROIN, bodySlot::ASS };
+    static constexpr bodySlot groinSlots[] = { bodySlot::GROIN };
+    static constexpr bodySlot assSlots[] = { bodySlot::ASS };
+    static constexpr bodySlot feetSlots[] = { bodySlot::FEET };
+    static constexpr bodySlot tailSlots[] = { bodySlot::TAIL };
+    static constexpr bodySlot wingsSlots[] = { bodySlot::WINGS };
+
     switch (slot)
     {
-        case equipSlot::HEADWEAR:       return { bodySlot::HEAD };
-        case equipSlot::EYEWEAR:        return { bodySlot::EYES };
-        case equipSlot::HAIR_WEAR:      return { bodySlot::HAIR };
-        case equipSlot::HORNS_SLOT:     return { bodySlot::HORNS };
-        case equipSlot::MOUTHWEAR:      return { bodySlot::MOUTH };
-        case equipSlot::NECKWEAR:       return { bodySlot::NECK };
+        case equipSlot::HEADWEAR:       return headSlots;
+        case equipSlot::EYEWEAR:        return eyesSlots;
+        case equipSlot::HAIR_WEAR:      return hairSlots;
+        case equipSlot::HORNS_SLOT:     return hornsSlots;
+        case equipSlot::MOUTHWEAR:      return mouthSlots;
+        case equipSlot::NECKWEAR:       return neckSlots;
         case equipSlot::TORSO_OVER:
-        case equipSlot::TORSO_UNDER:    return { bodySlot::TORSO, bodySlot::BREASTS, bodySlot::STOMACH };
+        case equipSlot::TORSO_UNDER:    return torsoSlots;
         case equipSlot::CHEST_WEAR:
-        case equipSlot::NIPPLES_WEAR:   return { bodySlot::BREASTS, bodySlot::NIPPLES };
+        case equipSlot::NIPPLES_WEAR:   return chestSlots;
         case equipSlot::HANDS:
-        case equipSlot::WRISTS:         return { bodySlot::HANDS, bodySlot::ARMS };
+        case equipSlot::WRISTS:         return handsSlots;
         case equipSlot::HIPS_WEAR:
-        case equipSlot::STOMACH_WEAR:   return { bodySlot::HIPS, bodySlot::STOMACH };
-        case equipSlot::FINGER_PRIMARY: return { bodySlot::FINGERS };
-        case equipSlot::LEGS_OUTER:     return { bodySlot::LEGS, bodySlot::HIPS, bodySlot::GROIN, bodySlot::ASS };
+        case equipSlot::STOMACH_WEAR:   return hipsSlots;
+        case equipSlot::FINGER_PRIMARY: return fingerSlots;
+        case equipSlot::LEGS_OUTER:     return legsOuterSlots;
         case equipSlot::GROIN_OVER:
         case equipSlot::PENIS_WEAR:
-        case equipSlot::VAGINA_WEAR:    return { bodySlot::GROIN };
-        case equipSlot::ASS_WEAR:       return { bodySlot::ASS };
+        case equipSlot::VAGINA_WEAR:    return groinSlots;
+        case equipSlot::ASS_WEAR:       return assSlots;
         case equipSlot::FEET:
         case equipSlot::ANKLES:
-        case equipSlot::CALVES:         return { bodySlot::FEET };
-        case equipSlot::TAIL_SLOT:      return { bodySlot::TAIL };
-        case equipSlot::WINGS_SLOT:     return { bodySlot::WINGS };
+        case equipSlot::CALVES:         return feetSlots;
+        case equipSlot::TAIL_SLOT:      return tailSlots;
+        case equipSlot::WINGS_SLOT:     return wingsSlots;
         default:                        return {};
     }
 }
@@ -44,6 +63,7 @@ static std::vector<bodySlot> getCoveredBodySlotsForEquipSlot(equipSlot slot)
 std::vector<InventorySlot> inventoryComponent::getStackedView() const
 {
     std::vector<InventorySlot> slots;
+    slots.reserve(backpack.size());
     std::unordered_map<std::string, size_t> stackMap;
 
     for (size_t i = 0; i < backpack.size(); ++i)
@@ -195,7 +215,7 @@ bool inventoryComponent::isSlotExposed(bodySlot slot) const
         const auto& itemPtr = equipped[i];
         if (!itemPtr) continue;
 
-        std::vector<bodySlot> coveredSlots = getCoveredBodySlotsForEquipSlot(eqSlot);
+        auto coveredSlots = getCoveredBodySlotsForEquipSlot(eqSlot);
         auto itCovered = std::find(coveredSlots.begin(), coveredSlots.end(), slot);
         if (itCovered == coveredSlots.end()) continue;
 

@@ -1,11 +1,9 @@
 #include "core/textParser.h"
 
-#include <algorithm>
-#include <regex>
-
+#include <format>
 #include "entities/entity.h"
 
-std::string textParser::getPronoun(const entity* ent, const std::string& token)
+std::string_view textParser::getPronoun(const entity* ent, std::string_view token)
 {
     if (!ent) return token;
 
@@ -21,40 +19,56 @@ std::string textParser::getPronoun(const entity* ent, const std::string& token)
     return token;
 }
 
-std::string textParser::interpolate(const std::string& rawText, const entity* player, const entity* target)
+std::string textParser::interpolate(std::string_view rawText, const entity* player, const entity* target)
 {
-    if (rawText.empty()) return rawText;
+    if (rawText.empty()) return "";
 
-    std::string result = rawText;
+    std::string result;
+    result.reserve(rawText.size() + 64);
 
-    auto replaceTag = [&](const std::string& tag, const std::string& replacement) {
-        size_t pos = 0;
-        while ((pos = result.find(tag, pos)) != std::string::npos) {
-            result.replace(pos, tag.length(), replacement);
-            pos += replacement.length();
+    size_t i = 0;
+    while (i < rawText.size())
+    {
+        if (rawText[i] == '{')
+        {
+            size_t end = rawText.find('}', i + 1);
+            if (end != std::string_view::npos)
+            {
+                std::string_view tag = rawText.substr(i + 1, end - (i + 1));
+                bool resolved = false;
+
+                if (tag.starts_with("player.") && player)
+                {
+                    std::string_view sub = tag.substr(7);
+                    if (sub == "name") { result += player->name; resolved = true; }
+                    else if (sub == "level") { result += std::to_string(player->stats.level); resolved = true; }
+                    else
+                    {
+                        result += getPronoun(player, sub);
+                        resolved = true;
+                    }
+                }
+                else if (tag.starts_with("target.") && target)
+                {
+                    std::string_view sub = tag.substr(7);
+                    if (sub == "name") { result += target->name; resolved = true; }
+                    else if (sub == "level") { result += std::to_string(target->stats.level); resolved = true; }
+                    else
+                    {
+                        result += getPronoun(target, sub);
+                        resolved = true;
+                    }
+                }
+
+                if (resolved)
+                {
+                    i = end + 1;
+                    continue;
+                }
+            }
         }
-    };
-
-    if (player)
-    {
-        replaceTag("{player.name}", player->name);
-        replaceTag("{player.level}", std::to_string(player->stats.level));
-        replaceTag("{player.he/she}", getPronoun(player, "he/she"));
-        replaceTag("{player.He/She}", getPronoun(player, "He/She"));
-        replaceTag("{player.him/her}", getPronoun(player, "him/her"));
-        replaceTag("{player.his/her}", getPronoun(player, "his/her"));
-        replaceTag("{player.His/Her}", getPronoun(player, "His/Her"));
-    }
-
-    if (target)
-    {
-        replaceTag("{target.name}", target->name);
-        replaceTag("{target.level}", std::to_string(target->stats.level));
-        replaceTag("{target.he/she}", getPronoun(target, "he/she"));
-        replaceTag("{target.He/She}", getPronoun(target, "He/She"));
-        replaceTag("{target.him/her}", getPronoun(target, "him/her"));
-        replaceTag("{target.his/her}", getPronoun(target, "his/her"));
-        replaceTag("{target.His/Her}", getPronoun(target, "His/Her"));
+        result.push_back(rawText[i]);
+        i++;
     }
 
     return result;

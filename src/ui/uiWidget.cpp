@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <sstream>
+#include <string_view>
 
 namespace UIWidget
 {
@@ -17,7 +18,7 @@ namespace UIWidget
         SDL_RenderRect(renderer, &rect);
     }
 
-    void drawHeader(SDL_Renderer* renderer, const SDL_FRect& rect, const std::string& title, SDL_Color headerColor, SDL_Color textColor, float scale)
+    void drawHeader(SDL_Renderer* renderer, const SDL_FRect& rect, std::string_view title, SDL_Color headerColor, SDL_Color textColor, float scale)
     {
         if (!renderer) return;
 
@@ -30,7 +31,7 @@ namespace UIWidget
         drawText(renderer, title, rect.x + (8.0f * scale), rect.y + ((rect.h - (10.0f * scale)) / 2.0f), textColor, scale);
     }
 
-    void drawCenteredHeaderCard(SDL_Renderer* renderer, float centerX, float curY, float cardW, float cardH, const std::string& title, SDL_Color textColor, float scale)
+    void drawCenteredHeaderCard(SDL_Renderer* renderer, float centerX, float curY, float cardW, float cardH, std::string_view title, SDL_Color textColor, float scale)
     {
         if (!renderer) return;
 
@@ -46,7 +47,7 @@ namespace UIWidget
         drawText(renderer, title, textX, curY + ((cardH - (14.0f * scale)) / 2.0f), textColor, scale * 1.1f);
     }
 
-    void drawProgressBar(SDL_Renderer* renderer, const SDL_FRect& rect, float currentValue, float maxValue, SDL_Color fillColor, SDL_Color bgColor, const std::string& label, float scale)
+    void drawProgressBar(SDL_Renderer* renderer, const SDL_FRect& rect, float currentValue, float maxValue, SDL_Color fillColor, SDL_Color bgColor, std::string_view label, float scale)
     {
         if (!renderer) return;
 
@@ -68,7 +69,7 @@ namespace UIWidget
         }
     }
 
-    bool drawButton(SDL_Renderer* renderer, const SDL_FRect& rect, const std::string& label, bool isHovered, bool isEnabled, bool isSelected, float scale)
+    bool drawButton(SDL_Renderer* renderer, const SDL_FRect& rect, std::string_view label, bool isHovered, bool isEnabled, bool isSelected, float scale)
     {
         if (!renderer) return false;
 
@@ -86,7 +87,7 @@ namespace UIWidget
         return isEnabled && isHovered;
     }
 
-    bool drawColoredButton(SDL_Renderer* renderer, const SDL_FRect& rect, const std::string& label, SDL_Color bgColor, SDL_Color textColor, bool isSelected, float scale)
+    bool drawColoredButton(SDL_Renderer* renderer, const SDL_FRect& rect, std::string_view label, SDL_Color bgColor, SDL_Color textColor, bool isSelected, float scale)
     {
         if (!renderer) return false;
 
@@ -102,7 +103,7 @@ namespace UIWidget
         return true;
     }
 
-    bool drawLTActionButton(SDL_Renderer* renderer, const SDL_FRect& rect, const std::string& label, const std::string& hotkey, bool isHovered, bool isEnabled, bool isSelected, float scale)
+    bool drawLTActionButton(SDL_Renderer* renderer, const SDL_FRect& rect, std::string_view label, std::string_view hotkey, bool isHovered, bool isEnabled, bool isSelected, float scale)
     {
         if (!renderer) return false;
 
@@ -143,18 +144,18 @@ namespace UIWidget
             {
                 drawText(renderer, label, labelX, labelY, SDL_Color{ 255, 120, 180, 255 }, scale * 0.85f);
             }
-            else if (label.find(": OFF") != std::string::npos)
+            else if (label.find(": OFF") != std::string_view::npos)
             {
                 size_t colonPos = label.find(':');
-                std::string prefix = label.substr(0, colonPos + 2);
+                std::string_view prefix = label.substr(0, colonPos + 2);
                 drawText(renderer, prefix, labelX, labelY, textCol, scale * 0.85f);
                 float prefixW = prefix.size() * (7.0f * scale);
                 drawText(renderer, "OFF", labelX + prefixW, labelY, Theme::colors.enemy, scale * 0.85f);
             }
-            else if (label.find(": ON") != std::string::npos)
+            else if (label.find(": ON") != std::string_view::npos)
             {
                 size_t colonPos = label.find(':');
-                std::string prefix = label.substr(0, colonPos + 2);
+                std::string_view prefix = label.substr(0, colonPos + 2);
                 drawText(renderer, prefix, labelX, labelY, textCol, scale * 0.85f);
                 float prefixW = prefix.size() * (7.0f * scale);
                 drawText(renderer, "ON", labelX + prefixW, labelY, Theme::colors.companion, scale * 0.85f);
@@ -168,13 +169,13 @@ namespace UIWidget
         return isEnabled && isHovered;
     }
 
-    void drawText(SDL_Renderer* renderer, const std::string& text, float x, float y, SDL_Color color, float scale)
+    void drawText(SDL_Renderer* renderer, std::string_view text, float x, float y, SDL_Color color, float scale)
     {
-        ::fontManager::getInstance().drawText(renderer, text, x, y, color, scale);
+        ::fontManager::getInstance().drawText(renderer, std::string(text), x, y, color, scale);
     }
 
-    float drawTextWrapped(SDL_Renderer* renderer, const std::string& text, float x, float y, float maxWidth, SDL_Color color, float scale)
+    float drawTextWrapped(SDL_Renderer* renderer, std::string_view text, float x, float y, float maxWidth, SDL_Color color, float scale)
     {
-        return ::fontManager::getInstance().drawTextWrapped(renderer, text, x, y, maxWidth, color, scale);
+        return ::fontManager::getInstance().drawTextWrapped(renderer, std::string(text), x, y, maxWidth, color, scale);
     }
 }
