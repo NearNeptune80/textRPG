@@ -10,6 +10,15 @@
 #include "entities/entity.h"
 #include "state/explorationState.h"
 
+#include <fstream>
+#include <nlohmann/json.hpp>
+
+sexState::sexState()
+    : m_partner(nullptr), m_partnerRaw(nullptr), m_stance(SexStance::SOLO_BED), m_playerDominance(0.0f)
+{
+    m_narrativeLog = "You make yourself comfortable and prepare to indulge in private pleasure.";
+}
+
 sexState::sexState(std::shared_ptr<entity> partner, SexStance initialStance, float initialDominance)
     : m_partner(partner), m_partnerRaw(partner.get()), m_stance(initialStance), m_playerDominance(initialDominance)
 {
@@ -68,123 +77,67 @@ std::vector<SexAction> sexState::buildMasterActionDatabase() const
 {
     std::vector<SexAction> db;
 
-    // 1. Kiss
-    SexAction kiss;
-    kiss.id = "action_kiss";
-    kiss.name = "Kiss Lips";
-    kiss.description = "Press your lips firmly against partner's in a passionate kiss.";
-    kiss.type = SexActionType::KISS;
-    kiss.arousalGainSelf = 12.0f;
-    kiss.arousalGainPartner = 15.0f;
-    kiss.dominanceShift = 3.0f;
-    kiss.actorSlot = bodySlot::MOUTH;
-    kiss.targetSlot = bodySlot::MOUTH;
-    kiss.validStances = { SexStance::MISSIONARY, SexStance::STANDING, SexStance::LAP_SITTING };
-    db.push_back(kiss);
+    std::ifstream file("data/scenes/sex_actions.json");
+    if (file.is_open())
+    {
+        try
+        {
+            nlohmann::json j;
+            file >> j;
+            if (j.contains("actions") && j["actions"].is_array())
+            {
+                for (const auto& aJson : j["actions"])
+                {
+                    SexAction act;
+                    act.id = aJson.value("id", "");
+                    act.name = aJson.value("name", "");
+                    act.description = aJson.value("description", "");
+                    act.category = aJson.value("category", "General");
+                    act.isSolo = aJson.value("isSolo", false);
+                    act.narrative = aJson.value("narrative", "");
 
-    // 2. Caress Breasts
-    SexAction caressBreasts;
-    caressBreasts.id = "action_caress_breasts";
-    caressBreasts.name = "Caress Breasts";
-    caressBreasts.description = "Gently knead and stimulate partner's breasts and nipples.";
-    caressBreasts.type = SexActionType::CARESS_BREASTS;
-    caressBreasts.arousalGainSelf = 15.0f;
-    caressBreasts.arousalGainPartner = 20.0f;
-    caressBreasts.dominanceShift = 5.0f;
-    caressBreasts.actorSlot = bodySlot::HANDS;
-    caressBreasts.targetSlot = bodySlot::BREASTS;
-    caressBreasts.validStances = { SexStance::MISSIONARY, SexStance::FROM_BEHIND, SexStance::STANDING, SexStance::LAP_SITTING };
-    db.push_back(caressBreasts);
+                    if (aJson.contains("values"))
+                    {
+                        const auto& v = aJson["values"];
+                        act.arousalGainSelf = v.value("arousalSelf", 15.0f);
+                        act.arousalGainPartner = v.value("arousalPartner", 15.0f);
+                        act.dominanceShift = v.value("dominanceShift", 0.0f);
+                        act.fluidProducedMl = v.value("fluidProducedMl", 1.0f);
+                    }
 
-    // 3. Give Oral Sex
-    SexAction giveOral;
-    giveOral.id = "action_give_oral";
-    giveOral.name = "Perform Oral Sex";
-    giveOral.description = "Use tongue and mouth to intimately pleasure partner's genitals.";
-    giveOral.type = SexActionType::ORAL_GIVE;
-    giveOral.arousalGainSelf = 15.0f;
-    giveOral.arousalGainPartner = 25.0f;
-    giveOral.dominanceShift = 2.0f;
-    giveOral.actorSlot = bodySlot::MOUTH;
-    giveOral.targetSlot = bodySlot::GROIN;
-    giveOral.validStances = { SexStance::KNEELING, SexStance::MISSIONARY, SexStance::LAP_SITTING };
-    giveOral.requiresExposedGenitals = true;
-    db.push_back(giveOral);
+                    if (aJson.contains("requirements"))
+                    {
+                        const auto& r = aJson["requirements"];
+                        act.requiresPenis = r.value("hasPenis", false);
+                        act.requiresVagina = r.value("hasVagina", false);
+                        act.requiresBreasts = r.value("hasBreasts", false);
+                        act.minArousal = r.value("minArousal", 0.0f);
+                    }
 
-    // 4. Receive Oral Sex
-    SexAction receiveOral;
-    receiveOral.id = "action_receive_oral";
-    receiveOral.name = "Receive Oral Sex";
-    receiveOral.description = "Guide partner's mouth down to pleasure your genitals.";
-    receiveOral.type = SexActionType::ORAL_RECEIVE;
-    receiveOral.arousalGainSelf = 25.0f;
-    receiveOral.arousalGainPartner = 15.0f;
-    receiveOral.dominanceShift = 10.0f;
-    receiveOral.actorSlot = bodySlot::GROIN;
-    receiveOral.targetSlot = bodySlot::MOUTH;
-    receiveOral.validStances = { SexStance::KNEELING, SexStance::MISSIONARY, SexStance::STANDING, SexStance::LAP_SITTING };
-    receiveOral.requiresExposedGenitals = true;
-    db.push_back(receiveOral);
+                    if (aJson.contains("validStances") && aJson["validStances"].is_array())
+                    {
+                        for (const auto& st : aJson["validStances"])
+                        {
+                            act.validStances.push_back(stringToSexStance(st.get<std::string>()));
+                        }
+                    }
 
-    // 5. Vaginal Sex
-    SexAction vaginalSex;
-    vaginalSex.id = "action_vaginal_sex";
-    vaginalSex.name = "Vaginal Penetration";
-    vaginalSex.description = "Drive deep into partner's lush vaginal passage.";
-    vaginalSex.type = SexActionType::VAGINAL_PENETRATION;
-    vaginalSex.arousalGainSelf = 25.0f;
-    vaginalSex.arousalGainPartner = 25.0f;
-    vaginalSex.dominanceShift = 12.0f;
-    vaginalSex.actorSlot = bodySlot::GROIN;
-    vaginalSex.targetSlot = bodySlot::GROIN;
-    vaginalSex.validStances = { SexStance::MISSIONARY, SexStance::FROM_BEHIND, SexStance::STANDING, SexStance::LAP_SITTING };
-    vaginalSex.requiresPenetration = true;
-    vaginalSex.requiresExposedGenitals = true;
-    db.push_back(vaginalSex);
+                    db.push_back(act);
+                }
+                return db;
+            }
+        }
+        catch (...) {}
+    }
 
-    // 6. Anal Sex
-    SexAction analSex;
-    analSex.id = "action_anal_sex";
-    analSex.name = "Anal Penetration";
-    analSex.description = "Press past tight sphincter rings for intense anal intercourse.";
-    analSex.type = SexActionType::ANAL_PENETRATION;
-    analSex.arousalGainSelf = 25.0f;
-    analSex.arousalGainPartner = 25.0f;
-    analSex.dominanceShift = 15.0f;
-    analSex.actorSlot = bodySlot::GROIN;
-    analSex.targetSlot = bodySlot::ASS;
-    analSex.requiresPenetration = true;
-    analSex.requiresExposedGenitals = true;
-    analSex.validStances = { SexStance::MISSIONARY, SexStance::FROM_BEHIND, SexStance::KNEELING, SexStance::STANDING };
-    db.push_back(analSex);
-
-    // 7. Mammary Sex
-    SexAction mammarySex;
-    mammarySex.id = "action_mammary_sex";
-    mammarySex.name = "Mammary Sex (Titfuck)";
-    mammarySex.description = "Thrust between partner's soft breasts.";
-    mammarySex.type = SexActionType::MAMMARY_SEX;
-    mammarySex.arousalGainSelf = 20.0f;
-    mammarySex.arousalGainPartner = 18.0f;
-    mammarySex.dominanceShift = 8.0f;
-    mammarySex.actorSlot = bodySlot::GROIN;
-    mammarySex.targetSlot = bodySlot::BREASTS;
-    mammarySex.validStances = { SexStance::MISSIONARY, SexStance::LAP_SITTING, SexStance::KNEELING };
-    db.push_back(mammarySex);
-
-    // 8. Spank
-    SexAction spank;
-    spank.id = "action_spank";
-    spank.name = "Spank Buttocks";
-    spank.description = "Deliver a sharp slap to partner's exposed rear.";
-    spank.type = SexActionType::SPANK;
-    spank.arousalGainSelf = 10.0f;
-    spank.arousalGainPartner = 15.0f;
-    spank.dominanceShift = 15.0f;
-    spank.actorSlot = bodySlot::HANDS;
-    spank.targetSlot = bodySlot::ASS;
-    spank.validStances = { SexStance::FROM_BEHIND, SexStance::MISSIONARY, SexStance::STANDING, SexStance::LAP_SITTING };
-    db.push_back(spank);
+    // Fallback defaults if file missing
+    SexAction stroke;
+    stroke.id = "solo_stroke";
+    stroke.name = "Stroke";
+    stroke.isSolo = true;
+    stroke.arousalGainSelf = 18.0f;
+    stroke.validStances = { SexStance::SOLO_BED, SexStance::SOLO_CHAIR, SexStance::SOLO_STANDING };
+    db.push_back(stroke);
 
     return db;
 }
@@ -196,65 +149,62 @@ bool sexState::isActionValidForStance(const SexAction& action) const
 
 std::vector<SexAction> sexState::getAvailableActions() const
 {
+    auto allActions = buildMasterActionDatabase();
+    std::vector<SexAction> valid;
+
+    if (isSolo())
+    {
+        for (const auto& act : allActions)
+        {
+            if (!act.isSolo) continue;
+            if (!isActionValidForStance(act)) continue;
+            if (m_playerArousal < act.minArousal) continue;
+
+            valid.push_back(act);
+        }
+        return valid;
+    }
+
     if (!isPlayerDominant())
     {
-        // Submissive actions
-        std::vector<SexAction> subActions;
-
         SexAction plead;
         plead.id = "sub_plead";
         plead.name = "[Plead / Suggest Action]";
         plead.type = SexActionType::PLEAD_SUGGEST;
-        subActions.push_back(plead);
+        valid.push_back(plead);
 
         SexAction endure;
         endure.id = "sub_endure";
         endure.name = "[Endure Passively]";
         endure.type = SexActionType::ENDURE;
-        subActions.push_back(endure);
+        valid.push_back(endure);
 
         SexAction beg;
         beg.id = "sub_beg";
         beg.name = "[Beg for Climax]";
         beg.type = SexActionType::BEG_CLIMAX;
-        subActions.push_back(beg);
+        valid.push_back(beg);
 
         SexAction struggle;
         struggle.id = "sub_struggle";
         struggle.name = "[Struggle for Control]";
         struggle.type = SexActionType::STRUGGLE;
-        subActions.push_back(struggle);
+        valid.push_back(struggle);
 
-        return subActions;
+        return valid;
     }
 
-    auto allActions = buildMasterActionDatabase();
-    std::vector<SexAction> valid;
-
     entity* partner = getPartner();
-
     for (const auto& act : allActions)
     {
+        if (act.isSolo) continue;
         if (!isActionValidForStance(act)) continue;
 
-        if (act.type == SexActionType::VAGINAL_PENETRATION)
-        {
-            if (partner && partner->anatomy.hasVagina())
-            {
-                valid.push_back(act);
-            }
-        }
-        else if (act.type == SexActionType::MAMMARY_SEX)
-        {
-            if (partner && partner->anatomy.hasBreasts())
-            {
-                valid.push_back(act);
-            }
-        }
-        else
-        {
-            valid.push_back(act);
-        }
+        if (act.requiresPenis && (!partner || !partner->anatomy.hasPenis())) continue;
+        if (act.requiresVagina && (!partner || !partner->anatomy.hasVagina())) continue;
+        if (act.requiresBreasts && (!partner || !partner->anatomy.hasBreasts())) continue;
+
+        valid.push_back(act);
     }
 
     return valid;
@@ -286,9 +236,16 @@ void sexState::applyClothingDisplacementsForAction(const SexAction& action)
 void sexState::changeStance(SexStance newStance)
 {
     m_stance = newStance;
-    entity* partner = getPartner();
-    std::string pName = partner ? partner->name : "your partner";
-    appendNarrative(std::format("You maneuver {} into the {} position.", pName, sexStanceToString(m_stance)));
+    if (isSolo())
+    {
+        appendNarrative(std::format("You adjust your position to {}.", sexStanceToString(m_stance)));
+    }
+    else
+    {
+        entity* partner = getPartner();
+        std::string pName = partner ? partner->name : "your partner";
+        appendNarrative(std::format("You maneuver {} into the {} position.", pName, sexStanceToString(m_stance)));
+    }
 }
 
 bool sexState::executeAction(game* gameContext, const SexAction& action)
@@ -296,8 +253,45 @@ bool sexState::executeAction(game* gameContext, const SexAction& action)
     if (!gameContext) return false;
 
     entity* player = gameContext->getPlayer();
+    if (!player) return false;
+
+    if (isSolo())
+    {
+        applyClothingDisplacementsForAction(action);
+        m_playerArousal = std::clamp(m_playerArousal + action.arousalGainSelf, 0.0f, 100.0f);
+        player->stats.modifyBaseStat("lust", action.arousalGainSelf);
+
+        if (!action.narrative.empty())
+        {
+            appendNarrative(action.narrative);
+        }
+        else
+        {
+            appendNarrative(std::format("You perform {} in the {} position.", action.name, sexStanceToString(m_stance)));
+        }
+
+        if (m_playerArousal >= 100.0f || action.id == "solo_climax")
+        {
+            m_playerClimaxes++;
+            m_playerArousal = 0.0f;
+            player->stats.setBaseStat("lust", 0.0f);
+
+            bodyPart* groin = player->anatomy.getPart(bodySlot::GROIN);
+            if (groin && groin->currentFluidMl > 0.0f)
+            {
+                float amount = std::min(groin->currentFluidMl, 10.0f);
+                groin->currentFluidMl -= amount;
+            }
+
+            appendNarrative("Waves of intense pleasure shudder through your entire body as you reach a glorious climax, collapsing back in sweet exhaustion.");
+        }
+
+        gameContext->refreshActionGrid();
+        return true;
+    }
+
     entity* partner = getPartner();
-    if (!player || !partner) return false;
+    if (!partner) return false;
 
     applyClothingDisplacementsForAction(action);
 
@@ -323,9 +317,16 @@ bool sexState::executeAction(game* gameContext, const SexAction& action)
         }
     }
 
-    std::string actionText = std::format("Using the {} position, you perform {} on {}.",
-                                         sexStanceToString(m_stance), action.name, partner->name);
-    appendNarrative(actionText);
+    if (!action.narrative.empty())
+    {
+        appendNarrative(action.narrative);
+    }
+    else
+    {
+        std::string actionText = std::format("Using the {} position, you perform {} on {}.",
+                                             sexStanceToString(m_stance), action.name, partner->name);
+        appendNarrative(actionText);
+    }
 
     // Check Orgasms
     if (m_playerArousal >= 100.0f)

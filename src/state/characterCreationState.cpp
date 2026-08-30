@@ -26,7 +26,8 @@ static const std::vector<std::string> SURNAMES = {
     "Sinclair", "Vance", "Harrington", "Kensington", "Thorne"
 };
 
-characterCreationState::characterCreationState()
+characterCreationState::characterCreationState(int startStep)
+    : step(startStep)
 {
 }
 

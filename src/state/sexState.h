@@ -14,6 +14,9 @@ class entity;
 
 enum class SexStance
 {
+	SOLO_BED,
+	SOLO_CHAIR,
+	SOLO_STANDING,
 	MISSIONARY,
 	FROM_BEHIND,
 	KNEELING,
@@ -25,17 +28,23 @@ inline std::string sexStanceToString(SexStance stance)
 {
 	switch (stance)
 	{
-		case SexStance::MISSIONARY:  return "Missionary";
-		case SexStance::FROM_BEHIND: return "From Behind";
-		case SexStance::KNEELING:    return "Kneeling";
-		case SexStance::STANDING:    return "Standing";
-		case SexStance::LAP_SITTING: return "Lap Sitting";
-		default:                     return "Missionary";
+		case SexStance::SOLO_BED:      return "In Bed";
+		case SexStance::SOLO_CHAIR:    return "Seated";
+		case SexStance::SOLO_STANDING: return "Standing (Solo)";
+		case SexStance::MISSIONARY:    return "Missionary";
+		case SexStance::FROM_BEHIND:   return "From Behind";
+		case SexStance::KNEELING:      return "Kneeling";
+		case SexStance::STANDING:      return "Standing";
+		case SexStance::LAP_SITTING:   return "Lap Sitting";
+		default:                       return "In Bed";
 	}
 }
 
 inline SexStance stringToSexStance(const std::string& str)
 {
+	if (str == "SOLO_BED" || str == "In Bed") return SexStance::SOLO_BED;
+	if (str == "SOLO_CHAIR" || str == "Seated") return SexStance::SOLO_CHAIR;
+	if (str == "SOLO_STANDING" || str == "Standing (Solo)") return SexStance::SOLO_STANDING;
 	if (str == "From Behind" || str == "FROM_BEHIND") return SexStance::FROM_BEHIND;
 	if (str == "Kneeling" || str == "KNEELING")       return SexStance::KNEELING;
 	if (str == "Standing" || str == "STANDING")       return SexStance::STANDING;
@@ -58,7 +67,8 @@ enum class SexActionType
 	PLEAD_SUGGEST,
 	ENDURE,
 	BEG_CLIMAX,
-	STRUGGLE
+	STRUGGLE,
+	SOLO_ACTION
 };
 
 struct SexAction
@@ -66,11 +76,14 @@ struct SexAction
 	std::string id;
 	std::string name;
 	std::string description;
-	SexActionType type = SexActionType::KISS;
+	std::string category = "General";
+	SexActionType type = SexActionType::SOLO_ACTION;
+	bool isSolo = false;
 
 	float arousalGainSelf = 15.0f;
 	float arousalGainPartner = 15.0f;
 	float dominanceShift = 5.0f;
+	float fluidProducedMl = 1.0f;
 
 	bodySlot actorSlot = bodySlot::MOUTH;
 	bodySlot targetSlot = bodySlot::MOUTH;
@@ -78,6 +91,11 @@ struct SexAction
 	std::vector<SexStance> validStances;
 	bool requiresPenetration = false;
 	bool requiresExposedGenitals = false;
+	bool requiresPenis = false;
+	bool requiresVagina = false;
+	bool requiresBreasts = false;
+	float minArousal = 0.0f;
+	std::string narrative;
 };
 
 /**
@@ -88,7 +106,7 @@ struct SexAction
 class sexState : public iGameState
 {
 public:
-	sexState() = default;
+	sexState();
 	explicit sexState(std::shared_ptr<entity> partner, SexStance initialStance = SexStance::MISSIONARY, float initialDominance = 20.0f);
 	explicit sexState(entity* partnerPtr, SexStance initialStance = SexStance::MISSIONARY, float initialDominance = 20.0f);
 	~sexState() override = default;
@@ -123,6 +141,7 @@ public:
 	void applyClothingDisplacementsForAction(const SexAction& action);
 
 	// Read-only Snapshot Accessors
+	bool isSolo() const { return m_partner == nullptr && m_partnerRaw == nullptr; }
 	SexStance getStance() const { return m_stance; }
 	float getPlayerDominance() const { return m_playerDominance; }
 	bool isPlayerDominant() const { return m_playerDominance >= 0.0f; }
@@ -134,7 +153,7 @@ public:
 private:
 	std::shared_ptr<entity> m_partner = nullptr;
 	entity* m_partnerRaw = nullptr;
-	SexStance m_stance = SexStance::MISSIONARY;
+	SexStance m_stance = SexStance::SOLO_BED;
 
 	float m_playerDominance = 20.0f; // -100 (Max Submissive) to +100 (Max Dominant)
 	float m_playerArousal = 0.0f;   // 0 to 100

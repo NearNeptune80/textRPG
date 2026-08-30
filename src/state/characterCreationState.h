@@ -11,7 +11,7 @@
 class characterCreationState : public iGameState
 {
 public:
-    characterCreationState();
+    explicit characterCreationState(int startStep = 0);
     ~characterCreationState() override = default;
 
     void initialise(game* gameContext) override;

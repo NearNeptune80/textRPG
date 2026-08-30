@@ -18,6 +18,7 @@
 #include "state/loadGameState.h"
 #include "state/mainMenuState.h"
 #include "state/optionsState.h"
+#include "state/phoneAppsState.h"
 #include "state/sexState.h"
 #include "state/shopState.h"
 #include "state/transformationState.h"
@@ -381,6 +382,10 @@ float uiRenderer::renderCenterPane(SDL_Renderer* renderer, game* gameContext, co
     {
         return renderTransformationView(renderer, gameContext, rect, curY, uiScale);
     }
+    else if (dynamic_cast<phoneAppsState*>(state))
+    {
+        return renderPhoneAppView(renderer, gameContext, rect, curY, uiScale);
+    }
     else if (dynamic_cast<sexState*>(state))
     {
         return renderSexView(renderer, gameContext, rect, curY, uiScale);
@@ -432,6 +437,30 @@ float uiRenderer::renderSexView(SDL_Renderer* renderer, game* gameContext, const
     float startY = curY;
     float headerH = 26.0f * uiScale;
     SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
+
+    if (sex->isSolo())
+    {
+        UIWidget::drawHeader(renderer, headerRect, "SOLO INTIMATE ENCOUNTER", Theme::colors.bgHeader, Theme::colors.lust, uiScale);
+        curY += headerH + (10.0f * uiScale);
+
+        float padX = rect.x + (12.0f * uiScale);
+        float innerW = rect.w - (24.0f * uiScale);
+        float barH = 18.0f * uiScale;
+
+        UIWidget::drawText(renderer, std::format("Position: {} | Private Solitude", sexStanceToString(sex->getStance())), padX, curY, Theme::colors.textGold, uiScale);
+        curY += (22.0f * uiScale);
+
+        UIWidget::drawProgressBar(renderer, { padX, curY, innerW, barH }, sex->getPlayerArousal(), 100.0f, Theme::colors.lust, Theme::colors.bgDark, std::format("Your Arousal: {:.0f}/100", sex->getPlayerArousal()), uiScale);
+        curY += (barH + 12.0f * uiScale);
+
+        UIWidget::drawText(renderer, "INTIMATE LOG:", padX, curY, Theme::colors.textGold, uiScale);
+        curY += (18.0f * uiScale);
+        float textH = UIWidget::drawTextWrapped(renderer, sex->getNarrativeLog(), padX, curY, innerW, Theme::colors.textSecondary, uiScale);
+        curY += textH + (6.0f * uiScale);
+
+        return (curY - startY);
+    }
+
     UIWidget::drawHeader(renderer, headerRect, "INTERACTIVE CYOA EROTIC ENCOUNTER", Theme::colors.bgHeader, Theme::colors.lust, uiScale);
     curY += headerH + (10.0f * uiScale);
 
@@ -458,6 +487,250 @@ float uiRenderer::renderSexView(SDL_Renderer* renderer, game* gameContext, const
     curY += (18.0f * uiScale);
     float textH = UIWidget::drawTextWrapped(renderer, sex->getNarrativeLog(), padX, curY, innerW, Theme::colors.textSecondary, uiScale);
     curY += textH + (6.0f * uiScale);
+
+    return (curY - startY);
+}
+
+float uiRenderer::renderPhoneAppView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)
+{
+    phoneAppsState* app = dynamic_cast<phoneAppsState*>(gameContext->getActiveState());
+    if (!app) return 0.0f;
+
+    float startY = curY;
+    float padX = rect.x + (16.0f * uiScale);
+    float innerW = rect.w - (32.0f * uiScale);
+
+    std::string appTitle = phoneAppModeToString(app->getAppMode());
+    float headerH = 26.0f * uiScale;
+    SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
+    UIWidget::drawHeader(renderer, headerRect, std::format("📱 PHONE APP - {}", appTitle), Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
+    curY += headerH + (12.0f * uiScale);
+
+    const auto& data = app->getAppData();
+
+    if (app->getAppMode() == PhoneAppMode::QUESTS)
+    {
+        // Quest Journal
+        UIWidget::drawText(renderer, "Lilaya's Tests (Active Main Quest)", padX, curY, Theme::colors.textGold, uiScale * 1.05f);
+        curY += (20.0f * uiScale);
+        UIWidget::drawText(renderer, "Chapter 1: The New World", padX, curY, Theme::colors.textAccent, uiScale * 0.85f);
+        curY += (18.0f * uiScale);
+
+        std::string qDesc = "Having arrived at Lilaya's residence, you must explore your surroundings and undergo initial arcane resonance testing in her laboratory.";
+        float qH = UIWidget::drawTextWrapped(renderer, qDesc, padX, curY, innerW, Theme::colors.textPrimary, uiScale * 0.85f);
+        curY += qH + (14.0f * uiScale);
+
+        UIWidget::drawText(renderer, "Objectives:", padX, curY, Theme::colors.textGold, uiScale * 0.9f);
+        curY += (18.0f * uiScale);
+
+        static const std::vector<std::pair<std::string, bool>> objectives = {
+            { "[✓] Awaken in Lilaya's Home F1", true },
+            { "[ ] Explore the first floor corridors", false },
+            { "[ ] Speak with Lilaya in her laboratory", false }
+        };
+        for (const auto& obj : objectives)
+        {
+            UIWidget::drawText(renderer, obj.first, padX + (8.0f * uiScale), curY, obj.second ? Theme::colors.friendly : Theme::colors.textSecondary, uiScale * 0.85f);
+            curY += (16.0f * uiScale);
+        }
+        curY += (10.0f * uiScale);
+
+        UIWidget::drawText(renderer, "Rewards: ¤ 5,000 | 150 XP | Arcane Essence x5", padX, curY, Theme::colors.textGold, uiScale * 0.85f);
+        curY += (20.0f * uiScale);
+    }
+    else if (app->getAppMode() == PhoneAppMode::ENCYCLOPEDIA)
+    {
+        // Encyclopedia
+        if (data.contains("categories") && data["categories"].is_array())
+        {
+            for (const auto& cat : data["categories"])
+            {
+                std::string catName = cat.value("name", "Category");
+                UIWidget::drawText(renderer, catName, padX, curY, Theme::colors.textGold, uiScale * 0.95f);
+                curY += (18.0f * uiScale);
+
+                if (cat.contains("entries") && cat["entries"].is_array())
+                {
+                    for (const auto& ent : cat["entries"])
+                    {
+                        std::string title = ent.value("title", "Unknown");
+                        std::string subtitle = ent.value("subtitle", "");
+                        std::string desc = ent.value("description", "");
+                        bool unlocked = ent.value("unlocked", true);
+
+                        SDL_FRect cardRect = { padX, curY, innerW, 42.0f * uiScale };
+                        UIWidget::drawPanel(renderer, cardRect);
+
+                        if (unlocked)
+                        {
+                            UIWidget::drawText(renderer, title, padX + (8.0f * uiScale), curY + (4.0f * uiScale), Theme::colors.textGold, uiScale * 0.85f);
+                            if (!subtitle.empty())
+                            {
+                                UIWidget::drawText(renderer, subtitle, padX + (8.0f * uiScale) + (title.size() * 7.5f * uiScale), curY + (5.0f * uiScale), Theme::colors.textAccent, uiScale * 0.72f);
+                            }
+                            UIWidget::drawTextWrapped(renderer, desc, padX + (8.0f * uiScale), curY + (18.0f * uiScale), innerW - (16.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.75f);
+                        }
+                        else
+                        {
+                            UIWidget::drawText(renderer, "??? [Locked Entry]", padX + (8.0f * uiScale), curY + (12.0f * uiScale), Theme::colors.textMuted, uiScale * 0.85f);
+                        }
+                        curY += cardRect.h + (6.0f * uiScale);
+                    }
+                }
+                curY += (8.0f * uiScale);
+            }
+        }
+    }
+    else if (app->getAppMode() == PhoneAppMode::SPELLS)
+    {
+        // Spellbook
+        UIWidget::drawText(renderer, "Unlocked Arcane Spells & Abilities:", padX, curY, Theme::colors.textGold, uiScale * 0.95f);
+        curY += (20.0f * uiScale);
+
+        if (data.contains("spells") && data["spells"].is_array())
+        {
+            for (const auto& sp : data["spells"])
+            {
+                std::string sName = sp.value("name", "Spell");
+                std::string school = sp.value("school", "Arcane");
+                int mp = sp.value("mpCost", 10);
+                std::string desc = sp.value("description", "");
+                bool unlocked = sp.value("unlocked", true);
+
+                SDL_FRect spRect = { padX, curY, innerW, 40.0f * uiScale };
+                UIWidget::drawPanel(renderer, spRect);
+
+                if (unlocked)
+                {
+                    UIWidget::drawText(renderer, sName, padX + (8.0f * uiScale), curY + (4.0f * uiScale), Theme::colors.textGold, uiScale * 0.85f);
+                    std::string meta = std::format("{} | Cost: {} MP", school, mp);
+                    UIWidget::drawText(renderer, meta, padX + innerW - (meta.size() * 6.5f * uiScale) - (8.0f * uiScale), curY + (4.0f * uiScale), Theme::colors.arcane, uiScale * 0.75f);
+                    UIWidget::drawTextWrapped(renderer, desc, padX + (8.0f * uiScale), curY + (18.0f * uiScale), innerW - (16.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.75f);
+                }
+                else
+                {
+                    UIWidget::drawText(renderer, std::format("{} [Locked]", sName), padX + (8.0f * uiScale), curY + (10.0f * uiScale), Theme::colors.textMuted, uiScale * 0.85f);
+                }
+                curY += spRect.h + (6.0f * uiScale);
+            }
+        }
+    }
+    else if (app->getAppMode() == PhoneAppMode::PERKS)
+    {
+        // Perk Tree
+        UIWidget::drawText(renderer, "Available Perk Trees & Upgrades:", padX, curY, Theme::colors.textGold, uiScale * 0.95f);
+        curY += (20.0f * uiScale);
+
+        if (data.contains("perks") && data["perks"].is_array())
+        {
+            for (const auto& pk : data["perks"])
+            {
+                std::string pName = pk.value("name", "Perk");
+                std::string category = pk.value("category", "General");
+                int cost = pk.value("cost", 1);
+                std::string desc = pk.value("description", "");
+                bool unlocked = pk.value("unlocked", true);
+
+                SDL_FRect pkRect = { padX, curY, innerW, 40.0f * uiScale };
+                UIWidget::drawPanel(renderer, pkRect);
+
+                UIWidget::drawText(renderer, pName, padX + (8.0f * uiScale), curY + (4.0f * uiScale), unlocked ? Theme::colors.textGold : Theme::colors.textPrimary, uiScale * 0.85f);
+                std::string status = unlocked ? "UNLOCKED" : std::format("Cost: {} Point", cost);
+                UIWidget::drawText(renderer, status, padX + innerW - (status.size() * 6.5f * uiScale) - (8.0f * uiScale), curY + (4.0f * uiScale), unlocked ? Theme::colors.friendly : Theme::colors.textAccent, uiScale * 0.75f);
+                UIWidget::drawTextWrapped(renderer, desc, padX + (8.0f * uiScale), curY + (18.0f * uiScale), innerW - (16.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.75f);
+
+                curY += pkRect.h + (6.0f * uiScale);
+            }
+        }
+    }
+    else if (app->getAppMode() == PhoneAppMode::CONTACTS)
+    {
+        // Contacts
+        UIWidget::drawText(renderer, "Address Book & Contact List:", padX, curY, Theme::colors.textGold, uiScale * 0.95f);
+        curY += (20.0f * uiScale);
+
+        if (data.contains("contacts") && data["contacts"].is_array())
+        {
+            for (const auto& ct : data["contacts"])
+            {
+                std::string cName = ct.value("name", "Contact");
+                std::string title = ct.value("title", "");
+                std::string loc = ct.value("location", "");
+                std::string status = ct.value("status", "Offline");
+                int aff = ct.value("affinity", 0);
+                std::string desc = ct.value("description", "");
+
+                SDL_FRect ctRect = { padX, curY, innerW, 46.0f * uiScale };
+                UIWidget::drawPanel(renderer, ctRect);
+
+                UIWidget::drawText(renderer, cName, padX + (8.0f * uiScale), curY + (4.0f * uiScale), Theme::colors.textGold, uiScale * 0.85f);
+                UIWidget::drawText(renderer, title, padX + (8.0f * uiScale) + (cName.size() * 8.0f * uiScale), curY + (5.0f * uiScale), Theme::colors.textAccent, uiScale * 0.72f);
+                
+                std::string statusMeta = std::format("{} | Aff: {}", status, aff);
+                UIWidget::drawText(renderer, statusMeta, padX + innerW - (statusMeta.size() * 6.5f * uiScale) - (8.0f * uiScale), curY + (4.0f * uiScale), (status == "Available") ? Theme::colors.friendly : Theme::colors.textSecondary, uiScale * 0.75f);
+                
+                UIWidget::drawText(renderer, std::format("Location: {}", loc), padX + (8.0f * uiScale), curY + (18.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.72f);
+                UIWidget::drawTextWrapped(renderer, desc, padX + (8.0f * uiScale), curY + (30.0f * uiScale), innerW - (16.0f * uiScale), Theme::colors.textMuted, uiScale * 0.72f);
+
+                curY += ctRect.h + (6.0f * uiScale);
+            }
+        }
+    }
+    else if (app->getAppMode() == PhoneAppMode::STATS)
+    {
+        // Comprehensive Character Stats
+        entity* p = gameContext->getPlayer();
+        if (p)
+        {
+            UIWidget::drawText(renderer, std::format("Full Diagnostic: {} (Level 1)", p->name), padX, curY, Theme::colors.textGold, uiScale * 0.95f);
+            curY += (20.0f * uiScale);
+
+            float hp = p->getStat("health");
+            float mana = p->getStat("mana");
+            float lust = p->getStat("lust");
+            float arc = p->getStat("arcaneEssence");
+
+            UIWidget::drawText(renderer, std::format("Core Attributes: Health {:.0f}/40 | Mana {:.0f}/108 | Lust {:.0f}/100 | Arcane Essence {:.0f}", hp, mana, lust, arc), padX, curY, Theme::colors.textPrimary, uiScale * 0.85f);
+            curY += (18.0f * uiScale);
+
+            UIWidget::drawText(renderer, std::format("Anatomy: Height {:.2f}m | Gender: {} | Race: {}", p->anatomy.heightMeters, genderArchetypeToString(p->anatomy.getGenderArchetype()), p->anatomy.getRacialTitle()), padX, curY, Theme::colors.textSecondary, uiScale * 0.85f);
+            curY += (18.0f * uiScale);
+
+            if (p->anatomy.hasPenis())
+            {
+                bodyPart* penis = p->anatomy.getPart(bodySlot::GROIN);
+                float cum = penis ? penis->currentFluidMl : 0.0f;
+                float maxCum = penis ? penis->maxFluidMl : 15.0f;
+                UIWidget::drawText(renderer, std::format("Genital Vitals: Penis ({:.1f}cm x {:.1f}cm) | Cum Capacity: {:.0f}/{:.0f}ml", penis ? penis->length : 15.0f, penis ? penis->diameter : 3.5f, cum, maxCum), padX, curY, Theme::colors.textSecondary, uiScale * 0.82f);
+                curY += (16.0f * uiScale);
+            }
+
+            if (p->anatomy.hasBreasts())
+            {
+                bodyPart* breasts = p->anatomy.getPart(bodySlot::BREASTS);
+                float milk = breasts ? breasts->currentFluidMl : 0.0f;
+                float maxMilk = breasts ? breasts->maxFluidMl : 100.0f;
+                UIWidget::drawText(renderer, std::format("Chest Vitals: {}-Cup | Milk Production: {:.0f}/{:.0f}ml", bodyPart::getCupSizeName(breasts ? breasts->cupSize : 0), milk, maxMilk), padX, curY, Theme::colors.textSecondary, uiScale * 0.82f);
+                curY += (16.0f * uiScale);
+            }
+        }
+    }
+    else if (app->getAppMode() == PhoneAppMode::MAPS)
+    {
+        // Area & World Map
+        UIWidget::drawText(renderer, "Lilaya's Home & Dominion Area Map:", padX, curY, Theme::colors.textGold, uiScale * 0.95f);
+        curY += (20.0f * uiScale);
+
+        SDL_FRect mapBox = { padX, curY, innerW, 160.0f * uiScale };
+        UIWidget::drawPanel(renderer, mapBox);
+
+        UIWidget::drawText(renderer, "🗺 LILAYA'S HOME F1 - CORRIDOR & LABS", mapBox.x + (16.0f * uiScale), mapBox.y + (16.0f * uiScale), Theme::colors.textGold, uiScale * 0.9f);
+        UIWidget::drawText(renderer, "Current Location: Corridor [📍 (X: 1, Y: 1)]", mapBox.x + (16.0f * uiScale), mapBox.y + (38.0f * uiScale), Theme::colors.friendly, uiScale * 0.82f);
+        UIWidget::drawText(renderer, "Surrounding Wings: Guest Quarters (North), Laboratory (East), Entrance (South)", mapBox.x + (16.0f * uiScale), mapBox.y + (58.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.82f);
+        UIWidget::drawText(renderer, "Danger Level: Safe Sanctuary", mapBox.x + (16.0f * uiScale), mapBox.y + (78.0f * uiScale), Theme::colors.companion, uiScale * 0.82f);
+
+        curY += mapBox.h + (10.0f * uiScale);
+    }
 
     return (curY - startY);
 }

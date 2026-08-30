@@ -17,6 +17,7 @@
 #include "state/loadGameState.h"
 #include "state/mainMenuState.h"
 #include "state/optionsState.h"
+#include "state/phoneAppsState.h"
 #include "state/sexState.h"
 #include "state/shopState.h"
 #include "state/transformationState.h"
@@ -696,7 +697,26 @@ void ActionGridManager::refresh(game* gameContext)
             gameContext->activeButtons.push_back(btn);
         }
 
-        if (sex->isPlayerDominant())
+        if (sex->isSolo())
+        {
+            static const std::vector<SexStance> soloStances = {
+                SexStance::SOLO_BED, SexStance::SOLO_CHAIR, SexStance::SOLO_STANDING
+            };
+            for (SexStance st : soloStances)
+            {
+                if (st != sex->getStance())
+                {
+                    actionButton stanceBtn;
+                    stanceBtn.label = std::format("Pos: {}", sexStanceToString(st));
+                    stanceBtn.onClick = [gameContext, sex, st]() {
+                        sex->changeStance(st);
+                        gameContext->refreshActionGrid();
+                    };
+                    gameContext->activeButtons.push_back(stanceBtn);
+                }
+            }
+        }
+        else if (sex->isPlayerDominant())
         {
             static const std::vector<SexStance> stances = {
                 SexStance::MISSIONARY, SexStance::FROM_BEHIND, SexStance::KNEELING, SexStance::STANDING, SexStance::LAP_SITTING
@@ -716,11 +736,138 @@ void ActionGridManager::refresh(game* gameContext)
         }
 
         actionButton endBtn;
-        endBtn.label = "End Scene";
-        endBtn.onClick = [gameContext]() {
-            gameContext->handleCommand({ CommandType::END_SEX_SCENE, 0, 0, "" });
+        endBtn.label = sex->isSolo() ? "Finish & Return" : "End Scene";
+        endBtn.onClick = [gameContext, sex]() {
+            if (sex->isSolo())
+            {
+                gameContext->isPhoneMenuOpen = true;
+                gameContext->changeState(std::make_unique<explorationState>());
+            }
+            else
+            {
+                gameContext->handleCommand({ CommandType::END_SEX_SCENE, 0, 0, "" });
+            }
         };
         gameContext->activeButtons.push_back(endBtn);
+        return;
+    }
+
+    // Phone Applications State Actions
+    if (auto phoneApp = dynamic_cast<phoneAppsState*>(currentState))
+    {
+        // Slot 0 (1): Quests
+        actionButton qBtn;
+        qBtn.label = "Quests";
+        qBtn.isSelected = (phoneApp->getAppMode() == PhoneAppMode::QUESTS);
+        qBtn.onClick = [gameContext, phoneApp]() {
+            phoneApp->setAppMode(PhoneAppMode::QUESTS);
+            phoneApp->loadData(PhoneAppMode::QUESTS);
+            gameContext->refreshActionGrid();
+        };
+        gameContext->activeButtons.push_back(qBtn);
+
+        // Slot 1 (2): Perks
+        actionButton pBtn;
+        pBtn.label = "Perk Tree";
+        pBtn.isSelected = (phoneApp->getAppMode() == PhoneAppMode::PERKS);
+        pBtn.onClick = [gameContext, phoneApp]() {
+            phoneApp->setAppMode(PhoneAppMode::PERKS);
+            phoneApp->loadData(PhoneAppMode::PERKS);
+            gameContext->refreshActionGrid();
+        };
+        gameContext->activeButtons.push_back(pBtn);
+
+        // Slot 2 (3): Spells
+        actionButton sBtn;
+        sBtn.label = "Spells";
+        sBtn.isSelected = (phoneApp->getAppMode() == PhoneAppMode::SPELLS);
+        sBtn.onClick = [gameContext, phoneApp]() {
+            phoneApp->setAppMode(PhoneAppMode::SPELLS);
+            phoneApp->loadData(PhoneAppMode::SPELLS);
+            gameContext->refreshActionGrid();
+        };
+        gameContext->activeButtons.push_back(sBtn);
+
+        // Slot 3 (4): Contacts
+        actionButton cBtn;
+        cBtn.label = "Contacts";
+        cBtn.isSelected = (phoneApp->getAppMode() == PhoneAppMode::CONTACTS);
+        cBtn.onClick = [gameContext, phoneApp]() {
+            phoneApp->setAppMode(PhoneAppMode::CONTACTS);
+            phoneApp->loadData(PhoneAppMode::CONTACTS);
+            gameContext->refreshActionGrid();
+        };
+        gameContext->activeButtons.push_back(cBtn);
+
+        // Slot 4 (5): Stats
+        actionButton stBtn;
+        stBtn.label = "Stats";
+        stBtn.isSelected = (phoneApp->getAppMode() == PhoneAppMode::STATS);
+        stBtn.onClick = [gameContext, phoneApp]() {
+            phoneApp->setAppMode(PhoneAppMode::STATS);
+            gameContext->refreshActionGrid();
+        };
+        gameContext->activeButtons.push_back(stBtn);
+
+        // Slot 5 (SHIFT+1): Encyclopedia
+        actionButton eBtn;
+        eBtn.label = "Encyclopedia";
+        eBtn.isSelected = (phoneApp->getAppMode() == PhoneAppMode::ENCYCLOPEDIA);
+        eBtn.onClick = [gameContext, phoneApp]() {
+            phoneApp->setAppMode(PhoneAppMode::ENCYCLOPEDIA);
+            phoneApp->loadData(PhoneAppMode::ENCYCLOPEDIA);
+            gameContext->refreshActionGrid();
+        };
+        gameContext->activeButtons.push_back(eBtn);
+
+        // Slot 6 (SHIFT+2): Maps
+        actionButton mBtn;
+        mBtn.label = "Maps";
+        mBtn.isSelected = (phoneApp->getAppMode() == PhoneAppMode::MAPS);
+        mBtn.onClick = [gameContext, phoneApp]() {
+            phoneApp->setAppMode(PhoneAppMode::MAPS);
+            gameContext->refreshActionGrid();
+        };
+        gameContext->activeButtons.push_back(mBtn);
+
+        // Slot 7 (SHIFT+3): Next Item
+        actionButton nextBtn;
+        nextBtn.label = "Next Entry";
+        nextBtn.onClick = [gameContext, phoneApp]() {
+            phoneApp->setSelectedItemIndex(phoneApp->getSelectedItemIndex() + 1);
+            gameContext->refreshActionGrid();
+        };
+        gameContext->activeButtons.push_back(nextBtn);
+
+        // Slot 8 (SHIFT+4): Prev Item
+        actionButton prevBtn;
+        prevBtn.label = "Prev Entry";
+        prevBtn.onClick = [gameContext, phoneApp]() {
+            if (phoneApp->getSelectedItemIndex() > 0)
+            {
+                phoneApp->setSelectedItemIndex(phoneApp->getSelectedItemIndex() - 1);
+                gameContext->refreshActionGrid();
+            }
+        };
+        gameContext->activeButtons.push_back(prevBtn);
+
+        // Pad up to slot 14
+        while (gameContext->activeButtons.size() < 14)
+        {
+            actionButton blank;
+            blank.label = "";
+            blank.isEnabled = false;
+            gameContext->activeButtons.push_back(blank);
+        }
+
+        // Slot 14 (CTRL+5): Back
+        actionButton backBtn;
+        backBtn.label = "Back (Phone)";
+        backBtn.onClick = [gameContext]() {
+            gameContext->isPhoneMenuOpen = true;
+            gameContext->changeState(std::make_unique<explorationState>());
+        };
+        gameContext->activeButtons.push_back(backBtn);
         return;
     }
 
@@ -916,43 +1063,59 @@ void ActionGridManager::refresh(game* gameContext)
             // Row 1: Quests, Perk Tree, Spells, Fetishes, Stats
             actionButton questBtn;
             questBtn.label = "Quests";
-            questBtn.onClick = [gameContext]() {};
+            questBtn.onClick = [gameContext]() {
+                gameContext->changeState(std::make_unique<phoneAppsState>(PhoneAppMode::QUESTS));
+            };
             gameContext->activeButtons.push_back(questBtn);
 
             actionButton perkBtn;
             perkBtn.label = "Perk Tree";
-            perkBtn.onClick = [gameContext]() {};
+            perkBtn.onClick = [gameContext]() {
+                gameContext->changeState(std::make_unique<phoneAppsState>(PhoneAppMode::PERKS));
+            };
             gameContext->activeButtons.push_back(perkBtn);
 
             actionButton spellsBtn;
             spellsBtn.label = "Spells";
-            spellsBtn.onClick = [gameContext]() {};
+            spellsBtn.onClick = [gameContext]() {
+                gameContext->changeState(std::make_unique<phoneAppsState>(PhoneAppMode::SPELLS));
+            };
             gameContext->activeButtons.push_back(spellsBtn);
 
             actionButton fetishBtn;
             fetishBtn.label = "Fetishes";
-            fetishBtn.onClick = [gameContext]() {};
+            fetishBtn.onClick = [gameContext]() {
+                gameContext->changeState(std::make_unique<optionsState>(OptionsScreenMode::CONTENT_OPTIONS));
+            };
             gameContext->activeButtons.push_back(fetishBtn);
 
             actionButton statsBtn;
             statsBtn.label = "Stats";
-            statsBtn.onClick = [gameContext]() {};
+            statsBtn.onClick = [gameContext]() {
+                gameContext->changeState(std::make_unique<phoneAppsState>(PhoneAppMode::STATS));
+            };
             gameContext->activeButtons.push_back(statsBtn);
 
             // Row 2: Selfie, Contacts, Encyclopedia, Transform, Maps
             actionButton selfieBtn;
             selfieBtn.label = "Selfie";
-            selfieBtn.onClick = [gameContext]() {};
+            selfieBtn.onClick = [gameContext]() {
+                gameContext->changeState(std::make_unique<characterCreationState>(3));
+            };
             gameContext->activeButtons.push_back(selfieBtn);
 
             actionButton contactsBtn;
             contactsBtn.label = "Contacts";
-            contactsBtn.onClick = [gameContext]() {};
+            contactsBtn.onClick = [gameContext]() {
+                gameContext->changeState(std::make_unique<phoneAppsState>(PhoneAppMode::CONTACTS));
+            };
             gameContext->activeButtons.push_back(contactsBtn);
 
             actionButton encBtn;
             encBtn.label = "Encyclopedia";
-            encBtn.onClick = [gameContext]() {};
+            encBtn.onClick = [gameContext]() {
+                gameContext->changeState(std::make_unique<phoneAppsState>(PhoneAppMode::ENCYCLOPEDIA));
+            };
             gameContext->activeButtons.push_back(encBtn);
 
             actionButton tfBtn;
@@ -963,18 +1126,24 @@ void ActionGridManager::refresh(game* gameContext)
 
             actionButton mapsBtn;
             mapsBtn.label = "Maps";
-            mapsBtn.onClick = [gameContext]() {};
+            mapsBtn.onClick = [gameContext]() {
+                gameContext->changeState(std::make_unique<phoneAppsState>(PhoneAppMode::MAPS));
+            };
             gameContext->activeButtons.push_back(mapsBtn);
 
             // Row 3: Combat Moves, Masturbate, Loiter, Elemental, Back
             actionButton combatBtn;
             combatBtn.label = "Combat Moves";
-            combatBtn.onClick = [gameContext]() {};
+            combatBtn.onClick = [gameContext]() {
+                gameContext->changeState(std::make_unique<phoneAppsState>(PhoneAppMode::SPELLS));
+            };
             gameContext->activeButtons.push_back(combatBtn);
 
             actionButton mastBtn;
             mastBtn.label = "Masturbate";
-            mastBtn.onClick = [gameContext]() {};
+            mastBtn.onClick = [gameContext]() {
+                gameContext->changeState(std::make_unique<sexState>());
+            };
             gameContext->activeButtons.push_back(mastBtn);
 
             actionButton loiterBtn;

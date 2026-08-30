@@ -1,0 +1,45 @@
+{
+  "version": "1.0",
+  "perks": [
+    {
+      "id": "arcane_attunement",
+      "name": "Arcane Attunement",
+      "category": "Arcane",
+      "cost": 1,
+      "description": "Increases maximum Mana by +25 and boosts spell power by 10%.",
+      "unlocked": true
+    },
+    {
+      "id": "iron_constitution",
+      "name": "Iron Constitution",
+      "category": "Physical",
+      "cost": 1,
+      "description": "Increases maximum Health by +20 and raises physical resistance.",
+      "unlocked": false
+    },
+    {
+      "id": "silver_tongue",
+      "name": "Silver Tongue",
+      "category": "Social",
+      "cost": 1,
+      "description": "Improves negotiation skill with merchants and enhances charm dialogue choices.",
+      "unlocked": true
+    },
+    {
+      "id": "libido_surge",
+      "name": "Libido Surge",
+      "category": "Sexual",
+      "cost": 1,
+      "description": "Increases fluid production capacity and unlocks deeper solo edging control.",
+      "unlocked": false
+    },
+    {
+      "id": "demon_vitality",
+      "name": "Demonic Vitality",
+      "category": "Demonic",
+      "cost": 2,
+      "description": "Regenerates 5 HP and 5 MP every 15 minutes of world time.",
+      "unlocked": false
+    }
+  ]
+}

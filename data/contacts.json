@@ -1,0 +1,35 @@
+{
+  "version": "1.0",
+  "contacts": [
+    {
+      "id": "lilaya",
+      "name": "Lilaya",
+      "title": "Arcane Researcher & Host",
+      "location": "Lilaya's Home - Lab",
+      "affinity": 25,
+      "status": "Available",
+      "phoneAvailable": true,
+      "description": "A brilliant and eccentric half-demon researcher investigating dimensional anomalies."
+    },
+    {
+      "id": "rose",
+      "name": "Rose",
+      "title": "Head Maid",
+      "location": "Lilaya's Home - Kitchens",
+      "affinity": 15,
+      "status": "Busy",
+      "phoneAvailable": true,
+      "description": "A diligent cat-morph managing the daily operations and security of the residence."
+    },
+    {
+      "id": "arthur",
+      "name": "Arthur",
+      "title": "Shopkeeper",
+      "location": "Dominion Bazaar",
+      "affinity": 0,
+      "status": "Offline",
+      "phoneAvailable": false,
+      "description": "A merchant trading in rare arcane crystals and supplies."
+    }
+  ]
+}

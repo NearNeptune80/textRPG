@@ -1,0 +1,49 @@
+{
+  "version": "1.0",
+  "spells": [
+    {
+      "id": "arcane_dart",
+      "name": "Arcane Dart",
+      "school": "Arcane",
+      "mpCost": 10,
+      "damage": 25.0,
+      "description": "Fires a sharp dart of concentrated arcane power at the target, dealing direct damage.",
+      "unlocked": true
+    },
+    {
+      "id": "fireball",
+      "name": "Fireball",
+      "school": "Fire",
+      "mpCost": 25,
+      "damage": 55.0,
+      "description": "Hurls an explosive sphere of demonic flame that incinerates foes.",
+      "unlocked": false
+    },
+    {
+      "id": "arcane_shield",
+      "name": "Arcane Shield",
+      "school": "Arcane",
+      "mpCost": 15,
+      "defense": 30.0,
+      "description": "Conjures a shimmering protective barrier that absorbs incoming physical and magical attacks.",
+      "unlocked": true
+    },
+    {
+      "id": "cleanse",
+      "name": "Cleanse",
+      "school": "Restoration",
+      "mpCost": 20,
+      "heal": 40.0,
+      "description": "Channels pure energy to purge negative debuffs and restore physical health.",
+      "unlocked": true
+    },
+    {
+      "id": "teleport",
+      "name": "Blink",
+      "school": "Translocation",
+      "mpCost": 30,
+      "description": "Instantly teleports the caster a short distance across the battlefield or room.",
+      "unlocked": false
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "version": "1.0",
+  "categories": [
+    {
+      "id": "species",
+      "name": "Species & Morphs",
+      "entries": [
+        {
+          "id": "cat_morph",
+          "title": "Cat-morph",
+          "subtitle": "Feline Beastkin",
+          "description": "Cat-morphs possess prominent feline ears and a lithe tail, often accompanied by sharper reflexes and night-adjusted vision. They are known for their playful yet territorial demeanor.",
+          "unlocked": true
+        },
+        {
+          "id": "half_demon",
+          "title": "Half-demon",
+          "subtitle": "Demonic Hybrid",
+          "description": "Individuals infused with arcane demonic energy. They exhibit horns, pointed ears, and heightened affinity for arcane magic and emotional resonance.",
+          "unlocked": true
+        },
+        {
+          "id": "human",
+          "title": "Human",
+          "subtitle": "Mundane Inhabitants",
+          "description": "The baseline species hailing from Earth, possessing no natural arcane aura without exposure to demonic essence or artifacts.",
+          "unlocked": true
+        }
+      ]
+    },
+    {
+      "id": "items",
+      "name": "Items & Relics",
+      "entries": [
+        {
+          "id": "demonstone_opaque",
+          "title": "Opaque Demonstone",
+          "subtitle": "Arcane Focus",
+          "description": "A dense crystal that hums with dormant arcane energy. When equipped, it channels environmental arcane pulses into defensive shields and spell potency.",
+          "unlocked": true
+        },
+        {
+          "id": "smart_phone",
+          "title": "Smartphone",
+          "subtitle": "Earth Device",
+          "description": "A personal touchscreen device that has been adapted to recharge via the user's natural arcane aura, storing maps, contacts, and journal entries.",
+          "unlocked": true
+        }
+      ]
+    },
+    {
+      "id": "places",
+      "name": "Locations",
+      "entries": [
+        {
+          "id": "lilayas_home_f1",
+          "title": "Lilaya's Home F1",
+          "subtitle": "First Floor Residence",
+          "description": "The ground floor of Lilaya's expansive mansion, featuring carpeted corridors, guest quarters, research laboratories, and arcane lighting.",
+          "unlocked": true
+        },
+        {
+          "id": "dominion",
+          "title": "Dominion",
+          "subtitle": "Demonic Metropolis",
+          "description": "The sprawling capital city constructed amidst ancient arcane ruins, bustling with various morph races, merchant bazaars, and guild halls.",
+          "unlocked": false
+        }
+      ]
+    }
+  ]
+}

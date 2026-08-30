@@ -1,0 +1,241 @@
+{
+  "version": "1.0",
+  "stances": [
+    { "id": "SOLO_BED", "name": "In Bed", "isSolo": true },
+    { "id": "SOLO_CHAIR", "name": "Seated", "isSolo": true },
+    { "id": "SOLO_STANDING", "name": "Standing", "isSolo": true },
+    { "id": "MISSIONARY", "name": "Missionary", "isSolo": false },
+    { "id": "FROM_BEHIND", "name": "From Behind", "isSolo": false },
+    { "id": "KNEELING", "name": "Kneeling", "isSolo": false },
+    { "id": "STANDING", "name": "Standing", "isSolo": false },
+    { "id": "LAP_SITTING", "name": "Lap Sitting", "isSolo": false }
+  ],
+  "actions": [
+    {
+      "id": "solo_stroke_penis",
+      "name": "Stroke Penis",
+      "category": "Genitals",
+      "isSolo": true,
+      "validStances": ["SOLO_BED", "SOLO_CHAIR", "SOLO_STANDING"],
+      "requirements": {
+        "hasPenis": true
+      },
+      "values": {
+        "arousalSelf": 18.0,
+        "arousalPartner": 0.0,
+        "dominanceShift": 0.0,
+        "fluidProducedMl": 2.5
+      },
+      "narrative": "You wrap your fingers around your shaft, stroking in a steady, measured rhythm as warmth spreads throughout your groin."
+    },
+    {
+      "id": "solo_rub_clitoris",
+      "name": "Rub Clitoris",
+      "category": "Genitals",
+      "isSolo": true,
+      "validStances": ["SOLO_BED", "SOLO_CHAIR", "SOLO_STANDING"],
+      "requirements": {
+        "hasVagina": true
+      },
+      "values": {
+        "arousalSelf": 20.0,
+        "arousalPartner": 0.0,
+        "dominanceShift": 0.0,
+        "fluidProducedMl": 3.0
+      },
+      "narrative": "You circle your fingertips gently over your sensitive clit, feeling pleasurable shivers course through your body."
+    },
+    {
+      "id": "solo_finger_vagina",
+      "name": "Finger Vagina",
+      "category": "Penetration",
+      "isSolo": true,
+      "validStances": ["SOLO_BED", "SOLO_CHAIR"],
+      "requirements": {
+        "hasVagina": true
+      },
+      "values": {
+        "arousalSelf": 22.0,
+        "arousalPartner": 0.0,
+        "dominanceShift": 0.0,
+        "fluidProducedMl": 4.0
+      },
+      "narrative": "Slipping your fingers inside your wet passage, you curl them rhythmically, reveling in the tight, warm sensations."
+    },
+    {
+      "id": "solo_caress_breasts",
+      "name": "Caress Breasts",
+      "category": "Upper Body",
+      "isSolo": true,
+      "validStances": ["SOLO_BED", "SOLO_CHAIR", "SOLO_STANDING"],
+      "requirements": {
+        "hasBreasts": true
+      },
+      "values": {
+        "arousalSelf": 12.0,
+        "arousalPartner": 0.0,
+        "dominanceShift": 0.0,
+        "fluidProducedMl": 1.0
+      },
+      "narrative": "You cup your breasts in your hands, gently squeezing the soft mounds as you stimulate yourself."
+    },
+    {
+      "id": "solo_pinch_nipples",
+      "name": "Pinch Nipples",
+      "category": "Upper Body",
+      "isSolo": true,
+      "validStances": ["SOLO_BED", "SOLO_CHAIR", "SOLO_STANDING"],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 14.0,
+        "arousalPartner": 0.0,
+        "dominanceShift": 0.0,
+        "fluidProducedMl": 0.5
+      },
+      "narrative": "You roll and tease your sensitive nipples between your thumbs and forefingers, sending electric jolts down to your core."
+    },
+    {
+      "id": "solo_finger_anus",
+      "name": "Finger Anus",
+      "category": "Anal",
+      "isSolo": true,
+      "validStances": ["SOLO_BED", "SOLO_CHAIR"],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 16.0,
+        "arousalPartner": 0.0,
+        "dominanceShift": 0.0,
+        "fluidProducedMl": 1.0
+      },
+      "narrative": "Carefully exploring your tight rear entrance, you slide a lubricated fingertip inside, gasping at the intense fullness."
+    },
+    {
+      "id": "solo_edging",
+      "name": "Edge",
+      "category": "Control",
+      "isSolo": true,
+      "validStances": ["SOLO_BED", "SOLO_CHAIR", "SOLO_STANDING"],
+      "requirements": {
+        "minArousal": 50.0
+      },
+      "values": {
+        "arousalSelf": 5.0,
+        "arousalPartner": 0.0,
+        "dominanceShift": 5.0,
+        "fluidProducedMl": 2.0
+      },
+      "narrative": "You bring yourself right to the precipice of climax before pausing, panting as you masterfully prolong your pleasure."
+    },
+    {
+      "id": "solo_climax",
+      "name": "Climax",
+      "category": "Climax",
+      "isSolo": true,
+      "validStances": ["SOLO_BED", "SOLO_CHAIR", "SOLO_STANDING"],
+      "requirements": {
+        "minArousal": 85.0
+      },
+      "values": {
+        "arousalSelf": 100.0,
+        "arousalPartner": 0.0,
+        "dominanceShift": 0.0,
+        "fluidProducedMl": 15.0
+      },
+      "narrative": "Unable to hold back any longer, you surrender to a powerful wave of ecstasy, shuddering as your body convulses in release."
+    },
+    {
+      "id": "partner_kiss",
+      "name": "Kiss",
+      "category": "Affection",
+      "isSolo": false,
+      "validStances": ["MISSIONARY", "KNEELING", "STANDING", "LAP_SITTING"],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 12.0,
+        "arousalPartner": 14.0,
+        "dominanceShift": 2.0,
+        "fluidProducedMl": 1.0
+      },
+      "narrative": "You lean in and passionately press your lips against your partner's, tangling tongues in an intimate embrace."
+    },
+    {
+      "id": "partner_caress_body",
+      "name": "Caress Body",
+      "category": "Affection",
+      "isSolo": false,
+      "validStances": ["MISSIONARY", "FROM_BEHIND", "KNEELING", "STANDING", "LAP_SITTING"],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 10.0,
+        "arousalPartner": 15.0,
+        "dominanceShift": 1.0,
+        "fluidProducedMl": 1.0
+      },
+      "narrative": "Your hands glide along your partner's curves, tracing sensitive contours and stoking their mounting arousal."
+    },
+    {
+      "id": "partner_oral_give",
+      "name": "Perform Oral",
+      "category": "Oral",
+      "isSolo": false,
+      "validStances": ["MISSIONARY", "FROM_BEHIND", "KNEELING", "LAP_SITTING"],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 15.0,
+        "arousalPartner": 25.0,
+        "dominanceShift": -5.0,
+        "fluidProducedMl": 3.0
+      },
+      "narrative": "You move down between your partner's thighs, expertly using your mouth and tongue to deliver exquisite pleasure."
+    },
+    {
+      "id": "partner_oral_receive",
+      "name": "Receive Oral",
+      "category": "Oral",
+      "isSolo": false,
+      "validStances": ["MISSIONARY", "FROM_BEHIND", "KNEELING", "STANDING", "LAP_SITTING"],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 25.0,
+        "arousalPartner": 15.0,
+        "dominanceShift": 5.0,
+        "fluidProducedMl": 3.0
+      },
+      "narrative": "Your partner tends to your groin with eager lips and tongue, coaxing breathless moans from your chest."
+    },
+    {
+      "id": "partner_vaginal_penetrate",
+      "name": "Vaginal Sex",
+      "category": "Penetration",
+      "isSolo": false,
+      "validStances": ["MISSIONARY", "FROM_BEHIND", "STANDING", "LAP_SITTING"],
+      "requirements": {
+        "hasPenis": true
+      },
+      "values": {
+        "arousalSelf": 22.0,
+        "arousalPartner": 22.0,
+        "dominanceShift": 4.0,
+        "fluidProducedMl": 5.0
+      },
+      "narrative": "You slide smoothly into your partner's welcoming depth, setting a deep, pleasurable pace that makes you both gasp."
+    },
+    {
+      "id": "partner_anal_penetrate",
+      "name": "Anal Sex",
+      "category": "Anal",
+      "isSolo": false,
+      "validStances": ["MISSIONARY", "FROM_BEHIND", "KNEELING", "STANDING"],
+      "requirements": {
+        "hasPenis": true
+      },
+      "values": {
+        "arousalSelf": 24.0,
+        "arousalPartner": 20.0,
+        "dominanceShift": 8.0,
+        "fluidProducedMl": 4.0
+      },
+      "narrative": "You press forward into your partner's tight rear entrance, claiming them with assertive, rhythmic thrusts."
+    }
+  ]
+}
