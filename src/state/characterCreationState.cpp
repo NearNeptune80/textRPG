@@ -28,8 +28,82 @@ static constexpr std::string_view SURNAMES[] = {
 };
 
 characterCreationState::characterCreationState(int startStep)
-    : step(startStep)
+    : step(startStep), config(EditorConfig::newGamePreset())
 {
+}
+
+characterCreationState::characterCreationState(EditorConfig cfg, int startStep)
+    : step(startStep), config(std::move(cfg))
+{
+}
+
+std::vector<EditorTabId> characterCreationState::getActiveTabs() const
+{
+    std::vector<EditorTabId> tabs;
+
+    if (config.hasAnyOptionInList({ "gender", "femininity", "orientation", "start_month" }))
+        tabs.push_back(EditorTabId::IDENTITY);
+
+    if (config.hasAnyOptionInList({ "height", "body_size", "muscle", "skin_tone", "skin_covering" }))
+        tabs.push_back(EditorTabId::BODY);
+
+    if (config.hasAnyOptionInList({ "eye_color", "hair_style", "hair_color", "hair_length", "ear_type" }))
+        tabs.push_back(EditorTabId::FACE_HAIR);
+
+    if (config.hasAnyOptionInList({ "chest_size", "nipple_size", "lactation" }) && !config.isNewGameCreation)
+        tabs.push_back(EditorTabId::BREASTS);
+
+    if (config.hasAnyOptionInList({ "genitals", "wetness", "testicles" }) && !config.isNewGameCreation)
+        tabs.push_back(EditorTabId::GENITALIA);
+
+    if (config.hasAnyOptionInList({ "horns", "wings", "tails" }))
+        tabs.push_back(EditorTabId::APPENDAGES);
+
+    if (config.hasAnyOptionInList({ "piercings", "tattoos", "makeup", "pubic_hair" }))
+        tabs.push_back(EditorTabId::COSMETICS);
+
+    if (config.hasAnyOptionInList({ "personality_traits" }))
+        tabs.push_back(EditorTabId::PERSONALITY);
+
+    if (config.hasAnyOptionInList({ "first_name", "surname" }) || config.isNewGameCreation)
+        tabs.push_back(EditorTabId::NAME_FINISH);
+
+    if (tabs.empty())
+        tabs.push_back(EditorTabId::IDENTITY);
+
+    return tabs;
+}
+
+int characterCreationState::getActiveTabCount() const
+{
+    return static_cast<int>(getActiveTabs().size());
+}
+
+EditorTabId characterCreationState::getCurrentTabId() const
+{
+    auto tabs = getActiveTabs();
+    if (step >= 0 && step < static_cast<int>(tabs.size()))
+    {
+        return tabs[step];
+    }
+    return tabs.empty() ? EditorTabId::IDENTITY : tabs[0];
+}
+
+std::string characterCreationState::getTabName(EditorTabId tab) const
+{
+    switch (tab)
+    {
+    case EditorTabId::IDENTITY: return "Identity";
+    case EditorTabId::BODY: return "Body";
+    case EditorTabId::FACE_HAIR: return "Face & Hair";
+    case EditorTabId::BREASTS: return "Breasts";
+    case EditorTabId::GENITALIA: return "Genitalia";
+    case EditorTabId::APPENDAGES: return "Appendages";
+    case EditorTabId::COSMETICS: return "Cosmetics";
+    case EditorTabId::PERSONALITY: return "Personality";
+    case EditorTabId::NAME_FINISH: return config.isNewGameCreation ? "Name & Finish" : "Finalize";
+    default: return "Customization";
+    }
 }
 
 void characterCreationState::initialise(game* gameContext)

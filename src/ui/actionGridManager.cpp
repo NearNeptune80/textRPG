@@ -96,44 +96,75 @@ void ActionGridManager::refresh(game* gameContext)
         return;
     }
 
-    // 2. Character Creation
+    // 2. Character Creation / Customization Editor
     if (auto cc = dynamic_cast<characterCreationState*>(currentState))
     {
-        // Category Step Tabs (Row 1)
-        addBtn(gameContext, "1. Identity", [cc, gameContext]() { cc->step = 0; gameContext->refreshActionGrid(); }, true, cc->step == 0);
-        addBtn(gameContext, "2. Body", [cc, gameContext]() { cc->step = 1; gameContext->refreshActionGrid(); }, true, cc->step == 1);
-        addBtn(gameContext, "3. Face & Hair", [cc, gameContext]() { cc->step = 2; gameContext->refreshActionGrid(); }, true, cc->step == 2);
-        addBtn(gameContext, "4. Personality", [cc, gameContext]() { cc->step = 3; gameContext->refreshActionGrid(); }, true, cc->step == 3);
-        addBtn(gameContext, "5. Name & Finish", [cc, gameContext]() { cc->step = 4; gameContext->refreshActionGrid(); }, true, cc->step == 4);
+        auto activeTabs = cc->getActiveTabs();
+        int tabCount = static_cast<int>(activeTabs.size());
+        if (cc->step >= tabCount) cc->step = std::max(0, tabCount - 1);
 
-        // Row 2: Step Navigation & Start
-        if (cc->step > 0)
+        // Row 1: Dynamic Category Step Tabs (up to 5 tabs per row)
+        if (tabCount > 1)
         {
-            addBtn(gameContext, "Previous Step", [cc, gameContext]() { cc->step--; gameContext->refreshActionGrid(); });
+            for (int i = 0; i < std::min(5, tabCount); ++i)
+            {
+                std::string btnLabel = std::format("{}. {}", i + 1, cc->getTabName(activeTabs[i]));
+                addBtn(gameContext, btnLabel, [cc, gameContext, i]() {
+                    cc->step = i;
+                    gameContext->refreshActionGrid();
+                }, true, cc->step == i);
+            }
+        }
+        else if (tabCount == 1)
+        {
+            addBtn(gameContext, cc->getTabName(activeTabs[0]), [cc, gameContext]() {}, true, true);
+        }
+
+        // Row 2: Step Navigation & Finish Action
+        padButtonsTo(gameContext, 5);
+        if (cc->step > 0 && tabCount > 1)
+        {
+            addBtn(gameContext, "Previous Step", [cc, gameContext]() {
+                cc->step--;
+                gameContext->refreshActionGrid();
+            });
         }
         else
         {
             padButtonsTo(gameContext, 6);
         }
 
-        if (cc->step < 4)
+        if (cc->step < tabCount - 1 && tabCount > 1)
         {
-            addBtn(gameContext, "Next Step", [cc, gameContext]() { cc->step++; gameContext->refreshActionGrid(); });
+            addBtn(gameContext, "Next Step", [cc, gameContext]() {
+                cc->step++;
+                gameContext->refreshActionGrid();
+            });
         }
         else
         {
-            addBtn(gameContext, "Start Game", [cc, gameContext]() { cc->finalizeCharacter(gameContext); }, true, true);
+            addBtn(gameContext, cc->config.isNewGameCreation ? "Start Game" : "Apply Changes", [cc, gameContext]() {
+                cc->finalizeCharacter(gameContext);
+            }, true, true);
         }
 
         padButtonsTo(gameContext, 9);
-        addBtn(gameContext, "Start Game", [cc, gameContext]() { cc->finalizeCharacter(gameContext); });
+        addBtn(gameContext, cc->config.isNewGameCreation ? "Start Game" : "Apply Changes", [cc, gameContext]() {
+            cc->finalizeCharacter(gameContext);
+        });
 
         // Row 3: Utilities & Return
         padButtonsTo(gameContext, 10);
-        addBtn(gameContext, "Randomize All", [cc, gameContext]() { cc->randomizeAll(); gameContext->refreshActionGrid(); });
+        addBtn(gameContext, "Randomize All", [cc, gameContext]() {
+            cc->randomizeAll();
+            gameContext->refreshActionGrid();
+        });
 
         padButtonsTo(gameContext, 14);
-        addBackBtn(gameContext, "Back to Menu", [gameContext]() { gameContext->changeState(std::make_unique<mainMenuState>()); });
+        std::string backLabel = cc->config.isNewGameCreation ? "Back to Menu" : "Cancel";
+        addBackBtn(gameContext, backLabel, [gameContext]() {
+            gameContext->changeState(std::make_unique<mainMenuState>());
+        });
         return;
     }
 

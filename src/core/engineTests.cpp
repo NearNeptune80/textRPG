@@ -494,6 +494,62 @@ namespace EngineTests
         return allPassed;
     }
 
+    bool testGranularEditorOptionMasking()
+    {
+        std::cout << "\n--- Running Test 8: Granular Editor Option Masking & Dynamic Tab Pruning ---\n";
+        bool allPassed = true;
+
+        // 1. New Game Preset: Exactly 5 tabs
+        auto ccNew = std::make_unique<characterCreationState>(EditorConfig::newGamePreset(), 0);
+        auto newTabs = ccNew->getActiveTabs();
+        bool newTabCountValid = (newTabs.size() == 5);
+        logResult("New Game Preset activates exactly 5 tabs", newTabCountValid);
+        allPassed &= newTabCountValid;
+
+        bool hasIdentity = (newTabs[0] == EditorTabId::IDENTITY);
+        bool hasBody = (newTabs[1] == EditorTabId::BODY);
+        bool hasFace = (newTabs[2] == EditorTabId::FACE_HAIR);
+        bool hasPersonality = (newTabs[3] == EditorTabId::PERSONALITY);
+        bool hasFinish = (newTabs[4] == EditorTabId::NAME_FINISH);
+        bool tabsInOrder = (hasIdentity && hasBody && hasFace && hasPersonality && hasFinish);
+        logResult("New Game Preset contains [Identity, Body, Face & Hair, Personality, Name & Finish]", tabsInOrder);
+        allPassed &= tabsInOrder;
+
+        // Verify choice filtering (Human only ears in new game)
+        auto earChoices = ccNew->config.filterChoices("ear_type", { "Human", "Cat", "Dog", "Elf", "Demon" });
+        bool humanOnlyEars = (earChoices.size() == 1 && earChoices[0] == "Human");
+        logResult("New Game Preset filters Ear Types to [Human] only", humanOnlyEars);
+        allPassed &= humanOnlyEars;
+
+        // 2. Hair Salon Preset: Pruned down to 1 tab (FACE_HAIR)
+        auto ccSalon = std::make_unique<characterCreationState>(EditorConfig::hairSalonPreset(), 0);
+        auto salonTabs = ccSalon->getActiveTabs();
+        bool salonSingleTab = (salonTabs.size() == 1 && salonTabs[0] == EditorTabId::FACE_HAIR);
+        logResult("Hair Salon Preset prunes all tabs down to single 'Face & Hair' tab", salonSingleTab);
+        allPassed &= salonSingleTab;
+
+        // 3. Tattoo / Piercing Preset: Pruned down to 1 tab (COSMETICS)
+        auto ccTattoo = std::make_unique<characterCreationState>(EditorConfig::tattooPiercingPreset(), 0);
+        auto tattooTabs = ccTattoo->getActiveTabs();
+        bool tattooSingleTab = (tattooTabs.size() == 1 && tattooTabs[0] == EditorTabId::COSMETICS);
+        logResult("Tattoo Studio Preset prunes all tabs down to single 'Cosmetics' tab", tattooSingleTab);
+        allPassed &= tattooSingleTab;
+
+        // 4. Arcane Full Transformation Preset: All tabs unlocked including Appendages
+        auto ccTransform = std::make_unique<characterCreationState>(EditorConfig::fullTransformationPreset(), 0);
+        auto transTabs = ccTransform->getActiveTabs();
+        bool transFullTabs = (transTabs.size() >= 8);
+        logResult("Full Transformation Preset activates all 8+ tabs (including Appendages & Genitalia)", transFullTabs);
+        allPassed &= transFullTabs;
+
+        auto transEars = ccTransform->config.filterChoices("ear_type", { "Human", "Cat", "Dog", "Elf", "Demon", "Cow", "Rabbit", "Dragon" });
+        bool fullEarsUnlocked = (transEars.size() >= 8);
+        logResult("Full Transformation Preset unlocks exotic Ear choices (Cat, Dog, Demon, Elf, Dragon)", fullEarsUnlocked);
+        allPassed &= fullEarsUnlocked;
+
+        return allPassed;
+    }
+
     bool runAllTests()
     {
         g_passCount = 0;
@@ -510,6 +566,7 @@ namespace EngineTests
         bool t5 = testSettingsAndThemes();
         bool t6 = testSubmenuButtonFunctionality();
         bool t7 = testContentOptionsAllCategories();
+        bool t8 = testGranularEditorOptionMasking();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";

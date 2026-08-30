@@ -7,11 +7,13 @@
 #include <SDL3/SDL.h>
 
 #include "state/iGameState.h"
+#include "state/editorConfig.h"
 
 class characterCreationState : public iGameState
 {
 public:
     explicit characterCreationState(int startStep = 0);
+    characterCreationState(EditorConfig cfg, int startStep = 0);
     ~characterCreationState() override = default;
 
     void initialise(game* gameContext) override;
@@ -21,7 +23,16 @@ public:
     void handleInput(game* gameContext, const SDL_Event& event) override;
     void handleCommand(game* gameContext, const UICommand& cmd) override;
 
-    // Step: 0 = Start Date/Gender/Femininity, 1 = Birthday/Orientation/Personality, 2 = Names/Surname
+    // Granular Configuration
+    EditorConfig config = EditorConfig::newGamePreset();
+
+    // Tab Navigation Helpers
+    std::vector<EditorTabId> getActiveTabs() const;
+    int getActiveTabCount() const;
+    EditorTabId getCurrentTabId() const;
+    std::string getTabName(EditorTabId tab) const;
+
+    // Current active step index into getActiveTabs()
     int step = 0;
 
     // Step 0 properties
@@ -86,6 +97,12 @@ public:
     int vaginaWetness = 2;
     float vaginaElasticity = 70.0f;
     bool isVirgin = true;
+
+    // Appendages
+    std::string hornsType = "None"; // None, Demon, Dragon, Goat, Bull, Unicorn
+    std::string wingsType = "None"; // None, Feathered, Leathery, Insectoid, Energy
+    std::string tailsType = "None"; // None, Cat, Dog, Fox, Horse, Demon, Dragon
+    int tailsCount = 1;
 
     // Markings & Extra
     std::string makeupStyle = "None"; // None, Subtle, Glamour, Goth, Festive

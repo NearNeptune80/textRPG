@@ -110,6 +110,24 @@ int main(int argc, char* argv[])
         {
             engine.changeState(std::make_unique<loadGameState>(SaveMenuMode::SAVE_AND_LOAD, std::make_unique<mainMenuState>()));
         }
+        else if (screenshotState == "cc_salon")
+        {
+            auto cc = std::make_unique<characterCreationState>(EditorConfig::hairSalonPreset(), 0);
+            engine.changeState(std::move(cc));
+        }
+        else if (screenshotState == "cc_tattoo")
+        {
+            auto cc = std::make_unique<characterCreationState>(EditorConfig::tattooPiercingPreset(), 0);
+            engine.changeState(std::move(cc));
+        }
+        else if (screenshotState == "cc_transform" || screenshotState.starts_with("cc_transform_step"))
+        {
+            int tStep = 0;
+            if (screenshotState == "cc_transform") tStep = 5; // Appendages tab
+            else if (screenshotState.length() > 17) tStep = screenshotState[17] - '0';
+            auto cc = std::make_unique<characterCreationState>(EditorConfig::fullTransformationPreset(), tStep);
+            engine.changeState(std::move(cc));
+        }
         else if (screenshotState == "character_creation" || screenshotState == "cc" || screenshotState.starts_with("cc_step") || screenshotState.starts_with("character_creation_step"))
         {
             auto cc = std::make_unique<characterCreationState>(0);
