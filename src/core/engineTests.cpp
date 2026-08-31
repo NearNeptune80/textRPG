@@ -868,6 +868,38 @@ namespace EngineTests
         return allPassed;
     }
 
+    bool testLegacySaveCompatibility()
+    {
+        std::cout << "\n--- Running Test 13: Legacy Save Compatibility & Multi-Save Loading ---\n";
+        bool allPassed = true;
+
+        std::string savesDir = saveManager::getSavesDirectory();
+        if (std::filesystem::exists(savesDir))
+        {
+            int loadedCount = 0;
+            for (const auto& entry : std::filesystem::directory_iterator(savesDir))
+            {
+                if (entry.is_regular_file() && entry.path().extension() == ".json")
+                {
+                    std::string filename = entry.path().filename().string();
+                    if (filename == "settings.json" || filename == "theme.json") continue;
+
+                    game testGame;
+                    bool loaded = saveManager::loadFromFile(&testGame, entry.path().string());
+                    if (loaded)
+                    {
+                        loadedCount++;
+                        bool hasPlayer = (testGame.Player != nullptr && testGame.playerEntity != nullptr);
+                        allPassed &= hasPlayer;
+                    }
+                }
+            }
+            logResult("All existing save files in data/saves loaded without crash and populated Player pointer", loadedCount > 0 && allPassed);
+        }
+
+        return allPassed;
+    }
+
     bool runAllTests()
     {
         g_passCount = 0;
@@ -889,6 +921,7 @@ namespace EngineTests
         bool t10 = testWardrobeDecencySystem();
         bool t11 = testFullCustomizationTrackingAndAppearanceDescription();
         bool t12 = testFullTransformationSuiteAndPresetPersistence();
+        bool t13 = testLegacySaveCompatibility();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";

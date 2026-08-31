@@ -332,36 +332,11 @@
             "widgets": ["widget_top_bar_full"]
           },
           {
-            "id": "tf_middle_row",
-            "type": "CONTAINER",
-            "direction": "ROW",
-            "sizes": [28.0, 44.0, 28.0],
-            "children": [
-              {
-                "id": "tf_left_bio",
-                "type": "LEAF",
-                "name": "Character & Blessings",
-                "widgets": [
-                  "widget_char_overview",
-                  "widget_active_enchantments_list"
-                ]
-              },
-              {
-                "id": "tf_center_mutations",
-                "type": "LEAF",
-                "name": "Body Mutations Tree",
-                "widgets": [
-                  "widget_body_mutations_tree"
-                ]
-              },
-              {
-                "id": "tf_right_altar",
-                "type": "LEAF",
-                "name": "Runic Altar",
-                "widgets": [
-                  "widget_enchanting_altar"
-                ]
-              }
+            "id": "tf_center_pane",
+            "type": "LEAF",
+            "name": "Body Transformations Suite",
+            "widgets": [
+              "widget_body_mutations_tree"
             ]
           },
           {

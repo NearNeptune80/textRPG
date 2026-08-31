@@ -39,6 +39,7 @@ game::~game()
 void game::changeState(std::unique_ptr<iGameState> newState)
 {
     currentActionPage = 0;
+    Player = playerEntity.get();
     if (activeGameState) activeGameState->onExit(this);
     activeGameState = std::move(newState);
     if (activeGameState)

@@ -317,8 +317,12 @@ bool saveManager::loadFromFile(game* g, const std::string& fileName)
             {
                 g->playerEntity = std::make_shared<entity>("player_main", "Hero");
             }
-            g->getPlayer()->fromJson(j["player"]);
+            g->playerEntity->fromJson(j["player"]);
+            g->Player = g->playerEntity.get();
         }
+
+        bool prevAutoSave = g->settings.gameplay.autoSaveOnMapChange;
+        g->settings.gameplay.autoSaveOnMapChange = false;
 
         if (j.contains("currentMap"))
         {
@@ -337,7 +341,12 @@ bool saveManager::loadFromFile(game* g, const std::string& fileName)
         {
             g->settings.fromJson(j["settings"]);
         }
+        else
+        {
+            g->settings.gameplay.autoSaveOnMapChange = prevAutoSave;
+        }
 
+        g->Player = g->playerEntity.get();
         g->refreshActionGrid();
         return true;
     }
