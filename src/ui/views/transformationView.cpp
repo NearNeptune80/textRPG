@@ -220,13 +220,13 @@ namespace TransformationView
         SDL_FRect previewBox = { padX, curY + (2.0f * uiScale), 16.0f * uiScale, 16.0f * uiScale };
         UIWidget::drawPanel(renderer, previewBox, selectedColor, Theme::colors.borderNormal);
         UIWidget::drawText(renderer, std::format("Selected Color: {}", selectedName), padX + (22.0f * uiScale), curY + (2.0f * uiScale), Theme::colors.textGold, uiScale * 0.82f);
-        curY += (22.0f * uiScale);
+        curY += (24.0f * uiScale);
 
-        // Palette Swatch Tiles Grid (12 cols)
-        int cols = 12;
-        float gap = 5.0f * uiScale;
-        float tileW = (availableW - (gap * (cols - 1))) / cols;
-        float tileH = 20.0f * uiScale;
+        // Small Square Swatch Tiles Grid (24px x 24px small squares)
+        float tileSize = 24.0f * uiScale;
+        float gap = 6.0f * uiScale;
+        int maxCols = std::max(1, static_cast<int>((availableW + gap) / (tileSize + gap)));
+        int cols = std::min(static_cast<int>(options.size()), std::min(maxCols, 24));
 
         auto mousePos = gameContext->input.getMousePosition();
         bool clicked = gameContext->input.isLeftMouseJustClicked();
@@ -235,7 +235,7 @@ namespace TransformationView
         {
             int r = static_cast<int>(i / cols);
             int c = static_cast<int>(i % cols);
-            SDL_FRect sRect = { padX + c * (tileW + gap), curY + r * (tileH + gap), tileW, tileH };
+            SDL_FRect sRect = { padX + c * (tileSize + gap), curY + r * (tileSize + gap), tileSize, tileSize };
 
             bool isSelected = equalsIgnoreCase(options[i].name, selectedName);
             bool hovered = (mousePos.x >= sRect.x && mousePos.x <= sRect.x + sRect.w &&
@@ -251,7 +251,7 @@ namespace TransformationView
         }
 
         int totalRows = static_cast<int>((options.size() + cols - 1) / cols);
-        curY += (totalRows * (tileH + gap)) + (6.0f * uiScale);
+        curY += (totalRows * (tileSize + gap)) + (8.0f * uiScale);
         return curY - startY;
     }
 

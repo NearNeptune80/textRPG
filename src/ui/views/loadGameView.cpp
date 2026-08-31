@@ -282,11 +282,13 @@ namespace LoadGameView
                         UIWidget::drawButton(renderer, loadBtnRect, "Load", loadHovered, true, false, uiScale * 0.72f);
                         if (loadHovered && clicked)
                         {
-                            if (saveManager::loadFromFile(gameContext, save.fileName))
+                            std::string fileToLoad = save.fileName;
+                            gameContext->input.consumeMouseClick();
+                            if (saveManager::loadFromFile(gameContext, fileToLoad))
                             {
                                 gameContext->changeState(std::make_unique<explorationState>());
+                                return (curY - startY);
                             }
-                            gameContext->input.consumeMouseClick();
                         }
                         rightOffset += loadBtnW + (6.0f * uiScale);
 
