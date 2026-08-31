@@ -25,22 +25,42 @@ namespace CharacterCardWidget
 
         bool inPrologue = (dynamic_cast<characterCreationState*>(gameContext->getActiveState()) != nullptr);
 
-        // ==========================================
-        // CARD 1: Character Identity & Wealth Card
-        // ==========================================
-        float card1H = 68.0f * uiScale;
-        SDL_FRect card1Rect = { padX, curY, availableW, card1H };
-        UIWidget::drawPanel(renderer, card1Rect, Theme::colors.bgSlot, Theme::colors.borderNormal);
-
+        // =========================================================================
+        // OVERARCHING CONTAINER: Player Overview Card
+        // =========================================================================
         float innerPad = 8.0f * uiScale;
-        float c1X = padX + innerPad;
-        float c1W = availableW - (innerPad * 2.0f);
-        float c1Y = curY + (6.0f * uiScale);
+        float subW = availableW - (innerPad * 2.0f);
+
+        float sub1H = 68.0f * uiScale;
+        float sub2H = 142.0f * uiScale;
+        float headerH = 24.0f * uiScale;
+        float outerH = headerH + (6.0f * uiScale) + sub1H + (8.0f * uiScale) + sub2H + (8.0f * uiScale);
+
+        SDL_FRect outerRect = { padX, curY, availableW, outerH };
+        UIWidget::drawPanel(renderer, outerRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+
+        // Overarching Header
+        SDL_FRect headerRect = { padX, curY, availableW, headerH };
+        UIWidget::drawHeader(renderer, headerRect, "PLAYER CHARACTER", Theme::colors.bgHeader, Theme::colors.textGold, uiScale * 0.78f);
+        curY += headerH + (6.0f * uiScale);
+
+        // -------------------------------------------------------------------------
+        // SUB-BOX 1: Identity & Wealth Box
+        // -------------------------------------------------------------------------
+        float sub1X = padX + innerPad;
+        float sub1Y = curY;
+        SDL_FRect sub1Rect = { sub1X, sub1Y, subW, sub1H };
+        UIWidget::drawPanel(renderer, sub1Rect, Theme::colors.bgDark, Theme::colors.borderButton);
+
+        float s1Pad = 6.0f * uiScale;
+        float s1ContentX = sub1X + s1Pad;
+        float s1ContentW = subW - (s1Pad * 2.0f);
+        float s1Y = sub1Y + (5.0f * uiScale);
 
         // Avatar Badge
         float avatarSize = 32.0f * uiScale;
-        SDL_FRect avatarRect = { c1X, c1Y, avatarSize, avatarSize };
-        UIWidget::drawPanel(renderer, avatarRect, Theme::colors.bgDark, Theme::colors.borderButton);
+        SDL_FRect avatarRect = { s1ContentX, s1Y, avatarSize, avatarSize };
+        UIWidget::drawPanel(renderer, avatarRect, Theme::colors.bgHeader, Theme::colors.borderButton);
 
         std::string initials = "AV";
         if (!player->name.empty())
@@ -55,43 +75,45 @@ namespace CharacterCardWidget
         float initW = UIWidget::getTextWidth(initials, uiScale * 0.85f);
         UIWidget::drawText(renderer, initials, avatarRect.x + ((avatarSize - initW) / 2.0f), avatarRect.y + (6.0f * uiScale), Theme::colors.textGold, uiScale * 0.85f);
 
-        // Name & Subtitle
+        // Name & Level / Species
         std::string dispName = player->name.empty() ? "Hero" : player->name;
-        UIWidget::drawText(renderer, dispName, c1X + avatarSize + (8.0f * uiScale), c1Y + (1.0f * uiScale), Theme::colors.textGold, uiScale * 0.95f);
+        UIWidget::drawText(renderer, dispName, s1ContentX + avatarSize + (8.0f * uiScale), s1Y + (1.0f * uiScale), Theme::colors.textGold, uiScale * 0.92f);
         std::string lvlStr = std::format("Level {} • {}", player->stats.level, player->anatomy.getRacialTitle());
-        UIWidget::drawText(renderer, lvlStr, c1X + avatarSize + (8.0f * uiScale), c1Y + (18.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.74f);
+        UIWidget::drawText(renderer, lvlStr, s1ContentX + avatarSize + (8.0f * uiScale), s1Y + (18.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.74f);
 
-        // Wealth & Essence Row
+        // Gold & Essence
         float goldVal = player->getStat("currency");
         if (goldVal <= 0.0f && !inPrologue) goldVal = 5000.0f;
         std::string goldText = std::format("Gold: {:.0f} ¤", goldVal);
-        UIWidget::drawText(renderer, goldText, c1X, c1Y + avatarSize + (6.0f * uiScale), Theme::colors.currency, uiScale * 0.80f);
+        UIWidget::drawText(renderer, goldText, s1ContentX, s1Y + avatarSize + (6.0f * uiScale), Theme::colors.currency, uiScale * 0.80f);
 
         std::string essenceText = "Essence: 0";
         float essW = UIWidget::getTextWidth(essenceText, uiScale * 0.80f);
-        UIWidget::drawText(renderer, essenceText, c1X + c1W - essW, c1Y + avatarSize + (6.0f * uiScale), Theme::colors.arcane, uiScale * 0.80f);
+        UIWidget::drawText(renderer, essenceText, s1ContentX + s1ContentW - essW, s1Y + avatarSize + (6.0f * uiScale), Theme::colors.arcane, uiScale * 0.80f);
 
-        curY += card1H + (10.0f * uiScale);
+        curY += sub1H + (8.0f * uiScale);
 
-        // ==========================================
-        // CARD 2: Vitals & Status Gauges Card
-        // ==========================================
-        float card2H = 138.0f * uiScale;
-        SDL_FRect card2Rect = { padX, curY, availableW, card2H };
-        UIWidget::drawPanel(renderer, card2Rect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+        // -------------------------------------------------------------------------
+        // SUB-BOX 2: Vitals & Status Gauges Box
+        // -------------------------------------------------------------------------
+        float sub2X = padX + innerPad;
+        float sub2Y = curY;
+        SDL_FRect sub2Rect = { sub2X, sub2Y, subW, sub2H };
+        UIWidget::drawPanel(renderer, sub2Rect, Theme::colors.bgDark, Theme::colors.borderButton);
 
-        float c2X = padX + innerPad;
-        float c2W = availableW - (innerPad * 2.0f);
-        float c2Y = curY + (6.0f * uiScale);
+        float s2Pad = 6.0f * uiScale;
+        float s2ContentX = sub2X + s2Pad;
+        float s2ContentW = subW - (s2Pad * 2.0f);
+        float s2Y = sub2Y + (5.0f * uiScale);
 
-        UIWidget::drawText(renderer, "VITALS & STATUS", c2X, c2Y, Theme::colors.textGold, uiScale * 0.78f);
-        c2Y += (18.0f * uiScale);
+        UIWidget::drawText(renderer, "VITALS & STATUS", s2ContentX, s2Y, Theme::colors.textGold, uiScale * 0.76f);
+        s2Y += (18.0f * uiScale);
 
         float barH = 12.0f * uiScale;
         float barGap = 4.0f * uiScale;
         float labelW = 46.0f * uiScale;
         float valW = 54.0f * uiScale;
-        float progressW = c2W - labelW - valW - (6.0f * uiScale);
+        float progressW = s2ContentW - labelW - valW - (6.0f * uiScale);
 
         // 1. Health Bar
         float curHp = player->getStat("health");
@@ -99,11 +121,11 @@ namespace CharacterCardWidget
         float maxHp = player->getStat("max_health");
         if (maxHp <= 0.0f) maxHp = 100.0f;
 
-        UIWidget::drawText(renderer, "Health", c2X, c2Y + (1.0f * uiScale), Theme::colors.health, uiScale * 0.72f);
-        UIWidget::drawProgressBar(renderer, { c2X + labelW, c2Y, progressW, barH }, curHp, maxHp, Theme::colors.health, Theme::colors.bgDark, "", uiScale);
+        UIWidget::drawText(renderer, "Health", s2ContentX, s2Y + (1.0f * uiScale), Theme::colors.health, uiScale * 0.72f);
+        UIWidget::drawProgressBar(renderer, { s2ContentX + labelW, s2Y, progressW, barH }, curHp, maxHp, Theme::colors.health, Theme::colors.bgHeader, "", uiScale);
         std::string hpStr = std::format("{:.0f}/{:.0f}", curHp, maxHp);
-        UIWidget::drawText(renderer, hpStr, c2X + labelW + progressW + (6.0f * uiScale), c2Y + (1.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.70f);
-        c2Y += barH + barGap;
+        UIWidget::drawText(renderer, hpStr, s2ContentX + labelW + progressW + (6.0f * uiScale), s2Y + (1.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.70f);
+        s2Y += barH + barGap;
 
         // 2. Mana Bar
         float curMp = inPrologue ? 0.0f : player->getStat("mana");
@@ -111,31 +133,31 @@ namespace CharacterCardWidget
         float maxMp = inPrologue ? 0.0f : player->getStat("max_mana");
         if (maxMp <= 0.0f && !inPrologue) maxMp = 80.0f;
 
-        UIWidget::drawText(renderer, "Mana", c2X, c2Y + (1.0f * uiScale), Theme::colors.mana, uiScale * 0.72f);
-        UIWidget::drawProgressBar(renderer, { c2X + labelW, c2Y, progressW, barH }, curMp, std::max(1.0f, maxMp), Theme::colors.mana, Theme::colors.bgDark, "", uiScale);
+        UIWidget::drawText(renderer, "Mana", s2ContentX, s2Y + (1.0f * uiScale), Theme::colors.mana, uiScale * 0.72f);
+        UIWidget::drawProgressBar(renderer, { s2ContentX + labelW, s2Y, progressW, barH }, curMp, std::max(1.0f, maxMp), Theme::colors.mana, Theme::colors.bgHeader, "", uiScale);
         std::string mpStr = inPrologue ? "0/0" : std::format("{:.0f}/{:.0f}", curMp, maxMp);
-        UIWidget::drawText(renderer, mpStr, c2X + labelW + progressW + (6.0f * uiScale), c2Y + (1.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.70f);
-        c2Y += barH + barGap;
+        UIWidget::drawText(renderer, mpStr, s2ContentX + labelW + progressW + (6.0f * uiScale), s2Y + (1.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.70f);
+        s2Y += barH + barGap;
 
         // 3. Lust Bar
         float curLust = player->getStat("lust");
         float maxLust = 100.0f;
 
-        UIWidget::drawText(renderer, "Lust", c2X, c2Y + (1.0f * uiScale), Theme::colors.lust, uiScale * 0.72f);
-        UIWidget::drawProgressBar(renderer, { c2X + labelW, c2Y, progressW, barH }, curLust, maxLust, Theme::colors.lust, Theme::colors.bgDark, "", uiScale);
+        UIWidget::drawText(renderer, "Lust", s2ContentX, s2Y + (1.0f * uiScale), Theme::colors.lust, uiScale * 0.72f);
+        UIWidget::drawProgressBar(renderer, { s2ContentX + labelW, s2Y, progressW, barH }, curLust, maxLust, Theme::colors.lust, Theme::colors.bgHeader, "", uiScale);
         std::string lustStr = std::format("{:.0f}%", curLust);
-        UIWidget::drawText(renderer, lustStr, c2X + labelW + progressW + (6.0f * uiScale), c2Y + (1.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.70f);
-        c2Y += barH + barGap;
+        UIWidget::drawText(renderer, lustStr, s2ContentX + labelW + progressW + (6.0f * uiScale), s2Y + (1.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.70f);
+        s2Y += barH + barGap;
 
         // 4. Arousal Bar
         float curArousal = player->getStat("arousal");
         float maxArousal = 100.0f;
 
-        UIWidget::drawText(renderer, "Arousal", c2X, c2Y + (1.0f * uiScale), Theme::colors.textGold, uiScale * 0.72f);
-        UIWidget::drawProgressBar(renderer, { c2X + labelW, c2Y, progressW, barH }, curArousal, maxArousal, Theme::colors.textGold, Theme::colors.bgDark, "", uiScale);
+        UIWidget::drawText(renderer, "Arousal", s2ContentX, s2Y + (1.0f * uiScale), Theme::colors.textGold, uiScale * 0.72f);
+        UIWidget::drawProgressBar(renderer, { s2ContentX + labelW, s2Y, progressW, barH }, curArousal, maxArousal, Theme::colors.textGold, Theme::colors.bgHeader, "", uiScale);
         std::string arousalStr = std::format("{:.0f}%", curArousal);
-        UIWidget::drawText(renderer, arousalStr, c2X + labelW + progressW + (6.0f * uiScale), c2Y + (1.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.70f);
-        c2Y += barH + (6.0f * uiScale);
+        UIWidget::drawText(renderer, arousalStr, s2ContentX + labelW + progressW + (6.0f * uiScale), s2Y + (1.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.70f);
+        s2Y += barH + (6.0f * uiScale);
 
         // Status trait chips
         static const std::vector<std::pair<std::string, SDL_Color>> traits = {
@@ -145,18 +167,21 @@ namespace CharacterCardWidget
             { "Buff", Theme::colors.textGold }
         };
         float tGap = 4.0f * uiScale;
-        float tW = (c2W - (tGap * (traits.size() - 1))) / static_cast<float>(traits.size());
+        float tW = (s2ContentW - (tGap * (traits.size() - 1))) / static_cast<float>(traits.size());
         float tH = 18.0f * uiScale;
 
         for (size_t t = 0; t < traits.size(); ++t)
         {
-            SDL_FRect tBox = { c2X + (t * (tW + tGap)), c2Y, tW, tH };
-            UIWidget::drawPanel(renderer, tBox, Theme::colors.bgDark, Theme::colors.borderButton);
+            SDL_FRect tBox = { s2ContentX + (t * (tW + tGap)), s2Y, tW, tH };
+            UIWidget::drawPanel(renderer, tBox, Theme::colors.bgHeader, Theme::colors.borderButton);
             float txtW = UIWidget::getTextWidth(traits[t].first, uiScale * 0.65f);
             UIWidget::drawText(renderer, traits[t].first, tBox.x + ((tW - txtW) / 2.0f), tBox.y + (2.0f * uiScale), traits[t].second, uiScale * 0.65f);
         }
 
-        curY += card2H + (10.0f * uiScale);
+        curY += sub2H + (8.0f * uiScale);
+
+        // Healthy gap before bottom navigation
+        curY += (14.0f * uiScale);
         return (curY - startY);
     }
 }
