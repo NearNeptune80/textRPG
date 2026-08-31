@@ -54,6 +54,7 @@ private:
         int height = 0;
     };
     std::unordered_map<std::string, CachedGlyph> m_textCache;
+    std::unordered_map<std::string, float> m_textWidthCache;
 
     void drawEmbeddedFallback(SDL_Renderer* renderer, const std::string& text, float x, float y, SDL_Color color, float scale);
 };

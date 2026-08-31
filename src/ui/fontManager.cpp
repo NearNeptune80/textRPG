@@ -118,11 +118,19 @@ float fontManager::getTextWidth(const std::string& text, float scale)
 {
     if (text.empty()) return 0.0f;
 
+    auto it = m_textWidthCache.find(text);
+    if (it != m_textWidthCache.end())
+    {
+        float scaleFactor = (m_currentScale > 0.0f) ? (scale / m_currentScale) : 1.0f;
+        return it->second * scaleFactor;
+    }
+
     if (m_font)
     {
         int w = 0, h = 0;
         if (TTF_GetStringSize(m_font, text.c_str(), text.length(), &w, &h))
         {
+            m_textWidthCache[text] = static_cast<float>(w);
             float scaleFactor = (m_currentScale > 0.0f) ? (scale / m_currentScale) : 1.0f;
             return static_cast<float>(w) * scaleFactor;
         }
@@ -205,6 +213,7 @@ void fontManager::clearCache()
         }
     }
     m_textCache.clear();
+    m_textWidthCache.clear();
 }
 
 void fontManager::drawText(SDL_Renderer* renderer, const std::string& text, float x, float y, SDL_Color color, float scale)
@@ -248,7 +257,7 @@ void fontManager::drawText(SDL_Renderer* renderer, const std::string& text, floa
     int surfH = surface->h;
     SDL_DestroySurface(surface);
 
-    if (m_textCache.size() > 1200)
+    if (m_textCache.size() > 8000)
     {
         clearCache();
     }

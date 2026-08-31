@@ -273,7 +273,8 @@ namespace TransformationView
         return curY - startY;
     }
 
-    static float drawStepperCard(SDL_Renderer* renderer, game* gameContext, float padX, float curY, float availableW, std::string_view title, std::string_view description, std::string_view displayVal, auto onStep, float uiScale, int stepDelta = 1)
+    template <typename T = float>
+    static float drawStepperCard(SDL_Renderer* renderer, game* gameContext, float padX, float curY, float availableW, std::string_view title, std::string_view description, std::string_view displayVal, auto onStep, float uiScale, T stepSmall = 1, T stepMed = 0, T stepLarge = 0)
     {
         float startY = curY;
         float innerPad = 12.0f * uiScale;
@@ -289,28 +290,49 @@ namespace TransformationView
             UIWidget::drawText(renderer, description, padX + innerPad, curY + (28.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.74f);
         }
 
-        // Stepper Control on right
-        float btnW = 32.0f * uiScale;
-        float valW = 140.0f * uiScale;
+        bool hasMultiTier = (stepMed > 0);
+        float btnW = (hasMultiTier ? 28.0f : 34.0f) * uiScale;
+        float btnGap = 2.0f * uiScale;
+        float valW = (hasMultiTier ? 120.0f : 140.0f) * uiScale;
         float h = 26.0f * uiScale;
-        float controlsTotalW = (btnW * 2.0f) + valW + (8.0f * uiScale);
+
+        int btnCountPerSide = (stepLarge > 0) ? 3 : ((stepMed > 0) ? 2 : 1);
+        float sideBtnsW = (btnCountPerSide * btnW) + ((btnCountPerSide - 1) * btnGap);
+        float controlsTotalW = (sideBtnsW * 2.0f) + valW + (8.0f * uiScale);
         float curX = padX + availableW - innerPad - controlsTotalW;
         float controlY = curY + ((cardH - h) / 2.0f);
 
         auto mousePos = gameContext->input.getMousePosition();
         bool clicked = gameContext->input.isLeftMouseJustClicked();
 
-        // Left Arrow [<] - Exact bounds at controlY
-        SDL_FRect decRect = { curX, controlY, btnW, h };
-        bool decHov = (mousePos.x >= decRect.x && mousePos.x <= decRect.x + decRect.w &&
-                       mousePos.y >= decRect.y && mousePos.y <= decRect.y + decRect.h);
-        UIWidget::drawButton(renderer, decRect, "<", decHov, true, false, uiScale * 0.85f);
-        if (decHov && clicked)
+        auto drawBtnHelper = [&](float x, const char* label, T delta) {
+            SDL_FRect bRect = { x, controlY, btnW, h };
+            bool hov = (mousePos.x >= bRect.x && mousePos.x <= bRect.x + bRect.w &&
+                        mousePos.y >= bRect.y && mousePos.y <= bRect.y + bRect.h);
+            UIWidget::drawButton(renderer, bRect, label, hov, true, false, uiScale * 0.76f);
+            if (hov && clicked)
+            {
+                onStep(delta);
+                gameContext->input.consumeMouseClick();
+            }
+        };
+
+        // Left Decrease Buttons
+        if (btnCountPerSide == 3)
         {
-            onStep(-stepDelta);
-            gameContext->input.consumeMouseClick();
+            drawBtnHelper(curX, "<<<", -stepLarge); curX += btnW + btnGap;
+            drawBtnHelper(curX, "<<", -stepMed); curX += btnW + btnGap;
+            drawBtnHelper(curX, "<", -stepSmall); curX += btnW + (4.0f * uiScale);
         }
-        curX += btnW + (4.0f * uiScale);
+        else if (btnCountPerSide == 2)
+        {
+            drawBtnHelper(curX, "<<", -stepMed); curX += btnW + btnGap;
+            drawBtnHelper(curX, "<", -stepSmall); curX += btnW + (4.0f * uiScale);
+        }
+        else
+        {
+            drawBtnHelper(curX, "<", -stepSmall); curX += btnW + (4.0f * uiScale);
+        }
 
         // Center Value Box
         SDL_FRect valRect = { curX, controlY, valW, h };
@@ -320,15 +342,21 @@ namespace TransformationView
         UIWidget::drawText(renderer, displayVal, valTextX, controlY + (5.0f * uiScale), Theme::colors.textGold, uiScale * 0.82f);
         curX += valW + (4.0f * uiScale);
 
-        // Right Arrow [>] - Exact bounds at controlY
-        SDL_FRect incRect = { curX, controlY, btnW, h };
-        bool incHov = (mousePos.x >= incRect.x && mousePos.x <= incRect.x + incRect.w &&
-                       mousePos.y >= incRect.y && mousePos.y <= incRect.y + incRect.h);
-        UIWidget::drawButton(renderer, incRect, ">", incHov, true, false, uiScale * 0.85f);
-        if (incHov && clicked)
+        // Right Increase Buttons
+        if (btnCountPerSide == 3)
         {
-            onStep(stepDelta);
-            gameContext->input.consumeMouseClick();
+            drawBtnHelper(curX, ">", stepSmall); curX += btnW + btnGap;
+            drawBtnHelper(curX, ">>", stepMed); curX += btnW + btnGap;
+            drawBtnHelper(curX, ">>>", stepLarge);
+        }
+        else if (btnCountPerSide == 2)
+        {
+            drawBtnHelper(curX, ">", stepSmall); curX += btnW + btnGap;
+            drawBtnHelper(curX, ">>", stepMed);
+        }
+        else
+        {
+            drawBtnHelper(curX, ">", stepSmall);
         }
 
         curY += cardH + (12.0f * uiScale); // Clean gap between widget cards
@@ -433,14 +461,14 @@ namespace TransformationView
             case TransformationTab::CORE:
             {
                 int age = player->stats.getBaseStat("appeared_age") > 0 ? static_cast<int>(player->stats.getBaseStat("appeared_age")) : 20;
-                curY += drawStepperCard(renderer, gameContext, padX, curY, availableW, "Age Appearance", "Adjust your character's apparent biological age.", std::format("{} years", age), [&](int delta) {
+                curY += drawStepperCard<int>(renderer, gameContext, padX, curY, availableW, "Age Appearance", "Adjust your character's apparent biological age.", std::format("{} years", age), [&](int delta) {
                     int newAge = std::clamp(age + delta, 18, 50);
                     player->stats.setBaseStat("appeared_age", static_cast<float>(newAge));
-                }, uiScale, 1);
+                }, uiScale, 1, 5, 10);
 
-                curY += drawStepperCard(renderer, gameContext, padX, curY, availableW, "Height (cm)", "Total standing height from head to feet.", std::format("{:.0f} cm", player->anatomy.heightMeters * 100.0f), [&](int delta) {
-                    player->anatomy.heightMeters = std::clamp(player->anatomy.heightMeters + (delta * 0.01f), 1.22f, 3.66f);
-                }, uiScale, 2);
+                curY += drawStepperCard<float>(renderer, gameContext, padX, curY, availableW, "Height (cm)", "Total standing height from head to feet.", std::format("{:.0f} cm", player->anatomy.heightMeters * 100.0f), [&](float deltaCm) {
+                    player->anatomy.heightMeters = std::clamp(player->anatomy.heightMeters + (deltaCm * 0.01f), 1.22f, 3.66f);
+                }, uiScale, 1.0f, 5.0f, 20.0f);
 
                 std::string curSize = player->anatomy.bodySize.empty() ? "Average" : player->anatomy.bodySize;
                 curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Body Size Proportion", "Adjust overall body frame and fat distribution.", bodySizes, curSize, [&](const std::string& s) {
@@ -532,10 +560,10 @@ namespace TransformationView
             {
                 bodyPart* hair = player->anatomy.getPart(bodySlot::HAIR);
 
-                curY += drawStepperCard(renderer, gameContext, padX, curY, availableW, "Hair Length (cm)", "Head hair length measured in centimeters.", std::format("{:.0f} cm", hair ? hair->length : 15.0f), [&](int delta) {
+                curY += drawStepperCard<float>(renderer, gameContext, padX, curY, availableW, "Hair Length (cm)", "Head hair length measured in centimeters.", std::format("{:.0f} cm", hair ? hair->length : 15.0f), [&](float delta) {
                     if (!hair) { bodyPart hp; hp.id = "hair"; hp.name = "Hair"; hp.length = 15.0f; player->anatomy.setPart(bodySlot::HAIR, hp); }
-                    if (auto* hp = player->anatomy.getPart(bodySlot::HAIR)) hp->length = std::clamp(hp->length + (delta * 3.0f), 0.0f, 150.0f);
-                }, uiScale, 3);
+                    if (auto* hp = player->anatomy.getPart(bodySlot::HAIR)) hp->length = std::clamp(hp->length + delta, 0.0f, 150.0f);
+                }, uiScale, 1.0f, 5.0f, 25.0f);
 
                 std::string curStyle = hair ? hair->style : "Short";
                 curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Hairstyle", "Styling, cuts, braids, and grooming.", allHairStyles, curStyle, [&](const std::string& s) {
@@ -578,13 +606,13 @@ namespace TransformationView
 
                 if (bodyPart* horns = player->anatomy.getPart(bodySlot::HORNS))
                 {
-                    curY += drawStepperCard(renderer, gameContext, padX, curY, availableW, "Horn Length (cm)", "Length of horns projecting from skull.", std::format("{:.0f} cm", horns->length), [&](int delta) {
-                        horns->length = std::clamp(horns->length + (delta * 2.0f), 2.0f, 80.0f);
-                    }, uiScale, 2);
+                    curY += drawStepperCard<float>(renderer, gameContext, padX, curY, availableW, "Horn Length (cm)", "Length of horns projecting from skull.", std::format("{:.0f} cm", horns->length), [&](float delta) {
+                        horns->length = std::clamp(horns->length + delta, 2.0f, 80.0f);
+                    }, uiScale, 1.0f, 5.0f, 20.0f);
 
-                    curY += drawStepperCard(renderer, gameContext, padX, curY, availableW, "Horn Pairs", "Number of horn rows on head.", std::format("{}", horns->count / 2), [&](int delta) {
-                        horns->count = std::clamp(horns->count + (delta * 2), 2, 8);
-                    }, uiScale, 1);
+                    curY += drawStepperCard<int>(renderer, gameContext, padX, curY, availableW, "Horn Pairs", "Number of horn rows on head.", std::format("{} pairs", horns->count / 2), [&](int deltaPairs) {
+                        horns->count = std::clamp(horns->count + (deltaPairs * 2), 2, 8);
+                    }, uiScale, 1, 2, 0);
                 }
 
                 curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Antennae", "Grow, shape, or remove antennae.", antennaTypes, player->anatomy.hasPart(bodySlot::ANTENNAE) ? player->anatomy.getPart(bodySlot::ANTENNAE)->race : "None", [&](const std::string& a) {
@@ -638,13 +666,13 @@ namespace TransformationView
                     hips->style = h;
                 }, uiScale, 5);
 
-                curY += drawStepperCard(renderer, gameContext, padX, curY, availableW, "Anus Depth (cm)", "Internal rectal depth before obstruction.", std::format("{:.0f} cm", ass->orifice.depthCm), [&](int delta) {
+                curY += drawStepperCard<float>(renderer, gameContext, padX, curY, availableW, "Anus Depth (cm)", "Internal rectal depth before obstruction.", std::format("{:.0f} cm", ass->orifice.depthCm), [&](float delta) {
                     ass->orifice.depthCm = std::clamp(ass->orifice.depthCm + delta, 5.0f, 40.0f);
-                }, uiScale, 1);
+                }, uiScale, 1.0f, 3.0f, 10.0f);
 
-                curY += drawStepperCard(renderer, gameContext, padX, curY, availableW, "Anal Elasticity", "Stretch accommodation and recovery.", std::format("{:.0f}%", ass->orifice.elasticity), [&](int delta) {
-                    ass->orifice.elasticity = std::clamp(ass->orifice.elasticity + (delta * 5.0f), 0.0f, 100.0f);
-                }, uiScale, 5);
+                curY += drawStepperCard<float>(renderer, gameContext, padX, curY, availableW, "Anal Elasticity", "Stretch accommodation and recovery.", std::format("{:.0f}%", ass->orifice.elasticity), [&](float delta) {
+                    ass->orifice.elasticity = std::clamp(ass->orifice.elasticity + delta, 0.0f, 100.0f);
+                }, uiScale, 1.0f, 5.0f, 25.0f);
 
                 bool bleached = ass->hasTag("bleached");
                 curY += drawToggleCard(renderer, gameContext, padX, curY, availableW, "Bleached Anus", "Cosmetic treatment for anal sphincter.", bleached, [&](bool state) {
@@ -672,9 +700,9 @@ namespace TransformationView
                 if (!nipples) { bodyPart np; np.id = "nipples"; np.name = "Nipples"; player->anatomy.setPart(bodySlot::NIPPLES, np); nipples = player->anatomy.getPart(bodySlot::NIPPLES); }
 
                 int curCupIdx = std::clamp(breasts->cupSize, 0, static_cast<int>(cupSizes.size()) - 1);
-                curY += drawStepperCard(renderer, gameContext, padX, curY, availableW, "Cup Size", "Chest breast volume and mass rating.", std::format("{}-cup", cupSizes[curCupIdx]), [&](int delta) {
+                curY += drawStepperCard<int>(renderer, gameContext, padX, curY, availableW, "Cup Size", "Chest breast volume and mass rating.", std::format("{}-cup", cupSizes[curCupIdx]), [&](int delta) {
                     breasts->cupSize = std::clamp(breasts->cupSize + delta, 0, static_cast<int>(cupSizes.size()) - 1);
-                }, uiScale, 1);
+                }, uiScale, 1, 3, 6);
 
                 std::string curBreastShape = breasts->style.empty() ? "Round" : breasts->style;
                 curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Breast Shape", "Projection and fullness contour.", breastShapes, curBreastShape, [&](const std::string& s) {
@@ -688,10 +716,10 @@ namespace TransformationView
 
                 if (breasts->isLactating)
                 {
-                    curY += drawStepperCard(renderer, gameContext, padX, curY, availableW, "Milk Storage (ml)", "Maximum mammary fluid capacity.", std::format("{:.0f} ml", breasts->maxFluidMl), [&](int delta) {
-                        breasts->maxFluidMl = std::clamp(breasts->maxFluidMl + (delta * 100.0f), 100.0f, 10000.0f);
+                    curY += drawStepperCard<float>(renderer, gameContext, padX, curY, availableW, "Milk Storage (ml)", "Maximum mammary fluid capacity.", std::format("{:.0f} ml", breasts->maxFluidMl), [&](float delta) {
+                        breasts->maxFluidMl = std::clamp(breasts->maxFluidMl + delta, 100.0f, 100000.0f);
                         breasts->currentFluidMl = std::min(breasts->currentFluidMl, breasts->maxFluidMl);
-                    }, uiScale, 100);
+                    }, uiScale, 25.0f, 250.0f, 1000.0f);
 
                     std::string curMilkFlav = breasts->secondaryColor.empty() ? "Milk" : breasts->secondaryColor;
                     curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Milk Flavours", "Taste profile of expressed milk.", fluidFlavours, curMilkFlav, [&](const std::string& f) {
@@ -750,9 +778,9 @@ namespace TransformationView
                 if (player->anatomy.hasVagina())
                 {
                     bodyPart* g = player->anatomy.getPart(bodySlot::GROIN);
-                    curY += drawStepperCard(renderer, gameContext, padX, curY, availableW, "Vaginal Depth", "Internal vaginal canal length.", std::format("{:.0f} cm", g ? g->orifice.depthCm : 16.0f), [&](int delta) {
+                    curY += drawStepperCard<float>(renderer, gameContext, padX, curY, availableW, "Vaginal Depth", "Internal vaginal canal length.", std::format("{:.0f} cm", g ? g->orifice.depthCm : 16.0f), [&](float delta) {
                         if (g) g->orifice.depthCm = std::clamp(g->orifice.depthCm + delta, 5.0f, 35.0f);
-                    }, uiScale, 1);
+                    }, uiScale, 1.0f, 3.0f, 10.0f);
 
                     std::string curClitSize = (g && !g->secondaryColor.empty()) ? g->secondaryColor : "Average";
                     curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Clitoris Size", "Clitoral length and prominence.", size5, curClitSize, [&](const std::string& cs) {
@@ -852,13 +880,13 @@ namespace TransformationView
                 if (player->anatomy.hasPenis())
                 {
                     bodyPart* g = player->anatomy.getPart(bodySlot::GROIN);
-                    curY += drawStepperCard(renderer, gameContext, padX, curY, availableW, "Penis Length (cm)", "Erect phallic length from base to tip.", std::format("{:.1f} cm", g ? g->length : 16.0f), [&](int delta) {
+                    curY += drawStepperCard<float>(renderer, gameContext, padX, curY, availableW, "Penis Length (cm)", "Erect phallic length from base to tip.", std::format("{:.1f} cm", g ? g->length : 16.0f), [&](float delta) {
                         if (g) g->length = std::clamp(g->length + delta, 3.0f, 100.0f);
-                    }, uiScale, 1);
+                    }, uiScale, 0.5f, 2.5f, 10.0f);
 
-                    curY += drawStepperCard(renderer, gameContext, padX, curY, availableW, "Penis Girth (cm)", "Shaft diameter across the center.", std::format("{:.1f} cm", g ? g->diameter : 3.8f), [&](int delta) {
-                        if (g) g->diameter = std::clamp(g->diameter + (delta * 0.2f), 1.5f, 15.0f);
-                    }, uiScale, 1);
+                    curY += drawStepperCard<float>(renderer, gameContext, padX, curY, availableW, "Penis Girth (cm)", "Shaft diameter across the center.", std::format("{:.1f} cm", g ? g->diameter : 3.8f), [&](float delta) {
+                        if (g) g->diameter = std::clamp(g->diameter + delta, 1.5f, 15.0f);
+                    }, uiScale, 0.1f, 0.5f, 2.0f);
 
                     std::vector<std::string> curTags = g ? g->tags : std::vector<std::string>{};
                     curY += drawTogglePillCard(renderer, gameContext, padX, curY, availableW, "Penis Modifiers", "Knots, barbs, flares, sheaths, and special traits.", penetrationModifiers, curTags, [&](const std::string& mod, bool act) {
@@ -876,12 +904,12 @@ namespace TransformationView
                         }
                     }, uiScale, "Internal", "External");
 
-                    curY += drawStepperCard(renderer, gameContext, padX, curY, availableW, "Cum Storage (ml)", "Total volume of stored seminal fluid.", std::format("{:.0f} ml", g ? g->maxFluidMl : 30.0f), [&](int delta) {
+                    curY += drawStepperCard<float>(renderer, gameContext, padX, curY, availableW, "Cum Storage (ml)", "Total volume of stored seminal fluid.", std::format("{:.0f} ml", g ? g->maxFluidMl : 30.0f), [&](float delta) {
                         if (g) {
-                            g->maxFluidMl = std::clamp(g->maxFluidMl + (delta * 25.0f), 5.0f, 10000.0f);
+                            g->maxFluidMl = std::clamp(g->maxFluidMl + delta, 5.0f, 50000.0f);
                             g->currentFluidMl = std::min(g->currentFluidMl, g->maxFluidMl);
                         }
-                    }, uiScale, 25);
+                    }, uiScale, 5.0f, 50.0f, 500.0f);
 
                     std::string curCumFlav = "Cum";
                     if (g) {
@@ -925,7 +953,7 @@ namespace TransformationView
                 crotchPart = player->anatomy.getPart(bodySlot::HIPS);
                 int crotchCup = crotchPart ? crotchPart->cupSize : 0;
                 int clampedCup = std::clamp(crotchCup, 0, static_cast<int>(cupSizes.size()) - 1);
-                curY += drawStepperCard(renderer, gameContext, padX, curY, availableW, "Crotch Mammary Cup Size", "Volume of secondary lower mammary glands.", std::format("{}-cup", cupSizes[clampedCup]), [&](int delta) {
+                curY += drawStepperCard<int>(renderer, gameContext, padX, curY, availableW, "Crotch Mammary Cup Size", "Volume of secondary lower mammary glands.", std::format("{}-cup", cupSizes[clampedCup]), [&](int delta) {
                     if (!player->anatomy.hasPart(bodySlot::HIPS)) {
                         bodyPart hp; hp.id = "crotch_udders"; hp.name = "Crotch Udders"; hp.style = "Bovine Udders"; hp.cupSize = 1;
                         player->anatomy.setPart(bodySlot::HIPS, hp);
@@ -933,7 +961,7 @@ namespace TransformationView
                     if (auto* hp = player->anatomy.getPart(bodySlot::HIPS)) {
                         hp->cupSize = std::clamp(hp->cupSize + delta, 0, static_cast<int>(cupSizes.size()) - 1);
                     }
-                }, uiScale, 1);
+                }, uiScale, 1, 3, 6);
                 break;
             }
 
@@ -963,13 +991,13 @@ namespace TransformationView
 
                 if (bodyPart* tail = player->anatomy.getPart(bodySlot::TAIL))
                 {
-                    curY += drawStepperCard(renderer, gameContext, padX, curY, availableW, "Tail Count", "Number of rear tails.", std::format("{}", tail->count), [&](int delta) {
+                    curY += drawStepperCard<int>(renderer, gameContext, padX, curY, availableW, "Tail Count", "Number of rear tails.", std::format("{}", tail->count), [&](int delta) {
                         tail->count = std::clamp(tail->count + delta, 1, 9);
-                    }, uiScale, 1);
+                    }, uiScale, 1, 2, 4);
 
-                    curY += drawStepperCard(renderer, gameContext, padX, curY, availableW, "Tail Length (cm)", "Length of tails extending behind character.", std::format("{:.0f} cm", tail->length), [&](int delta) {
-                        tail->length = std::clamp(tail->length + (delta * 5.0f), 10.0f, 250.0f);
-                    }, uiScale, 5);
+                    curY += drawStepperCard<float>(renderer, gameContext, padX, curY, availableW, "Tail Length (cm)", "Length of tails extending behind character.", std::format("{:.0f} cm", tail->length), [&](float delta) {
+                        tail->length = std::clamp(tail->length + delta, 10.0f, 250.0f);
+                    }, uiScale, 1.0f, 10.0f, 50.0f);
 
                     curY += drawTogglePillCard(renderer, gameContext, padX, curY, availableW, "Spinneret Orifice Modifiers", "Silk production and gland traits.", orificeModifiers, tail->tags, [&](const std::string& mod, bool act) {
                         if (act) tail->tags.push_back(mod);
@@ -988,9 +1016,6 @@ namespace TransformationView
                 UIWidget::drawText(renderer, "Live Anatomical Prose Description", padX + (12.0f * uiScale), curY + (8.0f * uiScale), Theme::colors.textGold, uiScale * 0.88f);
                 float proseH = UIWidget::drawTextWrapped(renderer, fullDesc, padX + (12.0f * uiScale), curY + (28.0f * uiScale), availableW - (24.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.82f);
                 descCard.h = std::max(60.0f * uiScale, proseH + (40.0f * uiScale));
-                UIWidget::drawPanel(renderer, descCard, Theme::colors.bgSlot, Theme::colors.borderNormal);
-                UIWidget::drawText(renderer, "Live Anatomical Prose Description", padX + (12.0f * uiScale), curY + (8.0f * uiScale), Theme::colors.textGold, uiScale * 0.88f);
-                UIWidget::drawTextWrapped(renderer, fullDesc, padX + (12.0f * uiScale), curY + (28.0f * uiScale), availableW - (24.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.82f);
                 curY += descCard.h + (14.0f * uiScale);
 
                 // Presets Card
