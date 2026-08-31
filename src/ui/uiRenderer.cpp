@@ -218,7 +218,7 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
                     curY += EntityListWidgets::renderWidgetEventLog(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
                 else if (wId == "widget_lt_enchanting_screen" || wId == "widget_enchanting_altar")
                     curY += GameplayViews::renderEnchantingView(renderer, gameContext, p.rect, curY, uiScale);
-                else if (wId == "widget_body_mutations_tree" || wId == "widget_active_enchantments_list")
+                else if (wId == "widget_body_mutations_tree" || wId == "widget_transformation_suite")
                     curY += GameplayViews::renderTransformationView(renderer, gameContext, p.rect, curY, uiScale);
                 else if (wId == "widget_character_creation")
                     curY += CharacterCreationView::render(renderer, gameContext, p.rect, curY, uiScale);

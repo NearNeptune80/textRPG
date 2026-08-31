@@ -40,6 +40,8 @@ class anatomyComponent
 {
 public:
 	float heightMeters = 1.75f;
+	std::string bodySize = "Average";
+	std::string muscleTone = "Toned";
 	std::vector<anatomyMutation> activeMutations;
 
 	void setPart(bodySlot slot, const bodyPart& part);
