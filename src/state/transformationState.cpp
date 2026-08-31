@@ -76,18 +76,6 @@ void transformationState::handleInput(game* gameContext, const SDL_Event& event)
         {
             gameContext->changeState(std::make_unique<explorationState>());
         }
-        else if (event.key.key >= SDLK_1 && event.key.key <= SDLK_9)
-        {
-            int tabIdx = event.key.key - SDLK_1;
-            if (tabIdx >= 0 && tabIdx <= 10)
-            {
-                setTab(static_cast<TransformationTab>(tabIdx), gameContext);
-            }
-        }
-        else if (event.key.key == SDLK_0)
-        {
-            setTab(TransformationTab::APPENDAGES, gameContext);
-        }
     }
 }
 
