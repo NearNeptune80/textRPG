@@ -161,6 +161,11 @@ struct bodyPart
 
     std::vector<std::string> tags;
 
+    [[nodiscard]] bool hasTag(const std::string& tag) const
+    {
+        return std::ranges::find(tags, tag) != tags.end();
+    }
+
     static std::string getCupSizeName(int size)
     {
         static const std::vector<std::string> cups = { "Flat", "A", "B", "C", "D", "DD", "E", "F", "FF", "G", "GG", "H", "HH", "J" };

@@ -64,8 +64,12 @@ public:
     void savePreset(game* gameContext, const std::string& name);
     void loadPreset(game* gameContext, const std::string& name);
     void deletePreset(const std::string& name);
-    std::vector<std::string> getPresetNames() const;
+    const std::vector<std::string>& getPresetNames() const { return m_presetNames; }
+    void refreshPresetNames();
 
     void resetToHuman(game* gameContext);
     void randomizeForm(game* gameContext);
+
+private:
+    std::vector<std::string> m_presetNames;
 };

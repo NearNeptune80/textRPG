@@ -32,6 +32,7 @@ public:
     bool hasLoadedFont() const { return m_font != nullptr; }
     const std::string& getLoadedFontPath() const { return m_currentFontPath; }
     float getPointSize() const { return m_basePointSize; }
+    void clearCache();
 
 private:
     fontManager();
@@ -45,6 +46,14 @@ private:
     std::string m_currentFontPath;
     float m_basePointSize = 14.0f;
     float m_currentScale = 1.0f;
+
+    struct CachedGlyph
+    {
+        SDL_Texture* texture = nullptr;
+        int width = 0;
+        int height = 0;
+    };
+    std::unordered_map<std::string, CachedGlyph> m_textCache;
 
     void drawEmbeddedFallback(SDL_Renderer* renderer, const std::string& text, float x, float y, SDL_Color color, float scale);
 };

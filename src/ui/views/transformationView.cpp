@@ -471,28 +471,60 @@ namespace TransformationView
                     }
                 }, uiScale);
 
-                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Foot Anatomy", "Foot configuration and digit stance.", footTypes, "Plantigrade", [](const std::string&) {}, uiScale, 4);
-                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Lower Body Setup", "Leg configuration and lower body morphology.", legConfigs, "Bipedal", [](const std::string&) {}, uiScale, 6);
-                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Genital Placement", "Anatomical position of genital sockets.", genitalPlacements, "Normal", [](const std::string&) {}, uiScale, 3);
+                bodyPart* feet = player->anatomy.getPart(bodySlot::FEET);
+                std::string curFoot = (feet && !feet->style.empty()) ? feet->style : "Plantigrade";
+                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Foot Anatomy", "Foot configuration and digit stance.", footTypes, curFoot, [&](const std::string& f) {
+                    if (!player->anatomy.hasPart(bodySlot::FEET)) {
+                        bodyPart fp; fp.id = "feet"; fp.name = "Feet"; fp.race = "Human"; fp.style = f; player->anatomy.setPart(bodySlot::FEET, fp);
+                    } else player->anatomy.getPart(bodySlot::FEET)->style = f;
+                }, uiScale, 4);
+
+                bodyPart* legs = player->anatomy.getPart(bodySlot::LEGS);
+                std::string curLeg = (legs && !legs->style.empty()) ? legs->style : "Bipedal";
+                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Lower Body Setup", "Leg configuration and lower body morphology.", legConfigs, curLeg, [&](const std::string& l) {
+                    if (!player->anatomy.hasPart(bodySlot::LEGS)) {
+                        bodyPart lp; lp.id = "legs"; lp.name = "Legs"; lp.race = "Human"; lp.style = l; player->anatomy.setPart(bodySlot::LEGS, lp);
+                    } else player->anatomy.getPart(bodySlot::LEGS)->style = l;
+                }, uiScale, 6);
+
+                bodyPart* groin = player->anatomy.getPart(bodySlot::GROIN);
+                std::string curPlace = (groin && !groin->style.empty()) ? groin->style : "Normal";
+                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Genital Placement", "Anatomical position of genital sockets.", genitalPlacements, curPlace, [&](const std::string& gp) {
+                    if (auto* g = player->anatomy.getPart(bodySlot::GROIN)) g->style = gp;
+                }, uiScale, 3);
                 break;
             }
 
             case TransformationTab::EYES:
             {
-                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Ocular Morphology", "Customize eye socket race and demonic properties.", racialTypes, player->anatomy.hasPart(bodySlot::EYES) ? player->anatomy.getPart(bodySlot::EYES)->race : "Human", [&](const std::string& r) {
-                    bodyPart ep; ep.id = "eyes_" + r; ep.name = "Eyes"; ep.race = r; ep.primaryColor = "Azure Blue";
-                    player->anatomy.setPart(bodySlot::EYES, ep);
+                bodyPart* eyes = player->anatomy.getPart(bodySlot::EYES);
+                std::string eyeRace = eyes ? eyes->race : "Human";
+                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Ocular Morphology", "Customize eye socket race and demonic properties.", racialTypes, eyeRace, [&](const std::string& r) {
+                    if (!player->anatomy.hasPart(bodySlot::EYES)) {
+                        bodyPart ep; ep.id = "eyes_" + r; ep.name = "Eyes"; ep.race = r; ep.primaryColor = "Azure Blue"; player->anatomy.setPart(bodySlot::EYES, ep);
+                    } else player->anatomy.getPart(bodySlot::EYES)->race = r;
                 }, uiScale, 6);
 
-                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Iris & Pupil Shapes", "Change iris and pupil structural geometry.", eyeShapes, "Round", [](const std::string&) {}, uiScale, 5);
+                std::string curEyeShape = (eyes && !eyes->style.empty()) ? eyes->style : "Round";
+                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Iris & Pupil Shapes", "Change iris and pupil structural geometry.", eyeShapes, curEyeShape, [&](const std::string& es) {
+                    if (!player->anatomy.hasPart(bodySlot::EYES)) {
+                        bodyPart ep; ep.id = "eyes"; ep.name = "Eyes"; ep.race = "Human"; ep.style = es; player->anatomy.setPart(bodySlot::EYES, ep);
+                    } else player->anatomy.getPart(bodySlot::EYES)->style = es;
+                }, uiScale, 5);
 
-                bodyPart* eyes = player->anatomy.getPart(bodySlot::EYES);
                 std::string eyeColor = eyes ? eyes->primaryColor : "Azure Blue";
                 curY += drawColorSwatchCard(renderer, gameContext, padX, curY, availableW, "Iris Color Swatches", "Color of the eye irises.", tfColors, eyeColor, [&](const std::string& col) {
-                    if (auto* ep = player->anatomy.getPart(bodySlot::EYES)) ep->primaryColor = col;
+                    if (!player->anatomy.hasPart(bodySlot::EYES)) {
+                        bodyPart ep; ep.id = "eyes"; ep.name = "Eyes"; ep.race = "Human"; ep.primaryColor = col; player->anatomy.setPart(bodySlot::EYES, ep);
+                    } else player->anatomy.getPart(bodySlot::EYES)->primaryColor = col;
                 }, uiScale);
 
-                curY += drawColorSwatchCard(renderer, gameContext, padX, curY, availableW, "Sclera Color Swatches", "Color of the surrounding eye whites.", tfColors, "Pure White", [](const std::string&) {}, uiScale);
+                std::string scleraColor = (eyes && !eyes->secondaryColor.empty()) ? eyes->secondaryColor : "Pure White";
+                curY += drawColorSwatchCard(renderer, gameContext, padX, curY, availableW, "Sclera Color Swatches", "Color of the surrounding eye whites.", tfColors, scleraColor, [&](const std::string& col) {
+                    if (!player->anatomy.hasPart(bodySlot::EYES)) {
+                        bodyPart ep; ep.id = "eyes"; ep.name = "Eyes"; ep.race = "Human"; ep.secondaryColor = col; player->anatomy.setPart(bodySlot::EYES, ep);
+                    } else player->anatomy.getPart(bodySlot::EYES)->secondaryColor = col;
+                }, uiScale);
                 break;
             }
 
@@ -507,15 +539,25 @@ namespace TransformationView
 
                 std::string curStyle = hair ? hair->style : "Short";
                 curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Hairstyle", "Styling, cuts, braids, and grooming.", allHairStyles, curStyle, [&](const std::string& s) {
-                    if (auto* hp = player->anatomy.getPart(bodySlot::HAIR)) hp->style = s;
+                    if (!player->anatomy.hasPart(bodySlot::HAIR)) {
+                        bodyPart hp; hp.id = "hair"; hp.name = "Hair"; hp.style = s; player->anatomy.setPart(bodySlot::HAIR, hp);
+                    } else player->anatomy.getPart(bodySlot::HAIR)->style = s;
                 }, uiScale, 6);
 
                 std::string hairColor = hair ? hair->primaryColor : "Chestnut Brown";
                 curY += drawColorSwatchCard(renderer, gameContext, padX, curY, availableW, "Hair Color Swatches", "Select head hair pigment.", tfColors, hairColor, [&](const std::string& col) {
-                    if (auto* hp = player->anatomy.getPart(bodySlot::HAIR)) hp->primaryColor = col;
+                    if (!player->anatomy.hasPart(bodySlot::HAIR)) {
+                        bodyPart hp; hp.id = "hair"; hp.name = "Hair"; hp.primaryColor = col; player->anatomy.setPart(bodySlot::HAIR, hp);
+                    } else player->anatomy.getPart(bodySlot::HAIR)->primaryColor = col;
                 }, uiScale);
 
-                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Facial Hair & Grooming", "Beard and facial grooming.", bodyHairOptions, "None", [](const std::string&) {}, uiScale, 4);
+                bodyPart* head = player->anatomy.getPart(bodySlot::HEAD);
+                std::string curFacialHair = (head && !head->style.empty()) ? head->style : "None";
+                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Facial Hair & Grooming", "Beard and facial grooming.", bodyHairOptions, curFacialHair, [&](const std::string& fh) {
+                    if (!player->anatomy.hasPart(bodySlot::HEAD)) {
+                        bodyPart hp; hp.id = "head"; hp.name = "Head"; hp.style = fh; player->anatomy.setPart(bodySlot::HEAD, hp);
+                    } else player->anatomy.getPart(bodySlot::HEAD)->style = fh;
+                }, uiScale, 4);
                 break;
             }
 
@@ -545,22 +587,56 @@ namespace TransformationView
                     }, uiScale, 1);
                 }
 
-                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Antennae", "Grow, shape, or remove antennae.", antennaTypes, "None", [](const std::string&) {}, uiScale, 5);
-                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Lip Dimensions", "Size and plumpness of lips.", lipSizes, "Average", [](const std::string&) {}, uiScale, 5);
-                curY += drawToggleCard(renderer, gameContext, padX, curY, availableW, "Puffy Lips", "Extra softness and swelling.", false, [](bool) {}, uiScale, "Puffy", "Natural");
+                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Antennae", "Grow, shape, or remove antennae.", antennaTypes, player->anatomy.hasPart(bodySlot::ANTENNAE) ? player->anatomy.getPart(bodySlot::ANTENNAE)->race : "None", [&](const std::string& a) {
+                    if (a == "None") player->anatomy.removePart(bodySlot::ANTENNAE);
+                    else {
+                        bodyPart ap; ap.id = "antennae_" + a; ap.name = "Antennae"; ap.race = a; ap.count = 2;
+                        player->anatomy.setPart(bodySlot::ANTENNAE, ap);
+                    }
+                }, uiScale, 5);
 
-                curY += drawTogglePillCard(renderer, gameContext, padX, curY, availableW, "Throat Orifice Modifiers", "Special internal qualities of your throat.", orificeModifiers, {}, [](const std::string&, bool) {}, uiScale, 4);
-                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Throat Wetness", "Saliva and moisture levels.", wetnessLevels, "Moist", [](const std::string&) {}, uiScale, 4);
+                bodyPart* mouth = player->anatomy.getPart(bodySlot::MOUTH);
+                if (!mouth) { bodyPart mp; mp.id = "mouth"; mp.name = "Mouth"; mp.orifice.exists = true; mp.orifice.wetnessLevel = 2; player->anatomy.setPart(bodySlot::MOUTH, mp); mouth = player->anatomy.getPart(bodySlot::MOUTH); }
+
+                std::string curLip = mouth->style.empty() ? "Average" : mouth->style;
+                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Lip Dimensions", "Size and plumpness of lips.", lipSizes, curLip, [&](const std::string& l) {
+                    mouth->style = l;
+                }, uiScale, 5);
+
+                bool puffy = mouth->hasTag("puffy_lips");
+                curY += drawToggleCard(renderer, gameContext, padX, curY, availableW, "Puffy Lips", "Extra softness and swelling.", puffy, [&](bool p) {
+                    if (p) mouth->tags.push_back("puffy_lips");
+                    else std::erase(mouth->tags, "puffy_lips");
+                }, uiScale, "Puffy", "Natural");
+
+                curY += drawTogglePillCard(renderer, gameContext, padX, curY, availableW, "Throat Orifice Modifiers", "Special internal qualities of your throat.", orificeModifiers, mouth->tags, [&](const std::string& mod, bool act) {
+                    if (act) mouth->tags.push_back(mod);
+                    else std::erase(mouth->tags, mod);
+                }, uiScale, 4);
+
+                int curWetIdx = std::clamp(mouth->orifice.wetnessLevel, 0, static_cast<int>(wetnessLevels.size()) - 1);
+                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Throat Wetness", "Saliva and moisture levels.", wetnessLevels, wetnessLevels[curWetIdx], [&](const std::string& w) {
+                    for (size_t i = 0; i < wetnessLevels.size(); ++i) if (wetnessLevels[i] == w) mouth->orifice.wetnessLevel = static_cast<int>(i);
+                }, uiScale, 4);
                 break;
             }
 
             case TransformationTab::ASS_HIPS:
             {
-                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Ass Dimensions", "Rear cheek volume and projection.", size5, "Average", [](const std::string&) {}, uiScale, 5);
-                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Hip Breadth", "Pelvic width and hourglass curvature.", size5, "Average", [](const std::string&) {}, uiScale, 5);
-
                 bodyPart* ass = player->anatomy.getPart(bodySlot::ASS);
                 if (!ass) { bodyPart ap; ap.id = "ass"; ap.name = "Ass"; ap.orifice.exists = true; player->anatomy.setPart(bodySlot::ASS, ap); ass = player->anatomy.getPart(bodySlot::ASS); }
+                bodyPart* hips = player->anatomy.getPart(bodySlot::HIPS);
+                if (!hips) { bodyPart hp; hp.id = "hips"; hp.name = "Hips"; player->anatomy.setPart(bodySlot::HIPS, hp); hips = player->anatomy.getPart(bodySlot::HIPS); }
+
+                std::string curAss = ass->style.empty() ? "Average" : ass->style;
+                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Ass Dimensions", "Rear cheek volume and projection.", size5, curAss, [&](const std::string& a) {
+                    ass->style = a;
+                }, uiScale, 5);
+
+                std::string curHips = hips->style.empty() ? "Average" : hips->style;
+                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Hip Breadth", "Pelvic width and hourglass curvature.", size5, curHips, [&](const std::string& h) {
+                    hips->style = h;
+                }, uiScale, 5);
 
                 curY += drawStepperCard(renderer, gameContext, padX, curY, availableW, "Anus Depth (cm)", "Internal rectal depth before obstruction.", std::format("{:.0f} cm", ass->orifice.depthCm), [&](int delta) {
                     ass->orifice.depthCm = std::clamp(ass->orifice.depthCm + delta, 5.0f, 40.0f);
@@ -570,13 +646,21 @@ namespace TransformationView
                     ass->orifice.elasticity = std::clamp(ass->orifice.elasticity + (delta * 5.0f), 0.0f, 100.0f);
                 }, uiScale, 5);
 
-                curY += drawToggleCard(renderer, gameContext, padX, curY, availableW, "Bleached Anus", "Cosmetic treatment for anal sphincter.", ass->tags.empty() ? false : std::ranges::find(ass->tags, std::string("bleached")) != ass->tags.end(), [&](bool state) {
+                bool bleached = ass->hasTag("bleached");
+                curY += drawToggleCard(renderer, gameContext, padX, curY, availableW, "Bleached Anus", "Cosmetic treatment for anal sphincter.", bleached, [&](bool state) {
                     if (state) ass->tags.push_back("bleached");
                     else std::erase(ass->tags, "bleached");
                 }, uiScale);
 
-                curY += drawTogglePillCard(renderer, gameContext, padX, curY, availableW, "Anal Modifiers", "Special internal qualities of your rectum.", orificeModifiers, {}, [](const std::string&, bool) {}, uiScale, 4);
-                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Anal Wetness", "Natural lubrication level.", wetnessLevels, "Moist", [](const std::string&) {}, uiScale, 4);
+                curY += drawTogglePillCard(renderer, gameContext, padX, curY, availableW, "Anal Modifiers", "Special internal qualities of your rectum.", orificeModifiers, ass->tags, [&](const std::string& mod, bool act) {
+                    if (act) ass->tags.push_back(mod);
+                    else std::erase(ass->tags, mod);
+                }, uiScale, 4);
+
+                int curAnalWetIdx = std::clamp(ass->orifice.wetnessLevel, 0, static_cast<int>(wetnessLevels.size()) - 1);
+                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Anal Wetness", "Natural lubrication level.", wetnessLevels, wetnessLevels[curAnalWetIdx], [&](const std::string& w) {
+                    for (size_t i = 0; i < wetnessLevels.size(); ++i) if (wetnessLevels[i] == w) ass->orifice.wetnessLevel = static_cast<int>(i);
+                }, uiScale, 4);
                 break;
             }
 
@@ -584,13 +668,18 @@ namespace TransformationView
             {
                 bodyPart* breasts = player->anatomy.getPart(bodySlot::BREASTS);
                 if (!breasts) { bodyPart bp; bp.id = "breasts"; bp.name = "Breasts"; player->anatomy.setPart(bodySlot::BREASTS, bp); breasts = player->anatomy.getPart(bodySlot::BREASTS); }
+                bodyPart* nipples = player->anatomy.getPart(bodySlot::NIPPLES);
+                if (!nipples) { bodyPart np; np.id = "nipples"; np.name = "Nipples"; player->anatomy.setPart(bodySlot::NIPPLES, np); nipples = player->anatomy.getPart(bodySlot::NIPPLES); }
 
                 int curCupIdx = std::clamp(breasts->cupSize, 0, static_cast<int>(cupSizes.size()) - 1);
                 curY += drawStepperCard(renderer, gameContext, padX, curY, availableW, "Cup Size", "Chest breast volume and mass rating.", std::format("{}-cup", cupSizes[curCupIdx]), [&](int delta) {
                     breasts->cupSize = std::clamp(breasts->cupSize + delta, 0, static_cast<int>(cupSizes.size()) - 1);
                 }, uiScale, 1);
 
-                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Breast Shape", "Projection and fullness contour.", breastShapes, "Round", [](const std::string&) {}, uiScale, 6);
+                std::string curBreastShape = breasts->style.empty() ? "Round" : breasts->style;
+                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Breast Shape", "Projection and fullness contour.", breastShapes, curBreastShape, [&](const std::string& s) {
+                    breasts->style = s;
+                }, uiScale, 6);
 
                 curY += drawToggleCard(renderer, gameContext, padX, curY, availableW, "Lactation Active", "Enable or disable continuous milk production.", breasts->isLactating, [&](bool l) {
                     breasts->isLactating = l;
@@ -604,12 +693,26 @@ namespace TransformationView
                         breasts->currentFluidMl = std::min(breasts->currentFluidMl, breasts->maxFluidMl);
                     }, uiScale, 100);
 
-                    curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Milk Flavours", "Taste profile of expressed milk.", fluidFlavours, "Milk", [](const std::string&) {}, uiScale, 6);
-                    curY += drawTogglePillCard(renderer, gameContext, padX, curY, availableW, "Milk Modifiers", "Psychoactive and physical milk traits.", fluidModifiers, {}, [](const std::string&, bool) {}, uiScale, 5);
+                    std::string curMilkFlav = breasts->secondaryColor.empty() ? "Milk" : breasts->secondaryColor;
+                    curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Milk Flavours", "Taste profile of expressed milk.", fluidFlavours, curMilkFlav, [&](const std::string& f) {
+                        breasts->secondaryColor = f;
+                    }, uiScale, 6);
+
+                    curY += drawTogglePillCard(renderer, gameContext, padX, curY, availableW, "Milk Modifiers", "Psychoactive and physical milk traits.", fluidModifiers, breasts->tags, [&](const std::string& m, bool act) {
+                        if (act) breasts->tags.push_back(m);
+                        else std::erase(breasts->tags, m);
+                    }, uiScale, 5);
                 }
 
-                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Nipple Shape", "Morphology of nipples.", nippleShapes, "Normal", [](const std::string&) {}, uiScale, 4);
-                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Areolae Shape", "Contour of surrounding areolae.", areolaeShapes, "Round", [](const std::string&) {}, uiScale, 3);
+                std::string curNippleShape = nipples->style.empty() ? "Normal" : nipples->style;
+                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Nipple Shape", "Morphology of nipples.", nippleShapes, curNippleShape, [&](const std::string& ns) {
+                    nipples->style = ns;
+                }, uiScale, 4);
+
+                std::string curAreolaShape = nipples->secondaryColor.empty() ? "Round" : nipples->secondaryColor;
+                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Areolae Shape", "Contour of surrounding areolae.", areolaeShapes, curAreolaShape, [&](const std::string& as) {
+                    nipples->secondaryColor = as;
+                }, uiScale, 3);
                 break;
             }
 
@@ -651,16 +754,65 @@ namespace TransformationView
                         if (g) g->orifice.depthCm = std::clamp(g->orifice.depthCm + delta, 5.0f, 35.0f);
                     }, uiScale, 1);
 
-                    curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Clitoris Size", "Clitoral length and prominence.", size5, "Average", [](const std::string&) {}, uiScale, 5);
-                    curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Clitoris Girth", "Clitoral thickness and circumference.", girthLevels, "Average", [](const std::string&) {}, uiScale, 4);
-                    curY += drawTogglePillCard(renderer, gameContext, padX, curY, availableW, "Clitoral Penetration Modifiers", "Special traits allowing clitoral penetration.", penetrationModifiers, {}, [](const std::string&, bool) {}, uiScale, 4);
+                    std::string curClitSize = (g && !g->secondaryColor.empty()) ? g->secondaryColor : "Average";
+                    curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Clitoris Size", "Clitoral length and prominence.", size5, curClitSize, [&](const std::string& cs) {
+                        if (g) g->secondaryColor = cs;
+                    }, uiScale, 5);
 
-                    curY += drawToggleCard(renderer, gameContext, padX, curY, availableW, "Squirter", "Copious ejaculation during orgasm.", false, [](bool) {}, uiScale, "Squirter", "Normal");
-                    curY += drawToggleCard(renderer, gameContext, padX, curY, availableW, "Hymen Intact", "Virginity membrane status.", true, [](bool) {}, uiScale, "Intact", "Broken");
-                    curY += drawToggleCard(renderer, gameContext, padX, curY, availableW, "Egg Layer", "Reproductive mode for oviparous species.", false, [](bool) {}, uiScale, "Egg-layer", "Live young");
+                    std::string curClitGirth = (g && !g->style.empty()) ? g->style : "Average";
+                    curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Clitoris Girth", "Clitoral thickness and circumference.", girthLevels, curClitGirth, [&](const std::string& cg) {
+                        if (g) g->style = cg;
+                    }, uiScale, 4);
 
-                    curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Girlcum Flavours", "Taste of vaginal arousal fluid.", fluidFlavours, "Girlcum", [](const std::string&) {}, uiScale, 6);
-                    curY += drawTogglePillCard(renderer, gameContext, padX, curY, availableW, "Girlcum Modifiers", "Qualities and effects of vaginal fluid.", fluidModifiers, {}, [](const std::string&, bool) {}, uiScale, 5);
+                    std::vector<std::string> curTags = g ? g->tags : std::vector<std::string>{};
+                    curY += drawTogglePillCard(renderer, gameContext, padX, curY, availableW, "Clitoral Penetration Modifiers", "Special traits allowing clitoral penetration.", penetrationModifiers, curTags, [&](const std::string& mod, bool act) {
+                        if (g) {
+                            if (act) g->tags.push_back(mod);
+                            else std::erase(g->tags, mod);
+                        }
+                    }, uiScale, 4);
+
+                    bool squirter = g && g->hasTag("squirter");
+                    curY += drawToggleCard(renderer, gameContext, padX, curY, availableW, "Squirter", "Copious ejaculation during orgasm.", squirter, [&](bool sq) {
+                        if (g) {
+                            if (sq) g->tags.push_back("squirter");
+                            else std::erase(g->tags, "squirter");
+                        }
+                    }, uiScale, "Squirter", "Normal");
+
+                    bool hymen = !g || g->hasTag("virgin_hymen");
+                    curY += drawToggleCard(renderer, gameContext, padX, curY, availableW, "Hymen Intact", "Virginity membrane status.", hymen, [&](bool hy) {
+                        if (g) {
+                            if (hy) g->tags.push_back("virgin_hymen");
+                            else std::erase(g->tags, "virgin_hymen");
+                        }
+                    }, uiScale, "Intact", "Broken");
+
+                    bool eggLayer = g && g->hasTag("egg_layer");
+                    curY += drawToggleCard(renderer, gameContext, padX, curY, availableW, "Egg Layer", "Reproductive mode for oviparous species.", eggLayer, [&](bool el) {
+                        if (g) {
+                            if (el) g->tags.push_back("egg_layer");
+                            else std::erase(g->tags, "egg_layer");
+                        }
+                    }, uiScale, "Egg-layer", "Live young");
+
+                    std::string curGirlFlav = "Girlcum";
+                    if (g) {
+                        for (const auto& f : fluidFlavours) if (g->hasTag("flav_" + f)) { curGirlFlav = f; break; }
+                    }
+                    curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Girlcum Flavours", "Taste of vaginal arousal fluid.", fluidFlavours, curGirlFlav, [&](const std::string& f) {
+                        if (g) {
+                            for (const auto& fl : fluidFlavours) std::erase(g->tags, "flav_" + fl);
+                            g->tags.push_back("flav_" + f);
+                        }
+                    }, uiScale, 6);
+
+                    curY += drawTogglePillCard(renderer, gameContext, padX, curY, availableW, "Girlcum Modifiers", "Qualities and effects of vaginal fluid.", fluidModifiers, curTags, [&](const std::string& mod, bool act) {
+                        if (g) {
+                            if (act) g->tags.push_back(mod);
+                            else std::erase(g->tags, mod);
+                        }
+                    }, uiScale, 5);
                 }
                 break;
             }
@@ -708,9 +860,21 @@ namespace TransformationView
                         if (g) g->diameter = std::clamp(g->diameter + (delta * 0.2f), 1.5f, 15.0f);
                     }, uiScale, 1);
 
-                    curY += drawTogglePillCard(renderer, gameContext, padX, curY, availableW, "Penis Modifiers", "Knots, barbs, flares, sheaths, and special traits.", penetrationModifiers, {}, [](const std::string&, bool) {}, uiScale, 4);
+                    std::vector<std::string> curTags = g ? g->tags : std::vector<std::string>{};
+                    curY += drawTogglePillCard(renderer, gameContext, padX, curY, availableW, "Penis Modifiers", "Knots, barbs, flares, sheaths, and special traits.", penetrationModifiers, curTags, [&](const std::string& mod, bool act) {
+                        if (g) {
+                            if (act) g->tags.push_back(mod);
+                            else std::erase(g->tags, mod);
+                        }
+                    }, uiScale, 4);
 
-                    curY += drawToggleCard(renderer, gameContext, padX, curY, availableW, "Internal Testicles", "Testicles retracted inside lower abdomen.", false, [](bool) {}, uiScale, "Internal", "External");
+                    bool internalBalls = g && g->hasTag("internal_testicles");
+                    curY += drawToggleCard(renderer, gameContext, padX, curY, availableW, "Internal Testicles", "Testicles retracted inside lower abdomen.", internalBalls, [&](bool ib) {
+                        if (g) {
+                            if (ib) g->tags.push_back("internal_testicles");
+                            else std::erase(g->tags, "internal_testicles");
+                        }
+                    }, uiScale, "Internal", "External");
 
                     curY += drawStepperCard(renderer, gameContext, padX, curY, availableW, "Cum Storage (ml)", "Total volume of stored seminal fluid.", std::format("{:.0f} ml", g ? g->maxFluidMl : 30.0f), [&](int delta) {
                         if (g) {
@@ -719,8 +883,23 @@ namespace TransformationView
                         }
                     }, uiScale, 25);
 
-                    curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Cum Flavours", "Taste profile of male seed.", fluidFlavours, "Cum", [](const std::string&) {}, uiScale, 6);
-                    curY += drawTogglePillCard(renderer, gameContext, padX, curY, availableW, "Cum Modifiers", "Psychoactive and physical cum traits.", fluidModifiers, {}, [](const std::string&, bool) {}, uiScale, 5);
+                    std::string curCumFlav = "Cum";
+                    if (g) {
+                        for (const auto& f : fluidFlavours) if (g->hasTag("cum_flav_" + f)) { curCumFlav = f; break; }
+                    }
+                    curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Cum Flavours", "Taste profile of male seed.", fluidFlavours, curCumFlav, [&](const std::string& f) {
+                        if (g) {
+                            for (const auto& fl : fluidFlavours) std::erase(g->tags, "cum_flav_" + fl);
+                            g->tags.push_back("cum_flav_" + f);
+                        }
+                    }, uiScale, 6);
+
+                    curY += drawTogglePillCard(renderer, gameContext, padX, curY, availableW, "Cum Modifiers", "Psychoactive and physical cum traits.", fluidModifiers, curTags, [&](const std::string& mod, bool act) {
+                        if (g) {
+                            if (act) g->tags.push_back(mod);
+                            else std::erase(g->tags, mod);
+                        }
+                    }, uiScale, 5);
                 }
                 break;
             }
@@ -728,14 +907,27 @@ namespace TransformationView
             case TransformationTab::CROTCH_BOOBS:
             {
                 static const std::vector<std::string> crotchTypes = { "None", "Bovine Udders", "Caprine Udders", "Feline Crotch-Boobs", "Canine Teats" };
-                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Crotch-Boobs & Udders", "Secondary udder / crotch mammary glands.", crotchTypes, "None", [](const std::string&) {}, uiScale, 5);
-
                 bodyPart* crotchPart = player->anatomy.getPart(bodySlot::HIPS);
+                std::string curCrotchType = (crotchPart && !crotchPart->style.empty()) ? crotchPart->style : "None";
+                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Crotch-Boobs & Udders", "Secondary udder / crotch mammary glands.", crotchTypes, curCrotchType, [&](const std::string& ct) {
+                    if (ct == "None") {
+                        player->anatomy.removePart(bodySlot::HIPS);
+                    } else {
+                        if (!crotchPart) {
+                            bodyPart hp; hp.id = "crotch_udders"; hp.name = ct; hp.style = ct; hp.cupSize = 1; player->anatomy.setPart(bodySlot::HIPS, hp);
+                        } else {
+                            crotchPart->name = ct;
+                            crotchPart->style = ct;
+                        }
+                    }
+                }, uiScale, 5);
+
+                crotchPart = player->anatomy.getPart(bodySlot::HIPS);
                 int crotchCup = crotchPart ? crotchPart->cupSize : 0;
                 int clampedCup = std::clamp(crotchCup, 0, static_cast<int>(cupSizes.size()) - 1);
                 curY += drawStepperCard(renderer, gameContext, padX, curY, availableW, "Crotch Mammary Cup Size", "Volume of secondary lower mammary glands.", std::format("{}-cup", cupSizes[clampedCup]), [&](int delta) {
                     if (!player->anatomy.hasPart(bodySlot::HIPS)) {
-                        bodyPart hp; hp.id = "crotch_udders"; hp.name = "Crotch Udders"; hp.cupSize = 0;
+                        bodyPart hp; hp.id = "crotch_udders"; hp.name = "Crotch Udders"; hp.style = "Bovine Udders"; hp.cupSize = 1;
                         player->anatomy.setPart(bodySlot::HIPS, hp);
                     }
                     if (auto* hp = player->anatomy.getPart(bodySlot::HIPS)) {
@@ -750,12 +942,16 @@ namespace TransformationView
                 curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Wings & Flight Organs", "Grow, size, or modify back wings.", minorRacesWithNone, player->anatomy.hasPart(bodySlot::WINGS) ? player->anatomy.getPart(bodySlot::WINGS)->race : "None", [&](const std::string& r) {
                     if (r == "None") player->anatomy.removePart(bodySlot::WINGS);
                     else {
-                        bodyPart w; w.id = "wings_" + r; w.name = "Wings"; w.race = r; w.count = 2;
+                        bodyPart w; w.id = "wings_" + r; w.name = "Wings"; w.race = r; w.count = 2; w.style = "Average";
                         player->anatomy.setPart(bodySlot::WINGS, w);
                     }
                 }, uiScale, 6);
 
-                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Wing Wingspan Size", "Size rating of wings.", wingSizes, "Average", [](const std::string&) {}, uiScale, 4);
+                bodyPart* wings = player->anatomy.getPart(bodySlot::WINGS);
+                std::string curWingSize = (wings && !wings->style.empty()) ? wings->style : "Average";
+                curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Wing Wingspan Size", "Size rating of wings.", wingSizes, curWingSize, [&](const std::string& ws) {
+                    if (wings) wings->style = ws;
+                }, uiScale, 4);
 
                 curY += drawPillCard(renderer, gameContext, padX, curY, availableW, "Tails & Appendages", "Grow or modify tail racial type.", minorRacesWithNone, player->anatomy.hasPart(bodySlot::TAIL) ? player->anatomy.getPart(bodySlot::TAIL)->race : "None", [&](const std::string& r) {
                     if (r == "None") player->anatomy.removePart(bodySlot::TAIL);
@@ -774,9 +970,12 @@ namespace TransformationView
                     curY += drawStepperCard(renderer, gameContext, padX, curY, availableW, "Tail Length (cm)", "Length of tails extending behind character.", std::format("{:.0f} cm", tail->length), [&](int delta) {
                         tail->length = std::clamp(tail->length + (delta * 5.0f), 10.0f, 250.0f);
                     }, uiScale, 5);
-                }
 
-                curY += drawTogglePillCard(renderer, gameContext, padX, curY, availableW, "Spinneret Orifice Modifiers", "Silk production and gland traits.", orificeModifiers, {}, [](const std::string&, bool) {}, uiScale, 4);
+                    curY += drawTogglePillCard(renderer, gameContext, padX, curY, availableW, "Spinneret Orifice Modifiers", "Silk production and gland traits.", orificeModifiers, tail->tags, [&](const std::string& mod, bool act) {
+                        if (act) tail->tags.push_back(mod);
+                        else std::erase(tail->tags, mod);
+                    }, uiScale, 4);
+                }
                 break;
             }
 
@@ -827,8 +1026,8 @@ namespace TransformationView
                 }
                 curY += presetsCard.h + (14.0f * uiScale);
 
-                // List saved presets
-                auto presets = state->getPresetNames();
+                // List saved presets (cached to prevent 60fps disk reads)
+                const auto& presets = state->getPresetNames();
                 if (!presets.empty())
                 {
                     for (const auto& pName : presets)

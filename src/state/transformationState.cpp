@@ -37,6 +37,7 @@ transformationState::transformationState(TransformationTab initialTab)
 
 void transformationState::initialise(game* gameContext)
 {
+    refreshPresetNames();
     if (gameContext)
     {
         gameContext->refreshActionGrid();
@@ -45,6 +46,7 @@ void transformationState::initialise(game* gameContext)
 
 void transformationState::onEnter(game* gameContext)
 {
+    refreshPresetNames();
     if (gameContext)
     {
         gameContext->refreshActionGrid();
@@ -164,6 +166,7 @@ void transformationState::savePreset(game* gameContext, const std::string& name)
     {
         file << j.dump(4);
         statusMessage = "Preset '" + cleanName + "' saved successfully.";
+        refreshPresetNames();
     }
     else
     {
@@ -263,24 +266,24 @@ void transformationState::deletePreset(const std::string& name)
         std::error_code ec;
         fs::remove(filePath, ec);
         statusMessage = "Deleted preset '" + name + "'.";
+        refreshPresetNames();
     }
 }
 
-std::vector<std::string> transformationState::getPresetNames() const
+void transformationState::refreshPresetNames()
 {
-    std::vector<std::string> names;
+    m_presetNames.clear();
     std::string dir = getPresetsDirectory();
-    if (!fs::exists(dir)) return names;
+    if (!fs::exists(dir)) return;
 
     for (const auto& entry : fs::directory_iterator(dir))
     {
         if (entry.is_regular_file() && entry.path().extension() == ".json")
         {
-            names.push_back(entry.path().stem().string());
+            m_presetNames.push_back(entry.path().stem().string());
         }
     }
-    std::sort(names.begin(), names.end());
-    return names;
+    std::sort(m_presetNames.begin(), m_presetNames.end());
 }
 
 void transformationState::resetToHuman(game* gameContext)

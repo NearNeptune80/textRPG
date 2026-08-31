@@ -40,6 +40,7 @@ bool fontManager::init()
 
 void fontManager::cleanup()
 {
+    clearCache();
     if (m_font)
     {
         TTF_CloseFont(m_font);
@@ -54,6 +55,7 @@ void fontManager::cleanup()
 
 bool fontManager::loadFont(const std::string& fontPath, float pointSize)
 {
+    clearCache();
     m_currentFontPath = fontPath;
     m_basePointSize = pointSize;
 
@@ -192,6 +194,19 @@ void fontManager::drawEmbeddedFallback(SDL_Renderer* renderer, const std::string
     }
 }
 
+void fontManager::clearCache()
+{
+    for (auto& [key, glyph] : m_textCache)
+    {
+        if (glyph.texture)
+        {
+            SDL_DestroyTexture(glyph.texture);
+            glyph.texture = nullptr;
+        }
+    }
+    m_textCache.clear();
+}
+
 void fontManager::drawText(SDL_Renderer* renderer, const std::string& text, float x, float y, SDL_Color color, float scale)
 {
     if (!renderer || text.empty()) return;
@@ -199,6 +214,18 @@ void fontManager::drawText(SDL_Renderer* renderer, const std::string& text, floa
     if (!m_font)
     {
         drawEmbeddedFallback(renderer, text, x, y, color, scale);
+        return;
+    }
+
+    // Cache Key: string + color
+    std::string cacheKey = text + "_" + std::to_string(color.r) + "_" + std::to_string(color.g) + "_" + std::to_string(color.b) + "_" + std::to_string(color.a);
+    auto it = m_textCache.find(cacheKey);
+
+    if (it != m_textCache.end() && it->second.texture)
+    {
+        float scaleFactor = (m_currentScale > 0.0f) ? (scale / m_currentScale) : 1.0f;
+        SDL_FRect dstRect = { x, y, static_cast<float>(it->second.width) * scaleFactor, static_cast<float>(it->second.height) * scaleFactor };
+        SDL_RenderTexture(renderer, it->second.texture, nullptr, &dstRect);
         return;
     }
 
@@ -217,12 +244,24 @@ void fontManager::drawText(SDL_Renderer* renderer, const std::string& text, floa
         return;
     }
 
-    float scaleFactor = (m_currentScale > 0.0f) ? (scale / m_currentScale) : 1.0f;
-    SDL_FRect dstRect = { x, y, static_cast<float>(surface->w) * scaleFactor, static_cast<float>(surface->h) * scaleFactor };
-    SDL_RenderTexture(renderer, texture, nullptr, &dstRect);
-
-    SDL_DestroyTexture(texture);
+    int surfW = surface->w;
+    int surfH = surface->h;
     SDL_DestroySurface(surface);
+
+    if (m_textCache.size() > 1200)
+    {
+        clearCache();
+    }
+
+    CachedGlyph glyph;
+    glyph.texture = texture;
+    glyph.width = surfW;
+    glyph.height = surfH;
+    m_textCache[cacheKey] = glyph;
+
+    float scaleFactor = (m_currentScale > 0.0f) ? (scale / m_currentScale) : 1.0f;
+    SDL_FRect dstRect = { x, y, static_cast<float>(surfW) * scaleFactor, static_cast<float>(surfH) * scaleFactor };
+    SDL_RenderTexture(renderer, texture, nullptr, &dstRect);
 }
 
 float fontManager::drawTextWrapped(SDL_Renderer* renderer, const std::string& text, float x, float y, float maxWidth, SDL_Color color, float scale)
