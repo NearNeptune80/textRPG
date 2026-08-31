@@ -9,26 +9,11 @@
     "children": [
       {
         "id": "left_column",
-        "type": "CONTAINER",
-        "direction": "COLUMN",
-        "sizes": [45.0, 55.0],
-        "children": [
-          {
-            "id": "left_char_card_box",
-            "type": "LEAF",
-            "name": "Character Bio & Vitals",
-            "widgets": [
-              "widget_lt_character_card"
-            ]
-          },
-          {
-            "id": "left_dpad_box",
-            "type": "LEAF",
-            "name": "Radar & Navigation Toolstrip",
-            "widgets": [
-              "widget_lt_dpad_radar"
-            ]
-          }
+        "type": "LEAF",
+        "name": "Navigation & Status Sidebar",
+        "widgets": [
+          "widget_lt_character_card",
+          "widget_lt_dpad_radar"
         ]
       },
       {
@@ -57,34 +42,12 @@
       },
       {
         "id": "right_column",
-        "type": "CONTAINER",
-        "direction": "COLUMN",
-        "sizes": [25.0, 30.0, 45.0],
-        "children": [
-          {
-            "id": "right_chars_box",
-            "type": "LEAF",
-            "name": "Characters Present",
-            "widgets": [
-              "widget_lt_characters_present"
-            ]
-          },
-          {
-            "id": "right_items_box",
-            "type": "LEAF",
-            "name": "Items Present",
-            "widgets": [
-              "widget_lt_items_present"
-            ]
-          },
-          {
-            "id": "right_log_box",
-            "type": "LEAF",
-            "name": "Event & Activity Log",
-            "widgets": [
-              "widget_lt_event_log"
-            ]
-          }
+        "type": "LEAF",
+        "name": "Entities & Activity Sidebar",
+        "widgets": [
+          "widget_lt_characters_present",
+          "widget_lt_items_present",
+          "widget_lt_event_log"
         ]
       }
     ]
