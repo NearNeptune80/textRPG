@@ -10,6 +10,7 @@
 #include "state/characterCreationState.h"
 #include "state/explorationState.h"
 #include "state/transformationState.h"
+#include "save/saveManager.h"
 #include "ui/theme.h"
 #include "ui/uiRenderer.h"
 
@@ -164,6 +165,12 @@ int main(int argc, char* argv[])
             auto tfState = std::make_unique<transformationState>(tab);
             tfState->resetToHuman(&engine);
             engine.changeState(std::move(tfState));
+        }
+        else if (screenshotState.starts_with("load_"))
+        {
+            std::string saveFile = screenshotState.substr(5);
+            saveManager::loadFromFile(&engine, saveFile);
+            engine.changeState(std::make_unique<explorationState>());
         }
 
         engine.refreshActionGrid();

@@ -194,12 +194,39 @@ namespace TransformationView
         return curY - startY;
     }
 
-    static float drawColorGrid(SDL_Renderer* renderer, game* gameContext, float padX, float curY, float availableW, const std::vector<ColorOption>& options, const std::string& currentSelected, auto onSelect, float uiScale, int cols = 6)
+    static float drawColorSwatchPalette(SDL_Renderer* renderer, game* gameContext, float padX, float curY, float availableW, const std::vector<ColorOption>& options, const std::string& currentSelected, auto onSelect, float uiScale)
     {
         float startY = curY;
-        float gap = 4.0f * uiScale;
-        float btnW = (availableW - (gap * (cols - 1))) / cols;
-        float btnH = 22.0f * uiScale;
+        
+        auto equalsIgnoreCase = [](std::string_view a, std::string_view b) {
+            return std::ranges::equal(a, b, [](char ca, char cb) {
+                return std::tolower(static_cast<unsigned char>(ca)) == std::tolower(static_cast<unsigned char>(cb));
+            });
+        };
+
+        std::string selectedName = options.empty() ? "Default" : options[0].name;
+        SDL_Color selectedColor = options.empty() ? Theme::colors.textGold : options[0].color;
+        for (const auto& opt : options)
+        {
+            if (equalsIgnoreCase(opt.name, currentSelected) || equalsIgnoreCase(opt.id, currentSelected))
+            {
+                selectedName = opt.name;
+                selectedColor = opt.color;
+                break;
+            }
+        }
+
+        // Header Line: Selected Color + Preview Box
+        SDL_FRect previewBox = { padX, curY + (2.0f * uiScale), 16.0f * uiScale, 16.0f * uiScale };
+        UIWidget::drawPanel(renderer, previewBox, selectedColor, Theme::colors.borderNormal);
+        UIWidget::drawText(renderer, std::format("Selected Color: {}", selectedName), padX + (22.0f * uiScale), curY + (2.0f * uiScale), Theme::colors.textGold, uiScale * 0.82f);
+        curY += (22.0f * uiScale);
+
+        // Palette Swatch Tiles Grid (12 cols)
+        int cols = 12;
+        float gap = 5.0f * uiScale;
+        float tileW = (availableW - (gap * (cols - 1))) / cols;
+        float tileH = 20.0f * uiScale;
 
         auto mousePos = gameContext->input.getMousePosition();
         bool clicked = gameContext->input.isLeftMouseJustClicked();
@@ -208,14 +235,13 @@ namespace TransformationView
         {
             int r = static_cast<int>(i / cols);
             int c = static_cast<int>(i % cols);
-            SDL_FRect bRect = { padX + c * (btnW + gap), curY + r * (btnH + gap), btnW, btnH };
+            SDL_FRect sRect = { padX + c * (tileW + gap), curY + r * (tileH + gap), tileW, tileH };
 
-            bool isSelected = (options[i].name == currentSelected || options[i].id == currentSelected);
-            bool hovered = (mousePos.x >= bRect.x && mousePos.x <= bRect.x + bRect.w &&
-                            mousePos.y >= bRect.y && mousePos.y <= bRect.y + bRect.h);
+            bool isSelected = equalsIgnoreCase(options[i].name, selectedName);
+            bool hovered = (mousePos.x >= sRect.x && mousePos.x <= sRect.x + sRect.w &&
+                            mousePos.y >= sRect.y && mousePos.y <= sRect.y + sRect.h);
 
-            SDL_Color bg = isSelected ? Theme::colors.bgHeader : Theme::colors.bgSlot;
-            UIWidget::drawColoredButton(renderer, bRect, options[i].name, bg, options[i].color, isSelected, uiScale * 0.75f);
+            UIWidget::drawColorSwatch(renderer, sRect, options[i].color, isSelected, hovered, uiScale);
 
             if (hovered && clicked)
             {
@@ -225,16 +251,16 @@ namespace TransformationView
         }
 
         int totalRows = static_cast<int>((options.size() + cols - 1) / cols);
-        curY += (totalRows * (btnH + gap)) + (4.0f * uiScale);
+        curY += (totalRows * (tileH + gap)) + (6.0f * uiScale);
         return curY - startY;
     }
 
-    static float drawStepper(SDL_Renderer* renderer, game* gameContext, float padX, float curY, float availableW, std::string_view label, std::string_view displayVal, auto onStep, float uiScale)
+    static float drawStepper(SDL_Renderer* renderer, game* gameContext, float padX, float curY, float availableW, std::string_view label, std::string_view displayVal, auto onStep, float uiScale, int stepDelta = 1)
     {
         float startY = curY;
-        float labelW = availableW * 0.40f;
-        float btnW = 32.0f * uiScale;
-        float valW = availableW - labelW - (btnW * 4) - (16.0f * uiScale);
+        float labelW = availableW * 0.45f;
+        float btnW = 28.0f * uiScale;
+        float valW = 140.0f * uiScale;
         float h = 22.0f * uiScale;
 
         UIWidget::drawText(renderer, label, padX, curY + (3.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.82f);
@@ -243,28 +269,36 @@ namespace TransformationView
         auto mousePos = gameContext->input.getMousePosition();
         bool clicked = gameContext->input.isLeftMouseJustClicked();
 
-        auto drawStepBtn = [&](std::string_view txt, int delta) {
-            SDL_FRect r = { curX, curY, btnW, h };
-            bool hov = (mousePos.x >= r.x && mousePos.x <= r.x + r.w && mousePos.y >= r.y && mousePos.y <= r.y + r.h);
-            UIWidget::drawButton(renderer, r, txt, hov, true, false, uiScale * 0.75f);
-            if (hov && clicked)
-            {
-                onStep(delta);
-                gameContext->input.consumeMouseClick();
-            }
-            curX += btnW + (4.0f * uiScale);
-        };
+        // Left Arrow [ < ]
+        SDL_FRect decRect = { curX, curY, btnW, h };
+        bool decHov = (mousePos.x >= decRect.x && mousePos.x <= decRect.x + decRect.w &&
+                       mousePos.y >= decRect.y && mousePos.y <= decRect.y + decRect.h);
+        UIWidget::drawButton(renderer, decRect, "<", decHov, true, false, uiScale * 0.8f);
+        if (decHov && clicked)
+        {
+            onStep(-stepDelta);
+            gameContext->input.consumeMouseClick();
+        }
+        curX += btnW + (4.0f * uiScale);
 
-        drawStepBtn("--", -5);
-        drawStepBtn("-", -1);
-
+        // Center Value Display
         SDL_FRect valRect = { curX, curY, valW, h };
         UIWidget::drawPanel(renderer, valRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
-        UIWidget::drawText(renderer, displayVal, curX + (6.0f * uiScale), curY + (3.0f * uiScale), Theme::colors.textGold, uiScale * 0.8f);
+        float valTextW = UIWidget::getTextWidth(displayVal, uiScale * 0.82f);
+        float valTextX = curX + std::max(4.0f * uiScale, (valW - valTextW) / 2.0f);
+        UIWidget::drawText(renderer, displayVal, valTextX, curY + (3.0f * uiScale), Theme::colors.textGold, uiScale * 0.82f);
         curX += valW + (4.0f * uiScale);
 
-        drawStepBtn("+", 1);
-        drawStepBtn("++", 5);
+        // Right Arrow [ > ]
+        SDL_FRect incRect = { curX, curY, btnW, h };
+        bool incHov = (mousePos.x >= incRect.x && mousePos.x <= incRect.x + incRect.w &&
+                       mousePos.y >= incRect.y && mousePos.y <= incRect.y + incRect.h);
+        UIWidget::drawButton(renderer, incRect, ">", incHov, true, false, uiScale * 0.8f);
+        if (incHov && clicked)
+        {
+            onStep(stepDelta);
+            gameContext->input.consumeMouseClick();
+        }
 
         curY += h + (6.0f * uiScale);
         return curY - startY;
@@ -357,11 +391,11 @@ namespace TransformationView
                 curY += drawStepper(renderer, gameContext, padX, curY, availableW, "Age Appearance", std::format("{} years", age), [&](int delta) {
                     int newAge = std::clamp(age + delta, 18, 50);
                     player->stats.setBaseStat("appeared_age", static_cast<float>(newAge));
-                }, uiScale);
+                }, uiScale, 1);
 
                 curY += drawStepper(renderer, gameContext, padX, curY, availableW, "Height (cm)", std::format("{:.0f} cm", player->anatomy.heightMeters * 100.0f), [&](int delta) {
                     player->anatomy.heightMeters = std::clamp(player->anatomy.heightMeters + (delta * 0.01f), 1.22f, 3.66f);
-                }, uiScale);
+                }, uiScale, 2);
 
                 curY += drawSectionTitle(renderer, padX, curY, availableW, "Body Size & Muscle Proportions", "Adjust body fat and muscularity to shape your figure.", uiScale);
                 std::string curSize = player->anatomy.bodySize.empty() ? "Average" : player->anatomy.bodySize;
@@ -386,15 +420,15 @@ namespace TransformationView
 
                 curY += drawSectionTitle(renderer, padX, curY, availableW, "Skin Material & Colour Palette", "Change body covering type and skin color.", uiScale);
                 bodyPart* torso = player->anatomy.getPart(bodySlot::TORSO);
-                std::string torsoColor = torso ? torso->primaryColor : "Fair";
-                curY += drawColorGrid(renderer, gameContext, padX, curY, availableW, tfColors, torsoColor, [&](const std::string& col) {
+                std::string torsoColor = torso ? torso->primaryColor : "Pale";
+                curY += drawColorSwatchPalette(renderer, gameContext, padX, curY, availableW, tfColors, torsoColor, [&](const std::string& col) {
                     if (!player->anatomy.hasPart(bodySlot::TORSO)) {
                         bodyPart tp; tp.id = "torso"; tp.name = "Torso"; tp.race = "Human"; tp.primaryColor = col;
                         player->anatomy.setPart(bodySlot::TORSO, tp);
                     } else {
                         player->anatomy.getPart(bodySlot::TORSO)->primaryColor = col;
                     }
-                }, uiScale, 6);
+                }, uiScale);
 
                 curY += drawSectionTitle(renderer, padX, curY, availableW, "Limbs, Feet & Lower Body Configuration", "Change arm pairs, leg setup, and foot structure.", uiScale);
                 curY += drawPillGrid(renderer, gameContext, padX, curY, availableW, footTypes, "Plantigrade", [](const std::string&) {}, uiScale, 4);
@@ -407,7 +441,7 @@ namespace TransformationView
             {
                 curY += drawSectionTitle(renderer, padX, curY, availableW, "Ocular Morphology", "Customize eye race, shape, count, and color.", uiScale);
                 curY += drawPillGrid(renderer, gameContext, padX, curY, availableW, racialTypes, player->anatomy.hasPart(bodySlot::EYES) ? player->anatomy.getPart(bodySlot::EYES)->race : "Human", [&](const std::string& r) {
-                    bodyPart ep; ep.id = "eyes_" + r; ep.name = "Eyes"; ep.race = r; ep.primaryColor = "Blue";
+                    bodyPart ep; ep.id = "eyes_" + r; ep.name = "Eyes"; ep.race = r; ep.primaryColor = "Azure Blue";
                     player->anatomy.setPart(bodySlot::EYES, ep);
                 }, uiScale, 6);
 
@@ -417,12 +451,12 @@ namespace TransformationView
                 bodyPart* eyes = player->anatomy.getPart(bodySlot::EYES);
                 std::string eyeColor = eyes ? eyes->primaryColor : "Azure Blue";
                 curY += drawSectionTitle(renderer, padX, curY, availableW, "Iris Color Swatches", "Color of the eye irises.", uiScale);
-                curY += drawColorGrid(renderer, gameContext, padX, curY, availableW, tfColors, eyeColor, [&](const std::string& col) {
+                curY += drawColorSwatchPalette(renderer, gameContext, padX, curY, availableW, tfColors, eyeColor, [&](const std::string& col) {
                     if (auto* ep = player->anatomy.getPart(bodySlot::EYES)) ep->primaryColor = col;
-                }, uiScale, 6);
+                }, uiScale);
 
                 curY += drawSectionTitle(renderer, padX, curY, availableW, "Sclera Color Swatches", "Color of the sclerae.", uiScale);
-                curY += drawColorGrid(renderer, gameContext, padX, curY, availableW, tfColors, "Pure White", [](const std::string&) {}, uiScale, 6);
+                curY += drawColorSwatchPalette(renderer, gameContext, padX, curY, availableW, tfColors, "Pure White", [](const std::string&) {}, uiScale);
                 break;
             }
 
@@ -434,7 +468,7 @@ namespace TransformationView
                 curY += drawStepper(renderer, gameContext, padX, curY, availableW, "Hair Length (cm)", std::format("{:.0f} cm", hair ? hair->length : 15.0f), [&](int delta) {
                     if (!hair) { bodyPart hp; hp.id = "hair"; hp.name = "Hair"; hp.length = 15.0f; player->anatomy.setPart(bodySlot::HAIR, hp); }
                     if (auto* hp = player->anatomy.getPart(bodySlot::HAIR)) hp->length = std::clamp(hp->length + (delta * 3.0f), 0.0f, 150.0f);
-                }, uiScale);
+                }, uiScale, 3);
 
                 std::string curStyle = hair ? hair->style : "Short";
                 curY += drawPillGrid(renderer, gameContext, padX, curY, availableW, allHairStyles, curStyle, [&](const std::string& s) {
@@ -443,9 +477,9 @@ namespace TransformationView
 
                 std::string hairColor = hair ? hair->primaryColor : "Chestnut Brown";
                 curY += drawSectionTitle(renderer, padX, curY, availableW, "Hair Color", "Select head hair color.", uiScale);
-                curY += drawColorGrid(renderer, gameContext, padX, curY, availableW, tfColors, hairColor, [&](const std::string& col) {
+                curY += drawColorSwatchPalette(renderer, gameContext, padX, curY, availableW, tfColors, hairColor, [&](const std::string& col) {
                     if (auto* hp = player->anatomy.getPart(bodySlot::HAIR)) hp->primaryColor = col;
-                }, uiScale, 6);
+                }, uiScale);
 
                 curY += drawSectionTitle(renderer, padX, curY, availableW, "Facial Hair & Grooming", "Beard and facial hair.", uiScale);
                 curY += drawPillGrid(renderer, gameContext, padX, curY, availableW, bodyHairOptions, "None", [](const std::string&) {}, uiScale, 4);
@@ -473,11 +507,11 @@ namespace TransformationView
                 {
                     curY += drawStepper(renderer, gameContext, padX, curY, availableW, "Horn Length (cm)", std::format("{:.0f} cm", horns->length), [&](int delta) {
                         horns->length = std::clamp(horns->length + (delta * 2.0f), 2.0f, 80.0f);
-                    }, uiScale);
+                    }, uiScale, 2);
 
                     curY += drawStepper(renderer, gameContext, padX, curY, availableW, "Horn Rows", std::format("{}", horns->count / 2), [&](int delta) {
                         horns->count = std::clamp(horns->count + (delta * 2), 2, 8);
-                    }, uiScale);
+                    }, uiScale, 1);
                 }
 
                 curY += drawSectionTitle(renderer, padX, curY, availableW, "Antennae", "Grow, lengthen, or remove antennae.", uiScale);
@@ -505,11 +539,11 @@ namespace TransformationView
 
                 curY += drawStepper(renderer, gameContext, padX, curY, availableW, "Anus Depth (cm)", std::format("{:.0f} cm", ass->orifice.depthCm), [&](int delta) {
                     ass->orifice.depthCm = std::clamp(ass->orifice.depthCm + delta, 5.0f, 40.0f);
-                }, uiScale);
+                }, uiScale, 1);
 
                 curY += drawStepper(renderer, gameContext, padX, curY, availableW, "Elasticity", std::format("{:.0f}%", ass->orifice.elasticity), [&](int delta) {
                     ass->orifice.elasticity = std::clamp(ass->orifice.elasticity + (delta * 5.0f), 0.0f, 100.0f);
-                }, uiScale);
+                }, uiScale, 5);
 
                 curY += drawToggle(renderer, gameContext, padX, curY, availableW, "Bleached Anus", ass->tags.empty() ? false : std::ranges::find(ass->tags, std::string("bleached")) != ass->tags.end(), [&](bool state) {
                     if (state) ass->tags.push_back("bleached");
@@ -544,7 +578,7 @@ namespace TransformationView
                     curY += drawStepper(renderer, gameContext, padX, curY, availableW, "Milk Storage (ml)", std::format("{:.0f} ml", breasts->maxFluidMl), [&](int delta) {
                         breasts->maxFluidMl = std::clamp(breasts->maxFluidMl + (delta * 100.0f), 100.0f, 10000.0f);
                         breasts->currentFluidMl = std::min(breasts->currentFluidMl, breasts->maxFluidMl);
-                    }, uiScale);
+                    }, uiScale, 100);
 
                     curY += drawSectionTitle(renderer, padX, curY, availableW, "Milk Flavours & Modifiers", "Flavor and psychoactive qualities of milk.", uiScale);
                     curY += drawPillGrid(renderer, gameContext, padX, curY, availableW, fluidFlavours, "Milk", [](const std::string&) {}, uiScale, 6);
@@ -575,7 +609,7 @@ namespace TransformationView
                     bodyPart* g = player->anatomy.getPart(bodySlot::GROIN);
                     curY += drawStepper(renderer, gameContext, padX, curY, availableW, "Vaginal Depth", std::format("{:.0f} cm", g->orifice.depthCm), [&](int delta) {
                         g->orifice.depthCm = std::clamp(g->orifice.depthCm + delta, 5.0f, 35.0f);
-                    }, uiScale);
+                    }, uiScale, 1);
 
                     curY += drawSectionTitle(renderer, padX, curY, availableW, "Clitoris Dimensions & Modifiers", "Clitoral size and penetration traits.", uiScale);
                     curY += drawPillGrid(renderer, gameContext, padX, curY, availableW, size5, "Average", [](const std::string&) {}, uiScale, 5);
@@ -612,23 +646,23 @@ namespace TransformationView
                     bodyPart* g = player->anatomy.getPart(bodySlot::GROIN);
                     curY += drawStepper(renderer, gameContext, padX, curY, availableW, "Length (cm)", std::format("{:.1f} cm", g->length), [&](int delta) {
                         g->length = std::clamp(g->length + delta, 3.0f, 100.0f);
-                    }, uiScale);
+                    }, uiScale, 1);
 
                     curY += drawStepper(renderer, gameContext, padX, curY, availableW, "Girth (cm)", std::format("{:.1f} cm", g->diameter), [&](int delta) {
                         g->diameter = std::clamp(g->diameter + (delta * 0.2f), 1.5f, 15.0f);
-                    }, uiScale);
+                    }, uiScale, 1);
 
                     curY += drawSectionTitle(renderer, padX, curY, availableW, "Penis Modifiers", "Knots, barbs, flares, sheaths, and special traits.", uiScale);
                     curY += drawTogglePills(renderer, gameContext, padX, curY, availableW, penetrationModifiers, {}, [](const std::string&, bool) {}, uiScale, 4);
 
                     curY += drawSectionTitle(renderer, padX, curY, availableW, "Testicles & Cum Production", "Testicle count, storage volume, and cum traits.", uiScale);
-                    curY += drawStepper(renderer, gameContext, padX, curY, availableW, "Testicle Count", "2", [](int) {}, uiScale);
+                    curY += drawStepper(renderer, gameContext, padX, curY, availableW, "Testicle Count", "2", [](int) {}, uiScale, 1);
                     curY += drawToggle(renderer, gameContext, padX, curY, availableW, "Internal Testicles", false, [](bool) {}, uiScale, "Internal", "External");
 
                     curY += drawStepper(renderer, gameContext, padX, curY, availableW, "Cum Storage", std::format("{:.0f} ml", g->maxFluidMl), [&](int delta) {
                         g->maxFluidMl = std::clamp(g->maxFluidMl + (delta * 25.0f), 5.0f, 10000.0f);
                         g->currentFluidMl = std::min(g->currentFluidMl, g->maxFluidMl);
-                    }, uiScale);
+                    }, uiScale, 25);
 
                     curY += drawSectionTitle(renderer, padX, curY, availableW, "Cum Flavours & Modifiers", "Taste and qualities of male seed.", uiScale);
                     curY += drawPillGrid(renderer, gameContext, padX, curY, availableW, fluidFlavours, "Cum", [](const std::string&) {}, uiScale, 6);
@@ -672,11 +706,11 @@ namespace TransformationView
                 {
                     curY += drawStepper(renderer, gameContext, padX, curY, availableW, "Tail Count", std::format("{}", tail->count), [&](int delta) {
                         tail->count = std::clamp(tail->count + delta, 1, 9);
-                    }, uiScale);
+                    }, uiScale, 1);
 
                     curY += drawStepper(renderer, gameContext, padX, curY, availableW, "Tail Length (cm)", std::format("{:.0f} cm", tail->length), [&](int delta) {
                         tail->length = std::clamp(tail->length + (delta * 5.0f), 10.0f, 250.0f);
-                    }, uiScale);
+                    }, uiScale, 5);
                 }
 
                 curY += drawSectionTitle(renderer, padX, curY, availableW, "Spinneret (Arachnid Silk Gland)", "Silk production orifice.", uiScale);

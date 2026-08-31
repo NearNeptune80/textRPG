@@ -14,6 +14,7 @@ namespace UIWidget
     void drawProgressBar(SDL_Renderer* renderer, const SDL_FRect& rect, float currentValue, float maxValue, SDL_Color fillColor, SDL_Color bgColor = Theme::colors.bgDark, std::string_view label = "", float scale = 1.0f);
     bool drawButton(SDL_Renderer* renderer, const SDL_FRect& rect, std::string_view label, bool isHovered, bool isEnabled = true, bool isSelected = false, float scale = 1.0f);
     bool drawColoredButton(SDL_Renderer* renderer, const SDL_FRect& rect, std::string_view label, SDL_Color bgColor, SDL_Color textColor, bool isSelected = false, float scale = 1.0f);
+    bool drawColorSwatch(SDL_Renderer* renderer, const SDL_FRect& rect, SDL_Color color, bool isSelected, bool isHovered, float scale = 1.0f);
     bool drawLTActionButton(SDL_Renderer* renderer, const SDL_FRect& rect, std::string_view label, std::string_view hotkey, bool isHovered, bool isEnabled = true, bool isSelected = false, float scale = 1.0f);
 
     void drawText(SDL_Renderer* renderer, std::string_view text, float x, float y, SDL_Color color = Theme::colors.textPrimary, float scale = 1.0f);

@@ -75,7 +75,7 @@ namespace UIWidget
 
         SDL_Color bg = isEnabled ? (isSelected ? Theme::colors.bgSlotSelected : (isHovered ? Theme::colors.borderButton : Theme::colors.bgButton)) : Theme::colors.bgButtonDisabled;
         SDL_Color border = isEnabled ? (isSelected ? Theme::colors.borderSelected : (isHovered ? Theme::colors.textGold : Theme::colors.borderButton)) : Theme::colors.borderButtonDisabled;
-        SDL_Color textCol = isEnabled ? (isHovered ? Theme::colors.textGold : Theme::colors.textPrimary) : Theme::colors.textMuted;
+        SDL_Color textCol = isEnabled ? (isHovered ? Theme::colors.textGold : (isSelected ? Theme::colors.textGold : Theme::colors.textPrimary)) : Theme::colors.textMuted;
 
         SDL_SetRenderDrawColor(renderer, bg.r, bg.g, bg.b, bg.a);
         SDL_RenderFillRect(renderer, &rect);
@@ -83,7 +83,14 @@ namespace UIWidget
         SDL_SetRenderDrawColor(renderer, border.r, border.g, border.b, border.a);
         SDL_RenderRect(renderer, &rect);
 
-        drawText(renderer, label, rect.x + (8.0f * scale), rect.y + ((rect.h - (10.0f * scale)) / 2.0f), textCol, scale);
+        if (!label.empty())
+        {
+            float labelW = getTextWidth(label, scale);
+            float labelH = 13.0f * scale;
+            float textX = rect.x + std::max(2.0f * scale, (rect.w - labelW) / 2.0f);
+            float textY = rect.y + std::max(1.0f * scale, (rect.h - labelH) / 2.0f);
+            drawText(renderer, label, textX, textY, textCol, scale);
+        }
         return isEnabled && isHovered;
     }
 
@@ -94,13 +101,47 @@ namespace UIWidget
         SDL_SetRenderDrawColor(renderer, bgColor.r, bgColor.g, bgColor.b, bgColor.a);
         SDL_RenderFillRect(renderer, &rect);
 
-        SDL_Color border = isSelected ? SDL_Color{ 245, 80, 175, 255 } : Theme::colors.borderButton;
+        SDL_Color border = isSelected ? Theme::colors.textGold : Theme::colors.borderButton;
         SDL_SetRenderDrawColor(renderer, border.r, border.g, border.b, border.a);
         SDL_RenderRect(renderer, &rect);
 
-        float labelW = label.size() * (6.0f * scale);
-        drawText(renderer, label, rect.x + ((rect.w - labelW) / 2.0f), rect.y + ((rect.h - (10.0f * scale)) / 2.0f), textColor, scale);
+        if (!label.empty())
+        {
+            float labelW = getTextWidth(label, scale);
+            float labelH = 13.0f * scale;
+            float textX = rect.x + std::max(2.0f * scale, (rect.w - labelW) / 2.0f);
+            float textY = rect.y + std::max(1.0f * scale, (rect.h - labelH) / 2.0f);
+            drawText(renderer, label, textX, textY, textColor, scale);
+        }
         return true;
+    }
+
+    bool drawColorSwatch(SDL_Renderer* renderer, const SDL_FRect& rect, SDL_Color color, bool isSelected, bool isHovered, float scale)
+    {
+        if (!renderer) return false;
+
+        SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
+        SDL_RenderFillRect(renderer, &rect);
+
+        if (isSelected)
+        {
+            SDL_SetRenderDrawColor(renderer, Theme::colors.textGold.r, Theme::colors.textGold.g, Theme::colors.textGold.b, 255);
+            SDL_RenderRect(renderer, &rect);
+            SDL_FRect outer = { rect.x - (2.0f * scale), rect.y - (2.0f * scale), rect.w + (4.0f * scale), rect.h + (4.0f * scale) };
+            SDL_RenderRect(renderer, &outer);
+        }
+        else if (isHovered)
+        {
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 220);
+            SDL_RenderRect(renderer, &rect);
+        }
+        else
+        {
+            SDL_SetRenderDrawColor(renderer, 45, 48, 56, 255);
+            SDL_RenderRect(renderer, &rect);
+        }
+
+        return isHovered;
     }
 
     bool drawLTActionButton(SDL_Renderer* renderer, const SDL_FRect& rect, std::string_view label, std::string_view hotkey, bool isHovered, bool isEnabled, bool isSelected, float scale)
