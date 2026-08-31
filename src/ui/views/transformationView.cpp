@@ -113,15 +113,21 @@ namespace TransformationView
     static float drawSectionTitle(SDL_Renderer* renderer, float padX, float curY, float availableW, std::string_view title, std::string_view subtitle, float uiScale)
     {
         float startY = curY;
-        SDL_FRect barRect = { padX, curY, availableW, 22.0f * uiScale };
+        curY += (12.0f * uiScale);
+
+        SDL_FRect barRect = { padX, curY, availableW, 24.0f * uiScale };
         UIWidget::drawPanel(renderer, barRect, Theme::colors.bgHeader, Theme::colors.borderNormal);
-        UIWidget::drawText(renderer, title, padX + (8.0f * uiScale), curY + (3.0f * uiScale), Theme::colors.textGold, uiScale * 0.85f);
-        curY += barRect.h + (3.0f * uiScale);
+        UIWidget::drawText(renderer, title, padX + (10.0f * uiScale), curY + (4.0f * uiScale), Theme::colors.textGold, uiScale * 0.88f);
+        curY += barRect.h + (4.0f * uiScale);
 
         if (!subtitle.empty())
         {
-            UIWidget::drawText(renderer, subtitle, padX + (8.0f * uiScale), curY, Theme::colors.textSecondary, uiScale * 0.75f);
-            curY += (14.0f * uiScale);
+            UIWidget::drawText(renderer, subtitle, padX + (10.0f * uiScale), curY, Theme::colors.textSecondary, uiScale * 0.76f);
+            curY += (16.0f * uiScale);
+        }
+        else
+        {
+            curY += (4.0f * uiScale);
         }
         return curY - startY;
     }
@@ -129,9 +135,10 @@ namespace TransformationView
     static float drawPillGrid(SDL_Renderer* renderer, game* gameContext, float padX, float curY, float availableW, const std::vector<std::string>& options, const std::string& currentSelected, auto onSelect, float uiScale, int cols = 5)
     {
         float startY = curY;
-        float gap = 4.0f * uiScale;
-        float btnW = (availableW - (gap * (cols - 1))) / cols;
-        float btnH = 22.0f * uiScale;
+        float gapX = 6.0f * uiScale;
+        float gapY = 6.0f * uiScale;
+        float btnW = (availableW - (gapX * (cols - 1))) / cols;
+        float btnH = 26.0f * uiScale;
 
         auto mousePos = gameContext->input.getMousePosition();
         bool clicked = gameContext->input.isLeftMouseJustClicked();
@@ -140,13 +147,13 @@ namespace TransformationView
         {
             int r = static_cast<int>(i / cols);
             int c = static_cast<int>(i % cols);
-            SDL_FRect bRect = { padX + c * (btnW + gap), curY + r * (btnH + gap), btnW, btnH };
+            SDL_FRect bRect = { padX + c * (btnW + gapX), curY + r * (btnH + gapY), btnW, btnH };
 
             bool isSelected = (options[i] == currentSelected);
             bool hovered = (mousePos.x >= bRect.x && mousePos.x <= bRect.x + bRect.w &&
                             mousePos.y >= bRect.y && mousePos.y <= bRect.y + bRect.h);
 
-            UIWidget::drawButton(renderer, bRect, options[i], hovered, true, isSelected, uiScale * 0.75f);
+            UIWidget::drawButton(renderer, bRect, options[i], hovered, true, isSelected, uiScale * 0.78f);
 
             if (hovered && clicked)
             {
@@ -156,16 +163,17 @@ namespace TransformationView
         }
 
         int totalRows = static_cast<int>((options.size() + cols - 1) / cols);
-        curY += (totalRows * (btnH + gap)) + (4.0f * uiScale);
+        curY += (totalRows * (btnH + gapY)) + (8.0f * uiScale);
         return curY - startY;
     }
 
     static float drawTogglePills(SDL_Renderer* renderer, game* gameContext, float padX, float curY, float availableW, const std::vector<std::string>& options, const std::vector<std::string>& activeItems, auto onToggle, float uiScale, int cols = 4)
     {
         float startY = curY;
-        float gap = 4.0f * uiScale;
-        float btnW = (availableW - (gap * (cols - 1))) / cols;
-        float btnH = 22.0f * uiScale;
+        float gapX = 6.0f * uiScale;
+        float gapY = 6.0f * uiScale;
+        float btnW = (availableW - (gapX * (cols - 1))) / cols;
+        float btnH = 26.0f * uiScale;
 
         auto mousePos = gameContext->input.getMousePosition();
         bool clicked = gameContext->input.isLeftMouseJustClicked();
@@ -174,13 +182,13 @@ namespace TransformationView
         {
             int r = static_cast<int>(i / cols);
             int c = static_cast<int>(i % cols);
-            SDL_FRect bRect = { padX + c * (btnW + gap), curY + r * (btnH + gap), btnW, btnH };
+            SDL_FRect bRect = { padX + c * (btnW + gapX), curY + r * (btnH + gapY), btnW, btnH };
 
             bool isActive = (std::find(activeItems.begin(), activeItems.end(), options[i]) != activeItems.end());
             bool hovered = (mousePos.x >= bRect.x && mousePos.x <= bRect.x + bRect.w &&
                             mousePos.y >= bRect.y && mousePos.y <= bRect.y + bRect.h);
 
-            UIWidget::drawButton(renderer, bRect, options[i], hovered, true, isActive, uiScale * 0.75f);
+            UIWidget::drawButton(renderer, bRect, options[i], hovered, true, isActive, uiScale * 0.78f);
 
             if (hovered && clicked)
             {
@@ -190,7 +198,7 @@ namespace TransformationView
         }
 
         int totalRows = static_cast<int>((options.size() + cols - 1) / cols);
-        curY += (totalRows * (btnH + gap)) + (4.0f * uiScale);
+        curY += (totalRows * (btnH + gapY)) + (8.0f * uiScale);
         return curY - startY;
     }
 
@@ -217,16 +225,16 @@ namespace TransformationView
         }
 
         // Header Line: Selected Color + Preview Box
-        SDL_FRect previewBox = { padX, curY + (2.0f * uiScale), 16.0f * uiScale, 16.0f * uiScale };
+        SDL_FRect previewBox = { padX, curY + (2.0f * uiScale), 18.0f * uiScale, 18.0f * uiScale };
         UIWidget::drawPanel(renderer, previewBox, selectedColor, Theme::colors.borderNormal);
-        UIWidget::drawText(renderer, std::format("Selected Color: {}", selectedName), padX + (22.0f * uiScale), curY + (2.0f * uiScale), Theme::colors.textGold, uiScale * 0.82f);
-        curY += (24.0f * uiScale);
+        UIWidget::drawText(renderer, std::format("Selected Color: {}", selectedName), padX + (26.0f * uiScale), curY + (2.0f * uiScale), Theme::colors.textGold, uiScale * 0.85f);
+        curY += (28.0f * uiScale);
 
-        // Small Square Swatch Tiles Grid (24px x 24px small squares)
-        float tileSize = 24.0f * uiScale;
-        float gap = 6.0f * uiScale;
-        int maxCols = std::max(1, static_cast<int>((availableW + gap) / (tileSize + gap)));
-        int cols = std::min(static_cast<int>(options.size()), std::min(maxCols, 24));
+        // Small Square Swatch Tiles Grid (12 cols x 2 rows, or 8 cols x 3 rows)
+        float tileSize = 28.0f * uiScale;
+        float gap = 8.0f * uiScale;
+        int cols = 12; // 12x2 grid for 24 colors
+        if (options.size() <= 8) cols = static_cast<int>(options.size());
 
         auto mousePos = gameContext->input.getMousePosition();
         bool clicked = gameContext->input.isLeftMouseJustClicked();
@@ -251,19 +259,21 @@ namespace TransformationView
         }
 
         int totalRows = static_cast<int>((options.size() + cols - 1) / cols);
-        curY += (totalRows * (tileSize + gap)) + (8.0f * uiScale);
+        curY += (totalRows * (tileSize + gap)) + (10.0f * uiScale);
         return curY - startY;
     }
 
     static float drawStepper(SDL_Renderer* renderer, game* gameContext, float padX, float curY, float availableW, std::string_view label, std::string_view displayVal, auto onStep, float uiScale, int stepDelta = 1)
     {
         float startY = curY;
-        float labelW = availableW * 0.45f;
-        float btnW = 28.0f * uiScale;
-        float valW = 140.0f * uiScale;
-        float h = 22.0f * uiScale;
+        curY += (3.0f * uiScale);
 
-        UIWidget::drawText(renderer, label, padX, curY + (3.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.82f);
+        float labelW = availableW * 0.42f;
+        float btnW = 32.0f * uiScale;
+        float valW = 150.0f * uiScale;
+        float h = 26.0f * uiScale;
+
+        UIWidget::drawText(renderer, label, padX, curY + (5.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.85f);
 
         float curX = padX + labelW;
         auto mousePos = gameContext->input.getMousePosition();
@@ -273,7 +283,7 @@ namespace TransformationView
         SDL_FRect decRect = { curX, curY, btnW, h };
         bool decHov = (mousePos.x >= decRect.x && mousePos.x <= decRect.x + decRect.w &&
                        mousePos.y >= decRect.y && mousePos.y <= decRect.y + decRect.h);
-        UIWidget::drawButton(renderer, decRect, "<", decHov, true, false, uiScale * 0.8f);
+        UIWidget::drawButton(renderer, decRect, "<", decHov, true, false, uiScale * 0.85f);
         if (decHov && clicked)
         {
             onStep(-stepDelta);
@@ -286,32 +296,34 @@ namespace TransformationView
         UIWidget::drawPanel(renderer, valRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
         float valTextW = UIWidget::getTextWidth(displayVal, uiScale * 0.82f);
         float valTextX = curX + std::max(4.0f * uiScale, (valW - valTextW) / 2.0f);
-        UIWidget::drawText(renderer, displayVal, valTextX, curY + (3.0f * uiScale), Theme::colors.textGold, uiScale * 0.82f);
+        UIWidget::drawText(renderer, displayVal, valTextX, curY + (5.0f * uiScale), Theme::colors.textGold, uiScale * 0.82f);
         curX += valW + (4.0f * uiScale);
 
         // Right Arrow [ > ]
         SDL_FRect incRect = { curX, curY, btnW, h };
         bool incHov = (mousePos.x >= incRect.x && mousePos.x <= incRect.x + incRect.w &&
                        mousePos.y >= incRect.y && mousePos.y <= incRect.y + incRect.h);
-        UIWidget::drawButton(renderer, incRect, ">", incHov, true, false, uiScale * 0.8f);
+        UIWidget::drawButton(renderer, incRect, ">", incHov, true, false, uiScale * 0.85f);
         if (incHov && clicked)
         {
             onStep(stepDelta);
             gameContext->input.consumeMouseClick();
         }
 
-        curY += h + (6.0f * uiScale);
+        curY += h + (8.0f * uiScale);
         return curY - startY;
     }
 
     static float drawToggle(SDL_Renderer* renderer, game* gameContext, float padX, float curY, float availableW, std::string_view label, bool currentState, auto onToggle, float uiScale, std::string_view trueLabel = "Yes", std::string_view falseLabel = "No")
     {
         float startY = curY;
-        float labelW = availableW * 0.55f;
-        float btnW = (availableW - labelW - (8.0f * uiScale)) / 2.0f;
-        float h = 22.0f * uiScale;
+        curY += (3.0f * uiScale);
 
-        UIWidget::drawText(renderer, label, padX, curY + (3.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.82f);
+        float labelW = availableW * 0.50f;
+        float btnW = 75.0f * uiScale;
+        float h = 26.0f * uiScale;
+
+        UIWidget::drawText(renderer, label, padX, curY + (5.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.85f);
 
         auto mousePos = gameContext->input.getMousePosition();
         bool clicked = gameContext->input.isLeftMouseJustClicked();
@@ -319,24 +331,24 @@ namespace TransformationView
         float btn1X = padX + labelW;
         SDL_FRect r1 = { btn1X, curY, btnW, h };
         bool hov1 = (mousePos.x >= r1.x && mousePos.x <= r1.x + r1.w && mousePos.y >= r1.y && mousePos.y <= r1.y + r1.h);
-        UIWidget::drawButton(renderer, r1, trueLabel, hov1, true, currentState, uiScale * 0.78f);
+        UIWidget::drawButton(renderer, r1, trueLabel, hov1, true, currentState, uiScale * 0.82f);
         if (hov1 && clicked)
         {
             onToggle(true);
             gameContext->input.consumeMouseClick();
         }
 
-        float btn2X = btn1X + btnW + (4.0f * uiScale);
+        float btn2X = btn1X + btnW + (6.0f * uiScale);
         SDL_FRect r2 = { btn2X, curY, btnW, h };
         bool hov2 = (mousePos.x >= r2.x && mousePos.x <= r2.x + r2.w && mousePos.y >= r2.y && mousePos.y <= r2.y + r2.h);
-        UIWidget::drawButton(renderer, r2, falseLabel, hov2, true, !currentState, uiScale * 0.78f);
+        UIWidget::drawButton(renderer, r2, falseLabel, hov2, true, !currentState, uiScale * 0.82f);
         if (hov2 && clicked)
         {
             onToggle(false);
             gameContext->input.consumeMouseClick();
         }
 
-        curY += h + (6.0f * uiScale);
+        curY += h + (8.0f * uiScale);
         return curY - startY;
     }
 

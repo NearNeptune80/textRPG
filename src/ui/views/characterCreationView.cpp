@@ -121,32 +121,30 @@ namespace CharacterCreationView
 
             if (allHaveColors && labels.size() >= 5)
             {
-                // Pure small-square color swatch palette
-                float tileSize = 24.0f * uiScale;
-                float gap = 6.0f * uiScale;
+                // Pure small-square color swatch palette in neat grid
+                float tileSize = 28.0f * uiScale;
+                float gap = 8.0f * uiScale;
                 float padLeft = padX + (10.0f * uiScale);
-                float maxGridW = availableW - (20.0f * uiScale);
-                int maxCols = std::max(1, static_cast<int>((maxGridW + gap) / (tileSize + gap)));
-                int cols = std::min(static_cast<int>(labels.size()), std::min(maxCols, 24));
+                int cols = std::min(static_cast<int>(labels.size()), 12);
                 int rows = (static_cast<int>(labels.size()) + cols - 1) / cols;
 
                 std::string selName = (selectedIndex >= 0 && selectedIndex < static_cast<int>(labels.size())) ? labels[selectedIndex] : "None";
                 SDL_Color selColor = getChoiceColor(selName);
 
-                float descH = description.empty() ? (26.0f * uiScale) : (44.0f * uiScale);
-                float cardH = descH + (rows * (tileSize + gap)) + (10.0f * uiScale);
+                float descH = description.empty() ? (28.0f * uiScale) : (46.0f * uiScale);
+                float cardH = descH + (rows * (tileSize + gap)) + (12.0f * uiScale);
 
                 SDL_FRect cardRect = { padX, curY, availableW, cardH };
                 UIWidget::drawPanel(renderer, cardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
                 // Header with color swatch preview
-                SDL_FRect previewBox = { padX + (10.0f * uiScale), curY + (6.0f * uiScale), 16.0f * uiScale, 16.0f * uiScale };
+                SDL_FRect previewBox = { padX + (10.0f * uiScale), curY + (6.0f * uiScale), 18.0f * uiScale, 18.0f * uiScale };
                 UIWidget::drawPanel(renderer, previewBox, selColor, Theme::colors.borderNormal);
-                UIWidget::drawText(renderer, std::format("{}: {}", title, selName), padX + (32.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textGold, uiScale * 0.88f);
+                UIWidget::drawText(renderer, std::format("{}: {}", title, selName), padX + (34.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textGold, uiScale * 0.88f);
 
                 if (!description.empty())
                 {
-                    UIWidget::drawText(renderer, description, padX + (10.0f * uiScale), curY + (24.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.72f);
+                    UIWidget::drawText(renderer, description, padX + (10.0f * uiScale), curY + (26.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.74f);
                 }
 
                 float gridStartY = curY + descH;
@@ -170,7 +168,7 @@ namespace CharacterCreationView
                         gameContext->input.consumeMouseClick();
                     }
                 }
-                curY += cardH + (8.0f * uiScale);
+                curY += cardH + (10.0f * uiScale);
             }
             else if (useSingleRowRight)
             {
