@@ -262,9 +262,39 @@ void ActionGridManager::refresh(game* gameContext)
     }
 
     // 6. Transformation State
-    if (dynamic_cast<transformationState*>(currentState))
+    if (auto tf = dynamic_cast<transformationState*>(currentState))
     {
-        addBackBtn(gameContext, "Close (ESC)", [gameContext]() { gameContext->handleCommand({ CommandType::CLOSE_MENU, 0, 0, "" }); });
+        // Row 1: Core Physical Categories (1..5)
+        addBtn(gameContext, "1. Core", [gameContext, tf]() { tf->setTab(TransformationTab::CORE, gameContext); }, true, tf->currentTab == TransformationTab::CORE);
+        addBtn(gameContext, "2. Eyes", [gameContext, tf]() { tf->setTab(TransformationTab::EYES, gameContext); }, true, tf->currentTab == TransformationTab::EYES);
+        addBtn(gameContext, "3. Hair", [gameContext, tf]() { tf->setTab(TransformationTab::HAIR, gameContext); }, true, tf->currentTab == TransformationTab::HAIR);
+        addBtn(gameContext, "4. Head & Face", [gameContext, tf]() { tf->setTab(TransformationTab::HEAD_FACE, gameContext); }, true, tf->currentTab == TransformationTab::HEAD_FACE);
+        addBtn(gameContext, "5. Ass & Hips", [gameContext, tf]() { tf->setTab(TransformationTab::ASS_HIPS, gameContext); }, true, tf->currentTab == TransformationTab::ASS_HIPS);
+
+        // Row 2: Secondary & Genital Categories (Shift + 1..5)
+        addBtn(gameContext, "6. Breasts", [gameContext, tf]() { tf->setTab(TransformationTab::BREASTS, gameContext); }, true, tf->currentTab == TransformationTab::BREASTS);
+        addBtn(gameContext, "7. Vagina", [gameContext, tf]() { tf->setTab(TransformationTab::VAGINA, gameContext); }, true, tf->currentTab == TransformationTab::VAGINA);
+        addBtn(gameContext, "8. Penis", [gameContext, tf]() { tf->setTab(TransformationTab::PENIS, gameContext); }, true, tf->currentTab == TransformationTab::PENIS);
+        addBtn(gameContext, "9. Crotch", [gameContext, tf]() { tf->setTab(TransformationTab::CROTCH_BOOBS, gameContext); }, true, tf->currentTab == TransformationTab::CROTCH_BOOBS);
+        addBtn(gameContext, "10. Appendages", [gameContext, tf]() { tf->setTab(TransformationTab::APPENDAGES, gameContext); }, true, tf->currentTab == TransformationTab::APPENDAGES);
+
+        // Row 3: Presets, Inspection & Global Tools (Ctrl + 1..5)
+        addBtn(gameContext, "Inspect & Presets", [gameContext, tf]() { tf->setTab(TransformationTab::INSPECT_PRESETS, gameContext); }, true, tf->currentTab == TransformationTab::INSPECT_PRESETS);
+        addBtn(gameContext, "Randomize Form", [gameContext, tf]() {
+            tf->randomizeForm(gameContext);
+            gameContext->refreshActionGrid();
+        });
+        addBtn(gameContext, "Reset Human", [gameContext, tf]() {
+            tf->resetToHuman(gameContext);
+            gameContext->refreshActionGrid();
+        });
+        addBtn(gameContext, "Save Preset", [gameContext, tf]() {
+            if (auto p = gameContext->getPlayer()) tf->savePreset(gameContext, "Preset_" + p->anatomy.getRacialTitle());
+            gameContext->refreshActionGrid();
+        });
+        addBackBtn(gameContext, "Apply & Return", [gameContext]() {
+            gameContext->changeState(std::make_unique<explorationState>());
+        });
         return;
     }
 
@@ -494,7 +524,7 @@ void ActionGridManager::refresh(game* gameContext)
             addBtn(gameContext, "Selfie", [gameContext]() { gameContext->changeState(std::make_unique<characterCreationState>(3)); });
             addBtn(gameContext, "Contacts", [gameContext]() { gameContext->changeState(std::make_unique<phoneAppsState>(PhoneAppMode::CONTACTS)); });
             addBtn(gameContext, "Encyclopedia", [gameContext]() { gameContext->changeState(std::make_unique<phoneAppsState>(PhoneAppMode::ENCYCLOPEDIA)); });
-            addBtn(gameContext, "Transform", []() {}, false);
+            addBtn(gameContext, "Transform", [gameContext]() { gameContext->changeState(std::make_unique<transformationState>()); });
             addBtn(gameContext, "Maps", [gameContext]() { gameContext->changeState(std::make_unique<phoneAppsState>(PhoneAppMode::MAPS)); });
 
             // Row 3: Actions & Navigation

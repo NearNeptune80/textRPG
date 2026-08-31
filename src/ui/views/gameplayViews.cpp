@@ -11,6 +11,7 @@
 #include "state/phoneAppsState.h"
 #include "state/shopState.h"
 #include "state/transformationState.h"
+#include "ui/views/transformationView.h"
 #include <format>
 #include <vector>
 #include <string>
@@ -484,26 +485,7 @@ namespace GameplayViews
 
     float renderTransformationView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)
     {
-        float startY = curY;
-        float padX = rect.x + (16.0f * uiScale);
-        float availableW = rect.w - (32.0f * uiScale);
-
-        float headerH = 28.0f * uiScale;
-        SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
-        UIWidget::drawHeader(renderer, headerRect, "BODY TRANSFORMATIONS & ANATOMY", Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
-        curY += headerH + (12.0f * uiScale);
-
-        if (entity* player = gameContext->getPlayer())
-        {
-            UIWidget::drawText(renderer, std::format("Current Dominant Archetype: {}", player->anatomy.getDominantRace()), padX, curY, Theme::colors.textGold, uiScale);
-            curY += (18.0f * uiScale);
-
-            std::string anatDesc = characterDescription::generateFullDescription(player);
-            float descH = UIWidget::drawTextWrapped(renderer, anatDesc, padX, curY, availableW, Theme::colors.textPrimary, uiScale);
-            curY += descH + (14.0f * uiScale);
-        }
-
-        return (curY - startY);
+        return TransformationView::render(renderer, gameContext, rect, curY, uiScale);
     }
 
     float renderEnchantingView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)

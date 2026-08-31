@@ -11,6 +11,8 @@
 #include "state/loadGameState.h"
 #include "state/characterCreationState.h"
 #include "state/explorationState.h"
+#include "state/transformationState.h"
+#include "core/characterDescription.h"
 #include "save/saveManager.h"
 #include "items/inventory.h"
 #include "items/itemDatabase.h"
@@ -768,6 +770,104 @@ namespace EngineTests
         return allPassed;
     }
 
+    bool testFullTransformationSuiteAndPresetPersistence()
+    {
+        std::cout << "\n--- Running Test 12: Full Transformation Suite & Preset Persistence ---\n";
+        bool allPassed = true;
+
+        game g;
+        g.init();
+
+        auto player = std::make_shared<entity>("player_test", "Morgan");
+        player->genderArchetype = GenderArchetype::MALE;
+        player->stats.setBaseStat("health", 100.0f);
+        player->stats.setBaseStat("max_health", 100.0f);
+        g.playerEntity = player;
+
+        // 1. Enter transformation state
+        auto tf = std::make_unique<transformationState>(TransformationTab::CORE);
+        g.changeState(std::move(tf));
+        transformationState* tfPtr = dynamic_cast<transformationState*>(g.getActiveState());
+
+        bool inTfState = (tfPtr != nullptr);
+        logResult("Transformation State Initialised & Active", inTfState);
+        allPassed &= inTfState;
+
+        // 2. Test Reset to Human Baseline
+        tfPtr->resetToHuman(&g);
+        bool isHuman = (player->anatomy.getRacialTitle() == "Human" && !player->anatomy.hasPart(bodySlot::HORNS) && !player->anatomy.hasPart(bodySlot::WINGS));
+        logResult("Reset to Human baseline clears horns/wings and establishes Human racial title", isHuman);
+        allPassed &= isHuman;
+
+        // 3. Mutate into Demon Hybrid
+        bodyPart demonHorns;
+        demonHorns.id = "horns_demon"; demonHorns.name = "Demon Horns"; demonHorns.race = "Demon"; demonHorns.count = 2; demonHorns.length = 25.0f;
+        player->anatomy.setPart(bodySlot::HORNS, demonHorns);
+
+        bodyPart demonWings;
+        demonWings.id = "wings_demon"; demonWings.name = "Bat Wings"; demonWings.race = "Demon"; demonWings.count = 2;
+        player->anatomy.setPart(bodySlot::WINGS, demonWings);
+
+        bodyPart catTail;
+        catTail.id = "tail_cat"; catTail.name = "Cat Tail"; catTail.race = "Cat-morph"; catTail.length = 80.0f;
+        player->anatomy.setPart(bodySlot::TAIL, catTail);
+
+        bodyPart breasts;
+        breasts.id = "breasts"; breasts.name = "Breasts"; breasts.cupSize = 4; // D-cup
+        breasts.isLactating = true; breasts.currentFluidMl = 350.0f; breasts.maxFluidMl = 1000.0f;
+        player->anatomy.setPart(bodySlot::BREASTS, breasts);
+
+        bool hasDemonFeatures = player->anatomy.hasPart(bodySlot::HORNS) && player->anatomy.hasPart(bodySlot::WINGS) && player->anatomy.hasPart(bodySlot::TAIL);
+        logResult("Live Transformation applies Horns, Wings, Tail, and Lactating Breasts", hasDemonFeatures);
+        allPassed &= hasDemonFeatures;
+
+        // 4. Save Named Transformation Preset
+        const std::string testPresetName = "AutoTest_DemonCat";
+        tfPtr->savePreset(&g, testPresetName);
+        auto presets = tfPtr->getPresetNames();
+        bool presetSaved = (std::find(presets.begin(), presets.end(), testPresetName) != presets.end());
+        logResult("Transformation Preset saved to disk (AutoTest_DemonCat.json)", presetSaved);
+        allPassed &= presetSaved;
+
+        // 5. Change form (Reset to human)
+        tfPtr->resetToHuman(&g);
+        bool resetSuccess = (!player->anatomy.hasPart(bodySlot::HORNS) && !player->anatomy.hasPart(bodySlot::WINGS));
+        logResult("Body Form Cleared to baseline prior to preset restore", resetSuccess);
+        allPassed &= resetSuccess;
+
+        // 6. Reload Saved Preset and verify exact restitution
+        tfPtr->loadPreset(&g, testPresetName);
+        const bodyPart* restoredHorns = player->anatomy.getPart(bodySlot::HORNS);
+        const bodyPart* restoredWings = player->anatomy.getPart(bodySlot::WINGS);
+        const bodyPart* restoredTail = player->anatomy.getPart(bodySlot::TAIL);
+        const bodyPart* restoredBreasts = player->anatomy.getPart(bodySlot::BREASTS);
+
+        bool hornsMatch = (restoredHorns != nullptr && restoredHorns->length == 25.0f && restoredHorns->race == "Demon");
+        bool wingsMatch = (restoredWings != nullptr && restoredWings->race == "Demon");
+        bool tailMatch = (restoredTail != nullptr && restoredTail->race == "Cat-morph");
+        bool breastsMatch = (restoredBreasts != nullptr && restoredBreasts->cupSize == 4 && restoredBreasts->isLactating && restoredBreasts->currentFluidMl == 350.0f);
+
+        bool allRestored = hornsMatch && wingsMatch && tailMatch && breastsMatch;
+        logResult("Reloaded Preset restores exact horn length (25cm), wings, tail race, cup size (D), and milk fluids (350ml)", allRestored);
+        allPassed &= allRestored;
+
+        // 7. Full Prose Description Inspection
+        std::string fullProse = characterDescription::generateFullDescription(player.get());
+        bool proseHasHorns = (fullProse.find("horns") != std::string::npos);
+        bool proseHasWings = (fullProse.find("wings") != std::string::npos);
+        bool proseHasTail = (fullProse.find("tail") != std::string::npos);
+        bool proseHasMilk = (fullProse.find("milk") != std::string::npos);
+
+        bool proseAccurate = proseHasHorns && proseHasWings && proseHasTail && proseHasMilk;
+        logResult("Character Body Inspection generates accurate prose reflecting active transformations", proseAccurate);
+        allPassed &= proseAccurate;
+
+        // Clean up preset file
+        tfPtr->deletePreset(testPresetName);
+
+        return allPassed;
+    }
+
     bool runAllTests()
     {
         g_passCount = 0;
@@ -788,6 +888,7 @@ namespace EngineTests
         bool t9 = testHairstyleGatingAndBodyShape();
         bool t10 = testWardrobeDecencySystem();
         bool t11 = testFullCustomizationTrackingAndAppearanceDescription();
+        bool t12 = testFullTransformationSuiteAndPresetPersistence();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";

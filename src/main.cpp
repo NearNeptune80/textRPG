@@ -9,6 +9,7 @@
 #include "state/loadGameState.h"
 #include "state/characterCreationState.h"
 #include "state/explorationState.h"
+#include "state/transformationState.h"
 #include "ui/theme.h"
 #include "ui/uiRenderer.h"
 
@@ -138,6 +139,31 @@ int main(int argc, char* argv[])
             else if (screenshotState == "cc_step5" || screenshotState == "character_creation_step5") cc->step = 5;
             else cc->step = 0;
             engine.changeState(std::move(cc));
+        }
+        else if (screenshotState == "transformation" || screenshotState.starts_with("tf_") || screenshotState == "transformation_inspect")
+        {
+            if (!engine.getPlayer())
+            {
+                auto p = std::make_shared<entity>("hero_tf", "Rudy");
+                p->genderArchetype = GenderArchetype::MALE;
+                engine.playerEntity = p;
+            }
+
+            TransformationTab tab = TransformationTab::CORE;
+            if (screenshotState == "tf_eyes") tab = TransformationTab::EYES;
+            else if (screenshotState == "tf_hair") tab = TransformationTab::HAIR;
+            else if (screenshotState == "tf_head" || screenshotState == "tf_face") tab = TransformationTab::HEAD_FACE;
+            else if (screenshotState == "tf_ass") tab = TransformationTab::ASS_HIPS;
+            else if (screenshotState == "tf_breasts") tab = TransformationTab::BREASTS;
+            else if (screenshotState == "tf_vagina") tab = TransformationTab::VAGINA;
+            else if (screenshotState == "tf_penis") tab = TransformationTab::PENIS;
+            else if (screenshotState == "tf_crotch") tab = TransformationTab::CROTCH_BOOBS;
+            else if (screenshotState == "tf_appendages") tab = TransformationTab::APPENDAGES;
+            else if (screenshotState == "tf_inspect" || screenshotState == "transformation_inspect") tab = TransformationTab::INSPECT_PRESETS;
+
+            auto tfState = std::make_unique<transformationState>(tab);
+            tfState->resetToHuman(&engine);
+            engine.changeState(std::move(tfState));
         }
 
         engine.refreshActionGrid();
