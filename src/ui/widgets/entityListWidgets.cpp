@@ -1,52 +1,45 @@
 #include "ui/widgets/entityListWidgets.h"
-#include "ui/uiWidget.h"
-#include "ui/theme.h"
+
+#include <algorithm>
+#include <format>
+#include <string>
+#include <string_view>
+#include <vector>
+
 #include "core/game.h"
 #include "entities/entity.h"
 #include "map/gameMap.h"
 #include "state/characterCreationState.h"
-#include <format>
-#include <vector>
-#include <string_view>
+#include "ui/theme.h"
+#include "ui/uiWidget.h"
 
 namespace EntityListWidgets
 {
     float renderWidgetCharactersPresent(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
     {
-        if (!gameContext->getPlayer())
-        {
-            return 0.0f;
-        }
+        if (!gameContext || !gameContext->getPlayer()) return 0.0f;
 
         float startY = curY;
-        float padX = curX + (10.0f * uiScale);
-        float availableW = innerW - (20.0f * uiScale);
+        float padX = curX + (8.0f * uiScale);
+        float availableW = innerW - (16.0f * uiScale);
 
-        bool inPrologue = (dynamic_cast<characterCreationState*>(gameContext->getActiveState()) != nullptr);
-        if (inPrologue)
+        // 1. Zone & Danger Status Card
+        float zoneH = 26.0f * uiScale;
+        SDL_FRect zoneRect = { padX, curY, availableW, zoneH };
+        std::string locName = "Lilaya's Home F1";
+        if (const gameMap* m = gameContext->getActiveMap())
         {
-            UIWidget::drawText(renderer, "Land", padX + (availableW * 0.35f), curY, Theme::colors.textGold, uiScale * 1.05f);
-            curY += (18.0f * uiScale);
-            UIWidget::drawText(renderer, "Safe", padX + (availableW * 0.35f), curY, Theme::colors.companion, uiScale * 0.9f);
-            curY += (20.0f * uiScale);
-
-            UIWidget::drawText(renderer, "Characters Present", padX + (10.0f * uiScale), curY, Theme::colors.textPrimary, uiScale * 0.88f);
-            curY += (18.0f * uiScale);
-
-            SDL_FRect cardRect = { padX, curY, availableW, 24.0f * uiScale };
-            UIWidget::drawPanel(renderer, cardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
-            UIWidget::drawText(renderer, "✋ Few people", padX + (6.0f * uiScale), curY + (4.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.85f);
-            curY += (28.0f * uiScale);
-            return (curY - startY);
+            if (!m->getName().empty() && m->getName() != "District Map") locName = m->getName();
         }
+        UIWidget::drawHeader(renderer, zoneRect, locName + " [Safe]", Theme::colors.bgHeader, Theme::colors.companion, uiScale * 0.82f);
+        curY += zoneH + (8.0f * uiScale);
 
-        UIWidget::drawText(renderer, "Land", padX + (availableW * 0.35f), curY, Theme::colors.textGold, uiScale * 1.05f);
+        // 2. Characters Present Header
+        UIWidget::drawText(renderer, "CHARACTERS PRESENT", padX, curY, Theme::colors.textGold, uiScale * 0.85f);
         curY += (18.0f * uiScale);
-        UIWidget::drawText(renderer, "Safe", padX + (availableW * 0.35f), curY, Theme::colors.companion, uiScale * 0.9f);
-        curY += (20.0f * uiScale);
 
-        UIWidget::drawText(renderer, "Characters Present", padX + (10.0f * uiScale), curY, Theme::colors.textPrimary, uiScale * 0.88f);
-        curY += (18.0f * uiScale);
+        auto mousePos = gameContext->input.getMousePosition();
+        bool clicked = gameContext->input.isLeftMouseJustClicked();
 
         bool hasNpc = false;
         if (gameContext->map)
@@ -55,17 +48,51 @@ namespace EntityListWidgets
             if (tileData.persistentNPC)
             {
                 hasNpc = true;
-                SDL_FRect cardRect = { padX, curY, availableW, 24.0f * uiScale };
+                entity* npc = tileData.persistentNPC.get();
+
+                float cardH = 44.0f * uiScale;
+                SDL_FRect cardRect = { padX, curY, availableW, cardH };
                 UIWidget::drawPanel(renderer, cardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
-                UIWidget::drawText(renderer, std::format("👤 {}", tileData.persistentNPC->name), padX + (6.0f * uiScale), curY + (4.0f * uiScale), Theme::colors.lust, uiScale * 0.85f);
-                curY += (28.0f * uiScale);
+
+                UIWidget::drawText(renderer, npc->name, padX + (8.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textGold, uiScale * 0.85f);
+                std::string raceStr = npc->anatomy.getRacialTitle().empty() ? "Demon" : npc->anatomy.getRacialTitle();
+                UIWidget::drawText(renderer, raceStr, padX + (8.0f * uiScale), curY + (22.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.72f);
+
+                // Action buttons: [ Talk ] [ Inspect ]
+                float btnW = 46.0f * uiScale;
+                float btnH = 22.0f * uiScale;
+                SDL_FRect talkBtn = { padX + availableW - (btnW * 2.0f) - (8.0f * uiScale), curY + (11.0f * uiScale), btnW, btnH };
+                bool tHov = (mousePos.x >= talkBtn.x && mousePos.x <= talkBtn.x + talkBtn.w &&
+                             mousePos.y >= talkBtn.y && mousePos.y <= talkBtn.y + talkBtn.h);
+                UIWidget::drawButton(renderer, talkBtn, "Talk", tHov, true, false, uiScale * 0.72f);
+                if (tHov && clicked)
+                {
+                    gameContext->activeTargetNPC = tileData.persistentNPC;
+                    gameContext->activeTargetMode = TargetMode::DIALOGUE;
+                    gameContext->input.consumeMouseClick();
+                }
+
+                SDL_FRect inspBtn = { padX + availableW - btnW - (4.0f * uiScale), curY + (11.0f * uiScale), btnW, btnH };
+                bool iHov = (mousePos.x >= inspBtn.x && mousePos.x <= inspBtn.x + inspBtn.w &&
+                             mousePos.y >= inspBtn.y && mousePos.y <= inspBtn.y + inspBtn.h);
+                UIWidget::drawButton(renderer, inspBtn, "View", iHov, true, false, uiScale * 0.72f);
+                if (iHov && clicked)
+                {
+                    gameContext->activeTargetNPC = tileData.persistentNPC;
+                    gameContext->activeTargetMode = TargetMode::DIALOGUE;
+                    gameContext->input.consumeMouseClick();
+                }
+
+                curY += cardH + (8.0f * uiScale);
             }
         }
 
         if (!hasNpc)
         {
-            UIWidget::drawText(renderer, "None...", padX + (availableW * 0.35f), curY, Theme::colors.textMuted, uiScale * 0.85f);
-            curY += (16.0f * uiScale);
+            SDL_FRect emptyCard = { padX, curY, availableW, 28.0f * uiScale };
+            UIWidget::drawPanel(renderer, emptyCard, Theme::colors.bgSlot, Theme::colors.borderNormal);
+            UIWidget::drawText(renderer, "No other characters present.", padX + (8.0f * uiScale), curY + (7.0f * uiScale), Theme::colors.textMuted, uiScale * 0.76f);
+            curY += emptyCard.h + (8.0f * uiScale);
         }
 
         return (curY - startY);
@@ -73,43 +100,54 @@ namespace EntityListWidgets
 
     float renderWidgetItemsPresent(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
     {
-        if (!gameContext->getPlayer())
-        {
-            return 0.0f;
-        }
+        if (!gameContext || !gameContext->getPlayer()) return 0.0f;
 
         float startY = curY;
-        float padX = curX + (10.0f * uiScale);
-        float availableW = innerW - (20.0f * uiScale);
+        float padX = curX + (8.0f * uiScale);
+        float availableW = innerW - (16.0f * uiScale);
 
-        bool inPrologue = (dynamic_cast<characterCreationState*>(gameContext->getActiveState()) != nullptr);
-        if (inPrologue)
-        {
-            UIWidget::drawText(renderer, "Items Present", padX + (16.0f * uiScale), curY, Theme::colors.textPrimary, uiScale * 0.88f);
-            curY += (18.0f * uiScale);
-            UIWidget::drawText(renderer, "None...", padX + (availableW * 0.35f), curY, Theme::colors.textMuted, uiScale * 0.85f);
-            curY += (16.0f * uiScale);
-            return (curY - startY);
-        }
-
-        UIWidget::drawText(renderer, "Items Present", padX + (16.0f * uiScale), curY, Theme::colors.textPrimary, uiScale * 0.88f);
+        UIWidget::drawText(renderer, "ITEMS PRESENT", padX, curY, Theme::colors.textGold, uiScale * 0.85f);
         curY += (18.0f * uiScale);
 
         auto ground = gameContext->getTileInventoryStacked();
+        auto mousePos = gameContext->input.getMousePosition();
+        bool clicked = gameContext->input.isLeftMouseJustClicked();
+
         if (ground.empty())
         {
-            UIWidget::drawText(renderer, "None...", padX + (availableW * 0.35f), curY, Theme::colors.textMuted, uiScale * 0.85f);
-            curY += (16.0f * uiScale);
+            SDL_FRect emptyCard = { padX, curY, availableW, 28.0f * uiScale };
+            UIWidget::drawPanel(renderer, emptyCard, Theme::colors.bgSlot, Theme::colors.borderNormal);
+            UIWidget::drawText(renderer, "No items on the ground.", padX + (8.0f * uiScale), curY + (7.0f * uiScale), Theme::colors.textMuted, uiScale * 0.76f);
+            curY += emptyCard.h + (8.0f * uiScale);
         }
         else
         {
-            for (size_t i = 0; i < ground.size() && i < 6; ++i)
+            for (size_t i = 0; i < ground.size() && i < 4; ++i)
             {
                 if (ground[i].itemPtr)
                 {
+                    float cardH = 34.0f * uiScale;
+                    SDL_FRect iBox = { padX, curY, availableW, cardH };
+                    UIWidget::drawPanel(renderer, iBox, Theme::colors.bgSlot, Theme::colors.borderNormal);
+
                     std::string line = std::format("{}x {}", ground[i].totalCount, ground[i].itemPtr->name);
-                    UIWidget::drawText(renderer, line, padX, curY, Theme::colors.textAccent, uiScale * 0.85f);
-                    curY += (15.0f * uiScale);
+                    UIWidget::drawText(renderer, line, padX + (8.0f * uiScale), curY + (9.0f * uiScale), Theme::colors.textGold, uiScale * 0.78f);
+
+                    float pickBtnW = 48.0f * uiScale;
+                    float pickBtnH = 20.0f * uiScale;
+                    SDL_FRect pickBtn = { padX + availableW - pickBtnW - (6.0f * uiScale), curY + (7.0f * uiScale), pickBtnW, pickBtnH };
+                    bool pHov = (mousePos.x >= pickBtn.x && mousePos.x <= pickBtn.x + pickBtn.w &&
+                                 mousePos.y >= pickBtn.y && mousePos.y <= pickBtn.y + pickBtn.h);
+                    UIWidget::drawButton(renderer, pickBtn, "Pick Up", pHov, true, false, uiScale * 0.68f);
+
+                    if (pHov && clicked)
+                    {
+                        gameContext->handlePickupAction(static_cast<int>(i), 1);
+                        gameContext->input.consumeMouseClick();
+                        break;
+                    }
+
+                    curY += cardH + (6.0f * uiScale);
                 }
             }
         }
@@ -119,59 +157,45 @@ namespace EntityListWidgets
 
     float renderWidgetEventLog(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
     {
-        if (!gameContext->getPlayer())
-        {
-            return 0.0f;
-        }
+        if (!gameContext || !gameContext->getPlayer()) return 0.0f;
 
         float startY = curY;
-        float padX = curX + (10.0f * uiScale);
-        float availableW = innerW - (20.0f * uiScale);
+        float padX = curX + (8.0f * uiScale);
+        float availableW = innerW - (16.0f * uiScale);
 
-        bool inPrologue = (dynamic_cast<characterCreationState*>(gameContext->getActiveState()) != nullptr);
-        if (inPrologue)
-        {
-            UIWidget::drawText(renderer, "Event Log", padX + (availableW * 0.3f), curY, Theme::colors.textPrimary, uiScale * 0.88f);
-            curY += (18.0f * uiScale);
-
-            static constexpr std::string_view startingEquipLog[] = {
-                "Equipped: Silver masculine watch",
-                "Equipped: Silver ring",
-                "Equipped: Black men's shoes",
-                "Equipped: Black socks",
-                "Equipped: Black trousers",
-                "Equipped: White short-sleeved shirt",
-                "Equipped: Black boxer shorts"
-            };
-
-            for (const auto& entry : startingEquipLog)
-            {
-                float descH = UIWidget::drawTextWrapped(renderer, std::string(entry), padX, curY, availableW, Theme::colors.textSecondary, uiScale * 0.8f);
-                curY += descH + (6.0f * uiScale);
-            }
-            return (curY - startY);
-        }
-
-        UIWidget::drawText(renderer, "EVENT LOG", padX, curY, Theme::colors.textGold, uiScale);
+        UIWidget::drawText(renderer, "ACTIVITY & EVENT LOG", padX, curY, Theme::colors.textGold, uiScale * 0.85f);
         curY += (18.0f * uiScale);
 
-        static const std::vector<std::pair<std::string, SDL_Color>> logEntries = {
-            { "Entered: Lilaya's Home F1", Theme::colors.friendly },
-            { "Discovered: Lilaya's Home F1", Theme::colors.textGold },
-            { "Encyclopedia: Cat-morph", Theme::colors.textAccent },
-            { "Encyclopedia: Half-demon", Theme::colors.arcane },
-            { "Equipped: opaque demonstone", SDL_Color{ 100, 180, 255, 255 } },
-            { "Encyclopedia: Opaque demonstone", Theme::colors.textGold },
-            { "Gained: ¤ 5,000", Theme::colors.friendly },
-            { "New Task: Lilaya's Tests", SDL_Color{ 100, 220, 255, 255 } }
+        SDL_FRect logBox = { padX, curY, availableW, 140.0f * uiScale };
+        UIWidget::drawPanel(renderer, logBox, Theme::colors.bgDark, Theme::colors.borderButton);
+
+        float logCurY = curY + (6.0f * uiScale);
+        float innerLogX = padX + (8.0f * uiScale);
+
+        struct LogEntry {
+            std::string tag;
+            std::string text;
+            SDL_Color tagColor;
+        };
+
+        static const std::vector<LogEntry> logEntries = {
+            { "[ZONE]", "Entered Lilaya's Home F1", Theme::colors.companion },
+            { "[TASK]", "Discovered: Lilaya's Tests", Theme::colors.textGold },
+            { "[LORE]", "Encyclopedia: Demon Morph", Theme::colors.arcane },
+            { "[ITEM]", "Equipped: Opaque Demonstone", Theme::colors.health },
+            { "[GOLD]", "Gained: 5,000 ¤", Theme::colors.currency },
+            { "[INFO]", "All systems operational", Theme::colors.textSecondary }
         };
 
         for (const auto& entry : logEntries)
         {
-            UIWidget::drawText(renderer, entry.first, padX, curY, entry.second, uiScale * 0.8f);
-            curY += (14.0f * uiScale);
+            UIWidget::drawText(renderer, entry.tag, innerLogX, logCurY, entry.tagColor, uiScale * 0.72f);
+            float tagW = UIWidget::getTextWidth(entry.tag, uiScale * 0.72f);
+            UIWidget::drawText(renderer, entry.text, innerLogX + tagW + (6.0f * uiScale), logCurY, Theme::colors.textPrimary, uiScale * 0.72f);
+            logCurY += (18.0f * uiScale);
         }
 
+        curY += logBox.h + (8.0f * uiScale);
         return (curY - startY);
     }
 }

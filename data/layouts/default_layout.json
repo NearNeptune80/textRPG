@@ -11,7 +11,7 @@
         "id": "left_column",
         "type": "CONTAINER",
         "direction": "COLUMN",
-        "sizes": [65.0, 35.0],
+        "sizes": [45.0, 55.0],
         "children": [
           {
             "id": "left_char_card_box",

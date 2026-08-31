@@ -172,6 +172,24 @@ int main(int argc, char* argv[])
             saveManager::loadFromFile(&engine, saveFile);
             engine.changeState(std::make_unique<explorationState>());
         }
+        else if (screenshotState == "exploration")
+        {
+            if (!engine.getPlayer())
+            {
+                auto p = std::make_shared<entity>("hero_player", "Aria Vesper");
+                p->genderArchetype = GenderArchetype::FEMALE;
+                p->stats.setBaseStat("health", 100.0f);
+                p->stats.setBaseStat("max_health", 100.0f);
+                p->stats.setBaseStat("mana", 80.0f);
+                p->stats.setBaseStat("max_mana", 80.0f);
+                p->stats.setBaseStat("lust", 15.0f);
+                p->stats.setBaseStat("arousal", 10.0f);
+                p->stats.setBaseStat("currency", 250.0f);
+                engine.playerEntity = p;
+            }
+            engine.loadMap("house_01", 1, 1);
+            engine.changeState(std::make_unique<explorationState>());
+        }
 
         engine.refreshActionGrid();
 

@@ -404,50 +404,71 @@ namespace GameplayViews
     float renderExplorationView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)
     {
         float startY = curY;
-        float padX = rect.x + (16.0f * uiScale);
-        float innerW = rect.w - (32.0f * uiScale);
-        float centerX = rect.x + (rect.w / 2.0f);
+        float padX = rect.x + (14.0f * uiScale);
+        float innerW = rect.w - (28.0f * uiScale);
 
         if (gameContext->isPhoneMenuOpen)
         {
-            std::string phoneTitle = "Phone home screen";
-            float titleW = UIWidget::getTextWidth(phoneTitle, uiScale * 1.15f);
-            UIWidget::drawText(renderer, phoneTitle, centerX - (titleW / 2.0f), curY, SDL_Color{ 255, 240, 200, 255 }, uiScale * 1.15f);
-            curY += (28.0f * uiScale);
+            float headerH = 26.0f * uiScale;
+            SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
+            UIWidget::drawHeader(renderer, headerRect, "ARCANE COMMUNICATOR & ENCYCLOPEDIA", Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
+            curY += headerH + (12.0f * uiScale);
+
+            SDL_FRect cardRect = { padX, curY, innerW, 140.0f * uiScale };
+            UIWidget::drawPanel(renderer, cardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+
+            float pY = curY + (10.0f * uiScale);
+            float pX = padX + (12.0f * uiScale);
+            float pW = innerW - (24.0f * uiScale);
 
             std::string p1 = "You pull out your phone and tap in the unlock code.";
-            float h1 = UIWidget::drawTextWrapped(renderer, p1, padX, curY, innerW, Theme::colors.textPrimary, uiScale * 0.9f);
-            curY += h1 + (16.0f * uiScale);
+            float h1 = UIWidget::drawTextWrapped(renderer, p1, pX, pY, pW, Theme::colors.textGold, uiScale * 0.88f);
+            pY += h1 + (12.0f * uiScale);
 
-            std::string p2 = "Using your powerful aura, you've managed to figure out a way to channel the arcane into charging the battery of your phone, although considering that it's the only one in this world, it's not much use for calling anyone. Instead, you're using it as a way to store information about things you've discovered in this strange new world.";
-            float h2 = UIWidget::drawTextWrapped(renderer, p2, padX, curY, innerW, Theme::colors.textPrimary, uiScale * 0.9f);
-            curY += h2 + (16.0f * uiScale);
+            std::string p2 = "Using your powerful aura, you've managed to figure out a way to channel the arcane into charging the battery of your phone. You're using it to catalog people, items, quests, and regional maps in this strange new world.";
+            float h2 = UIWidget::drawTextWrapped(renderer, p2, pX, pY, pW, Theme::colors.textPrimary, uiScale * 0.82f);
+            pY += h2 + (12.0f * uiScale);
 
+            curY += cardRect.h + (12.0f * uiScale);
             return (curY - startY);
         }
 
         const gameMap* m = gameContext->getActiveMap();
-        std::string locTitle = "Corridor";
+        std::string locTitle = "Lilaya's Home F1 — Main Corridor";
         if (m && !m->getName().empty() && m->getName() != "Enchanted Forest" && m->getName() != "District Map")
         {
             locTitle = m->getName();
         }
 
-        float titleW = UIWidget::getTextWidth(locTitle, uiScale * 1.15f);
-        UIWidget::drawText(renderer, locTitle, centerX - (titleW / 2.0f), curY, SDL_Color{ 255, 240, 200, 255 }, uiScale * 1.15f);
-        curY += (28.0f * uiScale);
+        // 1. Zone Header Banner
+        float headerH = 26.0f * uiScale;
+        SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
+        UIWidget::drawHeader(renderer, headerRect, locTitle, Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
+        curY += headerH + (12.0f * uiScale);
 
+        // 2. Main Narrative Story Card
         std::string p1 = "Immaculately-clean red carpet runs down the centre of the wide corridor which you're currently walking down, while the walls are decorated in a pale, light-blue wallpaper that sports a series of delicate white floral patterns. Fine landscape paintings and portraits of beautiful demons are hung up on the walls at regular intervals, while all manner of antique curiosities are perched upon the many wooden cabinets which line the sides of these hallways.";
-        float h1 = UIWidget::drawTextWrapped(renderer, p1, padX, curY, innerW, Theme::colors.textPrimary, uiScale * 0.9f);
-        curY += h1 + (14.0f * uiScale);
-
         std::string p2 = "As it's currently night time, heavy fabric curtains have been drawn over the corridor's large glass windows, leaving the area to be illuminated by the many arcane-powered wall-lights.";
-        float h2 = UIWidget::drawTextWrapped(renderer, p2, padX, curY, innerW, Theme::colors.textPrimary, uiScale * 0.9f);
-        curY += h2 + (14.0f * uiScale);
+        std::string p3 = "This corridor is quiet at the moment. You can explore adjacent wings of the manor or check your inventory and status using the action commands below.";
 
-        std::string p3 = "This corridor is deserted at the moment, and there doesn't really seem to be much to do here.";
-        float h3 = UIWidget::drawTextWrapped(renderer, p3, padX, curY, innerW, Theme::colors.textPrimary, uiScale * 0.9f);
-        curY += h3 + (16.0f * uiScale);
+        SDL_FRect cardRect = { padX, curY, innerW, 200.0f * uiScale };
+        UIWidget::drawPanel(renderer, cardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+
+        float pY = curY + (12.0f * uiScale);
+        float pX = padX + (14.0f * uiScale);
+        float pW = innerW - (28.0f * uiScale);
+
+        float h1 = UIWidget::drawTextWrapped(renderer, p1, pX, pY, pW, Theme::colors.textPrimary, uiScale * 0.84f);
+        pY += h1 + (12.0f * uiScale);
+
+        float h2 = UIWidget::drawTextWrapped(renderer, p2, pX, pY, pW, Theme::colors.textPrimary, uiScale * 0.84f);
+        pY += h2 + (12.0f * uiScale);
+
+        float h3 = UIWidget::drawTextWrapped(renderer, p3, pX, pY, pW, Theme::colors.textSecondary, uiScale * 0.82f);
+        pY += h3 + (12.0f * uiScale);
+
+        cardRect.h = (pY - curY) + (4.0f * uiScale);
+        curY += cardRect.h + (12.0f * uiScale);
 
         return (curY - startY);
     }
