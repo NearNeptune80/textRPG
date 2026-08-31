@@ -225,7 +225,7 @@ namespace RadarWidgets
             }
         }
 
-        curY += cardH + (10.0f * uiScale);
+        curY += cardH + (8.0f * uiScale);
         return (curY - startY);
     }
 
@@ -234,13 +234,32 @@ namespace RadarWidgets
         return 0.0f;
     }
 
-    float renderWidgetDpadRadar(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
+    float renderWidgetDpadRadar(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& panelRect, float curY, float uiScale)
     {
         if (!gameContext || !gameContext->getPlayer()) return 0.0f;
 
+        float availableW = panelRect.w - (16.0f * uiScale);
+
+        // Compute total height of Date & Time Card + Gap + Mini-Map Radar Card
+        float timeCardH = 46.0f * uiScale;
+        float gapBetweenCards = 10.0f * uiScale;
+
+        const int radius = 2;
+        const int gridSize = (radius * 2) + 1;
+        const float tileSize = std::clamp((availableW - (20.0f * uiScale)) / static_cast<float>(gridSize), 20.0f * uiScale, 30.0f * uiScale);
+        const float totalGridW = tileSize * static_cast<float>(gridSize);
+        float toolH = 22.0f * uiScale;
+        float mapCardH = (26.0f * uiScale) + totalGridW + (10.0f * uiScale) + toolH + (10.0f * uiScale);
+
+        float totalNavH = timeCardH + gapBetweenCards + mapCardH;
+
+        // Pin directly to the bottom of the left column panel
+        float bottomPinnedY = panelRect.y + panelRect.h - totalNavH - (8.0f * uiScale);
+        curY = std::max(curY, bottomPinnedY);
+
         float startY = curY;
-        curY += renderWidgetTimeBar(renderer, gameContext, curX, curY, innerW, uiScale);
-        curY += renderWidgetRadar(renderer, gameContext, { curX, curY, innerW, 200.0f * uiScale }, curY, uiScale);
+        curY += renderWidgetTimeBar(renderer, gameContext, panelRect.x, curY, panelRect.w, uiScale);
+        curY += renderWidgetRadar(renderer, gameContext, panelRect, curY, uiScale);
         return (curY - startY);
     }
 }
