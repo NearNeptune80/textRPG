@@ -78,18 +78,17 @@ namespace RadarWidgets
         auto mousePos = gameContext->input.getMousePosition();
         bool clicked = gameContext->input.isLeftMouseJustClicked();
 
-        // Calculate card height for Radar + D-Pad + Toolbar
+        // Calculate dimensions for 5x5 tile grid
         const int radius = 2; // 5x5 grid
         const int gridSize = (radius * 2) + 1; // 5
-        const float tileSize = std::clamp((availableW - (16.0f * uiScale)) / static_cast<float>(gridSize), 18.0f * uiScale, 28.0f * uiScale);
+        const float tileSize = std::clamp((availableW - (20.0f * uiScale)) / static_cast<float>(gridSize), 20.0f * uiScale, 30.0f * uiScale);
         const float totalGridW = tileSize * static_cast<float>(gridSize);
 
-        float dpadBtnH = 24.0f * uiScale;
         float toolH = 22.0f * uiScale;
-        float cardH = (26.0f * uiScale) + totalGridW + (10.0f * uiScale) + dpadBtnH + (8.0f * uiScale) + toolH + (10.0f * uiScale);
+        float cardH = (26.0f * uiScale) + totalGridW + (10.0f * uiScale) + toolH + (10.0f * uiScale);
 
         // ==========================================
-        // CARD: Mini-Map Radar & Navigation Suite
+        // CARD: Mini-Map Radar & Quick Toolbar
         // ==========================================
         SDL_FRect mainCardRect = { padX, curY, availableW, cardH };
         UIWidget::drawPanel(renderer, mainCardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
@@ -200,33 +199,7 @@ namespace RadarWidgets
 
         cardCurY += totalGridW + (10.0f * uiScale);
 
-        // Directional Movement D-Pad (< W, ^ N, v S, E >)
-        float dpadBtnW = (innerW - (3 * 4.0f * uiScale)) / 4.0f;
-        struct DpadButton { std::string label; int dx; int dy; };
-        static const DpadButton dpadBtns[4] = {
-            { "< W", -1, 0 },
-            { "^ N", 0, -1 },
-            { "v S", 0, 1 },
-            { "E >", 1, 0 }
-        };
-
-        for (int i = 0; i < 4; ++i)
-        {
-            SDL_FRect bRect = { innerX + (i * (dpadBtnW + (4.0f * uiScale))), cardCurY, dpadBtnW, dpadBtnH };
-            bool hov = (mousePos.x >= bRect.x && mousePos.x <= bRect.x + bRect.w &&
-                        mousePos.y >= bRect.y && mousePos.y <= bRect.y + bRect.h);
-
-            UIWidget::drawButton(renderer, bRect, dpadBtns[i].label, hov, true, false, uiScale * 0.76f);
-
-            if (hov && clicked)
-            {
-                gameContext->movePlayer(pX + dpadBtns[i].dx, pY + dpadBtns[i].dy);
-                gameContext->input.consumeMouseClick();
-            }
-        }
-        cardCurY += dpadBtnH + (8.0f * uiScale);
-
-        // Quick Navigation Toolbar
+        // Quick Navigation Toolbar (Inv, Phone, TF, Opt)
         static const std::vector<std::pair<std::string, CommandType>> tools = {
             { "Inv", CommandType::OPEN_INVENTORY },
             { "Phone", CommandType::OPEN_PHONE },
