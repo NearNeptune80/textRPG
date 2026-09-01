@@ -173,7 +173,7 @@ int main(int argc, char* argv[])
             saveManager::loadFromFile(&engine, saveFile);
             engine.changeState(std::make_unique<explorationState>());
         }
-        else if (screenshotState == "exploration")
+        else if (screenshotState.starts_with("exploration"))
         {
             if (!engine.getPlayer())
             {
@@ -187,6 +187,15 @@ int main(int argc, char* argv[])
                 p->stats.setBaseStat("arousal", 10.0f);
                 p->stats.setBaseStat("currency", 250.0f);
                 engine.playerEntity = p;
+            }
+            if (screenshotState == "exploration_companion")
+            {
+                auto lilaya = std::make_shared<entity>("companion_lilaya", "Lilaya");
+                lilaya->stats.level = 5;
+                lilaya->stats.setBaseStat("health", 120.0f);
+                lilaya->stats.setBaseStat("max_health", 120.0f);
+                lilaya->stats.setBaseStat("lust", 25.0f);
+                engine.addCompanion(lilaya);
             }
             engine.loadMap("house_01", 1, 1);
             engine.changeState(std::make_unique<explorationState>());
@@ -258,6 +267,16 @@ int main(int argc, char* argv[])
                 engine.selectedInventorySide = 0;
                 engine.selectedInventoryIndex = 1;
                 engine.selectedEquipmentSlot = equipSlot::NONE;
+            }
+            else if (screenshotState == "inventory_companion")
+            {
+                auto lilaya = std::make_shared<entity>("companion_lilaya", "Lilaya");
+                lilaya->stats.level = 5;
+                lilaya->stats.setBaseStat("health", 120.0f);
+                lilaya->stats.setBaseStat("max_health", 120.0f);
+                lilaya->stats.setBaseStat("lust", 25.0f);
+                engine.addCompanion(lilaya);
+                engine.selectedEquipmentSlot = equipSlot::TORSO_UNDER;
             }
         }
 

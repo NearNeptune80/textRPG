@@ -14,6 +14,7 @@
 #include "items/clothingDisplacement.h"
 #include "ui/theme.h"
 #include "ui/uiWidget.h"
+#include "ui/widgets/radarWidget.h"
 
 namespace PaperdollWidgets
 {
@@ -213,10 +214,19 @@ namespace PaperdollWidgets
         float toolH = 22.0f * uiScale;
         float cardH = (22.0f * uiScale) + totalGridH + (8.0f * uiScale) + toolH + (8.0f * uiScale);
 
+        // Compute total height of Date & Time Card + Gap + 6x6 Equipment Card
+        float timeCardH = 46.0f * uiScale;
+        float gapBetweenCards = 8.0f * uiScale;
+        float totalNavH = timeCardH + gapBetweenCards + cardH;
+
         // Pin to the bottom of the sidebar panel (matching mini-map radar positioning)
-        float bottomPinnedY = panelRect.y + panelRect.h - cardH - (6.0f * uiScale);
+        float bottomPinnedY = panelRect.y + panelRect.h - totalNavH - (6.0f * uiScale);
         curY = std::max(curY, bottomPinnedY);
         float startY = curY;
+
+        // Render Date & Time Bar
+        curY += RadarWidgets::renderWidgetTimeBar(renderer, gameContext, panelRect.x, curY, panelRect.w, uiScale);
+        curY += gapBetweenCards;
 
         // =========================================================================
         // OVERARCHING CONTAINER: Equipment / Tattoo Grid Box

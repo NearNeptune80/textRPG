@@ -75,6 +75,7 @@ public:
 
     std::shared_ptr<entity> activeTargetNPC = nullptr;
     TargetMode activeTargetMode = TargetMode::NONE;
+    std::vector<std::shared_ptr<entity>> partyCompanions;
 
     int currentActionPage = 0;
     void triggerActionButton(int slotIndex);
@@ -88,6 +89,11 @@ public:
     std::shared_ptr<entity> getPlayerShared() const { return playerEntity; }
     entity* getActiveTargetNPC() const { return activeTargetNPC.get(); }
     std::shared_ptr<entity> getActiveTargetNPCShared() const { return activeTargetNPC; }
+    const std::vector<std::shared_ptr<entity>>& getCompanions() const { return partyCompanions; }
+    void addCompanion(std::shared_ptr<entity> comp) { partyCompanions.push_back(comp); }
+    void removeCompanion(const std::string& compId) {
+        std::erase_if(partyCompanions, [&](const auto& c){ return c && c->id == compId; });
+    }
     const gameMap* getActiveMap() const { return map; }
     const std::vector<actionButton>& getActiveActionButtons() const { return activeButtons; }
     const timeManager& getTime() const { return gameTime; }
