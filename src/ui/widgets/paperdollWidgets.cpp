@@ -204,15 +204,12 @@ namespace PaperdollWidgets
         // Calculate square dimensions for 6x6 tile grid filling the container
         const int cols = 6;
         const int rows = 6;
-        const float innerPadding = 4.0f * uiScale;
-        const float innerW = availableW - (innerPadding * 2.0f);
+        const float boxSize = std::floor(availableW - (8.0f * uiScale));
         const float slotGap = 2.0f * uiScale;
-        const float tileSize = std::floor((innerW - (slotGap * static_cast<float>(cols - 1))) / static_cast<float>(cols));
-        const float totalGridW = (tileSize * cols) + (slotGap * static_cast<float>(cols - 1));
-        const float totalGridH = totalGridW;
+        const float tileSize = (boxSize - (slotGap * static_cast<float>(cols - 1))) / static_cast<float>(cols);
 
         float toolH = 20.0f * uiScale;
-        float cardH = (18.0f * uiScale) + totalGridH + (5.0f * uiScale) + toolH + (5.0f * uiScale);
+        float cardH = (18.0f * uiScale) + boxSize + (5.0f * uiScale) + toolH + (5.0f * uiScale);
 
         // Compute total height of Date & Time Card + Gap + 6x6 Equipment Card
         float timeCardH = 46.0f * uiScale;
@@ -234,7 +231,7 @@ namespace PaperdollWidgets
         SDL_FRect mainCardRect = { padX, curY, availableW, cardH };
         UIWidget::drawPanel(renderer, mainCardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
-        float innerX = padX + innerPadding;
+        float innerX = padX + (4.0f * uiScale);
         float cardCurY = curY + (3.0f * uiScale);
 
         std::string headerTitle = inTattooMode ? "TATTOOS (6x6)" : "EQUIPMENT (6x6)";
@@ -242,8 +239,8 @@ namespace PaperdollWidgets
         cardCurY += (15.0f * uiScale);
 
         // Centered 6x6 Grid Container Box matching Mini-Map Radar
-        float gridStartX = padX + ((availableW - totalGridW) / 2.0f);
-        SDL_FRect gridBox = { gridStartX - (1.0f * uiScale), cardCurY - (1.0f * uiScale), totalGridW + (2.0f * uiScale), totalGridH + (2.0f * uiScale) };
+        float gridStartX = padX + ((availableW - boxSize) / 2.0f);
+        SDL_FRect gridBox = { gridStartX - (1.0f * uiScale), cardCurY - (1.0f * uiScale), boxSize + (2.0f * uiScale), boxSize + (2.0f * uiScale) };
         UIWidget::drawPanel(renderer, gridBox, Theme::colors.bgDark, Theme::colors.borderButton);
 
         for (int r = 0; r < rows; ++r)
@@ -377,7 +374,7 @@ namespace PaperdollWidgets
             }
         }
 
-        cardCurY += totalGridH + (8.0f * uiScale);
+        cardCurY += boxSize + (5.0f * uiScale);
 
         // =========================================================================
         // TOOLBAR BUTTONS UNDER THE 6x6 GRID
@@ -389,7 +386,7 @@ namespace PaperdollWidgets
             { "Opt", CommandType::OPEN_SETTINGS }
         };
 
-        float toolW = (availableW - (12.0f * uiScale) - (3 * 4.0f * uiScale)) / 4.0f;
+        float toolW = (boxSize - (3 * 4.0f * uiScale)) / 4.0f;
 
         for (size_t i = 0; i < tools.size(); ++i)
         {

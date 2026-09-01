@@ -20,8 +20,8 @@ namespace CharacterCardWidget
         if (!companion) return 0.0f;
 
         float startY = curY;
-        float headerH = 18.0f * uiScale;
-        float cardH = 76.0f * uiScale;
+        float headerH = 17.0f * uiScale;
+        float cardH = 68.0f * uiScale;
 
         SDL_FRect cardRect = { padX, curY, availableW, cardH };
         UIWidget::drawPanel(renderer, cardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
@@ -29,33 +29,33 @@ namespace CharacterCardWidget
         // Header: COMPANION: Name
         SDL_FRect headerRect = { padX, curY, availableW, headerH };
         std::string compHeader = std::format("COMPANION: {}", companion->name);
-        UIWidget::drawHeader(renderer, headerRect, compHeader, Theme::colors.bgHeader, Theme::colors.companion, uiScale * 0.70f);
+        UIWidget::drawHeader(renderer, headerRect, compHeader, Theme::colors.bgHeader, Theme::colors.companion, uiScale * 0.68f);
         curY += headerH + (3.0f * uiScale);
 
-        float innerPad = 5.0f * uiScale;
+        float innerPad = 4.0f * uiScale;
         float cX = padX + innerPad;
         float cW = availableW - (innerPad * 2.0f);
 
         // Avatar Badge
-        float avatarSize = 24.0f * uiScale;
+        float avatarSize = 22.0f * uiScale;
         SDL_FRect avatarRect = { cX, curY, avatarSize, avatarSize };
         UIWidget::drawPanel(renderer, avatarRect, Theme::colors.bgDark, Theme::colors.borderButton);
 
         std::string initials = companion->name.empty() ? "C" : companion->name.substr(0, 1);
-        float initW = UIWidget::getTextWidth(initials, uiScale * 0.72f);
-        UIWidget::drawText(renderer, initials, avatarRect.x + ((avatarSize - initW) / 2.0f), avatarRect.y + (3.0f * uiScale), Theme::colors.companion, uiScale * 0.72f);
+        float initW = UIWidget::getTextWidth(initials, uiScale * 0.68f);
+        UIWidget::drawText(renderer, initials, avatarRect.x + ((avatarSize - initW) / 2.0f), avatarRect.y + (2.0f * uiScale), Theme::colors.companion, uiScale * 0.68f);
 
         // Level & Species
         std::string lvlStr = std::format("Lvl {} • {}", companion->stats.level, companion->anatomy.getRacialTitle());
-        UIWidget::drawText(renderer, lvlStr, cX + avatarSize + (5.0f * uiScale), curY + (3.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.68f);
+        UIWidget::drawText(renderer, lvlStr, cX + avatarSize + (4.0f * uiScale), curY + (2.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.66f);
 
-        curY += avatarSize + (3.0f * uiScale);
+        curY += avatarSize + (2.0f * uiScale);
 
         // Compact Health & Lust Vitals
-        float barH = 8.0f * uiScale;
-        float barGap = 3.0f * uiScale;
-        float labelW = 38.0f * uiScale;
-        float valW = 44.0f * uiScale;
+        float barH = 7.0f * uiScale;
+        float barGap = 2.0f * uiScale;
+        float labelW = 36.0f * uiScale;
+        float valW = 42.0f * uiScale;
         float progressW = cW - labelW - valW - (4.0f * uiScale);
 
         // Health
@@ -64,18 +64,18 @@ namespace CharacterCardWidget
         float maxHp = companion->getStat("max_health");
         if (maxHp <= 0.0f) maxHp = 100.0f;
 
-        UIWidget::drawText(renderer, "Health", cX, curY, Theme::colors.health, uiScale * 0.62f);
+        UIWidget::drawText(renderer, "Health", cX, curY, Theme::colors.health, uiScale * 0.60f);
         UIWidget::drawProgressBar(renderer, { cX + labelW, curY, progressW, barH }, curHp, maxHp, Theme::colors.health, Theme::colors.bgHeader, "", uiScale);
         std::string hpStr = std::format("{:.0f}/{:.0f}", curHp, maxHp);
-        UIWidget::drawText(renderer, hpStr, cX + labelW + progressW + (4.0f * uiScale), curY, Theme::colors.textPrimary, uiScale * 0.60f);
+        UIWidget::drawText(renderer, hpStr, cX + labelW + progressW + (4.0f * uiScale), curY, Theme::colors.textPrimary, uiScale * 0.58f);
         curY += barH + barGap;
 
         // Lust
         float curLust = companion->getStat("lust");
-        UIWidget::drawText(renderer, "Lust", cX, curY, Theme::colors.lust, uiScale * 0.62f);
+        UIWidget::drawText(renderer, "Lust", cX, curY, Theme::colors.lust, uiScale * 0.60f);
         UIWidget::drawProgressBar(renderer, { cX + labelW, curY, progressW, barH }, curLust, 100.0f, Theme::colors.lust, Theme::colors.bgHeader, "", uiScale);
         std::string lustStr = std::format("{:.0f}%", curLust);
-        UIWidget::drawText(renderer, lustStr, cX + labelW + progressW + (4.0f * uiScale), curY, Theme::colors.textPrimary, uiScale * 0.60f);
+        UIWidget::drawText(renderer, lustStr, cX + labelW + progressW + (4.0f * uiScale), curY, Theme::colors.textPrimary, uiScale * 0.58f);
 
         return cardH + (5.0f * uiScale);
     }
@@ -86,8 +86,8 @@ namespace CharacterCardWidget
         if (!player) return 0.0f;
 
         float startY = curY;
-        float padX = curX + (8.0f * uiScale);
-        float availableW = innerW - (16.0f * uiScale);
+        float padX = curX + (5.0f * uiScale);
+        float availableW = innerW - (10.0f * uiScale);
 
         bool inPrologue = (dynamic_cast<characterCreationState*>(gameContext->getActiveState()) != nullptr);
         auto mousePos = gameContext->input.getMousePosition();
@@ -95,12 +95,12 @@ namespace CharacterCardWidget
         // =========================================================================
         // DYNAMIC STATUS EFFECTS ROWS CALCULATION
         // =========================================================================
-        float innerPad = 5.0f * uiScale;
+        float innerPad = 4.0f * uiScale;
         float subW = availableW - (innerPad * 2.0f);
         float s2Pad = 5.0f * uiScale;
         float s2ContentW = subW - (s2Pad * 2.0f);
 
-        const float chipSize = 20.0f * uiScale;
+        const float chipSize = 22.0f * uiScale;
         const float chipGap = 3.0f * uiScale;
         int chipsPerRow = std::max(1, static_cast<int>(std::floor((s2ContentW + chipGap) / (chipSize + chipGap))));
 
@@ -108,12 +108,12 @@ namespace CharacterCardWidget
         int numEffectRows = effects.empty() ? 1 : static_cast<int>(std::ceil(effects.size() / static_cast<float>(chipsPerRow)));
         float statusSectionH = (numEffectRows * chipSize) + ((numEffectRows - 1) * chipGap);
 
-        // Calculate heights dynamically
-        float sub1H = 50.0f * uiScale;
-        float vitalsTopH = 70.0f * uiScale; // "VITALS & STATUS" header + 4 progress bars
+        // Calculate heights dynamically with generous vertical headroom
+        float sub1H = 58.0f * uiScale;
+        float vitalsTopH = 80.0f * uiScale; // "VITALS & STATUS" header + 4 progress bars
         float sub2H = vitalsTopH + statusSectionH + (8.0f * uiScale);
-        float headerH = 18.0f * uiScale;
-        float outerH = headerH + (3.0f * uiScale) + sub1H + (4.0f * uiScale) + sub2H + (4.0f * uiScale);
+        float headerH = 20.0f * uiScale;
+        float outerH = headerH + (3.0f * uiScale) + sub1H + (5.0f * uiScale) + sub2H + (5.0f * uiScale);
 
         // =========================================================================
         // OVERARCHING CONTAINER: Player Overview Card
@@ -123,7 +123,7 @@ namespace CharacterCardWidget
 
         // Overarching Header
         SDL_FRect headerRect = { padX, curY, availableW, headerH };
-        UIWidget::drawHeader(renderer, headerRect, "PLAYER CHARACTER", Theme::colors.bgHeader, Theme::colors.textGold, uiScale * 0.72f);
+        UIWidget::drawHeader(renderer, headerRect, "PLAYER CHARACTER", Theme::colors.bgHeader, Theme::colors.textGold, uiScale * 0.76f);
         curY += headerH + (3.0f * uiScale);
 
         // -------------------------------------------------------------------------
@@ -137,10 +137,10 @@ namespace CharacterCardWidget
         float s1Pad = 5.0f * uiScale;
         float s1ContentX = sub1X + s1Pad;
         float s1ContentW = subW - (s1Pad * 2.0f);
-        float s1Y = sub1Y + (3.0f * uiScale);
+        float s1Y = sub1Y + (4.0f * uiScale);
 
         // Avatar Badge
-        float avatarSize = 26.0f * uiScale;
+        float avatarSize = 30.0f * uiScale;
         SDL_FRect avatarRect = { s1ContentX, s1Y, avatarSize, avatarSize };
         UIWidget::drawPanel(renderer, avatarRect, Theme::colors.bgHeader, Theme::colors.borderButton);
 
@@ -154,26 +154,26 @@ namespace CharacterCardWidget
                 initials += player->name[spacePos + 1];
             }
         }
-        float initW = UIWidget::getTextWidth(initials, uiScale * 0.75f);
-        UIWidget::drawText(renderer, initials, avatarRect.x + ((avatarSize - initW) / 2.0f), avatarRect.y + (4.0f * uiScale), Theme::colors.textGold, uiScale * 0.75f);
+        float initW = UIWidget::getTextWidth(initials, uiScale * 0.78f);
+        UIWidget::drawText(renderer, initials, avatarRect.x + ((avatarSize - initW) / 2.0f), avatarRect.y + (5.0f * uiScale), Theme::colors.textGold, uiScale * 0.78f);
 
         // Name & Level / Species
         std::string dispName = player->name.empty() ? "Hero" : player->name;
-        UIWidget::drawText(renderer, dispName, s1ContentX + avatarSize + (5.0f * uiScale), s1Y + (1.0f * uiScale), Theme::colors.textGold, uiScale * 0.80f);
+        UIWidget::drawText(renderer, dispName, s1ContentX + avatarSize + (6.0f * uiScale), s1Y + (1.0f * uiScale), Theme::colors.textGold, uiScale * 0.84f);
         std::string lvlStr = std::format("Lvl {} • {}", player->stats.level, player->anatomy.getRacialTitle());
-        UIWidget::drawText(renderer, lvlStr, s1ContentX + avatarSize + (5.0f * uiScale), s1Y + (13.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.68f);
+        UIWidget::drawText(renderer, lvlStr, s1ContentX + avatarSize + (6.0f * uiScale), s1Y + (15.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.70f);
 
         // Gold & Essence
         float goldVal = player->getStat("currency");
         if (goldVal <= 0.0f && !inPrologue) goldVal = 5000.0f;
         std::string goldText = std::format("Gold: {:.0f} ¤", goldVal);
-        UIWidget::drawText(renderer, goldText, s1ContentX, s1Y + avatarSize + (3.0f * uiScale), Theme::colors.currency, uiScale * 0.70f);
+        UIWidget::drawText(renderer, goldText, s1ContentX, s1Y + avatarSize + (4.0f * uiScale), Theme::colors.currency, uiScale * 0.72f);
 
         std::string essenceText = "Essence: 0";
-        float essW = UIWidget::getTextWidth(essenceText, uiScale * 0.70f);
-        UIWidget::drawText(renderer, essenceText, s1ContentX + s1ContentW - essW, s1Y + avatarSize + (3.0f * uiScale), Theme::colors.arcane, uiScale * 0.70f);
+        float essW = UIWidget::getTextWidth(essenceText, uiScale * 0.72f);
+        UIWidget::drawText(renderer, essenceText, s1ContentX + s1ContentW - essW, s1Y + avatarSize + (4.0f * uiScale), Theme::colors.arcane, uiScale * 0.72f);
 
-        curY += sub1H + (4.0f * uiScale);
+        curY += sub1H + (5.0f * uiScale);
 
         // -------------------------------------------------------------------------
         // SUB-BOX 2: Vitals & Status Gauges Box
@@ -184,15 +184,15 @@ namespace CharacterCardWidget
         UIWidget::drawPanel(renderer, sub2Rect, Theme::colors.bgDark, Theme::colors.borderButton);
 
         float s2ContentX = sub2X + s2Pad;
-        float s2Y = sub2Y + (3.0f * uiScale);
+        float s2Y = sub2Y + (4.0f * uiScale);
 
-        UIWidget::drawText(renderer, "VITALS & STATUS", s2ContentX, s2Y, Theme::colors.textGold, uiScale * 0.70f);
-        s2Y += (14.0f * uiScale);
+        UIWidget::drawText(renderer, "VITALS & STATUS", s2ContentX, s2Y, Theme::colors.textGold, uiScale * 0.72f);
+        s2Y += (16.0f * uiScale);
 
-        float barH = 9.0f * uiScale;
-        float barGap = 3.0f * uiScale;
-        float labelW = 42.0f * uiScale;
-        float valW = 48.0f * uiScale;
+        float barH = 10.0f * uiScale;
+        float barGap = 4.0f * uiScale;
+        float labelW = 40.0f * uiScale;
+        float valW = 44.0f * uiScale;
         float progressW = s2ContentW - labelW - valW - (4.0f * uiScale);
 
         // 1. Health Bar
@@ -237,7 +237,7 @@ namespace CharacterCardWidget
         UIWidget::drawProgressBar(renderer, { s2ContentX + labelW, s2Y, progressW, barH }, curArousal, maxArousal, Theme::colors.textGold, Theme::colors.bgHeader, "", uiScale);
         std::string arousalStr = std::format("{:.0f}%", curArousal);
         UIWidget::drawText(renderer, arousalStr, s2ContentX + labelW + progressW + (4.0f * uiScale), s2Y, Theme::colors.textPrimary, uiScale * 0.62f);
-        s2Y += barH + (5.0f * uiScale);
+        s2Y += barH + (6.0f * uiScale);
 
         // -------------------------------------------------------------------------
         // DYNAMIC STATUS EFFECT SQUARE CHIP ROWS
@@ -262,8 +262,8 @@ namespace CharacterCardWidget
             {
                 SDL_FRect tBox = { s2ContentX + (t * (dW + dGap)), s2Y, dW, dH };
                 UIWidget::drawPanel(renderer, tBox, Theme::colors.bgHeader, Theme::colors.borderButton);
-                float txtW = UIWidget::getTextWidth(defaultChips[t].first, uiScale * 0.60f);
-                UIWidget::drawText(renderer, defaultChips[t].first, tBox.x + ((dW - txtW) / 2.0f), tBox.y + (2.0f * uiScale), defaultChips[t].second, uiScale * 0.60f);
+                float txtW = UIWidget::getTextWidth(defaultChips[t].first, uiScale * 0.62f);
+                UIWidget::drawText(renderer, defaultChips[t].first, tBox.x + ((dW - txtW) / 2.0f), tBox.y + (3.0f * uiScale), defaultChips[t].second, uiScale * 0.62f);
             }
         }
         else
@@ -289,8 +289,8 @@ namespace CharacterCardWidget
                 UIWidget::drawPanel(renderer, chipRect, fillCol, bdCol);
 
                 std::string code = eff.name.substr(0, std::min<size_t>(2, eff.name.length()));
-                float cW = UIWidget::getTextWidth(code, uiScale * 0.55f);
-                UIWidget::drawText(renderer, code, chipX + ((chipSize - cW) / 2.0f), chipY + (2.0f * uiScale), textCol, uiScale * 0.55f);
+                float cW = UIWidget::getTextWidth(code, uiScale * 0.58f);
+                UIWidget::drawText(renderer, code, chipX + ((chipSize - cW) / 2.0f), chipY + (3.0f * uiScale), textCol, uiScale * 0.58f);
 
                 if (isHov)
                 {
@@ -299,7 +299,7 @@ namespace CharacterCardWidget
             }
         }
 
-        curY += sub2H + (4.0f * uiScale);
+        curY += sub2H + (5.0f * uiScale);
         curY += (6.0f * uiScale);
 
         // =========================================================================

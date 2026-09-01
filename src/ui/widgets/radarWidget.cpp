@@ -80,8 +80,8 @@ namespace RadarWidgets
         if (!gameContext || !gameContext->getPlayer()) return 0.0f;
 
         float startY = curY;
-        float padX = rect.x + (8.0f * uiScale);
-        float availableW = rect.w - (16.0f * uiScale);
+        float padX = rect.x + (5.0f * uiScale);
+        float availableW = rect.w - (10.0f * uiScale);
 
         const gameMap* map = gameContext->getActiveMap();
         int pX = gameContext->gridX;
@@ -93,13 +93,11 @@ namespace RadarWidgets
         // Calculate square dimensions for 5x5 tile grid filling the container
         const int radius = 2; // 5x5 grid
         const int gridSize = (radius * 2) + 1; // 5
-        const float innerPadding = 4.0f * uiScale;
-        const float innerW = availableW - (innerPadding * 2.0f);
-        const float tileSize = std::floor(innerW / static_cast<float>(gridSize));
-        const float totalGridW = tileSize * static_cast<float>(gridSize);
+        const float boxSize = std::floor(availableW - (8.0f * uiScale));
+        const float tileSize = boxSize / static_cast<float>(gridSize);
 
         float toolH = 20.0f * uiScale;
-        float cardH = (18.0f * uiScale) + totalGridW + (5.0f * uiScale) + toolH + (5.0f * uiScale);
+        float cardH = (18.0f * uiScale) + boxSize + (5.0f * uiScale) + toolH + (5.0f * uiScale);
 
         // ==========================================
         // CARD: Mini-Map Radar & Quick Toolbar
@@ -107,15 +105,15 @@ namespace RadarWidgets
         SDL_FRect mainCardRect = { padX, curY, availableW, cardH };
         UIWidget::drawPanel(renderer, mainCardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
-        float innerX = padX + innerPadding;
+        float innerX = padX + (4.0f * uiScale);
         float cardCurY = curY + (3.0f * uiScale);
 
         UIWidget::drawText(renderer, "MINI-MAP RADAR", innerX, cardCurY, Theme::colors.textGold, uiScale * 0.74f);
         cardCurY += (15.0f * uiScale);
 
         // Center the 5x5 grid inside the card
-        float gridStartX = padX + ((availableW - totalGridW) / 2.0f);
-        SDL_FRect radarBox = { gridStartX - (1.0f * uiScale), cardCurY - (1.0f * uiScale), totalGridW + (2.0f * uiScale), totalGridW + (2.0f * uiScale) };
+        float gridStartX = padX + ((availableW - boxSize) / 2.0f);
+        SDL_FRect radarBox = { gridStartX - (1.0f * uiScale), cardCurY - (1.0f * uiScale), boxSize + (2.0f * uiScale), boxSize + (2.0f * uiScale) };
         UIWidget::drawPanel(renderer, radarBox, Theme::colors.bgDark, Theme::colors.borderButton);
 
         for (int dy = -radius; dy <= radius; ++dy)
@@ -209,7 +207,7 @@ namespace RadarWidgets
             }
         }
 
-        cardCurY += totalGridW + (8.0f * uiScale);
+        cardCurY += boxSize + (5.0f * uiScale);
 
         // Quick Navigation Toolbar (Inv, Phone, TF, Opt)
         static const std::vector<std::pair<std::string, CommandType>> tools = {
@@ -219,7 +217,7 @@ namespace RadarWidgets
             { "Opt", CommandType::OPEN_SETTINGS }
         };
 
-        float toolW = (innerW - (3 * 4.0f * uiScale)) / 4.0f;
+        float toolW = (boxSize - (3 * 4.0f * uiScale)) / 4.0f;
 
         for (size_t i = 0; i < tools.size(); ++i)
         {
@@ -250,20 +248,15 @@ namespace RadarWidgets
     {
         if (!gameContext || !gameContext->getPlayer()) return 0.0f;
 
-        float availableW = panelRect.w - (16.0f * uiScale);
+        float availableW = panelRect.w - (10.0f * uiScale);
 
         // Compute total height of Date & Time Card + Gap + Mini-Map Radar Card
         float timeCardH = 46.0f * uiScale;
         float gapBetweenCards = 8.0f * uiScale;
 
-        const int radius = 2;
-        const int gridSize = (radius * 2) + 1;
-        const float innerPadding = 4.0f * uiScale;
-        const float innerW = availableW - (innerPadding * 2.0f);
-        const float tileSize = std::floor(innerW / static_cast<float>(gridSize));
-        const float totalGridW = tileSize * static_cast<float>(gridSize);
+        const float boxSize = std::floor(availableW - (8.0f * uiScale));
         float toolH = 20.0f * uiScale;
-        float mapCardH = (18.0f * uiScale) + totalGridW + (5.0f * uiScale) + toolH + (5.0f * uiScale);
+        float mapCardH = (18.0f * uiScale) + boxSize + (5.0f * uiScale) + toolH + (5.0f * uiScale);
 
         float totalNavH = timeCardH + gapBetweenCards + mapCardH;
 
