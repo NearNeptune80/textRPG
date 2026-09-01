@@ -9,6 +9,7 @@
 #include "state/loadGameState.h"
 #include "state/characterCreationState.h"
 #include "state/explorationState.h"
+#include "state/inventoryState.h"
 #include "state/transformationState.h"
 #include "save/saveManager.h"
 #include "ui/theme.h"
@@ -189,6 +190,75 @@ int main(int argc, char* argv[])
             }
             engine.loadMap("house_01", 1, 1);
             engine.changeState(std::make_unique<explorationState>());
+        }
+        else if (screenshotState.starts_with("inventory"))
+        {
+            if (!engine.getPlayer())
+            {
+                auto p = std::make_shared<entity>("hero_player", "Aria Vesper");
+                p->genderArchetype = GenderArchetype::FEMALE;
+                p->stats.setBaseStat("health", 100.0f);
+                p->stats.setBaseStat("max_health", 100.0f);
+                p->stats.setBaseStat("mana", 80.0f);
+                p->stats.setBaseStat("max_mana", 80.0f);
+                p->stats.setBaseStat("currency", 5000.0f);
+                
+                auto pot = std::make_shared<item>();
+                pot->id = "item_potion_health";
+                pot->name = "Health Potion";
+                pot->description = "Restores 50 HP with revitalizing arcane herbs.";
+                pot->baseValue = 50;
+                pot->isConsumable = true;
+                pot->count = 3;
+                p->inventory.addItem(pot);
+
+                auto blouse = std::make_shared<item>();
+                blouse->id = "item_shirt_cotton";
+                blouse->name = "Cotton Blouse";
+                blouse->description = "A comfortable everyday buttoned cotton blouse.";
+                blouse->baseValue = 120;
+                blouse->isEquippable = true;
+                blouse->targetSlot = equipSlot::TORSO_UNDER;
+                blouse->supportedDisplacements[DisplacementMode::UNBUTTON] = { bodySlot::TORSO, bodySlot::BREASTS };
+                blouse->supportedDisplacements[DisplacementMode::LIFT_UP] = { bodySlot::STOMACH, bodySlot::BREASTS };
+                p->inventory.addItem(blouse);
+
+                auto skirt = std::make_shared<item>();
+                skirt->id = "item_skirt_pleated";
+                skirt->name = "Pleated Skirt";
+                skirt->description = "A stylish pleated skirt that rests neatly on the hips.";
+                skirt->baseValue = 150;
+                skirt->isEquippable = true;
+                skirt->targetSlot = equipSlot::LEGS_OUTER;
+                skirt->supportedDisplacements[DisplacementMode::LIFT_UP] = { bodySlot::GROIN, bodySlot::ASS };
+                p->inventory.addItem(skirt);
+
+                auto dagger = std::make_shared<item>();
+                dagger->id = "item_dagger_iron";
+                dagger->name = "Iron Dagger";
+                dagger->description = "A sharp utility dagger for close combat.";
+                dagger->baseValue = 200;
+                dagger->isEquippable = true;
+                dagger->targetSlot = equipSlot::WEAPON_MAIN;
+                p->inventory.addItem(dagger);
+
+                p->inventory.equipped[static_cast<size_t>(equipSlot::TORSO_UNDER)] = blouse;
+                p->inventory.equipped[static_cast<size_t>(equipSlot::LEGS_OUTER)] = skirt;
+
+                engine.playerEntity = p;
+            }
+            engine.changeState(std::make_unique<inventoryState>());
+            if (screenshotState == "inventory_slot")
+            {
+                engine.selectedEquipmentSlot = equipSlot::TORSO_UNDER;
+                engine.selectedInventoryIndex = -1;
+            }
+            else if (screenshotState == "inventory_item")
+            {
+                engine.selectedInventorySide = 0;
+                engine.selectedInventoryIndex = 1;
+                engine.selectedEquipmentSlot = equipSlot::NONE;
+            }
         }
 
         engine.refreshActionGrid();

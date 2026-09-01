@@ -359,44 +359,185 @@ namespace GameplayViews
 
     float renderInventoryView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)
     {
+        if (!gameContext || !gameContext->getPlayer()) return 0.0f;
+
         float startY = curY;
+        float padX = rect.x + (8.0f * uiScale);
+        float availableW = rect.w - (16.0f * uiScale);
+
+        auto mousePos = gameContext->input.getMousePosition();
+        bool clicked = gameContext->input.isLeftMouseJustClicked();
+
+        // 1. Header
         float headerH = 26.0f * uiScale;
-        SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
-        UIWidget::drawHeader(renderer, headerRect, "INVENTORY & CONTAINER VIEW", Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
-        curY += headerH + (10.0f * uiScale);
+        SDL_FRect headerRect = { padX, curY, availableW, headerH };
+        UIWidget::drawHeader(renderer, headerRect, "BACKPACK & STORAGE", Theme::colors.bgHeader, Theme::colors.textGold, uiScale * 0.85f);
+        curY += headerH + (8.0f * uiScale);
 
-        float padX = rect.x + (12.0f * uiScale);
-        float halfW = (rect.w - (24.0f * uiScale)) / 2.0f;
-        float lineH = 18.0f * uiScale;
+        // 2. Category Tabs: [ All ] [ Gear ] [ Clothes ] [ Consumable ] [ Piercings ] [ Misc ]
+        static int activeCategory = 0;
+        static const std::vector<std::string> categories = {
+            "All", "Gear", "Clothes", "Items", "Piercings", "Misc"
+        };
 
-        UIWidget::drawText(renderer, "PLAYER BACKPACK (Side 0)", padX, curY, Theme::colors.textGold, uiScale);
-        UIWidget::drawText(renderer, "GROUND / CONTAINER (Side 1)", padX + halfW, curY, Theme::colors.textGold, uiScale);
-        curY += (20.0f * uiScale);
+        float tabH = 22.0f * uiScale;
+        float tabW = (availableW - ((categories.size() - 1) * 3.0f * uiScale)) / static_cast<float>(categories.size());
 
-        auto backpack = gameContext->getPlayerInventoryStacked();
-        for (size_t i = 0; i < backpack.size() && i < 15; ++i)
+        for (size_t t = 0; t < categories.size(); ++t)
         {
-            if (backpack[i].itemPtr)
+            SDL_FRect tRect = { padX + (t * (tabW + (3.0f * uiScale))), curY, tabW, tabH };
+            bool isTabActive = (activeCategory == static_cast<int>(t));
+            bool tHov = (mousePos.x >= tRect.x && mousePos.x <= tRect.x + tRect.w &&
+                         mousePos.y >= tRect.y && mousePos.y <= tRect.y + tRect.h);
+
+            UIWidget::drawButton(renderer, tRect, categories[t], tHov, true, isTabActive, uiScale * 0.70f);
+
+            if (tHov && clicked)
             {
-                bool isSelected = (gameContext->selectedInventorySide == 0 && gameContext->selectedInventoryIndex == static_cast<int>(i));
-                std::string line = std::format("[{}] {} (x{})", i, backpack[i].itemPtr->name, backpack[i].totalCount);
-                UIWidget::drawText(renderer, line, padX, curY + (i * lineH), isSelected ? Theme::colors.textGold : Theme::colors.textPrimary, uiScale);
+                activeCategory = static_cast<int>(t);
+                gameContext->input.consumeMouseClick();
             }
         }
+        curY += tabH + (8.0f * uiScale);
+
+        // 3. Backpack Item Cards List
+        float cardRowH = 28.0f * uiScale;
+        auto backpack = gameContext->getPlayerInventoryStacked();
+
+        // Filter items based on active category
+        struct FilteredItem {
+            size_t originalIndex;
+            InventorySlot slot;
+        };
+        std::vector<FilteredItem> filteredItems;
+
+        for (size_t i = 0; i < backpack.size(); ++i)
+        {
+            if (!backpack[i].itemPtr) continue;
+            const auto& it = backpack[i].itemPtr;
+
+            bool matches = false;
+            switch (activeCategory)
+            {
+                case 0: // All
+                    matches = true;
+                    break;
+                case 1: // Gear
+                    matches = it->isEquippable && (it->targetSlot == equipSlot::WEAPON_MAIN || it->targetSlot == equipSlot::WEAPON_OFF || it->targetSlot == equipSlot::TORSO_OVER || it->targetSlot == equipSlot::HEADWEAR);
+                    break;
+                case 2: // Clothes
+                    matches = it->isEquippable && (!it->supportedDisplacements.empty() || it->targetSlot == equipSlot::TORSO_UNDER || it->targetSlot == equipSlot::CHEST_WEAR || it->targetSlot == equipSlot::LEGS_OUTER || it->targetSlot == equipSlot::GROIN_OVER || it->targetSlot == equipSlot::CALVES || it->targetSlot == equipSlot::FEET);
+                    break;
+                case 3: // Items / Consumables
+                    matches = it->isConsumable;
+                    break;
+                case 4: // Piercings / Jewelry
+                    matches = it->isEquippable && (it->targetSlot == equipSlot::PIERCING_EAR || it->targetSlot == equipSlot::PIERCING_NOSE || it->targetSlot == equipSlot::PIERCING_LIP || it->targetSlot == equipSlot::PIERCING_TONGUE || it->targetSlot == equipSlot::PIERCING_NIPPLE || it->targetSlot == equipSlot::PIERCING_NAVEL || it->targetSlot == equipSlot::PIERCING_COCK || it->targetSlot == equipSlot::PIERCING_VAGINA || it->targetSlot == equipSlot::FINGER_PRIMARY || it->targetSlot == equipSlot::NECKWEAR || it->targetSlot == equipSlot::WRISTS);
+                    break;
+                case 5: // Misc
+                    matches = !it->isEquippable && !it->isConsumable;
+                    break;
+            }
+
+            if (matches) filteredItems.push_back({ i, backpack[i] });
+        }
+
+        if (filteredItems.empty())
+        {
+            SDL_FRect emptyBox = { padX, curY, availableW, 36.0f * uiScale };
+            UIWidget::drawPanel(renderer, emptyBox, Theme::colors.bgDark, Theme::colors.borderNormal);
+            UIWidget::drawText(renderer, "No items in this category.", padX + (8.0f * uiScale), curY + (10.0f * uiScale), Theme::colors.textMuted, uiScale * 0.76f);
+            curY += 44.0f * uiScale;
+        }
+        else
+        {
+            for (size_t f = 0; f < filteredItems.size() && f < 8; ++f)
+            {
+                size_t origIdx = filteredItems[f].originalIndex;
+                const auto& itemSlot = filteredItems[f].slot;
+
+                SDL_FRect itemRect = { padX, curY, availableW, cardRowH };
+                bool isSelected = (gameContext->selectedInventorySide == 0 && gameContext->selectedInventoryIndex == static_cast<int>(origIdx));
+                bool iHov = (mousePos.x >= itemRect.x && mousePos.x <= itemRect.x + itemRect.w &&
+                             mousePos.y >= itemRect.y && mousePos.y <= itemRect.y + itemRect.h);
+
+                SDL_Color bg = isSelected ? Theme::colors.bgHeader : (iHov ? Theme::colors.bgHeader : Theme::colors.bgSlot);
+                SDL_Color bd = isSelected ? Theme::colors.borderSelected : (iHov ? Theme::colors.borderButton : Theme::colors.borderNormal);
+                UIWidget::drawPanel(renderer, itemRect, bg, bd);
+
+                // Count Badge
+                std::string countStr = std::format("{}x", itemSlot.totalCount);
+                UIWidget::drawText(renderer, countStr, padX + (6.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textGold, uiScale * 0.72f);
+
+                // Item Name
+                float cW = UIWidget::getTextWidth(countStr, uiScale * 0.72f);
+                UIWidget::drawText(renderer, itemSlot.itemPtr->name, padX + cW + (12.0f * uiScale), curY + (5.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.78f);
+
+                // Value
+                std::string valStr = std::format("{} ¤", itemSlot.itemPtr->baseValue);
+                float valW = UIWidget::getTextWidth(valStr, uiScale * 0.70f);
+                UIWidget::drawText(renderer, valStr, padX + availableW - valW - (6.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.currency, uiScale * 0.70f);
+
+                if (iHov && clicked)
+                {
+                    gameContext->selectedInventorySide = 0;
+                    gameContext->selectedInventoryIndex = static_cast<int>(origIdx);
+                    gameContext->selectedEquipmentSlot = equipSlot::NONE;
+                    gameContext->refreshActionGrid();
+                    gameContext->input.consumeMouseClick();
+                }
+
+                curY += cardRowH + (3.0f * uiScale);
+            }
+        }
+
+        // 4. Ground / Tile Items Section
+        curY += (6.0f * uiScale);
+        float gHeaderH = 22.0f * uiScale;
+        SDL_FRect gHeaderRect = { padX, curY, availableW, gHeaderH };
+        UIWidget::drawHeader(renderer, gHeaderRect, "ITEMS ON GROUND", Theme::colors.bgHeader, Theme::colors.textGold, uiScale * 0.75f);
+        curY += gHeaderH + (6.0f * uiScale);
 
         auto ground = gameContext->getTileInventoryStacked();
-        for (size_t i = 0; i < ground.size() && i < 15; ++i)
+        if (ground.empty())
         {
-            if (ground[i].itemPtr)
+            SDL_FRect emptyGround = { padX, curY, availableW, 30.0f * uiScale };
+            UIWidget::drawPanel(renderer, emptyGround, Theme::colors.bgDark, Theme::colors.borderNormal);
+            UIWidget::drawText(renderer, "No items dropped here.", padX + (8.0f * uiScale), curY + (8.0f * uiScale), Theme::colors.textMuted, uiScale * 0.74f);
+            curY += 36.0f * uiScale;
+        }
+        else
+        {
+            for (size_t g = 0; g < ground.size() && g < 4; ++g)
             {
-                bool isSelected = (gameContext->selectedInventorySide == 1 && gameContext->selectedInventoryIndex == static_cast<int>(i));
-                std::string line = std::format("[{}] {} (x{})", i, ground[i].itemPtr->name, ground[i].totalCount);
-                UIWidget::drawText(renderer, line, padX + halfW, curY + (i * lineH), isSelected ? Theme::colors.textGold : Theme::colors.textPrimary, uiScale);
+                if (!ground[g].itemPtr) continue;
+
+                SDL_FRect gRect = { padX, curY, availableW, cardRowH };
+                bool isSelected = (gameContext->selectedInventorySide == 1 && gameContext->selectedInventoryIndex == static_cast<int>(g));
+                bool gHov = (mousePos.x >= gRect.x && mousePos.x <= gRect.x + gRect.w &&
+                             mousePos.y >= gRect.y && mousePos.y <= gRect.y + gRect.h);
+
+                SDL_Color bg = isSelected ? Theme::colors.bgHeader : (gHov ? Theme::colors.bgHeader : Theme::colors.bgSlot);
+                SDL_Color bd = isSelected ? Theme::colors.borderSelected : (gHov ? Theme::colors.borderButton : Theme::colors.borderNormal);
+                UIWidget::drawPanel(renderer, gRect, bg, bd);
+
+                std::string countStr = std::format("{}x", ground[g].totalCount);
+                UIWidget::drawText(renderer, countStr, padX + (6.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.companion, uiScale * 0.72f);
+                float cW = UIWidget::getTextWidth(countStr, uiScale * 0.72f);
+                UIWidget::drawText(renderer, ground[g].itemPtr->name, padX + cW + (12.0f * uiScale), curY + (5.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.78f);
+
+                if (gHov && clicked)
+                {
+                    gameContext->selectedInventorySide = 1;
+                    gameContext->selectedInventoryIndex = static_cast<int>(g);
+                    gameContext->selectedEquipmentSlot = equipSlot::NONE;
+                    gameContext->refreshActionGrid();
+                    gameContext->input.consumeMouseClick();
+                }
+
+                curY += cardRowH + (3.0f * uiScale);
             }
         }
-
-        size_t maxRows = std::max(backpack.size(), ground.size());
-        curY += (std::min(maxRows, size_t(15)) * lineH) + (10.0f * uiScale);
 
         return (curY - startY);
     }
