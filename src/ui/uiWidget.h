@@ -19,6 +19,7 @@ namespace UIWidget
 
     void drawText(SDL_Renderer* renderer, std::string_view text, float x, float y, SDL_Color color = Theme::colors.textPrimary, float scale = 1.0f);
     float drawTextWrapped(SDL_Renderer* renderer, std::string_view text, float x, float y, float maxWidth, SDL_Color color = Theme::colors.textPrimary, float scale = 1.0f);
+    float getTextWrappedHeight(std::string_view text, float maxWidth, float scale = 1.0f);
 
     float getTextWidth(std::string_view text, float scale = 1.0f);
     float getLineHeight(float scale = 1.0f);

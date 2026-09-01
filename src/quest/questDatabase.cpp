@@ -93,6 +93,7 @@ bool questDatabase::loadDatabase(const std::string& pathStr)
                         {
                             dialogueChoice choice;
                             choice.label = cJson.value("label", "Continue");
+                            choice.tooltip = cJson.value("tooltip", "");
                             choice.nextSceneId = cJson.value("nextSceneId", "EXIT");
 
                             if (cJson.contains("requirements"))
@@ -127,6 +128,7 @@ bool questDatabase::loadDatabase(const std::string& pathStr)
                     trig.x = tJson.at("x").get<int>();
                     trig.y = tJson.at("y").get<int>();
                     trig.label = tJson.value("label", "Interact");
+                    trig.tooltip = tJson.value("tooltip", "");
                     trig.sceneId = tJson.at("sceneId").get<std::string>();
 
                     if (tJson.contains("conditions"))

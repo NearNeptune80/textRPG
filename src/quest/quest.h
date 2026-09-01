@@ -21,6 +21,7 @@ struct gameEffect {
 
 struct dialogueChoice {
     std::string label;
+    std::string tooltip;
     std::string nextSceneId;
     std::vector<conditionNode> requirements;
     std::vector<gameEffect> results;
@@ -37,6 +38,7 @@ struct MapTrigger {
     std::string id;
     std::string mapId;
     std::string label;
+    std::string tooltip;
     std::string sceneId;
     int x{0};
     int y{0};

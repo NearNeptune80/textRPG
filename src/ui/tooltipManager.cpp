@@ -38,7 +38,14 @@ bool TooltipManager::setHoverTooltip(const SDL_FRect& hoverRect,
     if (mousePos.x >= hoverRect.x && mousePos.x <= hoverRect.x + hoverRect.w &&
         mousePos.y >= hoverRect.y && mousePos.y <= hoverRect.y + hoverRect.h)
     {
-        setTooltip(title, description, subtitle, hotkey, titleColor);
+        TooltipData data;
+        data.title = title;
+        data.description = description;
+        data.subtitle = subtitle;
+        data.hotkey = hotkey;
+        if (titleColor) data.titleColor = *titleColor;
+        data.hoverBounds = hoverRect;
+        s_activeTooltip = data;
         return true;
     }
     return false;
@@ -51,7 +58,9 @@ bool TooltipManager::setHoverTooltip(const SDL_FRect& hoverRect,
     if (mousePos.x >= hoverRect.x && mousePos.x <= hoverRect.x + hoverRect.w &&
         mousePos.y >= hoverRect.y && mousePos.y <= hoverRect.y + hoverRect.h)
     {
-        setTooltip(data);
+        TooltipData copy = data;
+        copy.hoverBounds = hoverRect;
+        s_activeTooltip = copy;
         return true;
     }
     return false;
@@ -75,8 +84,8 @@ void TooltipManager::render(SDL_Renderer* renderer, float uiScale, float windowW
     if (tt.title.empty() && tt.description.empty()) return;
 
     float innerPad = 8.0f * uiScale;
-    float maxCardW = 280.0f * uiScale;
-    float minCardW = 160.0f * uiScale;
+    float maxCardW = 320.0f * uiScale;
+    float minCardW = 180.0f * uiScale;
 
     // Sizing estimation
     float titleFontScale = uiScale * 0.78f;
@@ -88,12 +97,16 @@ void TooltipManager::render(SDL_Renderer* renderer, float uiScale, float windowW
     float subW = tt.subtitle.empty() ? 0.0f : UIWidget::getTextWidth(tt.subtitle, subFontScale);
     float hotkeyW = tt.hotkey.empty() ? 0.0f : (UIWidget::getTextWidth(tt.hotkey, hotkeyFontScale) + (10.0f * uiScale));
 
-    float headerRowW = titleW + (tt.hotkey.empty() ? 0.0f : (hotkeyW + (8.0f * uiScale)));
+    float headerRowW = titleW + (tt.hotkey.empty() ? 0.0f : (hotkeyW + (10.0f * uiScale)));
     float idealW = std::max({ minCardW, headerRowW + (innerPad * 2.0f), subW + (innerPad * 2.0f) });
+    if (!tt.description.empty())
+    {
+        idealW = std::max(idealW, 250.0f * uiScale);
+    }
     float cardW = std::min(maxCardW, idealW);
     float contentW = cardW - (innerPad * 2.0f);
 
-    // Compute vertical height
+    // Compute vertical height using exact font-metric measurements
     float cardH = innerPad;
     cardH += 18.0f * uiScale; // Title row
 
@@ -105,11 +118,8 @@ void TooltipManager::render(SDL_Renderer* renderer, float uiScale, float windowW
     if (!tt.description.empty())
     {
         cardH += 6.0f * uiScale; // Divider gap
-        // Estimate wrapped lines
-        float avgCharW = 6.5f * descFontScale;
-        int charsPerLine = std::max(10, static_cast<int>(contentW / avgCharW));
-        int numLines = std::max(1, static_cast<int>(std::ceil(tt.description.length() / static_cast<float>(charsPerLine))));
-        cardH += numLines * (14.0f * uiScale);
+        float measuredDescH = UIWidget::getTextWrappedHeight(tt.description, contentW, descFontScale);
+        cardH += measuredDescH + (4.0f * uiScale);
     }
 
     if (!tt.stats.empty())
@@ -117,25 +127,81 @@ void TooltipManager::render(SDL_Renderer* renderer, float uiScale, float windowW
         cardH += (tt.stats.size() * (15.0f * uiScale)) + (4.0f * uiScale);
     }
 
-    cardH += innerPad;
+    cardH += innerPad + (4.0f * uiScale); // Safe bottom margin
 
-    // Positioning with Screen Bounds Clamping & Quadrant Flipping
-    float posX = tt.hasCustomAnchor ? tt.customAnchor.x : (mousePos.x + (14.0f * uiScale));
-    float posY = tt.hasCustomAnchor ? tt.customAnchor.y : (mousePos.y + (14.0f * uiScale));
+    // Positioning without overlapping the inspected element
+    float posX = 0.0f;
+    float posY = 0.0f;
 
-    // Flip horizontally if overflowing right edge
-    if (posX + cardW > windowW - (8.0f * uiScale))
+    if (tt.hasCustomAnchor)
     {
-        posX = mousePos.x - cardW - (10.0f * uiScale);
+        posX = tt.customAnchor.x;
+        posY = tt.customAnchor.y;
+    }
+    else if (tt.hoverBounds.has_value())
+    {
+        const SDL_FRect& b = tt.hoverBounds.value();
+        // 1. Bottom action commands (y > 60% of screen): Place ABOVE the button
+        if (b.y > windowH * 0.60f)
+        {
+            posY = b.y - cardH - (6.0f * uiScale);
+            posX = b.x + ((b.w - cardW) / 2.0f);
+        }
+        // 2. Left sidebar panels (x < 28% of screen): Place to the RIGHT
+        else if (b.x < windowW * 0.28f)
+        {
+            posX = b.x + b.w + (8.0f * uiScale);
+            posY = b.y;
+            if (posY + cardH > windowH - (8.0f * uiScale))
+            {
+                posY = windowH - cardH - (8.0f * uiScale);
+            }
+        }
+        // 3. Right sidebar panels (x > 72% of screen): Place to the LEFT
+        else if (b.x + b.w > windowW * 0.72f)
+        {
+            posX = b.x - cardW - (8.0f * uiScale);
+            posY = b.y;
+            if (posY + cardH > windowH - (8.0f * uiScale))
+            {
+                posY = windowH - cardH - (8.0f * uiScale);
+            }
+        }
+        // 4. Central inventory/content grid: Place beside slot
+        else
+        {
+            if (b.x + b.w + cardW + (8.0f * uiScale) <= windowW * 0.82f)
+            {
+                posX = b.x + b.w + (6.0f * uiScale);
+            }
+            else
+            {
+                posX = b.x - cardW - (6.0f * uiScale);
+            }
+            posY = b.y;
+            if (posY + cardH > windowH - (8.0f * uiScale))
+            {
+                posY = windowH - cardH - (8.0f * uiScale);
+            }
+        }
+    }
+    else
+    {
+        // Cursor fallback
+        posX = mousePos.x + (14.0f * uiScale);
+        posY = mousePos.y + (14.0f * uiScale);
+
+        if (posX + cardW > windowW - (8.0f * uiScale))
+        {
+            posX = mousePos.x - cardW - (10.0f * uiScale);
+        }
+        if (posY + cardH > windowH - (8.0f * uiScale))
+        {
+            posY = mousePos.y - cardH - (10.0f * uiScale);
+        }
     }
 
-    // Flip vertically if overflowing bottom edge
-    if (posY + cardH > windowH - (8.0f * uiScale))
-    {
-        posY = mousePos.y - cardH - (10.0f * uiScale);
-    }
-
-    // Clamp to window boundaries
+    // Always clamp to screen boundaries
     posX = std::clamp(posX, 6.0f * uiScale, windowW - cardW - (6.0f * uiScale));
     posY = std::clamp(posY, 6.0f * uiScale, windowH - cardH - (6.0f * uiScale));
 

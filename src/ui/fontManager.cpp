@@ -312,3 +312,41 @@ float fontManager::drawTextWrapped(SDL_Renderer* renderer, const std::string& te
 
     return (curY - y);
 }
+
+float fontManager::getTextWrappedHeight(const std::string& text, float maxWidth, float scale)
+{
+    if (text.empty() || maxWidth <= 0.0f) return 0.0f;
+
+    std::istringstream stream(text);
+    std::string line;
+    float totalH = 0.0f;
+    float lineHeight = getLineHeight(scale);
+
+    while (std::getline(stream, line))
+    {
+        std::istringstream lineStream(line);
+        std::string word;
+        std::string currentLine = "";
+
+        while (lineStream >> word)
+        {
+            std::string testLine = currentLine.empty() ? word : currentLine + " " + word;
+            if (getTextWidth(testLine, scale) > maxWidth && !currentLine.empty())
+            {
+                totalH += lineHeight;
+                currentLine = word;
+            }
+            else
+            {
+                currentLine = testLine;
+            }
+        }
+
+        if (!currentLine.empty())
+        {
+            totalH += lineHeight;
+        }
+    }
+
+    return totalH;
+}

@@ -9,6 +9,7 @@
       "x": 1,
       "y": 1,
       "label": "Talk to Stranger",
+      "tooltip": "Speak with the hooded stranger waiting in the town square.",
       "sceneId": "quest_intro_01",
       "conditions": [
         {
@@ -32,6 +33,7 @@
       "choices": [
         {
           "label": "Hand over Canis Root",
+          "tooltip": "Deliver 1 Canis Root to complete the delivery and claim 50¤.",
           "requirements": [
             {
               "type": "HAS_ITEM",
@@ -60,6 +62,7 @@
         },
         {
           "label": "Not yet.",
+          "tooltip": "Politely excuse yourself until you have found the requested herb.",
           "requirements": [],
           "results": [],
           "nextSceneId": "EXIT"

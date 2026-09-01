@@ -288,9 +288,6 @@ namespace PaperdollWidgets
                         float lW = UIWidget::getTextWidth("·", uiScale * 0.65f);
                         UIWidget::drawText(renderer, "·", slotX + ((tileSize - lW) / 2.0f), slotY + (tileSize * 0.25f), SDL_Color{ 45, 50, 60, 255 }, uiScale * 0.65f);
 
-                        TooltipManager::setHoverTooltip(slotRect, mousePos, "Locked Tattoo Area",
-                                                        "This body region is unavailable on your character's current biological anatomy (e.g. requires tail, wings, or horns).",
-                                                        "Anatomy Requirement");
                     }
                     else
                     {
@@ -304,8 +301,10 @@ namespace PaperdollWidgets
                         SDL_Color textCol = hasTat ? Theme::colors.arcane : Theme::colors.textSecondary;
                         UIWidget::drawText(renderer, def.shortName, slotX + ((tileSize - lW) / 2.0f), slotY + (tileSize * 0.28f), textCol, uiScale * 0.52f);
 
-                        std::string tatDesc = hasTat ? "Permanent ink tattoo markings applied to this body region." : "Empty skin canvas ready for custom ink tattooing.";
-                        TooltipManager::setHoverTooltip(slotRect, mousePos, def.shortName, tatDesc, "Body Tattoo Canvas");
+                        if (hasTat)
+                        {
+                            TooltipManager::setHoverTooltip(slotRect, mousePos, def.shortName, "Permanent ink tattoo markings applied to this body region.", "Body Tattoo Canvas");
+                        }
                     }
                 }
                 else
@@ -343,10 +342,6 @@ namespace PaperdollWidgets
                         UIWidget::drawPanel(renderer, slotRect, SDL_Color{ 16, 18, 22, 255 }, SDL_Color{ 28, 30, 36, 255 });
                         float lW = UIWidget::getTextWidth("·", uiScale * 0.65f);
                         UIWidget::drawText(renderer, "·", slotX + ((tileSize - lW) / 2.0f), slotY + (tileSize * 0.25f), SDL_Color{ 45, 50, 60, 255 }, uiScale * 0.65f);
-
-                        TooltipManager::setHoverTooltip(slotRect, mousePos, "Locked Equipment Socket",
-                                                        "This socket is locked due to biological anatomy requirements (e.g. horns, tail, wings, or specific genitalia).",
-                                                        "Anatomy Requirement");
                     }
                     else
                     {
@@ -379,14 +374,8 @@ namespace PaperdollWidgets
 
                             std::string slotName = gameContext->formatEquipSlotName(def.slot);
                             std::string status = std::format("Fit: {} • Value: {} ¤", displacementModeToString(disp), eqItem->baseValue);
-                            TooltipManager::setHoverTooltip(slotRect, mousePos, eqItem->name, eqItem->description, status, slotName);
-                        }
-                        else
-                        {
-                            std::string slotName = gameContext->formatEquipSlotName(def.slot);
-                            TooltipManager::setHoverTooltip(slotRect, mousePos, std::format("Empty: {}", slotName),
-                                                            "No gear equipped. Click to select slot or equip items from your backpack.",
-                                                            "Equipment Socket");
+                            std::string itemDesc = !eqItem->tooltip.empty() ? eqItem->tooltip : eqItem->description;
+                            TooltipManager::setHoverTooltip(slotRect, mousePos, eqItem->name, itemDesc, status, slotName);
                         }
 
                         if (hovered && clicked && isPlayer)

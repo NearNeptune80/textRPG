@@ -13,6 +13,7 @@
 #include "state/shopState.h"
 #include "state/transformationState.h"
 #include "ui/views/transformationView.h"
+#include <iostream>
 #include <format>
 #include <vector>
 #include <string>
@@ -539,7 +540,8 @@ namespace GameplayViews
                         std::string targetStr = (itSlot.itemPtr->targetSlot != equipSlot::NONE) ? gameContext->formatEquipSlotName(itSlot.itemPtr->targetSlot) : (itSlot.itemPtr->isConsumable ? "Consumable Item" : "Inventory Item");
                         std::string subInfo = std::format("{} • Base Value: {} ¤", targetStr, itSlot.itemPtr->baseValue);
                         std::string cntHotkey = (itSlot.totalCount > 1) ? std::format("x{}", itSlot.totalCount) : "";
-                        TooltipManager::setHoverTooltip(bRect, mousePos, itSlot.itemPtr->name, itSlot.itemPtr->description, subInfo, cntHotkey);
+                        std::string itemDesc = !itSlot.itemPtr->tooltip.empty() ? itSlot.itemPtr->tooltip : itSlot.itemPtr->description;
+                        TooltipManager::setHoverTooltip(bRect, mousePos, itSlot.itemPtr->name, itemDesc, subInfo, cntHotkey);
 
                         if (bHov && clicked)
                         {
@@ -552,16 +554,13 @@ namespace GameplayViews
                     }
                     else
                     {
-                        // Empty slot: clean dark panel with clear border
+                        // Empty slot: clean dark panel with clear border (no noisy tooltip)
                         SDL_Color fill = bHov ? Theme::colors.bgHeader : Theme::colors.bgDark;
                         SDL_Color bd = bHov ? Theme::colors.borderButton : SDL_Color{ 30, 34, 44, 255 };
                         UIWidget::drawPanel(renderer, bRect, fill, bd);
 
                         float dotW = UIWidget::getTextWidth("·", uiScale * 0.62f);
                         UIWidget::drawText(renderer, "·", bX + ((slotSize - dotW) / 2.0f), bY + ((slotSize - (10.0f * uiScale)) / 2.0f), SDL_Color{ 50, 55, 70, 255 }, uiScale * 0.62f);
-
-                        std::string subLoc = (side == 0) ? "Player Backpack" : (ent ? std::format("{}'s Inventory", ent->name) : "Floor Storage");
-                        TooltipManager::setHoverTooltip(bRect, mousePos, "Empty Inventory Slot", "Available space for storing items, consumables, and gear.", subLoc);
                     }
                 }
             }

@@ -9,6 +9,7 @@
       "x": 2,
       "y": 1,
       "label": "Inspect Bookshelf",
+      "tooltip": "Examine the strange ancient volumes lining the cottage wall.",
       "sceneId": "cottage_bookshelf_01",
       "conditions": []
     }
@@ -25,6 +26,7 @@
       "choices": [
         {
           "label": "Pull glowing book (Arcane >= 10)",
+          "tooltip": "Requires 10 Arcane ability to safely dislodge the enchanted tome.",
           "requirements": [
             {
               "type": "STAT_MIN",
@@ -48,6 +50,7 @@
         },
         {
           "label": "Leave it alone.",
+          "tooltip": "Step back from the shelf without disturbing the mechanism.",
           "requirements": [],
           "results": [],
           "nextSceneId": "EXIT"

@@ -264,6 +264,16 @@ int main(int argc, char* argv[])
                 dagger->targetSlot = equipSlot::WEAPON_MAIN;
                 p->inventory.addItem(dagger);
 
+                auto heels = std::make_shared<item>();
+                heels->id = "item_high_heels";
+                heels->name = "Evening Stilettos";
+                heels->description = "Polished black high heel stilettos that accentuate posture and leg definition.";
+                heels->tooltip = "Elegant polished footwear (+Allure). Elevates posture and formal appeal.";
+                heels->baseValue = 35;
+                heels->isEquippable = true;
+                heels->targetSlot = equipSlot::FEET;
+                p->inventory.addItem(heels);
+
                 p->inventory.equipped[static_cast<size_t>(equipSlot::TORSO_UNDER)] = blouse;
                 p->inventory.equipped[static_cast<size_t>(equipSlot::LEGS_OUTER)] = skirt;
 
@@ -303,30 +313,43 @@ int main(int argc, char* argv[])
                 }
             }
         }
+        else if (screenshotState == "tooltip_quest")
+        {
+            engine.loadScene("quest_intro_01");
+        }
 
         engine.refreshActionGrid();
-
-        if (screenshotState == "tooltip_action")
-        {
-            engine.input.setMousePosition(260.0f, 620.0f);
-        }
-        else if (screenshotState == "tooltip_vitals")
-        {
-            engine.input.setMousePosition(75.0f, 155.0f);
-        }
-        else if (screenshotState == "tooltip_inventory")
-        {
-            engine.input.setMousePosition(285.0f, 100.0f);
-        }
-        else if (screenshotState == "tooltip_equipment")
-        {
-            engine.input.setMousePosition(55.0f, 570.0f);
-        }
 
         // Render multiple frames to stabilize fonts/layout
         for (int f = 0; f < 3; ++f)
         {
             engine.update(0.016f);
+
+            if (screenshotState == "tooltip_action")
+            {
+                engine.input.setMousePosition(300.0f, 580.0f);
+            }
+            else if (screenshotState == "tooltip_vitals")
+            {
+                engine.input.setMousePosition(75.0f, 155.0f);
+            }
+            else if (screenshotState == "tooltip_inventory")
+            {
+                engine.input.setMousePosition(580.0f, 75.0f); // Hover over Evening Stilettos slot
+            }
+            else if (screenshotState == "tooltip_inventory_empty")
+            {
+                engine.input.setMousePosition(380.0f, 210.0f); // Hover over empty backpack slot
+            }
+            else if (screenshotState == "tooltip_equipment")
+            {
+                engine.input.setMousePosition(55.0f, 570.0f);
+            }
+            else if (screenshotState == "tooltip_quest")
+            {
+                engine.input.setMousePosition(300.0f, 580.0f); // Hover over disabled choice button
+            }
+
             view.render(renderer, &engine);
         }
 

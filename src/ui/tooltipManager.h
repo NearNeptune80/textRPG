@@ -27,6 +27,7 @@ struct TooltipData
     SDL_Color subtitleColor = { 100, 180, 240, 255 }; // companion / accent
     TooltipPoint customAnchor = { 0.0f, 0.0f };
     bool hasCustomAnchor = false;
+    std::optional<SDL_FRect> hoverBounds = std::nullopt;
 };
 
 class TooltipManager

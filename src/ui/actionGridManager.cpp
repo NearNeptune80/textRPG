@@ -38,21 +38,23 @@ namespace
         }
     }
 
-    inline void addBtn(game* g, std::string_view label, std::function<void()> onClick, bool enabled = true, bool selected = false)
+    inline void addBtn(game* g, std::string_view label, std::function<void()> onClick, bool enabled = true, bool selected = false, std::string_view description = "")
     {
         actionButton btn;
         btn.label = std::string(label);
+        btn.description = std::string(description);
         btn.isEnabled = enabled;
         btn.isSelected = selected;
         btn.onClick = std::move(onClick);
         g->activeButtons.push_back(btn);
     }
 
-    inline void addBackBtn(game* g, std::string_view label, std::function<void()> onClick)
+    inline void addBackBtn(game* g, std::string_view label, std::function<void()> onClick, std::string_view description = "")
     {
         padButtonsTo(g, 14);
         actionButton btn;
         btn.label = std::string(label);
+        btn.description = std::string(description);
         btn.isEnabled = true;
         btn.isSelected = false;
         btn.onClick = std::move(onClick);
@@ -433,81 +435,169 @@ void ActionGridManager::refresh(game* gameContext)
     // 10. Inventory State Actions
     if (dynamic_cast<inventoryState*>(currentState))
     {
+        auto p = gameContext->getPlayer();
         if (gameContext->selectedEquipmentSlot != equipSlot::NONE)
         {
-            addBtn(gameContext, "Unequip", [gameContext]() { gameContext->handleUnequipAction(gameContext->selectedEquipmentSlot); });
+            auto eqItem = p ? p->inventory.getEquippedItem(gameContext->selectedEquipmentSlot) : nullptr;
+            DisplacementMode currentDisp = p ? p->inventory.getDisplacement(gameContext->selectedEquipmentSlot) : DisplacementMode::NONE;
+
+            bool canUnequip = (eqItem != nullptr);
+            std::string unequipDesc = canUnequip ? ("Unequip " + eqItem->name + " back into inventory.") : "No item equipped in this socket to unequip.";
+            addBtn(gameContext, "Unequip", [gameContext]() { gameContext->handleUnequipAction(gameContext->selectedEquipmentSlot); }, canUnequip, false, unequipDesc);
+
+            bool canPullAside = (eqItem != nullptr && eqItem->supportedDisplacements.contains(DisplacementMode::PULL_ASIDE));
             addBtn(gameContext, "Pull Aside", [gameContext]() {
-                if (auto p = gameContext->getPlayer()) { p->inventory.setDisplacement(gameContext->selectedEquipmentSlot, DisplacementMode::PULL_ASIDE); gameContext->refreshActionGrid(); }
-            });
+                if (auto pl = gameContext->getPlayer()) { pl->inventory.setDisplacement(gameContext->selectedEquipmentSlot, DisplacementMode::PULL_ASIDE); gameContext->refreshActionGrid(); }
+            }, canPullAside, false, canPullAside ? "Pull garment aside to expose underlying body." : "Garment does not support pulling aside.");
+
+            bool canLift = (eqItem != nullptr && (eqItem->supportedDisplacements.contains(DisplacementMode::LIFT_UP) || eqItem->supportedDisplacements.contains(DisplacementMode::PULL_DOWN)));
             addBtn(gameContext, "Pull Up / Down", [gameContext]() {
-                if (auto p = gameContext->getPlayer()) { p->inventory.setDisplacement(gameContext->selectedEquipmentSlot, DisplacementMode::LIFT_UP); gameContext->refreshActionGrid(); }
-            });
+                if (auto pl = gameContext->getPlayer()) { pl->inventory.setDisplacement(gameContext->selectedEquipmentSlot, DisplacementMode::LIFT_UP); gameContext->refreshActionGrid(); }
+            }, canLift, false, canLift ? "Lift or lower garment." : "Garment does not support pulling up or down.");
+
+            bool canUnbutton = (eqItem != nullptr && eqItem->supportedDisplacements.contains(DisplacementMode::UNBUTTON));
             addBtn(gameContext, "Unbutton / Open", [gameContext]() {
-                if (auto p = gameContext->getPlayer()) { p->inventory.setDisplacement(gameContext->selectedEquipmentSlot, DisplacementMode::UNBUTTON); gameContext->refreshActionGrid(); }
-            });
+                if (auto pl = gameContext->getPlayer()) { pl->inventory.setDisplacement(gameContext->selectedEquipmentSlot, DisplacementMode::UNBUTTON); gameContext->refreshActionGrid(); }
+            }, canUnbutton, false, canUnbutton ? "Unfasten buttons or open closures." : "Garment does not have buttons or openings.");
+
+            bool canReset = (eqItem != nullptr && currentDisp != DisplacementMode::NONE);
             addBtn(gameContext, "Reset Fit", [gameContext]() {
-                if (auto p = gameContext->getPlayer()) { p->inventory.setDisplacement(gameContext->selectedEquipmentSlot, DisplacementMode::NONE); gameContext->refreshActionGrid(); }
-            });
+                if (auto pl = gameContext->getPlayer()) { pl->inventory.setDisplacement(gameContext->selectedEquipmentSlot, DisplacementMode::NONE); gameContext->refreshActionGrid(); }
+            }, canReset, false, canReset ? "Restore garment to properly worn placement." : "Garment is already worn normally.");
         }
         else if (gameContext->selectedInventoryIndex != -1)
         {
             bool hasNpc = (gameContext->getActiveTargetNPC() != nullptr);
+            auto slotInfo = gameContext->getInventorySlotItem(gameContext->selectedInventorySide, gameContext->selectedInventoryIndex);
+
             if (gameContext->selectedInventorySide == 0)
             {
-                addBtn(gameContext, "Equip / Use", [gameContext]() { gameContext->handleEquipAction(gameContext->selectedInventoryIndex); });
+                bool canEquipOrUse = false;
+                std::string equipUseDesc = "Select an item to equip or consume.";
+                std::string btnLabel = "Equip / Use";
+
+                if (slotInfo.isValid && slotInfo.itemPtr)
+                {
+                    if (slotInfo.itemPtr->isEquippable)
+                    {
+                        btnLabel = "Equip";
+                        canEquipOrUse = true;
+                        equipUseDesc = "Equip " + slotInfo.itemPtr->name + " to " + gameContext->formatEquipSlotName(slotInfo.itemPtr->targetSlot) + ".";
+                        if (!slotInfo.itemPtr->tooltip.empty()) equipUseDesc += " " + slotInfo.itemPtr->tooltip;
+                        else if (!slotInfo.itemPtr->description.empty()) equipUseDesc += " " + slotInfo.itemPtr->description;
+                    }
+                    else if (slotInfo.itemPtr->isConsumable)
+                    {
+                        btnLabel = "Use";
+                        canEquipOrUse = true;
+                        equipUseDesc = "Consume " + slotInfo.itemPtr->name + ". " + (!slotInfo.itemPtr->tooltip.empty() ? slotInfo.itemPtr->tooltip : slotInfo.itemPtr->description);
+                    }
+                    else
+                    {
+                        equipUseDesc = "This item cannot be equipped or consumed.";
+                    }
+                }
+
+                addBtn(gameContext, btnLabel, [gameContext]() { gameContext->handleEquipAction(gameContext->selectedInventoryIndex); }, canEquipOrUse, false, equipUseDesc);
+
+                bool isKey = (slotInfo.isValid && slotInfo.itemPtr && slotInfo.itemPtr->isKeyItem);
+                bool canDrop = slotInfo.isValid && !isKey;
                 std::string give1 = hasNpc ? "Give 1" : "Drop 1";
                 std::string giveAll = hasNpc ? "Give All" : "Drop All";
-                addBtn(gameContext, give1, [gameContext]() { gameContext->handleDropAction(gameContext->selectedInventoryIndex, 1); });
-                addBtn(gameContext, giveAll, [gameContext]() { gameContext->handleDropAction(gameContext->selectedInventoryIndex, 999); });
+                std::string dropDesc = isKey ? "Key quest items cannot be dropped." : (hasNpc ? "Transfer 1 item to NPC." : "Drop 1 item onto the floor.");
+                std::string dropAllDesc = isKey ? "Key quest items cannot be dropped." : (hasNpc ? "Transfer entire stack to NPC." : "Drop entire stack onto the floor.");
+
+                addBtn(gameContext, give1, [gameContext]() { gameContext->handleDropAction(gameContext->selectedInventoryIndex, 1); }, canDrop, false, dropDesc);
+                addBtn(gameContext, giveAll, [gameContext]() { gameContext->handleDropAction(gameContext->selectedInventoryIndex, 999); }, canDrop, false, dropAllDesc);
             }
             else if (gameContext->selectedInventorySide == 1)
             {
                 std::string take1 = hasNpc ? "Take 1" : "Pickup 1";
                 std::string takeAll = hasNpc ? "Take All" : "Pickup All";
-                addBtn(gameContext, take1, [gameContext]() { gameContext->handlePickupAction(gameContext->selectedInventoryIndex, 1); });
-                addBtn(gameContext, takeAll, [gameContext]() { gameContext->handlePickupAction(gameContext->selectedInventoryIndex, 999); });
+                addBtn(gameContext, take1, [gameContext]() { gameContext->handlePickupAction(gameContext->selectedInventoryIndex, 1); }, slotInfo.isValid, false, "Take 1 item into your backpack.");
+                addBtn(gameContext, takeAll, [gameContext]() { gameContext->handlePickupAction(gameContext->selectedInventoryIndex, 999); }, slotInfo.isValid, false, "Take entire stack into your backpack.");
             }
         }
 
-        addBackBtn(gameContext, "Close (I / ESC)", [gameContext]() { gameContext->changeState(std::make_unique<explorationState>()); });
+        addBackBtn(gameContext, "Close (I / ESC)", [gameContext]() { gameContext->changeState(std::make_unique<explorationState>()); }, "Return to exploration view.");
         return;
     }
 
     // 11. Combat State Actions
     if (auto combat = dynamic_cast<CombatState*>(currentState))
     {
-        // Row 1: Physical Attacks
-        addBtn(gameContext, "Strike (1 AP)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "STRIKE" }); });
-        addBtn(gameContext, "Heavy Strike (2 AP)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "HEAVY_STRIKE" }); });
-        addBtn(gameContext, "Defend (1 AP)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "DEFEND" }); });
-        addBtn(gameContext, "Disarm (2 AP)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "DISARM" }); });
-        addBtn(gameContext, "End Turn", [combat, gameContext]() { combat->handleEndTurn(gameContext); });
+        auto p = gameContext->getPlayer();
+        float curMp = p ? p->getStat("mana") : 0.0f;
+        int potionCount = 0;
+        if (p)
+        {
+            for (const auto& it : p->inventory.backpack)
+            {
+                if (it && it->id.find("potion") != std::string::npos) potionCount += it->count;
+            }
+        }
 
-        // Row 2: Spells & Magic
-        addBtn(gameContext, "Arcane Dart (10 MP)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SPELL_DART" }); });
-        addBtn(gameContext, "Fireball (25 MP)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SPELL_FIREBALL" }); });
-        addBtn(gameContext, "Shield (15 MP)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SPELL_SHIELD" }); });
-        addBtn(gameContext, "Cleanse (20 MP)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SPELL_CLEANSE" }); });
-        addBtn(gameContext, "Blink (30 MP)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SPELL_BLINK" }); });
+        // Row 1: Physical Attacks
+        addBtn(gameContext, "Strike (1 AP)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "STRIKE" }); }, true, false, "Basic physical strike dealing weapon damage.");
+        addBtn(gameContext, "Heavy Strike (2 AP)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "HEAVY_STRIKE" }); }, true, false, "Heavy blow dealing high physical damage.");
+        addBtn(gameContext, "Defend (1 AP)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "DEFEND" }); }, true, false, "Raise defense stance to reduce incoming damage.");
+        addBtn(gameContext, "Disarm (2 AP)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "DISARM" }); }, true, false, "Attempt to disarm opponent's equipped weapon.");
+        addBtn(gameContext, "End Turn", [combat, gameContext]() { combat->handleEndTurn(gameContext); }, true, false, "Conclude turn and pass initiative to enemies.");
+
+        // Row 2: Spells & Magic (greyed out if insufficient MP)
+        bool canDart = (curMp >= 10.0f);
+        addBtn(gameContext, "Arcane Dart (10 MP)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SPELL_DART" }); }, canDart, false, canDart ? "Fires a sharp dart of concentrated arcane power." : "Insufficient Mana (Requires 10 MP).");
+
+        bool canFireball = (curMp >= 25.0f);
+        addBtn(gameContext, "Fireball (25 MP)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SPELL_FIREBALL" }); }, canFireball, false, canFireball ? "Hurls an explosive sphere of demonic flame." : "Insufficient Mana (Requires 25 MP).");
+
+        bool canShield = (curMp >= 15.0f);
+        addBtn(gameContext, "Shield (15 MP)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SPELL_SHIELD" }); }, canShield, false, canShield ? "Conjures a shimmering protective barrier." : "Insufficient Mana (Requires 15 MP).");
+
+        bool canCleanse = (curMp >= 20.0f);
+        addBtn(gameContext, "Cleanse (20 MP)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SPELL_CLEANSE" }); }, canCleanse, false, canCleanse ? "Channels pure energy to purge negative debuffs." : "Insufficient Mana (Requires 20 MP).");
+
+        bool canBlink = (curMp >= 30.0f);
+        addBtn(gameContext, "Blink (30 MP)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SPELL_BLINK" }); }, canBlink, false, canBlink ? "Teleport short distance to evade attacks." : "Insufficient Mana (Requires 30 MP).");
 
         // Row 3: Items & Utility
-        addBtn(gameContext, "Potion (+50 HP)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "ITEM_POTION" }); });
-        addBtn(gameContext, "Mana (+50 MP)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "ITEM_MANA" }); });
-        addBtn(gameContext, "Surrender", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SURRENDER" }); });
-        addBtn(gameContext, "Escape", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "ESCAPE" }); });
-        addBtn(gameContext, "Victory (Skip)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "WIN" }); });
+        bool hasPot = (potionCount > 0);
+        addBtn(gameContext, "Potion (+50 HP)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "ITEM_POTION" }); }, hasPot, false, hasPot ? "Drink a healing potion to restore 50 Health." : "No healing potions in inventory.");
+        addBtn(gameContext, "Mana (+50 MP)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "ITEM_MANA" }); }, true, false, "Restore 50 Mana points.");
+        addBtn(gameContext, "Surrender", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SURRENDER" }); }, true, false, "Yield to enemy combatants and enter submission.");
+        addBtn(gameContext, "Escape", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "ESCAPE" }); }, true, false, "Flee from combat encounter.");
+        addBtn(gameContext, "Victory (Skip)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "WIN" }); }, true, false, "Instantly defeat remaining enemies.");
         return;
     }
 
-    // 12. Scene Event Choices
+    // 12. Scene Event Choices (Data-Driven Tooltips & Greyed-Out when requirements unmet)
     if (dynamic_cast<eventState*>(currentState))
     {
         const auto& scene = gameContext->getCurrentScene();
         for (const auto& choice : scene.choices)
         {
-            if (gameContext->checkConditions(choice.requirements))
+            bool meetsReqs = gameContext->checkConditions(choice.requirements);
+            std::string tooltipText = choice.tooltip;
+
+            if (!meetsReqs)
             {
-                addBtn(gameContext, choice.label, [gameContext, choice]() { gameContext->processChoice(choice); });
+                if (tooltipText.empty())
+                {
+                    tooltipText = "Requirements not met for this option.";
+                }
+                else
+                {
+                    tooltipText = "[Locked] " + tooltipText;
+                }
+                addBtn(gameContext, choice.label, nullptr, false, false, tooltipText);
+            }
+            else
+            {
+                if (tooltipText.empty())
+                {
+                    tooltipText = std::format("Select: {}", choice.label);
+                }
+                addBtn(gameContext, choice.label, [gameContext, choice]() { gameContext->processChoice(choice); }, true, false, tooltipText);
             }
         }
         return;
@@ -548,7 +638,7 @@ void ActionGridManager::refresh(game* gameContext)
                 {
                     addBtn(gameContext, std::format("Enter {}", warp.targetMap.empty() ? "Door" : warp.targetMap), [gameContext, warp]() {
                         gameContext->loadMap(warp.targetMap, warp.targetX, warp.targetY);
-                    });
+                    }, true, false, "Transition into " + (warp.targetMap.empty() ? "adjacent area" : warp.targetMap) + ".");
                 }
 
                 auto& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
@@ -556,20 +646,20 @@ void ActionGridManager::refresh(game* gameContext)
                 {
                     addBtn(gameContext, std::format("Talk to {}", tileData.persistentNPC->name), [gameContext, npc = tileData.persistentNPC]() {
                         gameContext->triggerEncounter(npc);
-                    });
+                    }, true, false, "Initiate dialogue with " + tileData.persistentNPC->name + ".");
                 }
 
                 if (!tileData.droppedItems.empty())
                 {
                     addBtn(gameContext, std::format("Examine Ground ({} items)", tileData.droppedItems.size()), [gameContext]() {
                         gameContext->changeState(std::make_unique<inventoryState>());
-                    });
+                    }, true, false, "Inspect and pick up items lying on the ground.");
                 }
             }
 
-            addBtn(gameContext, "Inventory (I)", [gameContext]() { gameContext->changeState(std::make_unique<inventoryState>()); });
-            addBtn(gameContext, "Visit Shop (K)", [gameContext]() { gameContext->changeState(std::make_unique<shopState>()); });
-            addBtn(gameContext, "Mutations & TF (M)", [gameContext]() { gameContext->changeState(std::make_unique<transformationState>()); });
+            addBtn(gameContext, "Inventory (I)", [gameContext]() { gameContext->changeState(std::make_unique<inventoryState>()); }, true, false, "Open dual 5x4 player inventory and ground storage.");
+            addBtn(gameContext, "Visit Shop (K)", [gameContext]() { gameContext->changeState(std::make_unique<shopState>()); }, true, false, "Browse merchant catalog and purchase supplies.");
+            addBtn(gameContext, "Mutations & TF (M)", [gameContext]() { gameContext->changeState(std::make_unique<transformationState>()); }, true, false, "Inspect anatomical changes and body transformations.");
             addBtn(gameContext, "Test Combat (C)", [gameContext]() {
                 std::vector<std::shared_ptr<entity>> pParty = { gameContext->playerEntity };
                 std::vector<std::shared_ptr<entity>> eParty;
@@ -578,16 +668,16 @@ void ActionGridManager::refresh(game* gameContext)
                 else if (gameContext->activeTargetNPC) eParty.push_back(gameContext->activeTargetNPC);
                 else eParty.push_back(encounterResolver::createEncounterNPC(1, gameContext->settings));
                 gameContext->changeState(std::make_unique<CombatState>(pParty, eParty));
-            });
-            addBtn(gameContext, "Wait / Rest (1 hr)", [gameContext]() { gameContext->gameTime.advanceTime(60); gameContext->refreshActionGrid(); });
-            addBtn(gameContext, "Phone (Menu)", [gameContext]() { gameContext->isPhoneMenuOpen = true; gameContext->refreshActionGrid(); });
-            addBtn(gameContext, "QuickSave (F5)", [gameContext]() { saveManager::saveNamedGame(gameContext, "QuickSave"); });
+            }, true, false, "Engage in tactical turn-based combat encounter.");
+            addBtn(gameContext, "Wait / Rest (1 hr)", [gameContext]() { gameContext->gameTime.advanceTime(60); gameContext->refreshActionGrid(); }, true, false, "Pass 1 hour of in-game time.");
+            addBtn(gameContext, "Phone (Menu)", [gameContext]() { gameContext->isPhoneMenuOpen = true; gameContext->refreshActionGrid(); }, true, false, "Access smartphone apps, contacts, and map.");
+            addBtn(gameContext, "QuickSave (F5)", [gameContext]() { saveManager::saveNamedGame(gameContext, "QuickSave"); }, true, false, "Quick save your current progress.");
             addBtn(gameContext, "QuickLoad (F9)", [gameContext]() {
                 entity* p = gameContext->getPlayer();
                 std::string charName = (p && !p->name.empty()) ? p->name : "Hero";
                 saveManager::loadFromFile(gameContext, charName + "_QuickSave.json");
                 gameContext->refreshActionGrid();
-            });
+            }, true, false, "Quick load your last saved game state.");
         }
     }
 }

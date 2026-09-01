@@ -87,6 +87,7 @@ bool gameMap::loadFromFile(const std::string& filePath)
                 MapTrigger trig;
                 trig.id = tJson.value("id", "");
                 trig.label = tJson.value("label", "Interact");
+                trig.tooltip = tJson.value("tooltip", "");
                 trig.x = tJson.at("x").get<int>();
                 trig.y = tJson.at("y").get<int>();
                 trig.sceneId = tJson.at("sceneId").get<std::string>();

@@ -14,6 +14,7 @@ struct item
     std::string id;
     std::string name;
     std::string description;
+    std::string tooltip;
 
     int baseValue = 0;
 

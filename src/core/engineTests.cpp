@@ -935,6 +935,32 @@ namespace EngineTests
         logResult("TooltipManager::setHoverTooltip ignores cursor outside bounds", outsidePass);
         allPassed &= outsidePass;
 
+        // 5. Font wrapped height measurement
+        float singleLineH = fontManager::getInstance().getLineHeight(1.0f);
+        float measuredH = fontManager::getInstance().getTextWrappedHeight("This is a multi-line long prose description designed to wrap over multiple lines in the tooltip.", 100.0f, 1.0f);
+        bool heightPass = (measuredH >= singleLineH * 2.0f);
+        logResult("fontManager::getTextWrappedHeight correctly measures multi-line wrapped text height", heightPass);
+        allPassed &= heightPass;
+
+        // 6. Data-driven choice tooltips and disabled requirements
+        game g;
+        g.init();
+        g.loadScene("quest_intro_01"); // Intro quest where Player does NOT have canis root yet
+        g.refreshActionGrid();
+        bool foundDisabledChoice = false;
+        bool foundDataTooltip = false;
+        for (const auto& btn : g.activeButtons)
+        {
+            if (btn.label.find("Canis Root") != std::string::npos)
+            {
+                foundDisabledChoice = (!btn.isEnabled); // Needs to be disabled/greyed out
+                foundDataTooltip = (!btn.description.empty() && btn.description.find("Canis Root") != std::string::npos);
+            }
+        }
+        logResult("Quest choice with unmet requirement is disabled/greyed out", foundDisabledChoice);
+        logResult("Disabled quest choice carries data-driven tooltip from quest JSON", foundDataTooltip);
+        allPassed &= (foundDisabledChoice && foundDataTooltip);
+
         return allPassed;
     }
 

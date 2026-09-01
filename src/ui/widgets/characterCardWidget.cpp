@@ -302,11 +302,6 @@ namespace CharacterCardWidget
                 UIWidget::drawPanel(renderer, tBox, Theme::colors.bgHeader, Theme::colors.borderButton);
                 float txtW = UIWidget::getTextWidth(defaultChips[t].first, uiScale * 0.62f);
                 UIWidget::drawText(renderer, defaultChips[t].first, tBox.x + ((dW - txtW) / 2.0f), tBox.y + (3.0f * uiScale), defaultChips[t].second, uiScale * 0.62f);
-
-                TooltipManager::setHoverTooltip(tBox, mousePos,
-                                                std::format("{} Baseline", defaultChips[t].first),
-                                                "Normal physical and arcane equilibrium. No active debuffs or afflictions.",
-                                                "Condition Normal");
             }
         }
         else

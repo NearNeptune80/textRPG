@@ -25,6 +25,7 @@ public:
 
     void drawText(SDL_Renderer* renderer, const std::string& text, float x, float y, SDL_Color color, float scale = 1.0f);
     float drawTextWrapped(SDL_Renderer* renderer, const std::string& text, float x, float y, float maxWidth, SDL_Color color, float scale = 1.0f);
+    float getTextWrappedHeight(const std::string& text, float maxWidth, float scale = 1.0f);
 
     float getTextWidth(const std::string& text, float scale = 1.0f);
     float getLineHeight(float scale = 1.0f);
