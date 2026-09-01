@@ -107,6 +107,129 @@ struct EditorConfig {
         return valid;
     }
 
+    struct Catalogs {
+        static const std::vector<std::string>& racialTypes() {
+            static const std::vector<std::string> s = {
+                "Human", "Demon", "Cat-morph", "Dog-morph", "Wolf-morph", "Horse-morph", "Fox-morph", "Harpy",
+                "Bovine-morph", "Dragon-morph", "Rabbit-morph", "Bat-morph", "Alligator-morph", "Rat-morph",
+                "Squirrel-morph", "Reindeer-morph", "Spider-morph", "Shark-morph", "Dolphin-morph", "Elf", "Slime", "Angel", "Imp"
+            };
+            return s;
+        }
+        static const std::vector<std::string>& minorRacesWithNone() {
+            static const std::vector<std::string> s = {
+                "None", "Human", "Demon", "Cat-morph", "Dog-morph", "Wolf-morph", "Horse-morph", "Fox-morph", "Harpy",
+                "Bovine-morph", "Dragon-morph", "Rabbit-morph", "Bat-morph", "Alligator-morph", "Rat-morph",
+                "Squirrel-morph", "Reindeer-morph", "Spider-morph", "Shark-morph", "Dolphin-morph", "Elf", "Slime", "Angel", "Imp"
+            };
+            return s;
+        }
+        static const std::vector<std::string>& bodySizes() {
+            static const std::vector<std::string> s = { "Skinny", "Slender", "Average", "Large", "Huge" };
+            return s;
+        }
+        static const std::vector<std::string>& muscleTiers() {
+            static const std::vector<std::string> s = { "Soft", "Lightly Muscled", "Toned", "Muscular", "Ripped" };
+            return s;
+        }
+        static const std::vector<std::string>& footTypes() {
+            static const std::vector<std::string> s = { "Plantigrade", "Digitigrade", "Unguligrade", "Arachnoid" };
+            return s;
+        }
+        static const std::vector<std::string>& legConfigs() {
+            static const std::vector<std::string> s = { "Bipedal", "Taur", "Serpent", "Arachnid", "Cephalopod", "Avian" };
+            return s;
+        }
+        static const std::vector<std::string>& genitalPlacements() {
+            static const std::vector<std::string> s = { "Normal", "Cloaca", "Rear Cloaca" };
+            return s;
+        }
+        static const std::vector<std::string>& bodyHairOptions() {
+            static const std::vector<std::string> s = { "None", "Stubble", "Manicured", "Trimmed", "Natural", "Unkempt", "Bushy", "Wild" };
+            return s;
+        }
+        static const std::vector<std::string>& eyeShapes() {
+            static const std::vector<std::string> s = { "Round", "Horizontal", "Vertical", "Heart", "Star" };
+            return s;
+        }
+        static const std::vector<std::string>& hornTypes() {
+            static const std::vector<std::string> s = { "None", "Curved", "Swept-back", "Spiral", "Ram", "Demon", "Antlers", "Bull", "Unicorn", "Dragon" };
+            return s;
+        }
+        static const std::vector<std::string>& antennaTypes() {
+            static const std::vector<std::string> s = { "None", "Moth", "Bee", "Butterfly", "Ant" };
+            return s;
+        }
+        static const std::vector<std::string>& lipSizes() {
+            static const std::vector<std::string> s = { "Thin", "Average", "Full", "Plump", "Huge" };
+            return s;
+        }
+        static const std::vector<std::string>& wetnessLevels() {
+            static const std::vector<std::string> s = { "Dry", "Slightly Moist", "Moist", "Wet", "Slimy", "Sloppy", "Sopping Wet", "Drooling" };
+            return s;
+        }
+        static const std::vector<std::string>& orificeModifiers() {
+            static const std::vector<std::string> s = { "Puffy", "Internally-ribbed", "Tentacled", "Internally-muscled" };
+            return s;
+        }
+        static const std::vector<std::string>& penetrationModifiers() {
+            static const std::vector<std::string> s = { "Sheathed", "Ribbed", "Tentacled", "Knotted", "Blunt", "Tapered", "Flared", "Barbed", "Veiny", "Prehensile", "Ovipositor" };
+            return s;
+        }
+        static const std::vector<std::string>& cupSizes() {
+            static const std::vector<std::string> s = {
+                "Flat", "A", "B", "C", "D", "DD", "E", "F", "FF", "G", "GG", "H", "HH", "J", "Enormous"
+            };
+            return s;
+        }
+        static const std::vector<std::string>& breastShapes() {
+            static const std::vector<std::string> s = { "Round", "Pointy", "Perky", "Side-set", "Wide", "Narrow" };
+            return s;
+        }
+        static const std::vector<std::string>& nippleShapes() {
+            static const std::vector<std::string> s = { "Normal", "Inverted", "Lips", "Vagina" };
+            return s;
+        }
+        static const std::vector<std::string>& areolaeShapes() {
+            static const std::vector<std::string> s = { "Round", "Heart", "Star" };
+            return s;
+        }
+        static const std::vector<std::string>& girthLevels() {
+            static const std::vector<std::string> s = { "Thin", "Slender", "Narrow", "Average", "Girthy", "Thick", "Chubby", "Fat" };
+            return s;
+        }
+        static const std::vector<std::string>& wingSizes() {
+            static const std::vector<std::string> s = { "None", "Tiny", "Small", "Average", "Large", "Huge", "Massive", "Unreasonable" };
+            return s;
+        }
+        static const std::vector<std::string>& size5() {
+            static const std::vector<std::string> s = { "Tiny", "Small", "Average", "Large", "Huge" };
+            return s;
+        }
+        static const std::vector<std::string>& allHairStyles() {
+            static const std::vector<std::string> s = {
+                "Bald", "Messy", "Loose", "Slicked-back", "Mohawk", "Afro", "Sidecut", "Pixie", "Bob cut",
+                "Straight", "Wavy", "Curly", "Ponytail", "Low ponytail", "Bun", "Chignon", "Braided",
+                "Twin tails", "Twin braids", "Side braids", "Crown braid", "Hime cut", "Topknot", "Dreadlocks"
+            };
+            return s;
+        }
+        static const std::vector<std::string>& fluidFlavours() {
+            static const std::vector<std::string> s = {
+                "Milk", "Cum", "Girlcum", "Bubblegum", "Beer", "Vanilla", "Strawberry", "Chocolate", "Pineapple",
+                "Honey", "Mint", "Cherry", "Coffee", "Tea", "Maple", "Cinnamon", "Lemon", "Orange", "Grape",
+                "Melon", "Coconut", "Blueberry", "Banana"
+            };
+            return s;
+        }
+        static const std::vector<std::string>& fluidModifiers() {
+            static const std::vector<std::string> s = {
+                "Viscous", "Sticky", "Slimy", "Bubbling", "Musky", "Mineral Oil", "Alcoholic", "Strongly Alcoholic", "Addictive", "Psychoactive"
+            };
+            return s;
+        }
+    };
+
     static std::string calculateBodyShape(const std::string& muscle, const std::string& bodySize) {
         auto toLower = [](std::string str) {
             for (char& c : str) c = std::tolower(static_cast<unsigned char>(c));

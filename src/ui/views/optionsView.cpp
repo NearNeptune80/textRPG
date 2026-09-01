@@ -478,6 +478,39 @@ namespace OptionsView
                 return 5;
             };
 
+            struct ToggleDef {
+                std::string title;
+                SDL_Color color;
+                std::string description;
+                bool* pVal;
+            };
+
+            auto renderToggles = [&](const std::vector<ToggleDef>& defs) {
+                for (const auto& def : defs)
+                {
+                    renderOptionCard(def.title, def.color, def.description, { "OFF", "ON" }, *def.pVal ? 1 : 0,
+                                     [&, p = def.pVal](int idx) {
+                                         *p = (idx == 1);
+                                         settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                                     });
+                }
+            };
+
+            auto renderDemographicCategory = [&](const std::vector<std::tuple<std::string, SDL_Color, std::string, float*>>& items) {
+                renderInfoDropdown();
+                std::vector<std::pair<float, SDL_Color>> segments;
+                for (const auto& [title, col, desc, pVal] : items)
+                {
+                    renderFrequencyRow(title, col, desc, floatToFreqIdx(*pVal),
+                                       [&, p = pVal](int idx) {
+                                           *p = freqIdxToFloat(idx);
+                                           settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                                       });
+                    segments.push_back({ *pVal, col });
+                }
+                renderDistributionBar(segments);
+            };
+
             if (opt->contentCategory == ContentOptionsCategory::MISC)
             {
                 renderOptionCard("Autosave Frequency", Theme::colors.companion, "Choose how often want the game to autosave when you transition from one map to another.",
@@ -488,79 +521,22 @@ namespace OptionsView
                                      settingsManager::saveToFile(gameContext->settings, "data/settings.json");
                                  });
 
-                renderOptionCard("Artwork", SDL_Color{ 100, 200, 255, 255 }, "Enables artwork to be displayed in characters' information screens.",
-                                 { "OFF", "ON" },
-                                 gameContext->settings.display.showArtwork ? 1 : 0,
-                                 [&](int idx) {
-                                     gameContext->settings.display.showArtwork = (idx == 1);
-                                     settingsManager::saveToFile(gameContext->settings, "data/settings.json");
-                                 });
-
-                renderOptionCard("Thumbnails", SDL_Color{ 100, 200, 255, 255 }, "Enables tooltips containing thumbnail images of the character.",
-                                 { "OFF", "ON" },
-                                 gameContext->settings.display.showThumbnails ? 1 : 0,
-                                 [&](int idx) {
-                                     gameContext->settings.display.showThumbnails = (idx == 1);
-                                     settingsManager::saveToFile(gameContext->settings, "data/settings.json");
-                                 });
-
-                renderOptionCard("Shared Encyclopedia", Theme::colors.textGold, "When enabled, your character will use the shared Encyclopedia across playthroughs.",
-                                 { "OFF", "ON" },
-                                 gameContext->settings.gameplay.sharedEncyclopedia ? 1 : 0,
-                                 [&](int idx) {
-                                     gameContext->settings.gameplay.sharedEncyclopedia = (idx == 1);
-                                     settingsManager::saveToFile(gameContext->settings, "data/settings.json");
-                                 });
-
-                renderOptionCard("Storm interruptions", SDL_Color{ 235, 140, 255, 255 }, "When enabled, arcane storms will interrupt dialogue to let you know that they've started.",
-                                 { "OFF", "ON" },
-                                 gameContext->settings.gameplay.stormInterruptions ? 1 : 0,
-                                 [&](int idx) {
-                                     gameContext->settings.gameplay.stormInterruptions = (idx == 1);
-                                     settingsManager::saveToFile(gameContext->settings, "data/settings.json");
-                                 });
+                renderToggles({
+                    { "Artwork", SDL_Color{ 100, 200, 255, 255 }, "Enables artwork to be displayed in characters' information screens.", &gameContext->settings.display.showArtwork },
+                    { "Thumbnails", SDL_Color{ 100, 200, 255, 255 }, "Enables tooltips containing thumbnail images of the character.", &gameContext->settings.display.showThumbnails },
+                    { "Shared Encyclopedia", Theme::colors.textGold, "When enabled, your character will use the shared Encyclopedia across playthroughs.", &gameContext->settings.gameplay.sharedEncyclopedia },
+                    { "Storm interruptions", SDL_Color{ 235, 140, 255, 255 }, "When enabled, arcane storms will interrupt dialogue to let you know that they've started.", &gameContext->settings.gameplay.stormInterruptions }
+                });
             }
             else if (opt->contentCategory == ContentOptionsCategory::GAMEPLAY)
             {
-                renderOptionCard("Enchantment Instability", SDL_Color{ 235, 140, 255, 255 }, "Toggle the 'enchantment instability' mechanic, restricting enchanted items.",
-                                 { "OFF", "ON" },
-                                 gameContext->settings.gameplay.enchantmentInstability ? 1 : 0,
-                                 [&](int idx) {
-                                     gameContext->settings.gameplay.enchantmentInstability = (idx == 1);
-                                     settingsManager::saveToFile(gameContext->settings, "data/settings.json");
-                                 });
-
-                renderOptionCard("Bad Ends", SDL_Color{ 255, 110, 120, 255 }, "Toggle the ability to trigger 'bad ends', which end the game when encountered.",
-                                 { "OFF", "ON" },
-                                 gameContext->settings.gameplay.badEndsEnabled ? 1 : 0,
-                                 [&](int idx) {
-                                     gameContext->settings.gameplay.badEndsEnabled = (idx == 1);
-                                     settingsManager::saveToFile(gameContext->settings, "data/settings.json");
-                                 });
-
-                renderOptionCard("Level Drain", SDL_Color{ 255, 90, 100, 255 }, "Toggle the use of the 'orgasmic level drain' perk by unique NPCs.",
-                                 { "OFF", "ON" },
-                                 gameContext->settings.gameplay.levelDrainEnabled ? 1 : 0,
-                                 [&](int idx) {
-                                     gameContext->settings.gameplay.levelDrainEnabled = (idx == 1);
-                                     settingsManager::saveToFile(gameContext->settings, "data/settings.json");
-                                 });
-
-                renderOptionCard("Opportunistic attackers", SDL_Color{ 255, 110, 120, 255 }, "Makes random attacks more likely when you're high on lust, low health, or exposed.",
-                                 { "OFF", "ON" },
-                                 gameContext->settings.gameplay.opportunisticAttackers ? 1 : 0,
-                                 [&](int idx) {
-                                     gameContext->settings.gameplay.opportunisticAttackers = (idx == 1);
-                                     settingsManager::saveToFile(gameContext->settings, "data/settings.json");
-                                 });
-
-                renderOptionCard("Auto-Loot Defeated Enemies", SDL_Color{ 100, 200, 255, 255 }, "Automatically collects dropped coin and essentials upon combat victory.",
-                                 { "OFF", "ON" },
-                                 gameContext->settings.gameplay.autoLoot ? 1 : 0,
-                                 [&](int idx) {
-                                     gameContext->settings.gameplay.autoLoot = (idx == 1);
-                                     settingsManager::saveToFile(gameContext->settings, "data/settings.json");
-                                 });
+                renderToggles({
+                    { "Enchantment Instability", SDL_Color{ 235, 140, 255, 255 }, "Toggle the 'enchantment instability' mechanic, restricting enchanted items.", &gameContext->settings.gameplay.enchantmentInstability },
+                    { "Bad Ends", SDL_Color{ 255, 110, 120, 255 }, "Toggle the ability to trigger 'bad ends', which end the game when encountered.", &gameContext->settings.gameplay.badEndsEnabled },
+                    { "Level Drain", SDL_Color{ 255, 90, 100, 255 }, "Toggle the use of the 'orgasmic level drain' perk by unique NPCs.", &gameContext->settings.gameplay.levelDrainEnabled },
+                    { "Opportunistic attackers", SDL_Color{ 255, 110, 120, 255 }, "Makes random attacks more likely when you're high on lust, low health, or exposed.", &gameContext->settings.gameplay.opportunisticAttackers },
+                    { "Auto-Loot Defeated Enemies", SDL_Color{ 100, 200, 255, 255 }, "Automatically collects dropped coin and essentials upon combat victory.", &gameContext->settings.gameplay.autoLoot }
+                });
 
                 int curLossIdx = (gameContext->settings.gameplay.currencyLossOnDefeatPercent < 0.05f) ? 0 :
                                  (gameContext->settings.gameplay.currencyLossOnDefeatPercent < 0.20f ? 1 :
@@ -576,29 +552,11 @@ namespace OptionsView
             }
             else if (opt->contentCategory == ContentOptionsCategory::SEX_AND_FETISHES)
             {
-                renderOptionCard("Non-consent", SDL_Color{ 255, 95, 120, 255 }, "This enables the 'resist' pace in sex scenes, which contains more extreme non-consensual descriptions.",
-                                 { "OFF", "ON" },
-                                 gameContext->settings.content.nonConEnabled ? 1 : 0,
-                                 [&](int idx) {
-                                     gameContext->settings.content.nonConEnabled = (idx == 1);
-                                     settingsManager::saveToFile(gameContext->settings, "data/settings.json");
-                                 });
-
-                renderOptionCard("Sadistic sex / Extreme", SDL_Color{ 255, 95, 120, 255 }, "This unlocks 'sadistic' sex actions such as rough treatment and heavy restraints.",
-                                 { "OFF", "ON" },
-                                 gameContext->settings.content.extremeContentEnabled ? 1 : 0,
-                                 [&](int idx) {
-                                     gameContext->settings.content.extremeContentEnabled = (idx == 1);
-                                     settingsManager::saveToFile(gameContext->settings, "data/settings.json");
-                                 });
-
-                renderOptionCard("Public Sex Exposure", SDL_Color{ 255, 105, 180, 255 }, "Allows public exhibitionism and onlookers during intimate encounters in open zones.",
-                                 { "OFF", "ON" },
-                                 gameContext->settings.content.publicSexEnabled ? 1 : 0,
-                                 [&](int idx) {
-                                     gameContext->settings.content.publicSexEnabled = (idx == 1);
-                                     settingsManager::saveToFile(gameContext->settings, "data/settings.json");
-                                 });
+                renderToggles({
+                    { "Non-consent", SDL_Color{ 255, 95, 120, 255 }, "This enables the 'resist' pace in sex scenes, which contains more extreme non-consensual descriptions.", &gameContext->settings.content.nonConEnabled },
+                    { "Sadistic sex / Extreme", SDL_Color{ 255, 95, 120, 255 }, "This unlocks 'sadistic' sex actions such as rough treatment and heavy restraints.", &gameContext->settings.content.extremeContentEnabled },
+                    { "Public Sex Exposure", SDL_Color{ 255, 105, 180, 255 }, "Allows public exhibitionism and onlookers during intimate encounters in open zones.", &gameContext->settings.content.publicSexEnabled }
+                });
 
                 int fluidIdx = (gameContext->settings.content.fluidMultiplier <= 0.3f) ? 0 :
                                (gameContext->settings.content.fluidMultiplier <= 0.7f ? 1 :
@@ -615,21 +573,10 @@ namespace OptionsView
             }
             else if (opt->contentCategory == ContentOptionsCategory::BODIES)
             {
-                renderOptionCard("Pregnancy", SDL_Color{ 185, 230, 110, 255 }, "Enables insemination, gestation progression, and progeny generation mechanics.",
-                                 { "OFF", "ON" },
-                                 gameContext->settings.content.pregnancyEnabled ? 1 : 0,
-                                 [&](int idx) {
-                                     gameContext->settings.content.pregnancyEnabled = (idx == 1);
-                                     settingsManager::saveToFile(gameContext->settings, "data/settings.json");
-                                 });
-
-                renderOptionCard("Lactation", SDL_Color{ 100, 210, 255, 255 }, "Enables breast engorgement, milk production, and related dialogue / feeding actions.",
-                                 { "OFF", "ON" },
-                                 gameContext->settings.content.lactationEnabled ? 1 : 0,
-                                 [&](int idx) {
-                                     gameContext->settings.content.lactationEnabled = (idx == 1);
-                                     settingsManager::saveToFile(gameContext->settings, "data/settings.json");
-                                 });
+                renderToggles({
+                    { "Pregnancy", SDL_Color{ 185, 230, 110, 255 }, "Enables insemination, gestation progression, and progeny generation mechanics.", &gameContext->settings.content.pregnancyEnabled },
+                    { "Lactation", SDL_Color{ 100, 210, 255, 255 }, "Enables breast engorgement, milk production, and related dialogue / feeding actions.", &gameContext->settings.content.lactationEnabled }
+                });
 
                 int tfIdx = (gameContext->settings.content.transformationSpeedMultiplier >= 5.0f) ? 0 :
                             (gameContext->settings.content.transformationSpeedMultiplier >= 1.5f ? 1 :
@@ -646,106 +593,44 @@ namespace OptionsView
             }
             else if (opt->contentCategory == ContentOptionsCategory::GENDER_PREFS)
             {
-                renderInfoDropdown();
-
                 auto& d = gameContext->settings.demographics;
-                renderFrequencyRow("Male / Masculine", SDL_Color{ 100, 160, 255, 255 }, "Masculine bodies with male anatomy.", floatToFreqIdx(d.percentMale),
-                                   [&](int idx) { d.percentMale = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
-
-                renderFrequencyRow("Female / Feminine", SDL_Color{ 255, 120, 180, 255 }, "Feminine bodies with female anatomy.", floatToFreqIdx(d.percentFemale),
-                                   [&](int idx) { d.percentFemale = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
-
-                renderFrequencyRow("Hermaphrodite", SDL_Color{ 180, 130, 255, 255 }, "Dual sex anatomy with breasts and penis.", floatToFreqIdx(d.percentHermaphrodite),
-                                   [&](int idx) { d.percentHermaphrodite = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
-
-                renderFrequencyRow("Gynomorph", SDL_Color{ 255, 140, 220, 255 }, "Feminine frame with penis and breasts.", floatToFreqIdx(d.percentGynomorph),
-                                   [&](int idx) { d.percentGynomorph = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
-
-                renderFrequencyRow("Andromorph", SDL_Color{ 120, 190, 255, 255 }, "Masculine frame with vagina and flat chest.", floatToFreqIdx(d.percentAndromorph),
-                                   [&](int idx) { d.percentAndromorph = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
-
-                renderFrequencyRow("Asexual / Null", SDL_Color{ 180, 180, 190, 255 }, "Neutral form with smooth groin.", floatToFreqIdx(d.percentNull),
-                                   [&](int idx) { d.percentNull = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
-
-                renderDistributionBar({
-                    { d.percentMale, SDL_Color{ 100, 160, 255, 255 } },
-                    { d.percentFemale, SDL_Color{ 255, 120, 180, 255 } },
-                    { d.percentHermaphrodite, SDL_Color{ 180, 130, 255, 255 } },
-                    { d.percentGynomorph, SDL_Color{ 255, 140, 220, 255 } },
-                    { d.percentAndromorph, SDL_Color{ 120, 190, 255, 255 } },
-                    { d.percentNull, SDL_Color{ 180, 180, 190, 255 } }
+                renderDemographicCategory({
+                    { "Male / Masculine", SDL_Color{ 100, 160, 255, 255 }, "Masculine bodies with male anatomy.", &d.percentMale },
+                    { "Female / Feminine", SDL_Color{ 255, 120, 180, 255 }, "Feminine bodies with female anatomy.", &d.percentFemale },
+                    { "Hermaphrodite", SDL_Color{ 180, 130, 255, 255 }, "Dual sex anatomy with breasts and penis.", &d.percentHermaphrodite },
+                    { "Gynomorph", SDL_Color{ 255, 140, 220, 255 }, "Feminine frame with penis and breasts.", &d.percentGynomorph },
+                    { "Andromorph", SDL_Color{ 120, 190, 255, 255 }, "Masculine frame with vagina and flat chest.", &d.percentAndromorph },
+                    { "Asexual / Null", SDL_Color{ 180, 180, 190, 255 }, "Neutral form with smooth groin.", &d.percentNull }
                 });
             }
             else if (opt->contentCategory == ContentOptionsCategory::ORIENTATION_PREFS)
             {
-                renderInfoDropdown();
-
                 auto& d = gameContext->settings.demographics;
-                renderFrequencyRow("Heterosexual", SDL_Color{ 100, 160, 255, 255 }, "Attracted to opposite sex.", floatToFreqIdx(d.percentHetero),
-                                   [&](int idx) { d.percentHetero = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
-
-                renderFrequencyRow("Bisexual", SDL_Color{ 180, 130, 255, 255 }, "Attracted to both sexes.", floatToFreqIdx(d.percentBi),
-                                   [&](int idx) { d.percentBi = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
-
-                renderFrequencyRow("Homosexual", SDL_Color{ 255, 110, 180, 255 }, "Attracted to same sex.", floatToFreqIdx(d.percentHomo),
-                                   [&](int idx) { d.percentHomo = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
-
-                renderFrequencyRow("Asexual", SDL_Color{ 180, 180, 190, 255 }, "Low or no sexual interest.", floatToFreqIdx(d.percentAsexual),
-                                   [&](int idx) { d.percentAsexual = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
-
-                renderDistributionBar({
-                    { d.percentHetero, SDL_Color{ 100, 160, 255, 255 } },
-                    { d.percentBi, SDL_Color{ 180, 130, 255, 255 } },
-                    { d.percentHomo, SDL_Color{ 255, 110, 180, 255 } },
-                    { d.percentAsexual, SDL_Color{ 180, 180, 190, 255 } }
+                renderDemographicCategory({
+                    { "Heterosexual", SDL_Color{ 100, 160, 255, 255 }, "Attracted to opposite sex.", &d.percentHetero },
+                    { "Bisexual", SDL_Color{ 180, 130, 255, 255 }, "Attracted to both sexes.", &d.percentBi },
+                    { "Homosexual", SDL_Color{ 255, 110, 180, 255 }, "Attracted to same sex.", &d.percentHomo },
+                    { "Asexual", SDL_Color{ 180, 180, 190, 255 }, "Low or no sexual interest.", &d.percentAsexual }
                 });
             }
             else if (opt->contentCategory == ContentOptionsCategory::AGE_PREFS)
             {
-                renderInfoDropdown();
-
                 auto& d = gameContext->settings.demographics;
-                renderFrequencyRow("Young Adult (18-25)", SDL_Color{ 140, 220, 110, 255 }, "", floatToFreqIdx(d.percentYoungAdult),
-                                   [&](int idx) { d.percentYoungAdult = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
-
-                renderFrequencyRow("Adult (26-40)", SDL_Color{ 100, 200, 255, 255 }, "", floatToFreqIdx(d.percentAdult),
-                                   [&](int idx) { d.percentAdult = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
-
-                renderFrequencyRow("Mature (41-60)", SDL_Color{ 220, 180, 90, 255 }, "", floatToFreqIdx(d.percentMature),
-                                   [&](int idx) { d.percentMature = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
-
-                renderFrequencyRow("Elder (60+)", SDL_Color{ 200, 140, 140, 255 }, "", floatToFreqIdx(d.percentElder),
-                                   [&](int idx) { d.percentElder = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
-
-                renderDistributionBar({
-                    { d.percentYoungAdult, SDL_Color{ 140, 220, 110, 255 } },
-                    { d.percentAdult, SDL_Color{ 100, 200, 255, 255 } },
-                    { d.percentMature, SDL_Color{ 220, 180, 90, 255 } },
-                    { d.percentElder, SDL_Color{ 200, 140, 140, 255 } }
+                renderDemographicCategory({
+                    { "Young Adult (18-25)", SDL_Color{ 140, 220, 110, 255 }, "", &d.percentYoungAdult },
+                    { "Adult (26-40)", SDL_Color{ 100, 200, 255, 255 }, "", &d.percentAdult },
+                    { "Mature (41-60)", SDL_Color{ 220, 180, 90, 255 }, "", &d.percentMature },
+                    { "Elder (60+)", SDL_Color{ 200, 140, 140, 255 }, "", &d.percentElder }
                 });
             }
             else if (opt->contentCategory == ContentOptionsCategory::FURRY_PREFS)
             {
-                renderInfoDropdown();
-
                 auto& d = gameContext->settings.demographics;
-                renderFrequencyRow("Human / Pureblood", Theme::colors.textPrimary, "Regular human bodies without morph features.", floatToFreqIdx(d.percentHuman),
-                                   [&](int idx) { d.percentHuman = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
-
-                renderFrequencyRow("Partial Morph (Ears/Tail)", SDL_Color{ 200, 160, 120, 255 }, "Humanoid bodies with animal ears, tails, or horns.", floatToFreqIdx(d.percentPartial),
-                                   [&](int idx) { d.percentPartial = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
-
-                renderFrequencyRow("Anthropomorphic", SDL_Color{ 180, 130, 255, 255 }, "Full fur, muzzle, and digitigrade anatomy on bipedal form.", floatToFreqIdx(d.percentAnthro),
-                                   [&](int idx) { d.percentAnthro = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
-
-                renderFrequencyRow("Feral / Bestial", SDL_Color{ 240, 110, 110, 255 }, "Quadrupedal / animalistic body structures.", floatToFreqIdx(d.percentFeral),
-                                   [&](int idx) { d.percentFeral = freqIdxToFloat(idx); settingsManager::saveToFile(gameContext->settings, "data/settings.json"); });
-
-                renderDistributionBar({
-                    { d.percentHuman, Theme::colors.textPrimary },
-                    { d.percentPartial, SDL_Color{ 200, 160, 120, 255 } },
-                    { d.percentAnthro, SDL_Color{ 180, 130, 255, 255 } },
-                    { d.percentFeral, SDL_Color{ 240, 110, 110, 255 } }
+                renderDemographicCategory({
+                    { "Human / Pureblood", Theme::colors.textPrimary, "Regular human bodies without morph features.", &d.percentHuman },
+                    { "Partial Morph (Ears/Tail)", SDL_Color{ 200, 160, 120, 255 }, "Humanoid bodies with animal ears, tails, or horns.", &d.percentPartial },
+                    { "Anthropomorphic", SDL_Color{ 180, 130, 255, 255 }, "Full fur, muzzle, and digitigrade anatomy on bipedal form.", &d.percentAnthro },
+                    { "Feral / Bestial", SDL_Color{ 240, 110, 110, 255 }, "Quadrupedal / animalistic body structures.", &d.percentFeral }
                 });
             }
             else if (opt->contentCategory == ContentOptionsCategory::FETISH_PREFS)
