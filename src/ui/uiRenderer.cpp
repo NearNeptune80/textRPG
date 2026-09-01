@@ -27,6 +27,7 @@
 #include "ui/fontManager.h"
 #include "ui/theme.h"
 #include "ui/uiWidget.h"
+#include "ui/tooltipManager.h"
 #include "ui/views/characterCreationView.h"
 #include "ui/views/gameplayViews.h"
 #include "ui/views/loadGameView.h"
@@ -115,6 +116,7 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
     // Clear Screen with Dark Theme Background
     SDL_SetRenderDrawColor(renderer, Theme::colors.bgDark.r, Theme::colors.bgDark.g, Theme::colors.bgDark.b, Theme::colors.bgDark.a);
     SDL_RenderClear(renderer);
+    TooltipManager::clear();
 
     auto hasWidgetTag = [](const std::vector<std::string>& widgets, const std::string& target) {
         return std::ranges::find(widgets, target) != widgets.end();
@@ -250,6 +252,9 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
         SDL_SetRenderClipRect(renderer, nullptr);
     }
 
+    // Render universal topmost tooltip overlay before presenting
+    TooltipManager::render(renderer, uiScale, static_cast<float>(winW), static_cast<float>(winH), mousePos);
+
     SDL_RenderPresent(renderer);
 }
 
@@ -306,6 +311,9 @@ void uiRenderer::renderTopBar(SDL_Renderer* renderer, game* gameContext, const S
 
     bool inMenu = dynamic_cast<optionsState*>(gameContext->getActiveState()) || dynamic_cast<mainMenuState*>(gameContext->getActiveState());
     UIWidget::drawButton(renderer, menuBtnRect, inMenu ? "Close (ESC)" : "⚙ MENU", menuHovered, true, inMenu, uiScale * 0.85f);
+    TooltipManager::setHoverTooltip(menuBtnRect, mousePos, inMenu ? "Close Options Menu" : "Game Settings & Options",
+                                    "Access options, content filters, graphics, audio, and keybinding configuration.",
+                                    "System Menu", "[ ESC ]");
 
     if (menuHovered && clicked)
     {
@@ -357,6 +365,8 @@ void uiRenderer::renderBottomActionGrid(SDL_Renderer* renderer, game* gameContex
 
     UIWidget::drawLTActionButton(renderer, leftTopRect, "Q", "", false, false, false, uiScale * 0.75f);
     UIWidget::drawLTActionButton(renderer, leftMidRect, "<", "", leftHovered, gameContext->currentActionPage > 0, false, uiScale * 0.9f);
+    TooltipManager::setHoverTooltip(leftMidRect, mousePos, "Previous Action Page", "Switch to earlier action commands.", "Pagination", "[ Q / < ]");
+
     if (leftHovered && clicked && gameContext->currentActionPage > 0)
     {
         gameContext->previousActionPage();
@@ -372,6 +382,8 @@ void uiRenderer::renderBottomActionGrid(SDL_Renderer* renderer, game* gameContex
 
     UIWidget::drawLTActionButton(renderer, rightTopRect, "E", "", false, false, false, uiScale * 0.75f);
     UIWidget::drawLTActionButton(renderer, rightMidRect, ">", "", rightHovered, gameContext->currentActionPage < totalPages - 1, false, uiScale * 0.9f);
+    TooltipManager::setHoverTooltip(rightMidRect, mousePos, "Next Action Page", "Switch to additional action commands.", "Pagination", "[ E / > ]");
+
     if (rightHovered && clicked && gameContext->currentActionPage < totalPages - 1)
     {
         gameContext->nextActionPage();
@@ -407,6 +419,17 @@ void uiRenderer::renderBottomActionGrid(SDL_Renderer* renderer, game* gameContex
                             mousePos.y >= btnRect.y && mousePos.y <= btnRect.y + btnRect.h);
 
             UIWidget::drawLTActionButton(renderer, btnRect, buttons[buttonIdx].label, hotkeys[slotIdx], hovered, buttons[buttonIdx].isEnabled, buttons[buttonIdx].isSelected, uiScale);
+
+            if (hovered)
+            {
+                std::string desc = buttons[buttonIdx].description;
+                if (desc.empty())
+                {
+                    desc = std::format("Execute command: {}", buttons[buttonIdx].label);
+                }
+                std::string sub = buttons[buttonIdx].isEnabled ? "Action Command" : "Unavailable in Current Context";
+                TooltipManager::setHoverTooltip(btnRect, mousePos, buttons[buttonIdx].label, desc, sub, std::format("[ {} ]", hotkeys[slotIdx]));
+            }
 
             if (hovered && clicked && buttons[buttonIdx].isEnabled && buttons[buttonIdx].onClick)
             {

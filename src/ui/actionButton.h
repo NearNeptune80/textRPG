@@ -6,6 +6,7 @@
 struct actionButton
 {
     std::string label;
+    std::string description;
     int slotIndex = -1;
     bool pinnedAllPages = false;
     bool isEnabled = true;

@@ -12,6 +12,7 @@
 #include "state/characterCreationState.h"
 #include "ui/theme.h"
 #include "ui/uiWidget.h"
+#include "ui/tooltipManager.h"
 
 namespace EntityListWidgets
 {
@@ -48,6 +49,9 @@ namespace EntityListWidgets
         UIWidget::drawText(renderer, safeTag, innerX + cW - safeW, curY + (5.0f * uiScale), Theme::colors.companion, uiScale * 0.68f);
 
         UIWidget::drawText(renderer, "Sanctuary interior", innerX, curY + (22.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.66f);
+
+        TooltipManager::setHoverTooltip(card1Rect, mousePos, locName,
+                                        "Current environment location and zone safety rating.", safeTag);
 
         curY += card1H + (8.0f * uiScale);
 
@@ -86,6 +90,8 @@ namespace EntityListWidgets
             bool tHov = (mousePos.x >= talkBtn.x && mousePos.x <= talkBtn.x + talkBtn.w &&
                          mousePos.y >= talkBtn.y && mousePos.y <= talkBtn.y + talkBtn.h);
             UIWidget::drawButton(renderer, talkBtn, "Talk", tHov, true, false, uiScale * 0.66f);
+            TooltipManager::setHoverTooltip(talkBtn, mousePos, "Talk to " + npc->name, "Initiate dialogue conversation with this character.", "Dialogue");
+
             if (tHov && clicked)
             {
                 auto& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
@@ -98,6 +104,8 @@ namespace EntityListWidgets
             bool iHov = (mousePos.x >= inspBtn.x && mousePos.x <= inspBtn.x + inspBtn.w &&
                          mousePos.y >= inspBtn.y && mousePos.y <= inspBtn.y + inspBtn.h);
             UIWidget::drawButton(renderer, inspBtn, "View", iHov, true, false, uiScale * 0.66f);
+            TooltipManager::setHoverTooltip(inspBtn, mousePos, "Inspect " + npc->name, "View character paperdoll, equipment, and appearance.", "Inspector");
+
             if (iHov && clicked)
             {
                 auto& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
@@ -161,6 +169,12 @@ namespace EntityListWidgets
                     bool pHov = (mousePos.x >= pickBtn.x && mousePos.x <= pickBtn.x + pickBtn.w &&
                                  mousePos.y >= pickBtn.y && mousePos.y <= pickBtn.y + pickBtn.h);
                     UIWidget::drawButton(renderer, pickBtn, "Take", pHov, true, false, uiScale * 0.64f);
+
+                    std::string sub = std::format("Ground Loot • Value: {} ¤", ground[i].itemPtr->baseValue);
+                    std::string hk = std::format("x{}", ground[i].totalCount);
+                    TooltipManager::setHoverTooltip(pickBtn, mousePos, "Take " + ground[i].itemPtr->name,
+                                                    std::format("Transfer 1x {} from the ground into your backpack.", ground[i].itemPtr->name),
+                                                    sub, hk);
 
                     if (pHov && clicked)
                     {

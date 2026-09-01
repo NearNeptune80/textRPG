@@ -46,6 +46,7 @@ public:
         float y{0.0f};
     };
     [[nodiscard]] mousePosition getMousePosition() const { return m_mousePosition; }
+    void setMousePosition(float x, float y) { m_mousePosition = { x, y }; }
     [[nodiscard]] bool isLeftMouseDown() const { return m_leftMouseDown; }
     [[nodiscard]] bool isLeftMouseJustClicked() const { return m_leftMouseJustClicked; }
     [[nodiscard]] float getMouseWheelY() const { return m_mouseWheelY; }

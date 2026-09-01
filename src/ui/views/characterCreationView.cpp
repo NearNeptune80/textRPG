@@ -631,14 +631,17 @@ namespace CharacterCreationView
                 }, uiScale);
             }
 
-            // 7. Ear Type (Human start)
+            // 7. Ear Type (Only show if multiple choices available, e.g. in salon/transformation)
             if (cc->config.isOptionEnabled("ear_type"))
             {
                 static const std::vector<std::string> allEars = { "Human" };
                 auto earOpts = cc->config.filterChoices("ear_type", allEars);
-                curY += drawPillCard(renderer, gameContext, rect, padX, curY, availableW, "Ear Morphology", "Human baseline ear structure.", earOpts, cc->earType, [&](const std::string& e) {
-                    cc->earType = e;
-                }, uiScale, 1);
+                if (earOpts.size() > 1)
+                {
+                    curY += drawPillCard(renderer, gameContext, rect, padX, curY, availableW, "Ear Morphology", "Species ear structure.", earOpts, cc->earType, [&](const std::string& e) {
+                        cc->earType = e;
+                    }, uiScale, 4);
+                }
             }
         }
         else if (currentTab == EditorTabId::BREASTS)

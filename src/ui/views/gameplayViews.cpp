@@ -1,6 +1,7 @@
 #include "ui/views/gameplayViews.h"
 #include "ui/uiWidget.h"
 #include "ui/theme.h"
+#include "ui/tooltipManager.h"
 #include "core/game.h"
 #include "core/characterDescription.h"
 #include "entities/entity.h"
@@ -431,6 +432,11 @@ namespace GameplayViews
 
                 UIWidget::drawButton(renderer, pRect, pageTabs[p], pHov, true, isPageActive, uiScale * 0.68f);
 
+                std::string pTitle = (p == 5) ? "Key Items Page" : std::format("Inventory Page {}", p + 1);
+                std::string pDesc = (p == 5) ? "Dedicated storage for key quest items, special keys, and relics." : std::format("Item slots {} to {}.", (p * 20) + 1, (p + 1) * 20);
+                std::string pSub = (side == 0) ? "Player Backpack" : (ent ? std::format("{}'s Inventory", ent->name) : "Floor Storage");
+                TooltipManager::setHoverTooltip(pRect, mousePos, pTitle, pDesc, pSub, std::format("[ Page {} ]", pageTabs[p]));
+
                 if (pHov && clicked)
                 {
                     activePage = static_cast<int>(p);
@@ -530,6 +536,11 @@ namespace GameplayViews
                         float valW = UIWidget::getTextWidth(valStr, uiScale * 0.58f);
                         UIWidget::drawText(renderer, valStr, bX + slotSize - valW - (3.0f * uiScale), bY + slotSize - (13.0f * uiScale), Theme::colors.currency, uiScale * 0.58f);
 
+                        std::string targetStr = (itSlot.itemPtr->targetSlot != equipSlot::NONE) ? gameContext->formatEquipSlotName(itSlot.itemPtr->targetSlot) : (itSlot.itemPtr->isConsumable ? "Consumable Item" : "Inventory Item");
+                        std::string subInfo = std::format("{} • Base Value: {} ¤", targetStr, itSlot.itemPtr->baseValue);
+                        std::string cntHotkey = (itSlot.totalCount > 1) ? std::format("x{}", itSlot.totalCount) : "";
+                        TooltipManager::setHoverTooltip(bRect, mousePos, itSlot.itemPtr->name, itSlot.itemPtr->description, subInfo, cntHotkey);
+
                         if (bHov && clicked)
                         {
                             gameContext->selectedInventorySide = side;
@@ -548,6 +559,9 @@ namespace GameplayViews
 
                         float dotW = UIWidget::getTextWidth("·", uiScale * 0.62f);
                         UIWidget::drawText(renderer, "·", bX + ((slotSize - dotW) / 2.0f), bY + ((slotSize - (10.0f * uiScale)) / 2.0f), SDL_Color{ 50, 55, 70, 255 }, uiScale * 0.62f);
+
+                        std::string subLoc = (side == 0) ? "Player Backpack" : (ent ? std::format("{}'s Inventory", ent->name) : "Floor Storage");
+                        TooltipManager::setHoverTooltip(bRect, mousePos, "Empty Inventory Slot", "Available space for storing items, consumables, and gear.", subLoc);
                     }
                 }
             }

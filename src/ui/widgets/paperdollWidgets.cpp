@@ -14,6 +14,7 @@
 #include "items/clothingDisplacement.h"
 #include "ui/theme.h"
 #include "ui/uiWidget.h"
+#include "ui/tooltipManager.h"
 #include "ui/widgets/radarWidget.h"
 #include "ui/widgets/sidebarGeometry.h"
 
@@ -270,6 +271,10 @@ namespace PaperdollWidgets
                         float lW = UIWidget::getTextWidth("EQ", uiScale * 0.65f);
                         UIWidget::drawText(renderer, "EQ", slotX + ((tileSize - lW) / 2.0f), slotY + (tileSize * 0.28f), Theme::colors.textGold, uiScale * 0.65f);
 
+                        TooltipManager::setHoverTooltip(slotRect, mousePos, "Switch to Equipment",
+                                                        "Toggles the 6x6 grid display back to wearable clothing, armor, weapons, and accessories.",
+                                                        "Paperdoll View", "[ EQ ]");
+
                         if (hovered && clicked)
                         {
                             inTattooMode = false;
@@ -282,6 +287,10 @@ namespace PaperdollWidgets
                         UIWidget::drawPanel(renderer, slotRect, SDL_Color{ 16, 18, 22, 255 }, SDL_Color{ 28, 30, 36, 255 });
                         float lW = UIWidget::getTextWidth("·", uiScale * 0.65f);
                         UIWidget::drawText(renderer, "·", slotX + ((tileSize - lW) / 2.0f), slotY + (tileSize * 0.25f), SDL_Color{ 45, 50, 60, 255 }, uiScale * 0.65f);
+
+                        TooltipManager::setHoverTooltip(slotRect, mousePos, "Locked Tattoo Area",
+                                                        "This body region is unavailable on your character's current biological anatomy (e.g. requires tail, wings, or horns).",
+                                                        "Anatomy Requirement");
                     }
                     else
                     {
@@ -294,6 +303,9 @@ namespace PaperdollWidgets
                         float lW = UIWidget::getTextWidth(def.shortName, uiScale * 0.52f);
                         SDL_Color textCol = hasTat ? Theme::colors.arcane : Theme::colors.textSecondary;
                         UIWidget::drawText(renderer, def.shortName, slotX + ((tileSize - lW) / 2.0f), slotY + (tileSize * 0.28f), textCol, uiScale * 0.52f);
+
+                        std::string tatDesc = hasTat ? "Permanent ink tattoo markings applied to this body region." : "Empty skin canvas ready for custom ink tattooing.";
+                        TooltipManager::setHoverTooltip(slotRect, mousePos, def.shortName, tatDesc, "Body Tattoo Canvas");
                     }
                 }
                 else
@@ -315,6 +327,10 @@ namespace PaperdollWidgets
                         float lW = UIWidget::getTextWidth("TAT", uiScale * 0.65f);
                         UIWidget::drawText(renderer, "TAT", slotX + ((tileSize - lW) / 2.0f), slotY + (tileSize * 0.28f), Theme::colors.arcane, uiScale * 0.65f);
 
+                        TooltipManager::setHoverTooltip(slotRect, mousePos, "Switch to Tattoos",
+                                                        "Toggles the 6x6 grid display to permanent body ink and cosmetic tattoos.",
+                                                        "Paperdoll View", "[ TAT ]");
+
                         if (hovered && clicked)
                         {
                             inTattooMode = true;
@@ -327,6 +343,10 @@ namespace PaperdollWidgets
                         UIWidget::drawPanel(renderer, slotRect, SDL_Color{ 16, 18, 22, 255 }, SDL_Color{ 28, 30, 36, 255 });
                         float lW = UIWidget::getTextWidth("·", uiScale * 0.65f);
                         UIWidget::drawText(renderer, "·", slotX + ((tileSize - lW) / 2.0f), slotY + (tileSize * 0.25f), SDL_Color{ 45, 50, 60, 255 }, uiScale * 0.65f);
+
+                        TooltipManager::setHoverTooltip(slotRect, mousePos, "Locked Equipment Socket",
+                                                        "This socket is locked due to biological anatomy requirements (e.g. horns, tail, wings, or specific genitalia).",
+                                                        "Anatomy Requirement");
                     }
                     else
                     {
@@ -356,6 +376,17 @@ namespace PaperdollWidgets
                                 float dotW = UIWidget::getTextWidth("★", uiScale * 0.55f);
                                 UIWidget::drawText(renderer, "*", slotX + ((tileSize - dotW) / 2.0f), slotY + (tileSize * 0.42f), Theme::colors.textGold, uiScale * 0.55f);
                             }
+
+                            std::string slotName = gameContext->formatEquipSlotName(def.slot);
+                            std::string status = std::format("Fit: {} • Value: {} ¤", displacementModeToString(disp), eqItem->baseValue);
+                            TooltipManager::setHoverTooltip(slotRect, mousePos, eqItem->name, eqItem->description, status, slotName);
+                        }
+                        else
+                        {
+                            std::string slotName = gameContext->formatEquipSlotName(def.slot);
+                            TooltipManager::setHoverTooltip(slotRect, mousePos, std::format("Empty: {}", slotName),
+                                                            "No gear equipped. Click to select slot or equip items from your backpack.",
+                                                            "Equipment Socket");
                         }
 
                         if (hovered && clicked && isPlayer)
@@ -391,6 +422,11 @@ namespace PaperdollWidgets
                         mousePos.y >= tRect.y && mousePos.y <= tRect.y + tRect.h);
 
             UIWidget::drawButton(renderer, tRect, tools[i].first, hov, true, false, uiScale * 0.74f);
+
+            if (i == 0) TooltipManager::setHoverTooltip(tRect, mousePos, "Inventory & Storage", "Opens dual 5x4 player inventory and ground loot storage.", "Storage", "[ I ]");
+            else if (i == 1) TooltipManager::setHoverTooltip(tRect, mousePos, "Phone & Messaging", "Access smartphone apps, contacts, messages, and map.", "Communication", "[ P ]");
+            else if (i == 2) TooltipManager::setHoverTooltip(tRect, mousePos, "Transformations & Mutations", "Inspect body changes, demon morphs, horns, wings, and anatomy editor.", "Biology", "[ M ]");
+            else if (i == 3) TooltipManager::setHoverTooltip(tRect, mousePos, "Game Options & Settings", "Adjust gameplay options, content filters, keybindings, and themes.", "System", "[ O / ESC ]");
 
             if (hov && clicked)
             {

@@ -12,10 +12,11 @@
 #include "state/characterCreationState.h"
 #include "ui/theme.h"
 #include "ui/uiWidget.h"
+#include "ui/tooltipManager.h"
 
 namespace CharacterCardWidget
 {
-    static float renderSingleCompanionCard(SDL_Renderer* renderer, entity* companion, float padX, float curY, float availableW, float uiScale)
+    static float renderSingleCompanionCard(SDL_Renderer* renderer, entity* companion, float padX, float curY, float availableW, float uiScale, const TooltipPoint& mousePos)
     {
         if (!companion) return 0.0f;
 
@@ -49,6 +50,10 @@ namespace CharacterCardWidget
         std::string lvlStr = std::format("Lvl {} • {}", companion->stats.level, companion->anatomy.getRacialTitle());
         UIWidget::drawText(renderer, lvlStr, cX + avatarSize + (4.0f * uiScale), curY + (2.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.66f);
 
+        TooltipManager::setHoverTooltip(cardRect, mousePos, companion->name,
+                                        "Active party companion fighting alongside you.",
+                                        std::format("Level {} • {}", companion->stats.level, companion->anatomy.getRacialTitle()));
+
         curY += avatarSize + (2.0f * uiScale);
 
         // Compact Health & Lust Vitals
@@ -68,6 +73,12 @@ namespace CharacterCardWidget
         UIWidget::drawProgressBar(renderer, { cX + labelW, curY, progressW, barH }, curHp, maxHp, Theme::colors.health, Theme::colors.bgHeader, "", uiScale);
         std::string hpStr = std::format("{:.0f}/{:.0f}", curHp, maxHp);
         UIWidget::drawText(renderer, hpStr, cX + labelW + progressW + (4.0f * uiScale), curY, Theme::colors.textPrimary, uiScale * 0.58f);
+
+        TooltipManager::setHoverTooltip({ cX, curY, cW, barH }, mousePos,
+                                        std::format("{}'s Health", companion->name),
+                                        "Companion life force. If health drops to 0, they will be knocked unconscious.",
+                                        std::format("{:.0f} / {:.0f} HP", curHp, maxHp));
+
         curY += barH + barGap;
 
         // Lust
@@ -76,6 +87,11 @@ namespace CharacterCardWidget
         UIWidget::drawProgressBar(renderer, { cX + labelW, curY, progressW, barH }, curLust, 100.0f, Theme::colors.lust, Theme::colors.bgHeader, "", uiScale);
         std::string lustStr = std::format("{:.0f}%", curLust);
         UIWidget::drawText(renderer, lustStr, cX + labelW + progressW + (4.0f * uiScale), curY, Theme::colors.textPrimary, uiScale * 0.58f);
+
+        TooltipManager::setHoverTooltip({ cX, curY, cW, barH }, mousePos,
+                                        std::format("{}'s Lust", companion->name),
+                                        "Companion sexual desire and susceptibility to lust-based seduction.",
+                                        std::format("{:.0f}% Lust", curLust));
 
         return cardH + (5.0f * uiScale);
     }
@@ -157,6 +173,10 @@ namespace CharacterCardWidget
         float initW = UIWidget::getTextWidth(initials, uiScale * 0.78f);
         UIWidget::drawText(renderer, initials, avatarRect.x + ((avatarSize - initW) / 2.0f), avatarRect.y + (5.0f * uiScale), Theme::colors.textGold, uiScale * 0.78f);
 
+        TooltipManager::setHoverTooltip(avatarRect, mousePos, player->name,
+                                        "Player protagonist exploring the realm of Dominion.",
+                                        std::format("Level {} • {}", player->stats.level, player->anatomy.getRacialTitle()));
+
         // Name & Level / Species
         std::string dispName = player->name.empty() ? "Hero" : player->name;
         UIWidget::drawText(renderer, dispName, s1ContentX + avatarSize + (6.0f * uiScale), s1Y + (1.0f * uiScale), Theme::colors.textGold, uiScale * 0.84f);
@@ -168,10 +188,18 @@ namespace CharacterCardWidget
         if (goldVal <= 0.0f && !inPrologue) goldVal = 5000.0f;
         std::string goldText = std::format("Gold: {:.0f} ¤", goldVal);
         UIWidget::drawText(renderer, goldText, s1ContentX, s1Y + avatarSize + (4.0f * uiScale), Theme::colors.currency, uiScale * 0.72f);
+        TooltipManager::setHoverTooltip({ s1ContentX, s1Y + avatarSize + (2.0f * uiScale), 70.0f * uiScale, 16.0f * uiScale },
+                                        mousePos, "Gold (Currency)",
+                                        "Universal coins used to trade with merchants, purchase equipment, and pay for town services.",
+                                        std::format("{:.0f} ¤ Available", goldVal));
 
         std::string essenceText = "Essence: 0";
         float essW = UIWidget::getTextWidth(essenceText, uiScale * 0.72f);
         UIWidget::drawText(renderer, essenceText, s1ContentX + s1ContentW - essW, s1Y + avatarSize + (4.0f * uiScale), Theme::colors.arcane, uiScale * 0.72f);
+        TooltipManager::setHoverTooltip({ s1ContentX + s1ContentW - essW - (4.0f * uiScale), s1Y + avatarSize + (2.0f * uiScale), essW + (8.0f * uiScale), 16.0f * uiScale },
+                                        mousePos, "Arcane Essence",
+                                        "Purified demonic essence harvested from transformations and rituals, used to unlock body mutations.",
+                                        "0 Essence Available");
 
         curY += sub1H + (5.0f * uiScale);
 
@@ -205,6 +233,9 @@ namespace CharacterCardWidget
         UIWidget::drawProgressBar(renderer, { s2ContentX + labelW, s2Y, progressW, barH }, curHp, maxHp, Theme::colors.health, Theme::colors.bgHeader, "", uiScale);
         std::string hpStr = std::format("{:.0f}/{:.0f}", curHp, maxHp);
         UIWidget::drawText(renderer, hpStr, s2ContentX + labelW + progressW + (4.0f * uiScale), s2Y, Theme::colors.textPrimary, uiScale * 0.62f);
+        TooltipManager::setHoverTooltip({ s2ContentX, s2Y, s2ContentW, barH }, mousePos, "Health Points (HP)",
+                                        "Physical endurance and vitality. Reaching 0 results in collapse, defeat, or capture.",
+                                        std::format("{:.0f} / {:.0f} HP", curHp, maxHp));
         s2Y += barH + barGap;
 
         // 2. Mana Bar
@@ -217,6 +248,9 @@ namespace CharacterCardWidget
         UIWidget::drawProgressBar(renderer, { s2ContentX + labelW, s2Y, progressW, barH }, curMp, std::max(1.0f, maxMp), Theme::colors.mana, Theme::colors.bgHeader, "", uiScale);
         std::string mpStr = inPrologue ? "0/0" : std::format("{:.0f}/{:.0f}", curMp, maxMp);
         UIWidget::drawText(renderer, mpStr, s2ContentX + labelW + progressW + (4.0f * uiScale), s2Y, Theme::colors.textPrimary, uiScale * 0.62f);
+        TooltipManager::setHoverTooltip({ s2ContentX, s2Y, s2ContentW, barH }, mousePos, "Arcane Mana (MP)",
+                                        "Magical reserves consumed by spells, abilities, enchantments, and transformations.",
+                                        std::format("{:.0f} / {:.0f} MP", curMp, maxMp));
         s2Y += barH + barGap;
 
         // 3. Lust Bar
@@ -227,6 +261,9 @@ namespace CharacterCardWidget
         UIWidget::drawProgressBar(renderer, { s2ContentX + labelW, s2Y, progressW, barH }, curLust, maxLust, Theme::colors.lust, Theme::colors.bgHeader, "", uiScale);
         std::string lustStr = std::format("{:.0f}%", curLust);
         UIWidget::drawText(renderer, lustStr, s2ContentX + labelW + progressW + (4.0f * uiScale), s2Y, Theme::colors.textPrimary, uiScale * 0.62f);
+        TooltipManager::setHoverTooltip({ s2ContentX, s2Y, s2ContentW, barH }, mousePos, "Lust Level",
+                                        "Sexual desire and psychological vulnerability. High lust weakens resistance against seductive influences.",
+                                        std::format("{:.0f}% Lust", curLust));
         s2Y += barH + barGap;
 
         // 4. Arousal Bar
@@ -237,13 +274,14 @@ namespace CharacterCardWidget
         UIWidget::drawProgressBar(renderer, { s2ContentX + labelW, s2Y, progressW, barH }, curArousal, maxArousal, Theme::colors.textGold, Theme::colors.bgHeader, "", uiScale);
         std::string arousalStr = std::format("{:.0f}%", curArousal);
         UIWidget::drawText(renderer, arousalStr, s2ContentX + labelW + progressW + (4.0f * uiScale), s2Y, Theme::colors.textPrimary, uiScale * 0.62f);
+        TooltipManager::setHoverTooltip({ s2ContentX, s2Y, s2ContentW, barH }, mousePos, "Physical Arousal",
+                                        "Active physiological excitement during intimate encounters. Reaching 100% triggers orgasmic climax.",
+                                        std::format("{:.0f}% Arousal", curArousal));
         s2Y += barH + (6.0f * uiScale);
 
         // -------------------------------------------------------------------------
         // DYNAMIC STATUS EFFECT SQUARE CHIP ROWS
         // -------------------------------------------------------------------------
-        std::string hoveredTooltip = "";
-
         if (effects.empty())
         {
             // Baseline status chips when no active effects
@@ -264,6 +302,11 @@ namespace CharacterCardWidget
                 UIWidget::drawPanel(renderer, tBox, Theme::colors.bgHeader, Theme::colors.borderButton);
                 float txtW = UIWidget::getTextWidth(defaultChips[t].first, uiScale * 0.62f);
                 UIWidget::drawText(renderer, defaultChips[t].first, tBox.x + ((dW - txtW) / 2.0f), tBox.y + (3.0f * uiScale), defaultChips[t].second, uiScale * 0.62f);
+
+                TooltipManager::setHoverTooltip(tBox, mousePos,
+                                                std::format("{} Baseline", defaultChips[t].first),
+                                                "Normal physical and arcane equilibrium. No active debuffs or afflictions.",
+                                                "Condition Normal");
             }
         }
         else
@@ -292,10 +335,8 @@ namespace CharacterCardWidget
                 float cW = UIWidget::getTextWidth(code, uiScale * 0.58f);
                 UIWidget::drawText(renderer, code, chipX + ((chipSize - cW) / 2.0f), chipY + (3.0f * uiScale), textCol, uiScale * 0.58f);
 
-                if (isHov)
-                {
-                    hoveredTooltip = std::format("{}: {}", eff.name, eff.description);
-                }
+                std::string sub = std::format("{} • {} turns remaining", eff.isDebuff ? "Debuff" : "Buff", eff.durationTurns);
+                TooltipManager::setHoverTooltip(chipRect, mousePos, eff.name, eff.description, sub);
             }
         }
 
@@ -310,7 +351,7 @@ namespace CharacterCardWidget
         {
             if (comp)
             {
-                curY += renderSingleCompanionCard(renderer, comp.get(), padX, curY, availableW, uiScale);
+                curY += renderSingleCompanionCard(renderer, comp.get(), padX, curY, availableW, uiScale, mousePos);
             }
         }
 

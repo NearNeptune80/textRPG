@@ -19,6 +19,7 @@
 #include "settings/settingsManager.h"
 #include "ui/theme.h"
 #include "ui/fontManager.h"
+#include "ui/tooltipManager.h"
 
 namespace EngineTests
 {
@@ -900,6 +901,43 @@ namespace EngineTests
         return allPassed;
     }
 
+    bool testTooltipSystem()
+    {
+        std::cout << "\n--- Running Test 14: Engine-Wide Tooltip System ---\n";
+        bool allPassed = true;
+
+        // 1. Tooltip clearing
+        TooltipManager::clear();
+        bool clearPass = !TooltipManager::hasActiveTooltip();
+        logResult("TooltipManager::clear correctly resets active tooltip", clearPass);
+        allPassed &= clearPass;
+
+        // 2. Setting direct tooltip
+        TooltipManager::setTooltip("Excalibur", "Legendary holy blade", "Main Hand Weapon", "[ 1 ]");
+        bool setPass = TooltipManager::hasActiveTooltip();
+        logResult("TooltipManager::setTooltip successfully registers active tooltip", setPass);
+        allPassed &= setPass;
+
+        // 3. Hover detection - within bounding box
+        TooltipManager::clear();
+        SDL_FRect buttonRect = { 100.0f, 200.0f, 80.0f, 30.0f };
+        TooltipPoint insideCursor = { 120.0f, 215.0f };
+        bool insidePass = TooltipManager::setHoverTooltip(buttonRect, insideCursor, "Button Hover", "Hovering inside");
+        insidePass &= TooltipManager::hasActiveTooltip();
+        logResult("TooltipManager::setHoverTooltip activates when cursor is within bounds", insidePass);
+        allPassed &= insidePass;
+
+        // 4. Hover detection - outside bounding box
+        TooltipManager::clear();
+        TooltipPoint outsideCursor = { 50.0f, 50.0f };
+        bool outsideTriggered = TooltipManager::setHoverTooltip(buttonRect, outsideCursor, "Button Hover", "Hovering outside");
+        bool outsidePass = (!outsideTriggered && !TooltipManager::hasActiveTooltip());
+        logResult("TooltipManager::setHoverTooltip ignores cursor outside bounds", outsidePass);
+        allPassed &= outsidePass;
+
+        return allPassed;
+    }
+
     bool runAllTests()
     {
         g_passCount = 0;
@@ -922,6 +960,7 @@ namespace EngineTests
         bool t11 = testFullCustomizationTrackingAndAppearanceDescription();
         bool t12 = testFullTransformationSuiteAndPresetPersistence();
         bool t13 = testLegacySaveCompatibility();
+        bool t14 = testTooltipSystem();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";

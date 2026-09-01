@@ -14,6 +14,7 @@
 #include "state/characterCreationState.h"
 #include "ui/theme.h"
 #include "ui/uiWidget.h"
+#include "ui/tooltipManager.h"
 #include "ui/widgets/sidebarGeometry.h"
 
 namespace RadarWidgets
@@ -46,6 +47,10 @@ namespace RadarWidgets
         float cardH = SidebarGeometry::getTimeBarH(uiScale);
         SDL_FRect timeRect = { padX, curY, availableW, cardH };
         UIWidget::drawPanel(renderer, timeRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+        TooltipManager::setHoverTooltip(timeRect, gameContext->input.getMousePosition(),
+                                        std::format("Calendar: {}", dateStr),
+                                        "Dominion diurnal cycle. Influences monster encounters, shop hours, and intimate interactions.",
+                                        timeStr);
 
         float innerPad = 8.0f * uiScale;
         float tX = padX + innerPad;
@@ -57,6 +62,7 @@ namespace RadarWidgets
 
         // Weekdays tracker: [M] [T] [W] [T] [F] [S] [S]
         static const char* days[7] = { "M", "T", "W", "T", "F", "S", "S" };
+        static const char* fullDays[7] = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
         float dayW = (tW - (6 * 3.0f * uiScale)) / 7.0f;
         float dayY = curY + (24.0f * uiScale);
 
@@ -71,6 +77,10 @@ namespace RadarWidgets
             UIWidget::drawPanel(renderer, dRect, dFill, dBorder);
             float txtW = UIWidget::getTextWidth(days[d], uiScale * 0.65f);
             UIWidget::drawText(renderer, days[d], dRect.x + ((dRect.w - txtW) / 2.0f), dRect.y + (1.0f * uiScale), dColor, uiScale * 0.65f);
+
+            TooltipManager::setHoverTooltip(dRect, gameContext->input.getMousePosition(), fullDays[d],
+                                            isActiveDay ? "Current in-game day of the week." : "Day of the in-game week.",
+                                            "Calendar");
         }
 
         curY += cardH;
@@ -146,6 +156,7 @@ namespace RadarWidgets
                     borderColor = Theme::colors.borderSelected;
                     label = "YOU";
                     textCol = Theme::colors.textGold;
+                    TooltipManager::setHoverTooltip(tileRect, mousePos, "Player Location", "Your current grid position on this map.", std::format("Grid ({}, {})", pX, pY));
                 }
                 else if (inBounds)
                 {
@@ -158,6 +169,7 @@ namespace RadarWidgets
                         borderColor = SDL_Color{ 50, 55, 68, 255 };
                         label = "#";
                         textCol = SDL_Color{ 80, 85, 100, 255 };
+                        TooltipManager::setHoverTooltip(tileRect, mousePos, "Impassable Wall", "Solid boundary wall or barrier.", std::format("Grid ({}, {})", targetX, targetY));
                     }
                     else if (t.type == TILE_DOOR)
                     {
@@ -165,6 +177,7 @@ namespace RadarWidgets
                         borderColor = Theme::colors.textGold;
                         label = "+";
                         textCol = Theme::colors.textGold;
+                        TooltipManager::setHoverTooltip(tileRect, mousePos, "Door / Portal", "Click to move toward or open this doorway.", std::format("Grid ({}, {})", targetX, targetY));
                     }
                     else if (walkable)
                     {
@@ -175,6 +188,7 @@ namespace RadarWidgets
                             borderColor = Theme::colors.companion;
                             label = "W";
                             textCol = Theme::colors.companion;
+                            TooltipManager::setHoverTooltip(tileRect, mousePos, "Zone Transition", "Passage connecting to another sector or room.", std::format("Grid ({}, {})", targetX, targetY));
                         }
                         else
                         {
@@ -182,6 +196,7 @@ namespace RadarWidgets
                             borderColor = SDL_Color{ 45, 50, 65, 255 };
                             label = "·";
                             textCol = SDL_Color{ 100, 110, 130, 255 };
+                            TooltipManager::setHoverTooltip(tileRect, mousePos, "Open Floor", "Walkable terrain tile. Click to navigate.", std::format("Grid ({}, {})", targetX, targetY));
                         }
                     }
                 }
@@ -229,6 +244,11 @@ namespace RadarWidgets
             bool isActive = (i == 1 && gameContext->isPhoneMenuOpen);
 
             UIWidget::drawButton(renderer, tRect, tools[i].first, hov, true, isActive, uiScale * 0.74f);
+
+            if (i == 0) TooltipManager::setHoverTooltip(tRect, mousePos, "Inventory & Storage", "Opens dual 5x4 player inventory and ground loot storage.", "Storage", "[ I ]");
+            else if (i == 1) TooltipManager::setHoverTooltip(tRect, mousePos, "Phone & Messaging", "Access smartphone apps, contacts, messages, and map.", "Communication", "[ P ]");
+            else if (i == 2) TooltipManager::setHoverTooltip(tRect, mousePos, "Transformations & Mutations", "Inspect body changes, demon morphs, horns, wings, and anatomy editor.", "Biology", "[ M ]");
+            else if (i == 3) TooltipManager::setHoverTooltip(tRect, mousePos, "Game Options & Settings", "Adjust gameplay options, content filters, keybindings, and themes.", "System", "[ O / ESC ]");
 
             if (hov && clicked)
             {

@@ -173,7 +173,7 @@ int main(int argc, char* argv[])
             saveManager::loadFromFile(&engine, saveFile);
             engine.changeState(std::make_unique<explorationState>());
         }
-        else if (screenshotState.starts_with("exploration"))
+        else if (screenshotState.starts_with("exploration") || screenshotState == "tooltip_action" || screenshotState == "tooltip_vitals")
         {
             if (!engine.getPlayer())
             {
@@ -188,7 +188,7 @@ int main(int argc, char* argv[])
                 p->stats.setBaseStat("currency", 250.0f);
                 engine.playerEntity = p;
             }
-            if (screenshotState == "exploration_companion" || screenshotState == "exploration_status")
+            if (screenshotState == "exploration_companion" || screenshotState == "exploration_status" || screenshotState == "tooltip_action" || screenshotState == "tooltip_vitals")
             {
                 auto lilaya = std::make_shared<entity>("companion_lilaya", "Lilaya");
                 lilaya->stats.level = 5;
@@ -197,7 +197,7 @@ int main(int argc, char* argv[])
                 lilaya->stats.setBaseStat("lust", 25.0f);
                 engine.addCompanion(lilaya);
             }
-            if (screenshotState == "exploration_status")
+            if (screenshotState == "exploration_status" || screenshotState == "tooltip_action" || screenshotState == "tooltip_vitals")
             {
                 if (engine.getPlayer())
                 {
@@ -213,7 +213,7 @@ int main(int argc, char* argv[])
             engine.loadMap("house_01", 1, 1);
             engine.changeState(std::make_unique<explorationState>());
         }
-        else if (screenshotState.starts_with("inventory"))
+        else if (screenshotState.starts_with("inventory") || screenshotState == "tooltip_inventory" || screenshotState == "tooltip_equipment")
         {
             if (!engine.getPlayer())
             {
@@ -305,6 +305,23 @@ int main(int argc, char* argv[])
         }
 
         engine.refreshActionGrid();
+
+        if (screenshotState == "tooltip_action")
+        {
+            engine.input.setMousePosition(260.0f, 620.0f);
+        }
+        else if (screenshotState == "tooltip_vitals")
+        {
+            engine.input.setMousePosition(75.0f, 155.0f);
+        }
+        else if (screenshotState == "tooltip_inventory")
+        {
+            engine.input.setMousePosition(285.0f, 100.0f);
+        }
+        else if (screenshotState == "tooltip_equipment")
+        {
+            engine.input.setMousePosition(55.0f, 570.0f);
+        }
 
         // Render multiple frames to stabilize fonts/layout
         for (int f = 0; f < 3; ++f)
