@@ -117,7 +117,7 @@
         "id": "inv_root_row",
         "type": "CONTAINER",
         "direction": "ROW",
-        "sizes": [20.0, 60.0, 20.0],
+        "sizes": [20.0, 80.0],
         "children": [
           {
             "id": "inv_left_column",
@@ -135,11 +135,12 @@
             "sizes": [78.0, 22.0],
             "children": [
               {
-                "id": "inv_backpack_box",
+                "id": "inv_center_pane",
                 "type": "LEAF",
-                "name": "Backpack & Storage",
+                "name": "Inventory & Item Details",
                 "widgets": [
-                  "widget_inventory_dual"
+                  "widget_inventory_dual",
+                  "widget_item_details_inspector"
                 ]
               },
               {
@@ -150,14 +151,6 @@
                   "widget_action_commands"
                 ]
               }
-            ]
-          },
-          {
-            "id": "inv_right_column",
-            "type": "LEAF",
-            "name": "Item Details & Lore",
-            "widgets": [
-              "widget_item_details_inspector"
             ]
           }
         ]

@@ -201,18 +201,17 @@ namespace PaperdollWidgets
         auto mousePos = gameContext->input.getMousePosition();
         bool clicked = gameContext->input.isLeftMouseJustClicked();
 
-        // Calculate 6x6 square tile sizes
+        // Calculate linked 6x6 square tile sizes
         const int cols = 6;
         const int rows = 6;
-        const float innerPadding = 6.0f * uiScale;
-        const float innerW = availableW - (innerPadding * 2.0f);
+        const float linkedSquareSize = std::min(availableW - (12.0f * uiScale), 160.0f * uiScale);
         const float slotGap = 2.0f * uiScale;
-        const float tileSize = std::floor((innerW - (slotGap * static_cast<float>(cols - 1))) / static_cast<float>(cols));
+        const float tileSize = std::floor((linkedSquareSize - (slotGap * static_cast<float>(cols - 1))) / static_cast<float>(cols));
         const float totalGridW = (tileSize * cols) + (slotGap * static_cast<float>(cols - 1));
         const float totalGridH = totalGridW;
 
-        float toolH = 22.0f * uiScale;
-        float cardH = (22.0f * uiScale) + totalGridH + (8.0f * uiScale) + toolH + (8.0f * uiScale);
+        float toolH = 20.0f * uiScale;
+        float cardH = (20.0f * uiScale) + totalGridH + (6.0f * uiScale) + toolH + (6.0f * uiScale);
 
         // Compute total height of Date & Time Card + Gap + 6x6 Equipment Card
         float timeCardH = 46.0f * uiScale;
@@ -234,12 +233,12 @@ namespace PaperdollWidgets
         SDL_FRect mainCardRect = { padX, curY, availableW, cardH };
         UIWidget::drawPanel(renderer, mainCardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
-        float innerX = padX + innerPadding;
-        float cardCurY = curY + (5.0f * uiScale);
+        float innerX = padX + (6.0f * uiScale);
+        float cardCurY = curY + (4.0f * uiScale);
 
         std::string headerTitle = inTattooMode ? "TATTOOS (6x6)" : "EQUIPMENT (6x6)";
-        UIWidget::drawText(renderer, headerTitle, innerX, cardCurY, Theme::colors.textGold, uiScale * 0.78f);
-        cardCurY += (18.0f * uiScale);
+        UIWidget::drawText(renderer, headerTitle, innerX, cardCurY, Theme::colors.textGold, uiScale * 0.76f);
+        cardCurY += (16.0f * uiScale);
 
         // Centered 6x6 Grid Container Box matching Mini-Map Radar
         float gridStartX = padX + ((availableW - totalGridW) / 2.0f);
@@ -389,7 +388,7 @@ namespace PaperdollWidgets
             { "Opt", CommandType::OPEN_SETTINGS }
         };
 
-        float toolW = (availableW - (innerPadding * 2.0f) - (3 * 4.0f * uiScale)) / 4.0f;
+        float toolW = (availableW - (12.0f * uiScale) - (3 * 4.0f * uiScale)) / 4.0f;
 
         for (size_t i = 0; i < tools.size(); ++i)
         {
@@ -435,89 +434,83 @@ namespace PaperdollWidgets
             equipSlot slot = gameContext->selectedEquipmentSlot;
             std::string slotTitle = gameContext->formatEquipSlotName(slot);
 
-            float headerH = 26.0f * uiScale;
+            float headerH = 22.0f * uiScale;
             SDL_FRect headerRect = { padX, curY, availableW, headerH };
-            UIWidget::drawHeader(renderer, headerRect, "EQUIPMENT SLOT INSPECTOR", Theme::colors.bgHeader, Theme::colors.textGold, uiScale * 0.85f);
-            curY += headerH + (8.0f * uiScale);
+            UIWidget::drawHeader(renderer, headerRect, std::format("EQUIPMENT INSPECTOR: {}", slotTitle), Theme::colors.bgHeader, Theme::colors.textGold, uiScale * 0.78f);
+            curY += headerH + (4.0f * uiScale);
 
-            float cardH = 280.0f * uiScale;
+            auto eq = player->inventory.getEquippedItem(slot);
+            float cardH = eq ? (130.0f * uiScale) : (50.0f * uiScale);
             SDL_FRect cardRect = { padX, curY, availableW, cardH };
             UIWidget::drawPanel(renderer, cardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
-            float innerPad = 10.0f * uiScale;
+            float innerPad = 8.0f * uiScale;
             float iX = padX + innerPad;
-            float iW = availableW - (innerPad * 2.0f);
-            float iY = curY + (8.0f * uiScale);
+            float iY = curY + (6.0f * uiScale);
 
-            UIWidget::drawText(renderer, std::format("Slot: {}", slotTitle), iX, iY, Theme::colors.textGold, uiScale * 0.90f);
-            iY += (20.0f * uiScale);
-
-            auto eq = player->inventory.getEquippedItem(slot);
             if (eq)
             {
-                UIWidget::drawText(renderer, std::format("Item: {}", eq->name), iX, iY, Theme::colors.textPrimary, uiScale * 0.85f);
-                iY += (18.0f * uiScale);
+                // Left Column: Item details & Lore (~62% width)
+                float leftColW = (availableW - (innerPad * 2.0f)) * 0.62f;
+                UIWidget::drawText(renderer, eq->name, iX, iY, Theme::colors.textGold, uiScale * 0.85f);
 
                 DisplacementMode disp = player->inventory.getDisplacement(slot);
                 std::string dispStr = displacementModeToString(disp);
-                UIWidget::drawText(renderer, std::format("Displacement: {}", dispStr), iX, iY, Theme::colors.companion, uiScale * 0.80f);
-                iY += (18.0f * uiScale);
+                std::string statusLine = std::format("Fit: {}  |  Value: {} ¤", dispStr, eq->baseValue);
+                UIWidget::drawText(renderer, statusLine, iX, iY + (16.0f * uiScale), Theme::colors.companion, uiScale * 0.74f);
 
-                UIWidget::drawText(renderer, std::format("Base Value: {} ¤", eq->baseValue), iX, iY, Theme::colors.currency, uiScale * 0.80f);
-                iY += (20.0f * uiScale);
+                UIWidget::drawTextWrapped(renderer, eq->description, iX, iY + (32.0f * uiScale), leftColW - (8.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.74f);
 
-                float descH = UIWidget::drawTextWrapped(renderer, eq->description, iX, iY, iW, Theme::colors.textSecondary, uiScale * 0.78f);
-                iY += descH + (14.0f * uiScale);
+                // Right Column: Interactive Displacement & Unequip Action Buttons (~38% width)
+                float rightColX = iX + leftColW + (8.0f * uiScale);
+                float rightColW = (availableW - (innerPad * 2.0f)) - leftColW - (8.0f * uiScale);
+                float btnHalfW = (rightColW - (4.0f * uiScale)) / 2.0f;
+                float btnH = 22.0f * uiScale;
+                float btnY = iY;
 
-                // Interactive Displacement & Unequip Action Buttons
-                float btnW = (iW - (3 * 4.0f * uiScale)) / 2.0f;
-                float btnH = 24.0f * uiScale;
-
-                // Button 1: Unequip
-                SDL_FRect b1 = { iX, iY, btnW, btnH };
+                // Row 1: Unequip & Reset Fit
+                SDL_FRect b1 = { rightColX, btnY, btnHalfW, btnH };
                 bool h1 = (mousePos.x >= b1.x && mousePos.x <= b1.x + b1.w && mousePos.y >= b1.y && mousePos.y <= b1.y + b1.h);
-                UIWidget::drawButton(renderer, b1, "Unequip", h1, true, false, uiScale * 0.72f);
+                UIWidget::drawButton(renderer, b1, "Unequip", h1, true, false, uiScale * 0.70f);
                 if (h1 && clicked) {
                     gameContext->handleUnequipAction(slot);
                     gameContext->input.consumeMouseClick();
                 }
 
-                // Button 2: Reset Fit
-                SDL_FRect b2 = { iX + btnW + (4.0f * uiScale), iY, btnW, btnH };
+                SDL_FRect b2 = { rightColX + btnHalfW + (4.0f * uiScale), btnY, btnHalfW, btnH };
                 bool h2 = (mousePos.x >= b2.x && mousePos.x <= b2.x + b2.w && mousePos.y >= b2.y && mousePos.y <= b2.y + b2.h);
-                UIWidget::drawButton(renderer, b2, "Reset Fit", h2, true, false, uiScale * 0.72f);
+                UIWidget::drawButton(renderer, b2, "Reset Fit", h2, true, false, uiScale * 0.70f);
                 if (h2 && clicked) {
                     player->inventory.setDisplacement(slot, DisplacementMode::NONE);
                     gameContext->refreshActionGrid();
                     gameContext->input.consumeMouseClick();
                 }
-                iY += btnH + (6.0f * uiScale);
+                btnY += btnH + (4.0f * uiScale);
 
-                // Button 3: Pull Aside
-                SDL_FRect b3 = { iX, iY, btnW, btnH };
+                // Row 2: Pull Aside & Pull Up/Down
+                SDL_FRect b3 = { rightColX, btnY, btnHalfW, btnH };
                 bool h3 = (mousePos.x >= b3.x && mousePos.x <= b3.x + b3.w && mousePos.y >= b3.y && mousePos.y <= b3.y + b3.h);
-                UIWidget::drawButton(renderer, b3, "Pull Aside", h3, true, (disp == DisplacementMode::PULL_ASIDE), uiScale * 0.72f);
+                UIWidget::drawButton(renderer, b3, "Pull Aside", h3, true, (disp == DisplacementMode::PULL_ASIDE), uiScale * 0.70f);
                 if (h3 && clicked) {
                     player->inventory.setDisplacement(slot, DisplacementMode::PULL_ASIDE);
                     gameContext->refreshActionGrid();
                     gameContext->input.consumeMouseClick();
                 }
 
-                // Button 4: Pull Up / Down
-                SDL_FRect b4 = { iX + btnW + (4.0f * uiScale), iY, btnW, btnH };
+                SDL_FRect b4 = { rightColX + btnHalfW + (4.0f * uiScale), btnY, btnHalfW, btnH };
                 bool h4 = (mousePos.x >= b4.x && mousePos.x <= b4.x + b4.w && mousePos.y >= b4.y && mousePos.y <= b4.y + b4.h);
-                UIWidget::drawButton(renderer, b4, "Pull Up/Down", h4, true, (disp == DisplacementMode::LIFT_UP || disp == DisplacementMode::PULL_DOWN), uiScale * 0.72f);
+                UIWidget::drawButton(renderer, b4, "Pull Up/Dn", h4, true, (disp == DisplacementMode::LIFT_UP || disp == DisplacementMode::PULL_DOWN), uiScale * 0.70f);
                 if (h4 && clicked) {
                     player->inventory.setDisplacement(slot, DisplacementMode::LIFT_UP);
                     gameContext->refreshActionGrid();
                     gameContext->input.consumeMouseClick();
                 }
-                iY += btnH + (6.0f * uiScale);
+                btnY += btnH + (4.0f * uiScale);
 
-                // Button 5: Unbutton / Open
-                SDL_FRect b5 = { iX, iY, iW, btnH };
+                // Row 3: Unbutton / Open
+                SDL_FRect b5 = { rightColX, btnY, rightColW, btnH };
                 bool h5 = (mousePos.x >= b5.x && mousePos.x <= b5.x + b5.w && mousePos.y >= b5.y && mousePos.y <= b5.y + b5.h);
-                UIWidget::drawButton(renderer, b5, "Unbutton / Open", h5, true, (disp == DisplacementMode::UNBUTTON), uiScale * 0.72f);
+                UIWidget::drawButton(renderer, b5, "Unbutton / Open", h5, true, (disp == DisplacementMode::UNBUTTON), uiScale * 0.70f);
                 if (h5 && clicked) {
                     player->inventory.setDisplacement(slot, DisplacementMode::UNBUTTON);
                     gameContext->refreshActionGrid();
@@ -526,32 +519,16 @@ namespace PaperdollWidgets
             }
             else
             {
-                UIWidget::drawText(renderer, "No item equipped in this slot.", iX, iY, Theme::colors.textMuted, uiScale * 0.80f);
-                iY += (20.0f * uiScale);
-                UIWidget::drawText(renderer, "Select an item from your backpack to equip it here.", iX, iY, Theme::colors.textSecondary, uiScale * 0.75f);
+                UIWidget::drawText(renderer, "No item equipped in this slot. Click an item in your backpack above to equip it.", iX, iY + (4.0f * uiScale), Theme::colors.textMuted, uiScale * 0.76f);
             }
 
-            curY += cardH + (8.0f * uiScale);
+            curY += cardH + (6.0f * uiScale);
             return (curY - startY);
         }
 
         // =========================================================================
         // CASE B: Selected Item from Backpack or Ground
         // =========================================================================
-        float headerH = 26.0f * uiScale;
-        SDL_FRect headerRect = { padX, curY, availableW, headerH };
-        UIWidget::drawHeader(renderer, headerRect, "ITEM DETAILS & LORE", Theme::colors.bgHeader, Theme::colors.textGold, uiScale * 0.85f);
-        curY += headerH + (8.0f * uiScale);
-
-        float cardH = 280.0f * uiScale;
-        SDL_FRect cardRect = { padX, curY, availableW, cardH };
-        UIWidget::drawPanel(renderer, cardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
-
-        float innerPad = 10.0f * uiScale;
-        float iX = padX + innerPad;
-        float iW = availableW - (innerPad * 2.0f);
-        float iY = curY + (8.0f * uiScale);
-
         if (gameContext->selectedInventoryIndex >= 0)
         {
             auto items = (gameContext->selectedInventorySide == 0)
@@ -563,46 +540,60 @@ namespace PaperdollWidgets
                 const auto& slotData = items[gameContext->selectedInventoryIndex];
                 if (slotData.itemPtr)
                 {
-                    UIWidget::drawText(renderer, std::format("{} (x{})", slotData.itemPtr->name, slotData.totalCount), iX, iY, Theme::colors.textGold, uiScale * 0.90f);
-                    iY += (20.0f * uiScale);
+                    float headerH = 22.0f * uiScale;
+                    SDL_FRect headerRect = { padX, curY, availableW, headerH };
+                    UIWidget::drawHeader(renderer, headerRect, "ITEM DETAILS & LORE", Theme::colors.bgHeader, Theme::colors.textGold, uiScale * 0.78f);
+                    curY += headerH + (4.0f * uiScale);
+
+                    float cardH = 100.0f * uiScale;
+                    SDL_FRect cardRect = { padX, curY, availableW, cardH };
+                    UIWidget::drawPanel(renderer, cardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+
+                    float innerPad = 8.0f * uiScale;
+                    float iX = padX + innerPad;
+                    float iY = curY + (6.0f * uiScale);
+
+                    // Left Column: Details & Lore
+                    float leftColW = (availableW - (innerPad * 2.0f)) * 0.65f;
+                    UIWidget::drawText(renderer, std::format("{} (x{})", slotData.itemPtr->name, slotData.totalCount), iX, iY, Theme::colors.textGold, uiScale * 0.85f);
 
                     std::string sideStr = (gameContext->selectedInventorySide == 0) ? "In Backpack" : "On Ground";
-                    UIWidget::drawText(renderer, std::format("Location: {} | Value: {} ¤", sideStr, slotData.itemPtr->baseValue), iX, iY, Theme::colors.currency, uiScale * 0.80f);
-                    iY += (18.0f * uiScale);
-
                     std::string targetSlotStr = gameContext->formatEquipSlotName(slotData.itemPtr->targetSlot);
-                    UIWidget::drawText(renderer, std::format("Equip Socket: {}", targetSlotStr), iX, iY, Theme::colors.companion, uiScale * 0.80f);
-                    iY += (20.0f * uiScale);
+                    std::string lineInfo = std::format("Location: {}  |  Socket: {}  |  Value: {} ¤", sideStr, targetSlotStr, slotData.itemPtr->baseValue);
+                    UIWidget::drawText(renderer, lineInfo, iX, iY + (16.0f * uiScale), Theme::colors.currency, uiScale * 0.74f);
 
-                    float descH = UIWidget::drawTextWrapped(renderer, slotData.itemPtr->description, iX, iY, iW, Theme::colors.textPrimary, uiScale * 0.78f);
-                    iY += descH + (16.0f * uiScale);
+                    UIWidget::drawTextWrapped(renderer, slotData.itemPtr->description, iX, iY + (32.0f * uiScale), leftColW - (8.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.74f);
 
-                    // Contextual Action Buttons
-                    float btnW = (iW - (2 * 4.0f * uiScale)) / 3.0f;
+                    // Right Column: Action Buttons
+                    float rightColX = iX + leftColW + (8.0f * uiScale);
+                    float rightColW = (availableW - (innerPad * 2.0f)) - leftColW - (8.0f * uiScale);
                     float btnH = 24.0f * uiScale;
+                    float btnY = iY + (6.0f * uiScale);
 
                     if (gameContext->selectedInventorySide == 0)
                     {
-                        // Backpack Side: [ Equip / Use ] [ Drop 1 ] [ Drop All ]
-                        SDL_FRect b1 = { iX, iY, btnW, btnH };
+                        // Backpack: [ Equip / Use ] [ Drop 1 ] [ Drop All ]
+                        float subBtnW = (rightColW - (2 * 4.0f * uiScale)) / 3.0f;
+
+                        SDL_FRect b1 = { rightColX, btnY, subBtnW, btnH };
                         bool h1 = (mousePos.x >= b1.x && mousePos.x <= b1.x + b1.w && mousePos.y >= b1.y && mousePos.y <= b1.y + b1.h);
-                        UIWidget::drawButton(renderer, b1, "Equip/Use", h1, true, false, uiScale * 0.70f);
+                        UIWidget::drawButton(renderer, b1, "Equip/Use", h1, true, false, uiScale * 0.68f);
                         if (h1 && clicked) {
                             gameContext->handleEquipAction(gameContext->selectedInventoryIndex);
                             gameContext->input.consumeMouseClick();
                         }
 
-                        SDL_FRect b2 = { iX + btnW + (4.0f * uiScale), iY, btnW, btnH };
+                        SDL_FRect b2 = { rightColX + subBtnW + (4.0f * uiScale), btnY, subBtnW, btnH };
                         bool h2 = (mousePos.x >= b2.x && mousePos.x <= b2.x + b2.w && mousePos.y >= b2.y && mousePos.y <= b2.y + b2.h);
-                        UIWidget::drawButton(renderer, b2, "Drop 1", h2, true, false, uiScale * 0.70f);
+                        UIWidget::drawButton(renderer, b2, "Drop 1", h2, true, false, uiScale * 0.68f);
                         if (h2 && clicked) {
                             gameContext->handleDropAction(gameContext->selectedInventoryIndex, 1);
                             gameContext->input.consumeMouseClick();
                         }
 
-                        SDL_FRect b3 = { iX + ((btnW + (4.0f * uiScale)) * 2.0f), iY, btnW, btnH };
+                        SDL_FRect b3 = { rightColX + ((subBtnW + (4.0f * uiScale)) * 2.0f), btnY, subBtnW, btnH };
                         bool h3 = (mousePos.x >= b3.x && mousePos.x <= b3.x + b3.w && mousePos.y >= b3.y && mousePos.y <= b3.y + b3.h);
-                        UIWidget::drawButton(renderer, b3, "Drop All", h3, true, false, uiScale * 0.70f);
+                        UIWidget::drawButton(renderer, b3, "Drop All", h3, true, false, uiScale * 0.68f);
                         if (h3 && clicked) {
                             gameContext->handleDropAction(gameContext->selectedInventoryIndex, 999);
                             gameContext->input.consumeMouseClick();
@@ -610,36 +601,38 @@ namespace PaperdollWidgets
                     }
                     else
                     {
-                        // Ground Side: [ Pick Up 1 ] [ Pick Up All ]
-                        float halfBtnW = (iW - (4.0f * uiScale)) / 2.0f;
-                        SDL_FRect b1 = { iX, iY, halfBtnW, btnH };
+                        // Ground: [ Pick Up 1 ] [ Pick Up All ]
+                        float halfBtnW = (rightColW - (4.0f * uiScale)) / 2.0f;
+                        SDL_FRect b1 = { rightColX, btnY, halfBtnW, btnH };
                         bool h1 = (mousePos.x >= b1.x && mousePos.x <= b1.x + b1.w && mousePos.y >= b1.y && mousePos.y <= b1.y + b1.h);
-                        UIWidget::drawButton(renderer, b1, "Pick Up 1", h1, true, false, uiScale * 0.72f);
+                        UIWidget::drawButton(renderer, b1, "Pick Up 1", h1, true, false, uiScale * 0.70f);
                         if (h1 && clicked) {
                             gameContext->handlePickupAction(gameContext->selectedInventoryIndex, 1);
                             gameContext->input.consumeMouseClick();
                         }
 
-                        SDL_FRect b2 = { iX + halfBtnW + (4.0f * uiScale), iY, halfBtnW, btnH };
+                        SDL_FRect b2 = { rightColX + halfBtnW + (4.0f * uiScale), btnY, halfBtnW, btnH };
                         bool h2 = (mousePos.x >= b2.x && mousePos.x <= b2.x + b2.w && mousePos.y >= b2.y && mousePos.y <= b2.y + b2.h);
-                        UIWidget::drawButton(renderer, b2, "Pick Up All", h2, true, false, uiScale * 0.72f);
+                        UIWidget::drawButton(renderer, b2, "Pick Up All", h2, true, false, uiScale * 0.70f);
                         if (h2 && clicked) {
                             gameContext->handlePickupAction(gameContext->selectedInventoryIndex, 999);
                             gameContext->input.consumeMouseClick();
                         }
                     }
 
-                    curY += cardH + (8.0f * uiScale);
+                    curY += cardH + (6.0f * uiScale);
                     return (curY - startY);
                 }
             }
         }
 
-        UIWidget::drawText(renderer, "No item or slot selected.", iX, iY, Theme::colors.textMuted, uiScale * 0.80f);
-        iY += (20.0f * uiScale);
-        UIWidget::drawText(renderer, "Click any equipment slot or backpack item to inspect its properties and take action.", iX, iY, Theme::colors.textSecondary, uiScale * 0.75f);
+        // Default hint card when nothing is selected
+        float hintH = 34.0f * uiScale;
+        SDL_FRect hintRect = { padX, curY, availableW, hintH };
+        UIWidget::drawPanel(renderer, hintRect, Theme::colors.bgDark, Theme::colors.borderNormal);
+        UIWidget::drawText(renderer, "Click any equipment slot or backpack item above to inspect lore details and take action.", padX + (8.0f * uiScale), curY + (8.0f * uiScale), Theme::colors.textMuted, uiScale * 0.74f);
 
-        curY += cardH + (8.0f * uiScale);
+        curY += hintH + (6.0f * uiScale);
         return (curY - startY);
     }
 }

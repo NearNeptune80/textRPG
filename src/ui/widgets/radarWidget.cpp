@@ -90,16 +90,15 @@ namespace RadarWidgets
         auto mousePos = gameContext->input.getMousePosition();
         bool clicked = gameContext->input.isLeftMouseJustClicked();
 
-        // Calculate dimensions for 5x5 tile grid
+        // Calculate linked square dimensions for 5x5 tile grid
         const int radius = 2; // 5x5 grid
         const int gridSize = (radius * 2) + 1; // 5
-        const float innerPadding = 6.0f * uiScale;
-        const float innerW = availableW - (innerPadding * 2.0f);
-        const float tileSize = std::floor(innerW / static_cast<float>(gridSize));
+        const float linkedSquareSize = std::min(availableW - (12.0f * uiScale), 160.0f * uiScale);
+        const float tileSize = std::floor(linkedSquareSize / static_cast<float>(gridSize));
         const float totalGridW = tileSize * static_cast<float>(gridSize);
 
-        float toolH = 22.0f * uiScale;
-        float cardH = (22.0f * uiScale) + totalGridW + (8.0f * uiScale) + toolH + (8.0f * uiScale);
+        float toolH = 20.0f * uiScale;
+        float cardH = (20.0f * uiScale) + totalGridW + (6.0f * uiScale) + toolH + (6.0f * uiScale);
 
         // ==========================================
         // CARD: Mini-Map Radar & Quick Toolbar
@@ -107,11 +106,12 @@ namespace RadarWidgets
         SDL_FRect mainCardRect = { padX, curY, availableW, cardH };
         UIWidget::drawPanel(renderer, mainCardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
-        float innerX = padX + innerPadding;
-        float cardCurY = curY + (5.0f * uiScale);
+        float innerX = padX + (6.0f * uiScale);
+        float innerW = availableW - (12.0f * uiScale);
+        float cardCurY = curY + (4.0f * uiScale);
 
-        UIWidget::drawText(renderer, "MINI-MAP RADAR", innerX, cardCurY, Theme::colors.textGold, uiScale * 0.78f);
-        cardCurY += (18.0f * uiScale);
+        UIWidget::drawText(renderer, "MINI-MAP RADAR", innerX, cardCurY, Theme::colors.textGold, uiScale * 0.76f);
+        cardCurY += (16.0f * uiScale);
 
         // Center the 5x5 grid inside the card
         float gridStartX = padX + ((availableW - totalGridW) / 2.0f);
@@ -256,14 +256,11 @@ namespace RadarWidgets
         float timeCardH = 46.0f * uiScale;
         float gapBetweenCards = 8.0f * uiScale;
 
-        const int radius = 2;
-        const int gridSize = (radius * 2) + 1;
-        const float innerPadding = 6.0f * uiScale;
-        const float innerW = availableW - (innerPadding * 2.0f);
-        const float tileSize = std::floor(innerW / static_cast<float>(gridSize));
-        const float totalGridW = tileSize * static_cast<float>(gridSize);
-        float toolH = 22.0f * uiScale;
-        float mapCardH = (22.0f * uiScale) + totalGridW + (8.0f * uiScale) + toolH + (8.0f * uiScale);
+        const float linkedSquareSize = std::min(availableW - (12.0f * uiScale), 160.0f * uiScale);
+        const float tileSize = std::floor(linkedSquareSize / 5.0f);
+        const float totalGridW = tileSize * 5.0f;
+        float toolH = 20.0f * uiScale;
+        float mapCardH = (20.0f * uiScale) + totalGridW + (6.0f * uiScale) + toolH + (6.0f * uiScale);
 
         float totalNavH = timeCardH + gapBetweenCards + mapCardH;
 

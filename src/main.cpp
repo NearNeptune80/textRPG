@@ -188,7 +188,7 @@ int main(int argc, char* argv[])
                 p->stats.setBaseStat("currency", 250.0f);
                 engine.playerEntity = p;
             }
-            if (screenshotState == "exploration_companion")
+            if (screenshotState == "exploration_companion" || screenshotState == "exploration_status")
             {
                 auto lilaya = std::make_shared<entity>("companion_lilaya", "Lilaya");
                 lilaya->stats.level = 5;
@@ -196,6 +196,19 @@ int main(int argc, char* argv[])
                 lilaya->stats.setBaseStat("max_health", 120.0f);
                 lilaya->stats.setBaseStat("lust", 25.0f);
                 engine.addCompanion(lilaya);
+            }
+            if (screenshotState == "exploration_status")
+            {
+                if (engine.getPlayer())
+                {
+                    engine.getPlayer()->addStatusEffect(StatusEffect{ "buff_str", "Strength Buff", "Increases physical damage by 15%", 10, false });
+                    engine.getPlayer()->addStatusEffect(StatusEffect{ "buff_arc", "Arcane Focus", "Mana regen increased by 20%", 10, false });
+                    engine.getPlayer()->addStatusEffect(StatusEffect{ "debuff_pois", "Poisoned", "Taking 5 nature damage per turn", 5, true });
+                    engine.getPlayer()->addStatusEffect(StatusEffect{ "buff_haste", "Haste", "Action speed doubled", 3, false });
+                    engine.getPlayer()->addStatusEffect(StatusEffect{ "buff_shield", "Arcane Ward", "Absorbs up to 50 damage", 8, false });
+                    engine.getPlayer()->addStatusEffect(StatusEffect{ "debuff_lust", "Aphrodisiac", "Arousal increases over time", 6, true });
+                    engine.getPlayer()->addStatusEffect(StatusEffect{ "buff_regen", "Regeneration", "Restores 10 HP every turn", 12, false });
+                }
             }
             engine.loadMap("house_01", 1, 1);
             engine.changeState(std::make_unique<explorationState>());
@@ -268,7 +281,7 @@ int main(int argc, char* argv[])
                 engine.selectedInventoryIndex = 1;
                 engine.selectedEquipmentSlot = equipSlot::NONE;
             }
-            else if (screenshotState == "inventory_companion")
+            else if (screenshotState == "inventory_companion" || screenshotState == "inventory_status")
             {
                 auto lilaya = std::make_shared<entity>("companion_lilaya", "Lilaya");
                 lilaya->stats.level = 5;
@@ -277,6 +290,17 @@ int main(int argc, char* argv[])
                 lilaya->stats.setBaseStat("lust", 25.0f);
                 engine.addCompanion(lilaya);
                 engine.selectedEquipmentSlot = equipSlot::TORSO_UNDER;
+
+                if (screenshotState == "inventory_status" && engine.getPlayer())
+                {
+                    engine.getPlayer()->addStatusEffect(StatusEffect{ "buff_str", "Strength Buff", "Increases physical damage by 15%", 10, false });
+                    engine.getPlayer()->addStatusEffect(StatusEffect{ "buff_arc", "Arcane Focus", "Mana regen increased by 20%", 10, false });
+                    engine.getPlayer()->addStatusEffect(StatusEffect{ "debuff_pois", "Poisoned", "Taking 5 nature damage per turn", 5, true });
+                    engine.getPlayer()->addStatusEffect(StatusEffect{ "buff_haste", "Haste", "Action speed doubled", 3, false });
+                    engine.getPlayer()->addStatusEffect(StatusEffect{ "buff_shield", "Arcane Ward", "Absorbs up to 50 damage", 8, false });
+                    engine.getPlayer()->addStatusEffect(StatusEffect{ "debuff_lust", "Aphrodisiac", "Arousal increases over time", 6, true });
+                    engine.getPlayer()->addStatusEffect(StatusEffect{ "buff_regen", "Regeneration", "Restores 10 HP every turn", 12, false });
+                }
             }
         }
 
