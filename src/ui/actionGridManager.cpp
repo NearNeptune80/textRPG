@@ -498,7 +498,11 @@ void ActionGridManager::refresh(game* gameContext)
                     }
                 }
 
-                addBtn(gameContext, btnLabel, [gameContext]() { gameContext->handleEquipAction(gameContext->selectedInventoryIndex); }, canEquipOrUse, false, equipUseDesc);
+                bool isConsumable = (slotInfo.isValid && slotInfo.itemPtr && slotInfo.itemPtr->isConsumable);
+                addBtn(gameContext, btnLabel, [gameContext, isConsumable]() {
+                    if (isConsumable) gameContext->handleUseItemAction(gameContext->selectedInventoryIndex);
+                    else gameContext->handleEquipAction(gameContext->selectedInventoryIndex);
+                }, canEquipOrUse, false, equipUseDesc);
 
                 bool isKey = (slotInfo.isValid && slotInfo.itemPtr && slotInfo.itemPtr->isKeyItem);
                 bool canDrop = slotInfo.isValid && !isKey;

@@ -17,4 +17,5 @@ namespace EngineTests
     bool testSettingsAndThemes();
     bool testSubmenuButtonFunctionality();
     bool testContentOptionsAllCategories();
+    bool testPlayerStatsAndItemUsage();
 }

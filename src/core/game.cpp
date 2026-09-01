@@ -470,6 +470,58 @@ void game::handleUnequipAction(equipSlot slot)
     }
 }
 
+void game::handleUseItemAction(int backpackIndex)
+{
+    if (!Player || backpackIndex < 0 || static_cast<size_t>(backpackIndex) >= Player->inventory.backpack.size()) return;
+
+    std::shared_ptr<item> targetItem = Player->inventory.backpack[backpackIndex];
+    if (!targetItem || !targetItem->isConsumable) return;
+
+    // Apply consumable stat effects
+    float hpRestore = 0.0f;
+    float mpRestore = 0.0f;
+
+    for (const auto& mod : targetItem->statModifiers)
+    {
+        if (mod.statName == "health") hpRestore += mod.flatValue;
+        else if (mod.statName == "mana") mpRestore += mod.flatValue;
+        else Player->stats.modifyBaseStat(mod.statName, mod.flatValue);
+    }
+
+    // Heuristic fallbacks if item data has no explicit statModifiers
+    if (hpRestore == 0.0f && targetItem->id.find("health") != std::string::npos) hpRestore = 50.0f;
+    else if (hpRestore == 0.0f && targetItem->id.find("canis") != std::string::npos) hpRestore = 45.0f;
+    if (mpRestore == 0.0f && targetItem->id.find("mana") != std::string::npos) mpRestore = 40.0f;
+
+    if (hpRestore > 0.0f)
+    {
+        float maxHp = Player->getStat("max_health");
+        float curHp = Player->getStat("health");
+        Player->stats.setBaseStat("health", std::min(maxHp, curHp + hpRestore));
+        std::cout << std::format("[Inventory] You consumed {} and restored {:.0f} HP.\n", targetItem->name, hpRestore);
+    }
+    if (mpRestore > 0.0f)
+    {
+        float maxMp = Player->getStat("max_mana");
+        float curMp = Player->getStat("mana");
+        Player->stats.setBaseStat("mana", std::min(maxMp, curMp + mpRestore));
+        std::cout << std::format("[Inventory] You consumed {} and restored {:.0f} MP.\n", targetItem->name, mpRestore);
+    }
+
+    // Decrement item count or remove
+    if (targetItem->isStackable && targetItem->count > 1)
+    {
+        targetItem->count--;
+    }
+    else
+    {
+        Player->inventory.backpack.erase(Player->inventory.backpack.begin() + backpackIndex);
+        selectedInventoryIndex = -1;
+    }
+
+    refreshActionGrid();
+}
+
 bool game::checkSingleCondition(const gameCondition& cond) const
 {
     if (!Player) return false;

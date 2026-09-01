@@ -56,10 +56,7 @@ public:
     bool hasStatusEffect(const std::string& effectId) const;
     void updateStatusEffectsOnTurn();
 
-    float getStat(const std::string& statName) const
-    {
-        return stats.getEffectiveStat(statName, statusEffects);
-    }
+    float getStat(const std::string& statName) const;
 
     nlohmann::json toJson() const;
     void fromJson(const nlohmann::json& j);

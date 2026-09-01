@@ -964,11 +964,81 @@ namespace EngineTests
         return allPassed;
     }
 
+    bool testPlayerStatsAndItemUsage()
+    {
+        std::cout << "\n--- Running Test 15: Player Stats, Equipment Modifiers & Consumable Usage ---\n";
+        bool allPassed = true;
+
+        game g;
+        g.init();
+
+        auto player = std::make_shared<entity>("stat_tester", "Valeria");
+        g.playerEntity = player;
+        g.Player = player.get();
+
+        // 1. Test Base Stats & Dynamic Derivation
+        player->stats.setBaseStat("health", 45.0f);
+        player->stats.setBaseStat("mana", 110.0f);
+        player->stats.setBaseStat("currency", 250.0f);
+        player->stats.setBaseStat("arcaneEssence", 25.0f);
+
+        bool maxHpDerived = (player->getStat("max_health") == 100.0f);
+        bool maxMpDerived = (player->getStat("max_mana") == 110.0f);
+        logResult("Dynamic max_health derives at least 100", maxHpDerived);
+        logResult("Dynamic max_mana matches or exceeds current mana (110)", maxMpDerived);
+        allPassed &= (maxHpDerived && maxMpDerived);
+
+        // 2. Test Equipment Stat Contribution
+        float basePhysique = player->getStat("physique");
+        auto shirt = std::make_shared<item>();
+        shirt->id = "test_shirt";
+        shirt->name = "Reinforced Shirt";
+        shirt->isEquippable = true;
+        shirt->targetSlot = equipSlot::TORSO_UNDER;
+        shirt->statModifiers.push_back({ "physique", 5.0f, 0.0f });
+
+        player->inventory.addItem(shirt);
+        player->inventory.equipItem(0, equipSlot::TORSO_UNDER);
+
+        float equippedPhysique = player->getStat("physique");
+        bool equipGaveStat = (equippedPhysique == basePhysique + 5.0f);
+        logResult("Equipping item applies flat stat modifiers dynamically", equipGaveStat);
+        allPassed &= equipGaveStat;
+
+        player->inventory.unequipItem(equipSlot::TORSO_UNDER);
+        float unequippedPhysique = player->getStat("physique");
+        bool unequipRemovedStat = (unequippedPhysique == basePhysique);
+        logResult("Unequipping item removes stat modifier dynamically", unequipRemovedStat);
+        allPassed &= unequipRemovedStat;
+
+        // 3. Test Consumable Item Usage
+        auto potion = std::make_shared<item>();
+        potion->id = "item_potion_health";
+        potion->name = "Health Potion";
+        potion->isConsumable = true;
+        potion->isStackable = true;
+        potion->count = 2;
+        potion->statModifiers.push_back({ "health", 50.0f, 0.0f });
+
+        player->inventory.addItem(potion);
+        int potIndex = static_cast<int>(player->inventory.backpack.size()) - 1;
+        float preHealth = player->getStat("health");
+        g.handleUseItemAction(potIndex);
+
+        float postHealth = player->getStat("health");
+        bool hpRestored = (postHealth == std::min(player->getStat("max_health"), preHealth + 50.0f));
+        bool stackDecremented = (player->inventory.backpack[potIndex]->count == 1);
+        logResult("Consuming health potion restores HP clamped to max", hpRestored);
+        logResult("Consuming stackable item decrements stack count", stackDecremented);
+        allPassed &= (hpRestored && stackDecremented);
+
+        return allPassed;
+    }
+
     bool runAllTests()
     {
         g_passCount = 0;
         g_failCount = 0;
-
         std::cout << "======================================================================\n";
         std::cout << "   [textRPG Engine Autonomous Regression Test Suite]\n";
         std::cout << "======================================================================\n";
@@ -987,6 +1057,7 @@ namespace EngineTests
         bool t12 = testFullTransformationSuiteAndPresetPersistence();
         bool t13 = testLegacySaveCompatibility();
         bool t14 = testTooltipSystem();
+        bool t15 = testPlayerStatsAndItemUsage();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";

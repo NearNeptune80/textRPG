@@ -32,6 +32,25 @@ float statsComponent::getBaseStat(const std::string& name) const
 {
 	auto it = baseValues.find(name);
 	if (it != baseValues.end()) return it->second;
+
+	// Dynamic fallback for derived maximum limits when unconfigured
+	if (name == "max_health")
+	{
+		auto hpIt = baseValues.find("health");
+		if (hpIt != baseValues.end() && hpIt->second > 0.0f) return std::max(hpIt->second, 100.0f);
+		return 100.0f;
+	}
+	if (name == "max_mana")
+	{
+		auto mpIt = baseValues.find("mana");
+		if (mpIt != baseValues.end() && mpIt->second > 0.0f) return std::max(mpIt->second, 100.0f);
+		return 100.0f;
+	}
+	if (name == "max_lust" || name == "max_arousal")
+	{
+		return 100.0f;
+	}
+
 	return 0.0f;
 }
 

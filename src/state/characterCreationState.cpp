@@ -701,10 +701,18 @@ void characterCreationState::finalizeCharacter(game* gameContext)
 
         // Starting core stats & currency
         player->stats.setBaseStat("currency", 5000.0f);
-        player->stats.setBaseStat("health", 40.0f);
-        player->stats.setBaseStat("mana", 108.0f);
+        player->stats.setBaseStat("health", 100.0f);
+        player->stats.setBaseStat("max_health", 100.0f);
+        player->stats.setBaseStat("mana", 100.0f);
+        player->stats.setBaseStat("max_mana", 100.0f);
         player->stats.setBaseStat("lust", 0.0f);
+        player->stats.setBaseStat("max_lust", 100.0f);
+        player->stats.setBaseStat("arousal", 0.0f);
+        player->stats.setBaseStat("max_arousal", 100.0f);
         player->stats.setBaseStat("arcaneEssence", 20.0f);
+        player->stats.setBaseStat("physique", 10.0f);
+        player->stats.setBaseStat("agility", 10.0f);
+        player->stats.setBaseStat("arcane", 10.0f);
 
         // Transfer custom wardrobe choices
         if (!wardrobeInitialized) initializeWardrobe();

@@ -53,6 +53,30 @@ void entity::updateStatusEffectsOnTurn()
     });
 }
 
+float entity::getStat(const std::string& statName) const
+{
+    float val = stats.getEffectiveStat(statName, statusEffects);
+
+    // Sum flat and percent bonuses from equipped items
+    float flatEquipment = 0.0f;
+    float percentEquipment = 0.0f;
+
+    for (const auto& eqItem : inventory.equipped)
+    {
+        if (!eqItem) continue;
+        for (const auto& mod : eqItem->statModifiers)
+        {
+            if (mod.statName == statName)
+            {
+                flatEquipment += mod.flatValue;
+                percentEquipment += mod.percentValue;
+            }
+        }
+    }
+
+    return std::max(0.0f, (val + flatEquipment) * (1.0f + percentEquipment));
+}
+
 json entity::toJson() const
 {
     json j;

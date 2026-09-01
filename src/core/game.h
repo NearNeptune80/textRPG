@@ -107,6 +107,7 @@ public:
     void handleDropAction(int stackedIndex, int quantity);
     void handlePickupAction(int groundIndex, int quantity);
     void handleEquipAction(int backpackIndex);
+    void handleUseItemAction(int backpackIndex);
     void handleUnequipAction(equipSlot slot);
     bool checkSingleCondition(const gameCondition &cond) const;
 

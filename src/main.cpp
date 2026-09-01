@@ -186,6 +186,7 @@ int main(int argc, char* argv[])
                 p->stats.setBaseStat("lust", 15.0f);
                 p->stats.setBaseStat("arousal", 10.0f);
                 p->stats.setBaseStat("currency", 250.0f);
+                p->stats.setBaseStat("arcaneEssence", 20.0f);
                 engine.playerEntity = p;
             }
             if (screenshotState == "exploration_companion" || screenshotState == "exploration_status" || screenshotState == "tooltip_action" || screenshotState == "tooltip_vitals")
@@ -224,6 +225,7 @@ int main(int argc, char* argv[])
                 p->stats.setBaseStat("mana", 80.0f);
                 p->stats.setBaseStat("max_mana", 80.0f);
                 p->stats.setBaseStat("currency", 5000.0f);
+                p->stats.setBaseStat("arcaneEssence", 20.0f);
                 
                 auto pot = std::make_shared<item>();
                 pot->id = "item_potion_health";

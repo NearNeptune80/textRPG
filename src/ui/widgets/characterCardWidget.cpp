@@ -65,9 +65,9 @@ namespace CharacterCardWidget
 
         // Health
         float curHp = companion->getStat("health");
-        if (curHp <= 0.0f) curHp = 100.0f;
         float maxHp = companion->getStat("max_health");
-        if (maxHp <= 0.0f) maxHp = 100.0f;
+        if (maxHp <= 0.0f) maxHp = std::max(curHp, 100.0f);
+        curHp = std::clamp(curHp, 0.0f, maxHp);
 
         UIWidget::drawText(renderer, "Health", cX, curY, Theme::colors.health, uiScale * 0.60f);
         UIWidget::drawProgressBar(renderer, { cX + labelW, curY, progressW, barH }, curHp, maxHp, Theme::colors.health, Theme::colors.bgHeader, "", uiScale);
@@ -82,16 +82,18 @@ namespace CharacterCardWidget
         curY += barH + barGap;
 
         // Lust
-        float curLust = companion->getStat("lust");
+        float curLust = std::clamp(companion->getStat("lust"), 0.0f, 100.0f);
+        float maxLust = companion->getStat("max_lust");
+        if (maxLust <= 0.0f) maxLust = 100.0f;
         UIWidget::drawText(renderer, "Lust", cX, curY, Theme::colors.lust, uiScale * 0.60f);
-        UIWidget::drawProgressBar(renderer, { cX + labelW, curY, progressW, barH }, curLust, 100.0f, Theme::colors.lust, Theme::colors.bgHeader, "", uiScale);
-        std::string lustStr = std::format("{:.0f}%", curLust);
+        UIWidget::drawProgressBar(renderer, { cX + labelW, curY, progressW, barH }, curLust, maxLust, Theme::colors.lust, Theme::colors.bgHeader, "", uiScale);
+        std::string lustStr = std::format("{:.0f}%", (curLust / maxLust) * 100.0f);
         UIWidget::drawText(renderer, lustStr, cX + labelW + progressW + (4.0f * uiScale), curY, Theme::colors.textPrimary, uiScale * 0.58f);
 
         TooltipManager::setHoverTooltip({ cX, curY, cW, barH }, mousePos,
                                         std::format("{}'s Lust", companion->name),
                                         "Companion sexual desire and susceptibility to lust-based seduction.",
-                                        std::format("{:.0f}% Lust", curLust));
+                                        std::format("{:.0f}% Lust", (curLust / maxLust) * 100.0f));
 
         return cardH + (5.0f * uiScale);
     }
@@ -185,7 +187,6 @@ namespace CharacterCardWidget
 
         // Gold & Essence
         float goldVal = player->getStat("currency");
-        if (goldVal <= 0.0f && !inPrologue) goldVal = 5000.0f;
         std::string goldText = std::format("Gold: {:.0f} ¤", goldVal);
         UIWidget::drawText(renderer, goldText, s1ContentX, s1Y + avatarSize + (4.0f * uiScale), Theme::colors.currency, uiScale * 0.72f);
         TooltipManager::setHoverTooltip({ s1ContentX, s1Y + avatarSize + (2.0f * uiScale), 70.0f * uiScale, 16.0f * uiScale },
@@ -193,13 +194,15 @@ namespace CharacterCardWidget
                                         "Universal coins used to trade with merchants, purchase equipment, and pay for town services.",
                                         std::format("{:.0f} ¤ Available", goldVal));
 
-        std::string essenceText = "Essence: 0";
+        float essenceVal = player->getStat("arcaneEssence");
+        if (essenceVal <= 0.0f) essenceVal = player->getStat("essence");
+        std::string essenceText = std::format("Essence: {:.0f}", essenceVal);
         float essW = UIWidget::getTextWidth(essenceText, uiScale * 0.72f);
         UIWidget::drawText(renderer, essenceText, s1ContentX + s1ContentW - essW, s1Y + avatarSize + (4.0f * uiScale), Theme::colors.arcane, uiScale * 0.72f);
         TooltipManager::setHoverTooltip({ s1ContentX + s1ContentW - essW - (4.0f * uiScale), s1Y + avatarSize + (2.0f * uiScale), essW + (8.0f * uiScale), 16.0f * uiScale },
                                         mousePos, "Arcane Essence",
                                         "Purified demonic essence harvested from transformations and rituals, used to unlock body mutations.",
-                                        "0 Essence Available");
+                                        std::format("{:.0f} Essence Available", essenceVal));
 
         curY += sub1H + (5.0f * uiScale);
 
@@ -225,9 +228,9 @@ namespace CharacterCardWidget
 
         // 1. Health Bar
         float curHp = player->getStat("health");
-        if (curHp <= 0.0f) curHp = 100.0f;
         float maxHp = player->getStat("max_health");
-        if (maxHp <= 0.0f) maxHp = 100.0f;
+        if (maxHp <= 0.0f) maxHp = std::max(curHp, 100.0f);
+        curHp = std::clamp(curHp, 0.0f, maxHp);
 
         UIWidget::drawText(renderer, "Health", s2ContentX, s2Y, Theme::colors.health, uiScale * 0.65f);
         UIWidget::drawProgressBar(renderer, { s2ContentX + labelW, s2Y, progressW, barH }, curHp, maxHp, Theme::colors.health, Theme::colors.bgHeader, "", uiScale);
@@ -240,9 +243,9 @@ namespace CharacterCardWidget
 
         // 2. Mana Bar
         float curMp = inPrologue ? 0.0f : player->getStat("mana");
-        if (curMp <= 0.0f && !inPrologue) curMp = 80.0f;
         float maxMp = inPrologue ? 0.0f : player->getStat("max_mana");
-        if (maxMp <= 0.0f && !inPrologue) maxMp = 80.0f;
+        if (!inPrologue && maxMp <= 0.0f) maxMp = std::max(curMp, 100.0f);
+        if (!inPrologue) curMp = std::clamp(curMp, 0.0f, maxMp);
 
         UIWidget::drawText(renderer, "Mana", s2ContentX, s2Y, Theme::colors.mana, uiScale * 0.65f);
         UIWidget::drawProgressBar(renderer, { s2ContentX + labelW, s2Y, progressW, barH }, curMp, std::max(1.0f, maxMp), Theme::colors.mana, Theme::colors.bgHeader, "", uiScale);
@@ -254,29 +257,31 @@ namespace CharacterCardWidget
         s2Y += barH + barGap;
 
         // 3. Lust Bar
-        float curLust = player->getStat("lust");
-        float maxLust = 100.0f;
+        float curLust = std::clamp(player->getStat("lust"), 0.0f, 100.0f);
+        float maxLust = player->getStat("max_lust");
+        if (maxLust <= 0.0f) maxLust = 100.0f;
 
         UIWidget::drawText(renderer, "Lust", s2ContentX, s2Y, Theme::colors.lust, uiScale * 0.65f);
         UIWidget::drawProgressBar(renderer, { s2ContentX + labelW, s2Y, progressW, barH }, curLust, maxLust, Theme::colors.lust, Theme::colors.bgHeader, "", uiScale);
-        std::string lustStr = std::format("{:.0f}%", curLust);
+        std::string lustStr = std::format("{:.0f}%", (curLust / maxLust) * 100.0f);
         UIWidget::drawText(renderer, lustStr, s2ContentX + labelW + progressW + (4.0f * uiScale), s2Y, Theme::colors.textPrimary, uiScale * 0.62f);
         TooltipManager::setHoverTooltip({ s2ContentX, s2Y, s2ContentW, barH }, mousePos, "Lust Level",
                                         "Sexual desire and psychological vulnerability. High lust weakens resistance against seductive influences.",
-                                        std::format("{:.0f}% Lust", curLust));
+                                        std::format("{:.0f}% Lust", (curLust / maxLust) * 100.0f));
         s2Y += barH + barGap;
 
         // 4. Arousal Bar
-        float curArousal = player->getStat("arousal");
-        float maxArousal = 100.0f;
+        float curArousal = std::clamp(player->getStat("arousal"), 0.0f, 100.0f);
+        float maxArousal = player->getStat("max_arousal");
+        if (maxArousal <= 0.0f) maxArousal = 100.0f;
 
         UIWidget::drawText(renderer, "Arousal", s2ContentX, s2Y, Theme::colors.textGold, uiScale * 0.65f);
         UIWidget::drawProgressBar(renderer, { s2ContentX + labelW, s2Y, progressW, barH }, curArousal, maxArousal, Theme::colors.textGold, Theme::colors.bgHeader, "", uiScale);
-        std::string arousalStr = std::format("{:.0f}%", curArousal);
+        std::string arousalStr = std::format("{:.0f}%", (curArousal / maxArousal) * 100.0f);
         UIWidget::drawText(renderer, arousalStr, s2ContentX + labelW + progressW + (4.0f * uiScale), s2Y, Theme::colors.textPrimary, uiScale * 0.62f);
         TooltipManager::setHoverTooltip({ s2ContentX, s2Y, s2ContentW, barH }, mousePos, "Physical Arousal",
                                         "Active physiological excitement during intimate encounters. Reaching 100% triggers orgasmic climax.",
-                                        std::format("{:.0f}% Arousal", curArousal));
+                                        std::format("{:.0f}% Arousal", (curArousal / maxArousal) * 100.0f));
         s2Y += barH + (6.0f * uiScale);
 
         // -------------------------------------------------------------------------
