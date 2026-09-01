@@ -348,7 +348,7 @@ void game::movePlayer(int nextX, int nextY)
 
 void game::handleDropAction(int stackedIndex, int quantity)
 {
-    if (!Player || !map) return;
+    if (!Player) return;
 
     auto stackedView = Player->inventory.getStackedView();
     if (stackedIndex < 0 || static_cast<size_t>(stackedIndex) >= stackedView.size()) return;
@@ -357,28 +357,37 @@ void game::handleDropAction(int stackedIndex, int quantity)
     int actualDropCount = std::min(quantity, slotData.totalCount);
     std::string targetItemId = slotData.itemPtr->id;
 
-    TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
-
-    bool merged = false;
-    if (slotData.itemPtr->isStackable)
+    if (activeTargetNPC)
     {
-        for (auto& entry : tileData.droppedItems)
+        auto transferCopy = std::make_shared<item>(*slotData.itemPtr);
+        transferCopy->count = actualDropCount;
+        activeTargetNPC->inventory.addItem(transferCopy);
+    }
+    else if (map)
+    {
+        TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
+
+        bool merged = false;
+        if (slotData.itemPtr->isStackable)
         {
-            if (entry.itemPtr && entry.itemPtr->id == targetItemId)
+            for (auto& entry : tileData.droppedItems)
             {
-                entry.itemPtr->count += actualDropCount;
-                entry.minutesRemaining = 120; // Refresh decay timer on merge
-                merged = true;
-                break;
+                if (entry.itemPtr && entry.itemPtr->id == targetItemId)
+                {
+                    entry.itemPtr->count += actualDropCount;
+                    entry.minutesRemaining = 120; // Refresh decay timer on merge
+                    merged = true;
+                    break;
+                }
             }
         }
-    }
 
-    if (!merged)
-    {
-        auto droppedCopy = std::make_shared<item>(*slotData.itemPtr);
-        droppedCopy->count = actualDropCount;
-        tileData.addDroppedItem(droppedCopy, 120);
+        if (!merged)
+        {
+            auto droppedCopy = std::make_shared<item>(*slotData.itemPtr);
+            droppedCopy->count = actualDropCount;
+            tileData.addDroppedItem(droppedCopy, 120);
+        }
     }
 
     Player->inventory.removeItem(targetItemId, actualDropCount);
@@ -388,47 +397,45 @@ void game::handleDropAction(int stackedIndex, int quantity)
 
 void game::handlePickupAction(int groundIndex, int quantity)
 {
-    if (!Player || !map) return;
+    if (!Player) return;
 
-    TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
-    if (groundIndex < 0 || static_cast<size_t>(groundIndex) >= tileData.droppedItems.size()) return;
-
-    auto groundItem = tileData.droppedItems[groundIndex].itemPtr;
-    if (!groundItem) return;
-
-    int totalGroundCount = groundItem->isStackable ? groundItem->count : 1;
-    int actualTakeCount = std::min(quantity, totalGroundCount);
-
-    if (groundItem->isStackable)
+    if (activeTargetNPC)
     {
-        bool mergedInBackpack = false;
-        for (auto& bpItem : Player->inventory.backpack)
-        {
-            if (bpItem && bpItem->id == groundItem->id)
-            {
-                bpItem->count += actualTakeCount;
-                mergedInBackpack = true;
-                break;
-            }
-        }
+        auto npcView = activeTargetNPC->inventory.getStackedView();
+        if (groundIndex < 0 || static_cast<size_t>(groundIndex) >= npcView.size()) return;
 
-        if (!mergedInBackpack)
-        {
-            auto playerCopy = std::make_shared<item>(*groundItem);
-            playerCopy->count = actualTakeCount;
-            Player->inventory.addItem(playerCopy);
-        }
+        const auto& slotData = npcView[groundIndex];
+        int actualTakeCount = std::min(quantity, slotData.totalCount);
+        std::string targetItemId = slotData.itemPtr->id;
 
-        groundItem->count -= actualTakeCount;
-        if (groundItem->count <= 0)
+        auto playerCopy = std::make_shared<item>(*slotData.itemPtr);
+        playerCopy->count = actualTakeCount;
+        Player->inventory.addItem(playerCopy);
+        activeTargetNPC->inventory.removeItem(targetItemId, actualTakeCount);
+    }
+    else if (map)
+    {
+        TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
+        if (groundIndex < 0 || static_cast<size_t>(groundIndex) >= tileData.droppedItems.size()) return;
+
+        auto groundItem = tileData.droppedItems[groundIndex].itemPtr;
+        if (!groundItem) return;
+
+        int totalGroundCount = groundItem->isStackable ? groundItem->count : 1;
+        int actualTakeCount = std::min(quantity, totalGroundCount);
+
+        auto playerCopy = std::make_shared<item>(*groundItem);
+        playerCopy->count = actualTakeCount;
+        Player->inventory.addItem(playerCopy);
+
+        if (groundItem->isStackable && totalGroundCount > actualTakeCount)
+        {
+            groundItem->count -= actualTakeCount;
+        }
+        else
         {
             tileData.droppedItems.erase(tileData.droppedItems.begin() + groundIndex);
         }
-    }
-    else
-    {
-        Player->inventory.addItem(groundItem);
-        tileData.droppedItems.erase(tileData.droppedItems.begin() + groundIndex);
     }
 
     selectedInventoryIndex = -1;

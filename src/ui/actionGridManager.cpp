@@ -451,16 +451,21 @@ void ActionGridManager::refresh(game* gameContext)
         }
         else if (gameContext->selectedInventoryIndex != -1)
         {
+            bool hasNpc = (gameContext->getActiveTargetNPC() != nullptr);
             if (gameContext->selectedInventorySide == 0)
             {
                 addBtn(gameContext, "Equip / Use", [gameContext]() { gameContext->handleEquipAction(gameContext->selectedInventoryIndex); });
-                addBtn(gameContext, "Drop 1", [gameContext]() { gameContext->handleDropAction(gameContext->selectedInventoryIndex, 1); });
-                addBtn(gameContext, "Drop All", [gameContext]() { gameContext->handleDropAction(gameContext->selectedInventoryIndex, 999); });
+                std::string give1 = hasNpc ? "Give 1" : "Drop 1";
+                std::string giveAll = hasNpc ? "Give All" : "Drop All";
+                addBtn(gameContext, give1, [gameContext]() { gameContext->handleDropAction(gameContext->selectedInventoryIndex, 1); });
+                addBtn(gameContext, giveAll, [gameContext]() { gameContext->handleDropAction(gameContext->selectedInventoryIndex, 999); });
             }
             else if (gameContext->selectedInventorySide == 1)
             {
-                addBtn(gameContext, "Pickup 1", [gameContext]() { gameContext->handlePickupAction(gameContext->selectedInventoryIndex, 1); });
-                addBtn(gameContext, "Pickup All", [gameContext]() { gameContext->handlePickupAction(gameContext->selectedInventoryIndex, 999); });
+                std::string take1 = hasNpc ? "Take 1" : "Pickup 1";
+                std::string takeAll = hasNpc ? "Take All" : "Pickup All";
+                addBtn(gameContext, take1, [gameContext]() { gameContext->handlePickupAction(gameContext->selectedInventoryIndex, 1); });
+                addBtn(gameContext, takeAll, [gameContext]() { gameContext->handlePickupAction(gameContext->selectedInventoryIndex, 999); });
             }
         }
 

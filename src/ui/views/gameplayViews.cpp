@@ -357,188 +357,186 @@ namespace GameplayViews
         return (curY - startY);
     }
 
+    // Page state for Player and Target/Ground side (0..4 for pages 1..5, 5 for Key Items)
+    static int s_playerInvPage = 0;
+    static int s_targetInvPage = 0;
+
     float renderInventoryView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)
     {
         if (!gameContext || !gameContext->getPlayer()) return 0.0f;
 
         float startY = curY;
-        float padX = rect.x + (8.0f * uiScale);
-        float availableW = rect.w - (16.0f * uiScale);
+        float padX = rect.x + (6.0f * uiScale);
+        float availableW = rect.w - (12.0f * uiScale);
 
         auto mousePos = gameContext->input.getMousePosition();
         bool clicked = gameContext->input.isLeftMouseJustClicked();
 
-        // 1. Header
-        float headerH = 26.0f * uiScale;
-        SDL_FRect headerRect = { padX, curY, availableW, headerH };
-        UIWidget::drawHeader(renderer, headerRect, "BACKPACK & STORAGE", Theme::colors.bgHeader, Theme::colors.textGold, uiScale * 0.85f);
-        curY += headerH + (8.0f * uiScale);
+        float gapBetweenSides = 8.0f * uiScale;
+        float halfW = std::floor((availableW - gapBetweenSides) / 2.0f);
 
-        // 2. Category Tabs: [ All ] [ Gear ] [ Clothes ] [ Consumable ] [ Piercings ] [ Misc ]
-        static int activeCategory = 0;
-        static const std::vector<std::string> categories = {
-            "All", "Gear", "Clothes", "Items", "Piercings", "Misc"
-        };
+        entity* player = gameContext->getPlayer();
+        entity* targetNpc = gameContext->getActiveTargetNPC();
 
-        float tabH = 22.0f * uiScale;
-        float tabW = (availableW - ((categories.size() - 1) * 3.0f * uiScale)) / static_cast<float>(categories.size());
+        // -------------------------------------------------------------------------
+        // HELPER LAMBDA: Render a 5x4 Grid Side (Side 0: Player, Side 1: Target/Floor)
+        // -------------------------------------------------------------------------
+        auto renderInventorySide = [&](int side, float sideX, float sideW, entity* ent, int& activePage) -> float {
+            float sY = curY;
+            float headerH = 22.0f * uiScale;
+            SDL_FRect hRect = { sideX, sY, sideW, headerH };
 
-        for (size_t t = 0; t < categories.size(); ++t)
-        {
-            SDL_FRect tRect = { padX + (t * (tabW + (3.0f * uiScale))), curY, tabW, tabH };
-            bool isTabActive = (activeCategory == static_cast<int>(t));
-            bool tHov = (mousePos.x >= tRect.x && mousePos.x <= tRect.x + tRect.w &&
-                         mousePos.y >= tRect.y && mousePos.y <= tRect.y + tRect.h);
+            std::string sideTitle = (side == 0)
+                ? "PLAYER INVENTORY"
+                : (ent ? std::format("NPC: {}'S INVENTORY", ent->name) : "FLOOR / GROUND STORAGE");
 
-            UIWidget::drawButton(renderer, tRect, categories[t], tHov, true, isTabActive, uiScale * 0.70f);
+            UIWidget::drawHeader(renderer, hRect, sideTitle, Theme::colors.bgHeader, Theme::colors.textGold, uiScale * 0.76f);
+            sY += headerH + (4.0f * uiScale);
 
-            if (tHov && clicked)
+            // 6 Page Navigation Tabs: [ 1 ] [ 2 ] [ 3 ] [ 4 ] [ 5 ] [ Key ]
+            static const std::vector<std::string> pageTabs = { "1", "2", "3", "4", "5", "Key" };
+            float tabH = 18.0f * uiScale;
+            float tabGap = 2.0f * uiScale;
+            float tabW = std::floor((sideW - (tabGap * 5.0f)) / 6.0f);
+
+            for (size_t p = 0; p < pageTabs.size(); ++p)
             {
-                activeCategory = static_cast<int>(t);
-                gameContext->input.consumeMouseClick();
-            }
-        }
-        curY += tabH + (8.0f * uiScale);
+                SDL_FRect pRect = { sideX + (p * (tabW + tabGap)), sY, tabW, tabH };
+                bool isPageActive = (activePage == static_cast<int>(p));
+                bool pHov = (mousePos.x >= pRect.x && mousePos.x <= pRect.x + pRect.w &&
+                             mousePos.y >= pRect.y && mousePos.y <= pRect.y + pRect.h);
 
-        // 3. Backpack Item Cards List
-        float cardRowH = 28.0f * uiScale;
-        auto backpack = gameContext->getPlayerInventoryStacked();
+                UIWidget::drawButton(renderer, pRect, pageTabs[p], pHov, true, isPageActive, uiScale * 0.65f);
 
-        // Filter items based on active category
-        struct FilteredItem {
-            size_t originalIndex;
-            InventorySlot slot;
-        };
-        std::vector<FilteredItem> filteredItems;
-
-        for (size_t i = 0; i < backpack.size(); ++i)
-        {
-            if (!backpack[i].itemPtr) continue;
-            const auto& it = backpack[i].itemPtr;
-
-            bool matches = false;
-            switch (activeCategory)
-            {
-                case 0: // All
-                    matches = true;
-                    break;
-                case 1: // Gear
-                    matches = it->isEquippable && (it->targetSlot == equipSlot::WEAPON_MAIN || it->targetSlot == equipSlot::WEAPON_OFF || it->targetSlot == equipSlot::TORSO_OVER || it->targetSlot == equipSlot::HEADWEAR);
-                    break;
-                case 2: // Clothes
-                    matches = it->isEquippable && (!it->supportedDisplacements.empty() || it->targetSlot == equipSlot::TORSO_UNDER || it->targetSlot == equipSlot::CHEST_WEAR || it->targetSlot == equipSlot::LEGS_OUTER || it->targetSlot == equipSlot::GROIN_OVER || it->targetSlot == equipSlot::CALVES || it->targetSlot == equipSlot::FEET);
-                    break;
-                case 3: // Items / Consumables
-                    matches = it->isConsumable;
-                    break;
-                case 4: // Piercings / Jewelry
-                    matches = it->isEquippable && (it->targetSlot == equipSlot::PIERCING_EAR || it->targetSlot == equipSlot::PIERCING_NOSE || it->targetSlot == equipSlot::PIERCING_LIP || it->targetSlot == equipSlot::PIERCING_TONGUE || it->targetSlot == equipSlot::PIERCING_NIPPLE || it->targetSlot == equipSlot::PIERCING_NAVEL || it->targetSlot == equipSlot::PIERCING_COCK || it->targetSlot == equipSlot::PIERCING_VAGINA || it->targetSlot == equipSlot::FINGER_PRIMARY || it->targetSlot == equipSlot::NECKWEAR || it->targetSlot == equipSlot::WRISTS);
-                    break;
-                case 5: // Misc
-                    matches = !it->isEquippable && !it->isConsumable;
-                    break;
-            }
-
-            if (matches) filteredItems.push_back({ i, backpack[i] });
-        }
-
-        if (filteredItems.empty())
-        {
-            SDL_FRect emptyBox = { padX, curY, availableW, 36.0f * uiScale };
-            UIWidget::drawPanel(renderer, emptyBox, Theme::colors.bgDark, Theme::colors.borderNormal);
-            UIWidget::drawText(renderer, "No items in this category.", padX + (8.0f * uiScale), curY + (10.0f * uiScale), Theme::colors.textMuted, uiScale * 0.76f);
-            curY += 44.0f * uiScale;
-        }
-        else
-        {
-            for (size_t f = 0; f < filteredItems.size() && f < 8; ++f)
-            {
-                size_t origIdx = filteredItems[f].originalIndex;
-                const auto& itemSlot = filteredItems[f].slot;
-
-                SDL_FRect itemRect = { padX, curY, availableW, cardRowH };
-                bool isSelected = (gameContext->selectedInventorySide == 0 && gameContext->selectedInventoryIndex == static_cast<int>(origIdx));
-                bool iHov = (mousePos.x >= itemRect.x && mousePos.x <= itemRect.x + itemRect.w &&
-                             mousePos.y >= itemRect.y && mousePos.y <= itemRect.y + itemRect.h);
-
-                SDL_Color bg = isSelected ? Theme::colors.bgHeader : (iHov ? Theme::colors.bgHeader : Theme::colors.bgSlot);
-                SDL_Color bd = isSelected ? Theme::colors.borderSelected : (iHov ? Theme::colors.borderButton : Theme::colors.borderNormal);
-                UIWidget::drawPanel(renderer, itemRect, bg, bd);
-
-                // Count Badge
-                std::string countStr = std::format("{}x", itemSlot.totalCount);
-                UIWidget::drawText(renderer, countStr, padX + (6.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textGold, uiScale * 0.72f);
-
-                // Item Name
-                float cW = UIWidget::getTextWidth(countStr, uiScale * 0.72f);
-                UIWidget::drawText(renderer, itemSlot.itemPtr->name, padX + cW + (12.0f * uiScale), curY + (5.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.78f);
-
-                // Value
-                std::string valStr = std::format("{} ¤", itemSlot.itemPtr->baseValue);
-                float valW = UIWidget::getTextWidth(valStr, uiScale * 0.70f);
-                UIWidget::drawText(renderer, valStr, padX + availableW - valW - (6.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.currency, uiScale * 0.70f);
-
-                if (iHov && clicked)
+                if (pHov && clicked)
                 {
-                    gameContext->selectedInventorySide = 0;
-                    gameContext->selectedInventoryIndex = static_cast<int>(origIdx);
-                    gameContext->selectedEquipmentSlot = equipSlot::NONE;
-                    gameContext->refreshActionGrid();
+                    activePage = static_cast<int>(p);
                     gameContext->input.consumeMouseClick();
                 }
-
-                curY += cardRowH + (3.0f * uiScale);
             }
-        }
+            sY += tabH + (4.0f * uiScale);
 
-        // 4. Ground / Tile Items Section
-        curY += (6.0f * uiScale);
-        float gHeaderH = 22.0f * uiScale;
-        SDL_FRect gHeaderRect = { padX, curY, availableW, gHeaderH };
-        UIWidget::drawHeader(renderer, gHeaderRect, "ITEMS ON GROUND", Theme::colors.bgHeader, Theme::colors.textGold, uiScale * 0.75f);
-        curY += gHeaderH + (6.0f * uiScale);
-
-        auto ground = gameContext->getTileInventoryStacked();
-        if (ground.empty())
-        {
-            SDL_FRect emptyGround = { padX, curY, availableW, 30.0f * uiScale };
-            UIWidget::drawPanel(renderer, emptyGround, Theme::colors.bgDark, Theme::colors.borderNormal);
-            UIWidget::drawText(renderer, "No items dropped here.", padX + (8.0f * uiScale), curY + (8.0f * uiScale), Theme::colors.textMuted, uiScale * 0.74f);
-            curY += 36.0f * uiScale;
-        }
-        else
-        {
-            for (size_t g = 0; g < ground.size() && g < 4; ++g)
+            // Gather items for this side
+            std::vector<InventorySlot> allItems;
+            if (side == 0)
             {
-                if (!ground[g].itemPtr) continue;
-
-                SDL_FRect gRect = { padX, curY, availableW, cardRowH };
-                bool isSelected = (gameContext->selectedInventorySide == 1 && gameContext->selectedInventoryIndex == static_cast<int>(g));
-                bool gHov = (mousePos.x >= gRect.x && mousePos.x <= gRect.x + gRect.w &&
-                             mousePos.y >= gRect.y && mousePos.y <= gRect.y + gRect.h);
-
-                SDL_Color bg = isSelected ? Theme::colors.bgHeader : (gHov ? Theme::colors.bgHeader : Theme::colors.bgSlot);
-                SDL_Color bd = isSelected ? Theme::colors.borderSelected : (gHov ? Theme::colors.borderButton : Theme::colors.borderNormal);
-                UIWidget::drawPanel(renderer, gRect, bg, bd);
-
-                std::string countStr = std::format("{}x", ground[g].totalCount);
-                UIWidget::drawText(renderer, countStr, padX + (6.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.companion, uiScale * 0.72f);
-                float cW = UIWidget::getTextWidth(countStr, uiScale * 0.72f);
-                UIWidget::drawText(renderer, ground[g].itemPtr->name, padX + cW + (12.0f * uiScale), curY + (5.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.78f);
-
-                if (gHov && clicked)
-                {
-                    gameContext->selectedInventorySide = 1;
-                    gameContext->selectedInventoryIndex = static_cast<int>(g);
-                    gameContext->selectedEquipmentSlot = equipSlot::NONE;
-                    gameContext->refreshActionGrid();
-                    gameContext->input.consumeMouseClick();
-                }
-
-                curY += cardRowH + (3.0f * uiScale);
+                allItems = gameContext->getPlayerInventoryStacked();
             }
-        }
+            else
+            {
+                allItems = gameContext->getTileInventoryStacked();
+            }
 
+            // Partition items: regular items vs key items
+            std::vector<std::pair<size_t, InventorySlot>> regularItems;
+            std::vector<std::pair<size_t, InventorySlot>> keyItems;
+
+            for (size_t i = 0; i < allItems.size(); ++i)
+            {
+                if (!allItems[i].itemPtr) continue;
+                if (allItems[i].itemPtr->isKeyItem ||
+                    (allItems[i].itemPtr->targetSlot == equipSlot::NONE && allItems[i].itemPtr->id.find("key") != std::string::npos))
+                {
+                    keyItems.push_back({ i, allItems[i] });
+                }
+                else
+                {
+                    regularItems.push_back({ i, allItems[i] });
+                }
+            }
+
+            // 5x4 Grid: 5 columns x 4 rows = 20 slots
+            const int cols = 5;
+            const int rows = 4;
+            const float slotGap = 3.0f * uiScale;
+            float innerPad = 4.0f * uiScale;
+            float gridInnerW = sideW - (innerPad * 2.0f);
+            float boxW = std::floor((gridInnerW - (slotGap * static_cast<float>(cols - 1))) / static_cast<float>(cols));
+            float boxH = 44.0f * uiScale;
+            float gridTotalH = (rows * boxH) + (static_cast<float>(rows - 1) * slotGap) + (innerPad * 2.0f);
+
+            SDL_FRect gridCardRect = { sideX, sY, sideW, gridTotalH };
+            UIWidget::drawPanel(renderer, gridCardRect, Theme::colors.bgDark, Theme::colors.borderNormal);
+
+            int startItemIdx = (activePage == 5) ? 0 : (activePage * 20);
+            const auto& activeList = (activePage == 5) ? keyItems : regularItems;
+
+            for (int r = 0; r < rows; ++r)
+            {
+                for (int c = 0; c < cols; ++c)
+                {
+                    int slotIndex = (r * cols) + c;
+                    int itemIdxInList = startItemIdx + slotIndex;
+
+                    float bX = sideX + innerPad + (c * (boxW + slotGap));
+                    float bY = sY + innerPad + (r * (boxH + slotGap));
+                    SDL_FRect bRect = { bX, bY, boxW, boxH };
+
+                    bool hasItem = (itemIdxInList >= 0 && itemIdxInList < static_cast<int>(activeList.size()));
+                    size_t origBackpackIdx = hasItem ? activeList[itemIdxInList].first : 999999;
+                    bool isSelected = (hasItem && gameContext->selectedInventorySide == side &&
+                                       gameContext->selectedInventoryIndex == static_cast<int>(origBackpackIdx));
+
+                    bool bHov = (mousePos.x >= bRect.x && mousePos.x <= bRect.x + bRect.w &&
+                                 mousePos.y >= bRect.y && mousePos.y <= bRect.y + bRect.h);
+
+                    if (hasItem)
+                    {
+                        const auto& itSlot = activeList[itemIdxInList].second;
+                        SDL_Color fill = isSelected ? Theme::colors.bgHeader : (bHov ? Theme::colors.bgHeader : Theme::colors.bgSlot);
+                        SDL_Color bd = isSelected ? Theme::colors.borderSelected : (bHov ? Theme::colors.borderButton : Theme::colors.borderNormal);
+                        UIWidget::drawPanel(renderer, bRect, fill, bd);
+
+                        // Item name
+                        std::string itName = itSlot.itemPtr->name;
+                        if (itName.length() > 10) itName = itName.substr(0, 9) + "..";
+                        UIWidget::drawText(renderer, itName, bX + (3.0f * uiScale), bY + (2.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.65f);
+
+                        // Count badge
+                        if (itSlot.totalCount > 1)
+                        {
+                            std::string cntStr = std::format("x{}", itSlot.totalCount);
+                            float cntW = UIWidget::getTextWidth(cntStr, uiScale * 0.60f);
+                            UIWidget::drawText(renderer, cntStr, bX + boxW - cntW - (3.0f * uiScale), bY + (2.0f * uiScale), Theme::colors.textGold, uiScale * 0.60f);
+                        }
+
+                        // Type / Value line
+                        std::string valStr = std::format("{}¤", itSlot.itemPtr->baseValue);
+                        UIWidget::drawText(renderer, valStr, bX + (3.0f * uiScale), bY + boxH - (12.0f * uiScale), Theme::colors.currency, uiScale * 0.58f);
+
+                        if (bHov && clicked)
+                        {
+                            gameContext->selectedInventorySide = side;
+                            gameContext->selectedInventoryIndex = static_cast<int>(origBackpackIdx);
+                            gameContext->selectedEquipmentSlot = equipSlot::NONE;
+                            gameContext->refreshActionGrid();
+                            gameContext->input.consumeMouseClick();
+                        }
+                    }
+                    else
+                    {
+                        // Empty slot
+                        SDL_Color fill = bHov ? Theme::colors.bgHeader : Theme::colors.bgDark;
+                        SDL_Color bd = bHov ? Theme::colors.borderButton : SDL_Color{ 24, 26, 32, 255 };
+                        UIWidget::drawPanel(renderer, bRect, fill, bd);
+
+                        float dotW = UIWidget::getTextWidth("·", uiScale * 0.60f);
+                        UIWidget::drawText(renderer, "·", bX + ((boxW - dotW) / 2.0f), bY + (boxH * 0.30f), SDL_Color{ 45, 50, 60, 255 }, uiScale * 0.60f);
+                    }
+                }
+            }
+
+            sY += gridTotalH + (4.0f * uiScale);
+            return (sY - curY);
+        };
+
+        // Render Left Grid: Player
+        float playerGridH = renderInventorySide(0, padX, halfW, player, s_playerInvPage);
+
+        // Render Right Grid: Target NPC or Floor
+        float targetGridH = renderInventorySide(1, padX + halfW + gapBetweenSides, halfW, targetNpc, s_targetInvPage);
+
+        curY += std::max(playerGridH, targetGridH);
         return (curY - startY);
     }
 

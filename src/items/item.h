@@ -20,6 +20,7 @@ struct item
     bool isConsumable = false;
     bool isEquippable = false;
     bool isStackable = false;
+    bool isKeyItem = false;
     int count = 1;
 
     equipSlot targetSlot = equipSlot::NONE;
