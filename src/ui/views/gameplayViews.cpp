@@ -393,20 +393,43 @@ namespace GameplayViews
             UIWidget::drawHeader(renderer, hRect, sideTitle, Theme::colors.bgHeader, Theme::colors.textGold, uiScale * 0.76f);
             sY += headerH + (4.0f * uiScale);
 
-            // 6 Page Navigation Tabs: [ 1 ] [ 2 ] [ 3 ] [ 4 ] [ 5 ] [ Key ]
+            // 5x4 Grid: 5 columns x 4 rows = 20 slots
+            const int cols = 5;
+            const int rows = 4;
+            const float slotGap = 4.0f * uiScale;
+            const float innerPad = 4.0f * uiScale;
+            const float tabW = 28.0f * uiScale;
+            const float tabColGap = 4.0f * uiScale;
+
+            float gridInnerW = sideW - tabW - tabColGap - (innerPad * 2.0f);
+            float slotSize = std::floor((gridInnerW - (slotGap * static_cast<float>(cols - 1))) / static_cast<float>(cols));
+            float totalGridW = (slotSize * cols) + (slotGap * static_cast<float>(cols - 1));
+            float totalGridH = (slotSize * rows) + (slotGap * static_cast<float>(rows - 1));
+            float containerH = totalGridH + (innerPad * 2.0f);
+
+            // Container card
+            SDL_FRect containerCard = { sideX, sY, sideW, containerH };
+            UIWidget::drawPanel(renderer, containerCard, Theme::colors.bgSlot, Theme::colors.borderNormal);
+
+            // Positioning:
+            // Side 0 (Player): Vertical selector on LEFT outer edge
+            // Side 1 (Target/Floor): Vertical selector on RIGHT outer edge
+            float tabColX = (side == 0) ? (sideX + innerPad) : (sideX + innerPad + totalGridW + tabColGap);
+            float gridStartX = (side == 0) ? (sideX + innerPad + tabW + tabColGap) : (sideX + innerPad);
+
+            // 6 Vertical Page Selector Tabs: [ 1 ] [ 2 ] [ 3 ] [ 4 ] [ 5 ] [ Key ]
             static const std::vector<std::string> pageTabs = { "1", "2", "3", "4", "5", "Key" };
-            float tabH = 18.0f * uiScale;
-            float tabGap = 2.0f * uiScale;
-            float tabW = std::floor((sideW - (tabGap * 5.0f)) / 6.0f);
+            float tabGap = 3.0f * uiScale;
+            float tabBtnH = std::floor((totalGridH - (tabGap * 5.0f)) / 6.0f);
 
             for (size_t p = 0; p < pageTabs.size(); ++p)
             {
-                SDL_FRect pRect = { sideX + (p * (tabW + tabGap)), sY, tabW, tabH };
+                SDL_FRect pRect = { tabColX, sY + innerPad + (p * (tabBtnH + tabGap)), tabW, tabBtnH };
                 bool isPageActive = (activePage == static_cast<int>(p));
                 bool pHov = (mousePos.x >= pRect.x && mousePos.x <= pRect.x + pRect.w &&
                              mousePos.y >= pRect.y && mousePos.y <= pRect.y + pRect.h);
 
-                UIWidget::drawButton(renderer, pRect, pageTabs[p], pHov, true, isPageActive, uiScale * 0.65f);
+                UIWidget::drawButton(renderer, pRect, pageTabs[p], pHov, true, isPageActive, uiScale * 0.68f);
 
                 if (pHov && clicked)
                 {
@@ -414,7 +437,6 @@ namespace GameplayViews
                     gameContext->input.consumeMouseClick();
                 }
             }
-            sY += tabH + (4.0f * uiScale);
 
             // Gather items for this side
             std::vector<InventorySlot> allItems;
@@ -445,19 +467,6 @@ namespace GameplayViews
                 }
             }
 
-            // 5x4 Grid: 5 columns x 4 rows = 20 slots
-            const int cols = 5;
-            const int rows = 4;
-            const float slotGap = 3.0f * uiScale;
-            float innerPad = 4.0f * uiScale;
-            float gridInnerW = sideW - (innerPad * 2.0f);
-            float boxW = std::floor((gridInnerW - (slotGap * static_cast<float>(cols - 1))) / static_cast<float>(cols));
-            float boxH = 44.0f * uiScale;
-            float gridTotalH = (rows * boxH) + (static_cast<float>(rows - 1) * slotGap) + (innerPad * 2.0f);
-
-            SDL_FRect gridCardRect = { sideX, sY, sideW, gridTotalH };
-            UIWidget::drawPanel(renderer, gridCardRect, Theme::colors.bgDark, Theme::colors.borderNormal);
-
             int startItemIdx = (activePage == 5) ? 0 : (activePage * 20);
             const auto& activeList = (activePage == 5) ? keyItems : regularItems;
 
@@ -468,9 +477,9 @@ namespace GameplayViews
                     int slotIndex = (r * cols) + c;
                     int itemIdxInList = startItemIdx + slotIndex;
 
-                    float bX = sideX + innerPad + (c * (boxW + slotGap));
-                    float bY = sY + innerPad + (r * (boxH + slotGap));
-                    SDL_FRect bRect = { bX, bY, boxW, boxH };
+                    float bX = gridStartX + (c * (slotSize + slotGap));
+                    float bY = sY + innerPad + (r * (slotSize + slotGap));
+                    SDL_FRect bRect = { bX, bY, slotSize, slotSize };
 
                     bool hasItem = (itemIdxInList >= 0 && itemIdxInList < static_cast<int>(activeList.size()));
                     size_t origBackpackIdx = hasItem ? activeList[itemIdxInList].first : 999999;
@@ -483,26 +492,43 @@ namespace GameplayViews
                     if (hasItem)
                     {
                         const auto& itSlot = activeList[itemIdxInList].second;
-                        SDL_Color fill = isSelected ? Theme::colors.bgHeader : (bHov ? Theme::colors.bgHeader : Theme::colors.bgSlot);
-                        SDL_Color bd = isSelected ? Theme::colors.borderSelected : (bHov ? Theme::colors.borderButton : Theme::colors.borderNormal);
+                        SDL_Color fill = isSelected ? Theme::colors.bgHeader : (bHov ? Theme::colors.bgHeader : Theme::colors.bgDark);
+                        SDL_Color bd = isSelected ? Theme::colors.borderSelected : (bHov ? Theme::colors.borderButton : Theme::colors.borderButton);
                         UIWidget::drawPanel(renderer, bRect, fill, bd);
 
-                        // Item name
+                        // Item name (upper portion)
                         std::string itName = itSlot.itemPtr->name;
-                        if (itName.length() > 10) itName = itName.substr(0, 9) + "..";
-                        UIWidget::drawText(renderer, itName, bX + (3.0f * uiScale), bY + (2.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.65f);
+                        if (itName.length() > 9) itName = itName.substr(0, 8) + "..";
+                        UIWidget::drawText(renderer, itName, bX + (3.0f * uiScale), bY + (3.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.65f);
 
-                        // Count badge
+                        // Count badge (top right)
                         if (itSlot.totalCount > 1)
                         {
                             std::string cntStr = std::format("x{}", itSlot.totalCount);
-                            float cntW = UIWidget::getTextWidth(cntStr, uiScale * 0.60f);
-                            UIWidget::drawText(renderer, cntStr, bX + boxW - cntW - (3.0f * uiScale), bY + (2.0f * uiScale), Theme::colors.textGold, uiScale * 0.60f);
+                            float cntW = UIWidget::getTextWidth(cntStr, uiScale * 0.62f);
+                            UIWidget::drawText(renderer, cntStr, bX + slotSize - cntW - (3.0f * uiScale), bY + (3.0f * uiScale), Theme::colors.textGold, uiScale * 0.62f);
                         }
 
-                        // Type / Value line
+                        // Socket/Type abbreviation badge
+                        std::string sockStr = "";
+                        if (itSlot.itemPtr->targetSlot != equipSlot::NONE)
+                        {
+                            sockStr = gameContext->formatEquipSlotName(itSlot.itemPtr->targetSlot);
+                            if (sockStr.length() > 6) sockStr = sockStr.substr(0, 5);
+                        }
+                        else if (itSlot.itemPtr->isConsumable)
+                        {
+                            sockStr = "Item";
+                        }
+                        if (!sockStr.empty())
+                        {
+                            UIWidget::drawText(renderer, sockStr, bX + (3.0f * uiScale), bY + slotSize - (24.0f * uiScale), Theme::colors.textAccent, uiScale * 0.56f);
+                        }
+
+                        // Base Value (bottom right)
                         std::string valStr = std::format("{}¤", itSlot.itemPtr->baseValue);
-                        UIWidget::drawText(renderer, valStr, bX + (3.0f * uiScale), bY + boxH - (12.0f * uiScale), Theme::colors.currency, uiScale * 0.58f);
+                        float valW = UIWidget::getTextWidth(valStr, uiScale * 0.58f);
+                        UIWidget::drawText(renderer, valStr, bX + slotSize - valW - (3.0f * uiScale), bY + slotSize - (13.0f * uiScale), Theme::colors.currency, uiScale * 0.58f);
 
                         if (bHov && clicked)
                         {
@@ -515,25 +541,25 @@ namespace GameplayViews
                     }
                     else
                     {
-                        // Empty slot
+                        // Empty slot: clean dark panel with clear border
                         SDL_Color fill = bHov ? Theme::colors.bgHeader : Theme::colors.bgDark;
-                        SDL_Color bd = bHov ? Theme::colors.borderButton : SDL_Color{ 24, 26, 32, 255 };
+                        SDL_Color bd = bHov ? Theme::colors.borderButton : SDL_Color{ 30, 34, 44, 255 };
                         UIWidget::drawPanel(renderer, bRect, fill, bd);
 
-                        float dotW = UIWidget::getTextWidth("·", uiScale * 0.60f);
-                        UIWidget::drawText(renderer, "·", bX + ((boxW - dotW) / 2.0f), bY + (boxH * 0.30f), SDL_Color{ 45, 50, 60, 255 }, uiScale * 0.60f);
+                        float dotW = UIWidget::getTextWidth("·", uiScale * 0.62f);
+                        UIWidget::drawText(renderer, "·", bX + ((slotSize - dotW) / 2.0f), bY + ((slotSize - (10.0f * uiScale)) / 2.0f), SDL_Color{ 50, 55, 70, 255 }, uiScale * 0.62f);
                     }
                 }
             }
 
-            sY += gridTotalH + (4.0f * uiScale);
+            sY += containerH + (4.0f * uiScale);
             return (sY - curY);
         };
 
-        // Render Left Grid: Player
+        // Render Left Grid: Player (Page tabs on LEFT outer edge)
         float playerGridH = renderInventorySide(0, padX, halfW, player, s_playerInvPage);
 
-        // Render Right Grid: Target NPC or Floor
+        // Render Right Grid: Target NPC or Floor (Page tabs on RIGHT outer edge)
         float targetGridH = renderInventorySide(1, padX + halfW + gapBetweenSides, halfW, targetNpc, s_targetInvPage);
 
         curY += std::max(playerGridH, targetGridH);

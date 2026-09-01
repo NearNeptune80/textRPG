@@ -117,7 +117,7 @@
         "id": "inv_root_row",
         "type": "CONTAINER",
         "direction": "ROW",
-        "sizes": [16.0, 84.0],
+        "sizes": [16.0, 68.0, 16.0],
         "children": [
           {
             "id": "inv_left_column",
@@ -151,6 +151,16 @@
                   "widget_action_commands"
                 ]
               }
+            ]
+          },
+          {
+            "id": "inv_right_column",
+            "type": "LEAF",
+            "name": "Looting & Entities Sidebar",
+            "widgets": [
+              "widget_lt_characters_present",
+              "widget_lt_items_present",
+              "widget_lt_event_log"
             ]
           }
         ]
