@@ -14,6 +14,7 @@
 #include "state/characterCreationState.h"
 #include "ui/theme.h"
 #include "ui/uiWidget.h"
+#include "ui/widgets/sidebarGeometry.h"
 
 namespace RadarWidgets
 {
@@ -22,8 +23,9 @@ namespace RadarWidgets
         if (!gameContext || !gameContext->getPlayer()) return 0.0f;
 
         float startY = curY;
-        float padX = curX + (8.0f * uiScale);
-        float availableW = innerW - (16.0f * uiScale);
+        SDL_FRect dummyRect = { curX, curY, innerW, 0.0f };
+        float padX = SidebarGeometry::getPadX(dummyRect, uiScale);
+        float availableW = SidebarGeometry::getAvailableW(dummyRect, uiScale);
 
         const timeManager& tm = gameContext->getTime();
         bool inPrologue = (dynamic_cast<characterCreationState*>(gameContext->getActiveState()) != nullptr);
@@ -41,7 +43,7 @@ namespace RadarWidgets
         int activeDayIdx = inPrologue ? 4 : ((tm.dayOfWeek == 0) ? 6 : (tm.dayOfWeek - 1));
 
         // Date & Time Card
-        float cardH = 46.0f * uiScale;
+        float cardH = SidebarGeometry::getTimeBarH(uiScale);
         SDL_FRect timeRect = { padX, curY, availableW, cardH };
         UIWidget::drawPanel(renderer, timeRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
@@ -80,8 +82,8 @@ namespace RadarWidgets
         if (!gameContext || !gameContext->getPlayer()) return 0.0f;
 
         float startY = curY;
-        float padX = rect.x + (5.0f * uiScale);
-        float availableW = rect.w - (10.0f * uiScale);
+        float padX = SidebarGeometry::getPadX(rect, uiScale);
+        float availableW = SidebarGeometry::getAvailableW(rect, uiScale);
 
         const gameMap* map = gameContext->getActiveMap();
         int pX = gameContext->gridX;
@@ -93,11 +95,11 @@ namespace RadarWidgets
         // Calculate square dimensions for 5x5 tile grid filling the container
         const int radius = 2; // 5x5 grid
         const int gridSize = (radius * 2) + 1; // 5
-        const float boxSize = std::floor(availableW - (8.0f * uiScale));
+        const float boxSize = SidebarGeometry::getBoxSize(rect, uiScale);
         const float tileSize = boxSize / static_cast<float>(gridSize);
 
-        float toolH = 20.0f * uiScale;
-        float cardH = (18.0f * uiScale) + boxSize + (5.0f * uiScale) + toolH + (5.0f * uiScale);
+        float toolH = SidebarGeometry::getToolbarH(uiScale);
+        float cardH = SidebarGeometry::getSquareCardH(rect, uiScale);
 
         // ==========================================
         // CARD: Mini-Map Radar & Quick Toolbar
@@ -112,7 +114,7 @@ namespace RadarWidgets
         cardCurY += (15.0f * uiScale);
 
         // Center the 5x5 grid inside the card
-        float gridStartX = padX + ((availableW - boxSize) / 2.0f);
+        float gridStartX = SidebarGeometry::getGridStartX(rect, uiScale);
         SDL_FRect radarBox = { gridStartX - (1.0f * uiScale), cardCurY - (1.0f * uiScale), boxSize + (2.0f * uiScale), boxSize + (2.0f * uiScale) };
         UIWidget::drawPanel(renderer, radarBox, Theme::colors.bgDark, Theme::colors.borderButton);
 
@@ -248,25 +250,12 @@ namespace RadarWidgets
     {
         if (!gameContext || !gameContext->getPlayer()) return 0.0f;
 
-        float availableW = panelRect.w - (10.0f * uiScale);
-
-        // Compute total height of Date & Time Card + Gap + Mini-Map Radar Card
-        float timeCardH = 46.0f * uiScale;
-        float gapBetweenCards = 8.0f * uiScale;
-
-        const float boxSize = std::floor(availableW - (8.0f * uiScale));
-        float toolH = 20.0f * uiScale;
-        float mapCardH = (18.0f * uiScale) + boxSize + (5.0f * uiScale) + toolH + (5.0f * uiScale);
-
-        float totalNavH = timeCardH + gapBetweenCards + mapCardH;
-
-        // Pin directly to the bottom of the left column panel (leaving clean 6px margin at the bottom)
-        float bottomPinnedY = panelRect.y + panelRect.h - totalNavH - (6.0f * uiScale);
+        float bottomPinnedY = SidebarGeometry::getBottomPinnedY(panelRect, uiScale);
         curY = std::max(curY, bottomPinnedY);
 
         float startY = curY;
         curY += renderWidgetTimeBar(renderer, gameContext, panelRect.x, curY, panelRect.w, uiScale);
-        curY += gapBetweenCards;
+        curY += SidebarGeometry::getGapBetweenCards(uiScale);
         curY += renderWidgetRadar(renderer, gameContext, panelRect, curY, uiScale);
         return (curY - startY);
     }

@@ -15,6 +15,7 @@
 #include "ui/theme.h"
 #include "ui/uiWidget.h"
 #include "ui/widgets/radarWidget.h"
+#include "ui/widgets/sidebarGeometry.h"
 
 namespace PaperdollWidgets
 {
@@ -195,8 +196,8 @@ namespace PaperdollWidgets
         bool isPlayer = (character == gameContext->getPlayer());
         bool& inTattooMode = isPlayer ? s_playerTattooMode : s_partnerTattooMode;
 
-        float padX = panelRect.x + (8.0f * uiScale);
-        float availableW = panelRect.w - (16.0f * uiScale);
+        float padX = SidebarGeometry::getPadX(panelRect, uiScale);
+        float availableW = SidebarGeometry::getAvailableW(panelRect, uiScale);
 
         auto mousePos = gameContext->input.getMousePosition();
         bool clicked = gameContext->input.isLeftMouseJustClicked();
@@ -204,26 +205,21 @@ namespace PaperdollWidgets
         // Calculate square dimensions for 6x6 tile grid filling the container
         const int cols = 6;
         const int rows = 6;
-        const float boxSize = std::floor(availableW - (8.0f * uiScale));
+        const float boxSize = SidebarGeometry::getBoxSize(panelRect, uiScale);
         const float slotGap = 2.0f * uiScale;
         const float tileSize = (boxSize - (slotGap * static_cast<float>(cols - 1))) / static_cast<float>(cols);
 
-        float toolH = 20.0f * uiScale;
-        float cardH = (18.0f * uiScale) + boxSize + (5.0f * uiScale) + toolH + (5.0f * uiScale);
+        float toolH = SidebarGeometry::getToolbarH(uiScale);
+        float cardH = SidebarGeometry::getSquareCardH(panelRect, uiScale);
 
-        // Compute total height of Date & Time Card + Gap + 6x6 Equipment Card
-        float timeCardH = 46.0f * uiScale;
-        float gapBetweenCards = 8.0f * uiScale;
-        float totalNavH = timeCardH + gapBetweenCards + cardH;
-
-        // Pin to the bottom of the sidebar panel (matching mini-map radar positioning)
-        float bottomPinnedY = panelRect.y + panelRect.h - totalNavH - (6.0f * uiScale);
+        // Pin to the bottom of the sidebar panel (matching mini-map radar positioning exactly)
+        float bottomPinnedY = SidebarGeometry::getBottomPinnedY(panelRect, uiScale);
         curY = std::max(curY, bottomPinnedY);
         float startY = curY;
 
         // Render Date & Time Bar
         curY += RadarWidgets::renderWidgetTimeBar(renderer, gameContext, panelRect.x, curY, panelRect.w, uiScale);
-        curY += gapBetweenCards;
+        curY += SidebarGeometry::getGapBetweenCards(uiScale);
 
         // =========================================================================
         // OVERARCHING CONTAINER: Equipment / Tattoo Grid Box
@@ -239,7 +235,7 @@ namespace PaperdollWidgets
         cardCurY += (15.0f * uiScale);
 
         // Centered 6x6 Grid Container Box matching Mini-Map Radar
-        float gridStartX = padX + ((availableW - boxSize) / 2.0f);
+        float gridStartX = SidebarGeometry::getGridStartX(panelRect, uiScale);
         SDL_FRect gridBox = { gridStartX - (1.0f * uiScale), cardCurY - (1.0f * uiScale), boxSize + (2.0f * uiScale), boxSize + (2.0f * uiScale) };
         UIWidget::drawPanel(renderer, gridBox, Theme::colors.bgDark, Theme::colors.borderButton);
 
