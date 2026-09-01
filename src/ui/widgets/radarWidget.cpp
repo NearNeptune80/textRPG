@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "core/game.h"
+#include "core/timeManager.h"
 #include "entities/entity.h"
 #include "map/gameMap.h"
 #include "map/tile.h"
@@ -24,9 +25,20 @@ namespace RadarWidgets
         float padX = curX + (8.0f * uiScale);
         float availableW = innerW - (16.0f * uiScale);
 
+        const timeManager& tm = gameContext->getTime();
         bool inPrologue = (dynamic_cast<characterCreationState*>(gameContext->getActiveState()) != nullptr);
-        std::string dateStr = inPrologue ? "29th August" : "Day 29, August";
-        std::string timeStr = inPrologue ? "20:37 (Night)" : "21:47 (Night)";
+
+        static constexpr std::string_view months[13] = {
+            "", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+            "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+        };
+        std::string_view mName = (tm.month >= 1 && tm.month <= 12) ? months[tm.month] : "Month";
+        std::string dateStr = inPrologue ? "Day 29, Aug" : std::format("Day {}, {}", tm.day, mName);
+        std::string timeStr = inPrologue ? "20:37 (Night)" : std::format("{} ({})", tm.getFormattedTime(), tm.getPhaseString());
+
+        // 0 = Sunday, 1 = Monday, 2 = Tuesday, 3 = Wednesday, 4 = Thursday, 5 = Friday, 6 = Saturday
+        // Map to Monday-first index [M, T, W, T, F, S, S] (0..6)
+        int activeDayIdx = inPrologue ? 4 : ((tm.dayOfWeek == 0) ? 6 : (tm.dayOfWeek - 1));
 
         // Date & Time Card
         float cardH = 46.0f * uiScale;
@@ -49,7 +61,7 @@ namespace RadarWidgets
         for (int d = 0; d < 7; ++d)
         {
             SDL_FRect dRect = { tX + (d * (dayW + 3.0f * uiScale)), dayY, dayW, 14.0f * uiScale };
-            bool isActiveDay = (d == 4); // Friday
+            bool isActiveDay = (d == activeDayIdx);
             SDL_Color dColor = isActiveDay ? Theme::colors.textGold : Theme::colors.textMuted;
             SDL_Color dBorder = isActiveDay ? Theme::colors.borderSelected : Theme::colors.borderButton;
             SDL_Color dFill = isActiveDay ? SDL_Color{ 45, 55, 68, 255 } : Theme::colors.bgDark;
@@ -59,7 +71,7 @@ namespace RadarWidgets
             UIWidget::drawText(renderer, days[d], dRect.x + ((dRect.w - txtW) / 2.0f), dRect.y + (1.0f * uiScale), dColor, uiScale * 0.65f);
         }
 
-        curY += cardH + (10.0f * uiScale);
+        curY += cardH;
         return (curY - startY);
     }
 
@@ -85,7 +97,7 @@ namespace RadarWidgets
         const float totalGridW = tileSize * static_cast<float>(gridSize);
 
         float toolH = 22.0f * uiScale;
-        float cardH = (26.0f * uiScale) + totalGridW + (10.0f * uiScale) + toolH + (10.0f * uiScale);
+        float cardH = (24.0f * uiScale) + totalGridW + (8.0f * uiScale) + toolH + (8.0f * uiScale);
 
         // ==========================================
         // CARD: Mini-Map Radar & Quick Toolbar
@@ -95,10 +107,10 @@ namespace RadarWidgets
 
         float innerX = padX + (8.0f * uiScale);
         float innerW = availableW - (16.0f * uiScale);
-        float cardCurY = curY + (6.0f * uiScale);
+        float cardCurY = curY + (5.0f * uiScale);
 
         UIWidget::drawText(renderer, "MINI-MAP RADAR", innerX, cardCurY, Theme::colors.textGold, uiScale * 0.78f);
-        cardCurY += (20.0f * uiScale);
+        cardCurY += (18.0f * uiScale);
 
         // Center the 5x5 grid inside the card
         float gridStartX = padX + ((availableW - totalGridW) / 2.0f);
@@ -155,7 +167,6 @@ namespace RadarWidgets
                     }
                     else if (walkable)
                     {
-                        // Check if entity / item / warp present
                         MapWarp warp;
                         if (map->checkWarp(targetX, targetY, warp))
                         {
@@ -197,7 +208,7 @@ namespace RadarWidgets
             }
         }
 
-        cardCurY += totalGridW + (10.0f * uiScale);
+        cardCurY += totalGridW + (8.0f * uiScale);
 
         // Quick Navigation Toolbar (Inv, Phone, TF, Opt)
         static const std::vector<std::pair<std::string, CommandType>> tools = {
@@ -225,7 +236,7 @@ namespace RadarWidgets
             }
         }
 
-        curY += cardH + (8.0f * uiScale);
+        curY += cardH;
         return (curY - startY);
     }
 
@@ -242,23 +253,24 @@ namespace RadarWidgets
 
         // Compute total height of Date & Time Card + Gap + Mini-Map Radar Card
         float timeCardH = 46.0f * uiScale;
-        float gapBetweenCards = 10.0f * uiScale;
+        float gapBetweenCards = 8.0f * uiScale;
 
         const int radius = 2;
         const int gridSize = (radius * 2) + 1;
         const float tileSize = std::clamp((availableW - (20.0f * uiScale)) / static_cast<float>(gridSize), 20.0f * uiScale, 30.0f * uiScale);
         const float totalGridW = tileSize * static_cast<float>(gridSize);
         float toolH = 22.0f * uiScale;
-        float mapCardH = (26.0f * uiScale) + totalGridW + (10.0f * uiScale) + toolH + (10.0f * uiScale);
+        float mapCardH = (24.0f * uiScale) + totalGridW + (8.0f * uiScale) + toolH + (8.0f * uiScale);
 
         float totalNavH = timeCardH + gapBetweenCards + mapCardH;
 
-        // Pin directly to the bottom of the left column panel
-        float bottomPinnedY = panelRect.y + panelRect.h - totalNavH - (8.0f * uiScale);
+        // Pin directly to the bottom of the left column panel (leaving clean 6px margin at the bottom)
+        float bottomPinnedY = panelRect.y + panelRect.h - totalNavH - (6.0f * uiScale);
         curY = std::max(curY, bottomPinnedY);
 
         float startY = curY;
         curY += renderWidgetTimeBar(renderer, gameContext, panelRect.x, curY, panelRect.w, uiScale);
+        curY += gapBetweenCards;
         curY += renderWidgetRadar(renderer, gameContext, panelRect, curY, uiScale);
         return (curY - startY);
     }

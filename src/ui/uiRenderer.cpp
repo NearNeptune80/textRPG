@@ -238,7 +238,7 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
                 }
             }
 
-            float totalContentH = (curY + scrollY) - p.rect.y + (10.0f * uiScale);
+            float totalContentH = (curY + scrollY) - p.rect.y;
             float calculatedMaxScroll = std::max(0.0f, totalContentH - p.rect.h);
             m_panelMaxScrollY[p.id] = calculatedMaxScroll;
             m_panelScrollY[p.id] = std::clamp(m_panelScrollY[p.id], 0.0f, calculatedMaxScroll);
