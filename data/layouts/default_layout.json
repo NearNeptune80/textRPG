@@ -114,55 +114,51 @@
     "INVENTORY": {
       "enabled": true,
       "rootNode": {
-        "id": "inv_root_column",
+        "id": "inv_root_row",
         "type": "CONTAINER",
-        "direction": "COLUMN",
-        "sizes": [6.0, 72.0, 22.0],
+        "direction": "ROW",
+        "sizes": [20.0, 60.0, 20.0],
         "children": [
           {
-            "id": "inv_top_bar",
+            "id": "inv_left_column",
             "type": "LEAF",
-            "name": "Top Status Bar",
-            "widgets": ["widget_top_bar_full"]
+            "name": "Player Status & Paperdoll",
+            "widgets": [
+              "widget_lt_character_card",
+              "widget_paperdoll_equipment"
+            ]
           },
           {
-            "id": "inv_middle_row",
+            "id": "inv_center_column",
             "type": "CONTAINER",
-            "direction": "ROW",
-            "sizes": [32.0, 36.0, 32.0],
+            "direction": "COLUMN",
+            "sizes": [78.0, 22.0],
             "children": [
               {
-                "id": "inv_backpack_pane",
+                "id": "inv_backpack_box",
                 "type": "LEAF",
                 "name": "Backpack & Storage",
                 "widgets": [
-                  "widget_inventory_filters",
                   "widget_inventory_dual"
                 ]
               },
               {
-                "id": "inv_paperdoll_pane",
+                "id": "inv_bottom_actions",
                 "type": "LEAF",
-                "name": "Equipment Paperdoll",
+                "name": "Action Commands Grid",
                 "widgets": [
-                  "widget_paperdoll_equipment"
-                ]
-              },
-              {
-                "id": "inv_inspector_pane",
-                "type": "LEAF",
-                "name": "Item Details & Lore",
-                "widgets": [
-                  "widget_item_details_inspector"
+                  "widget_action_commands"
                 ]
               }
             ]
           },
           {
-            "id": "inv_bottom_actions",
+            "id": "inv_right_column",
             "type": "LEAF",
-            "name": "Inventory Actions",
-            "widgets": ["widget_action_commands"]
+            "name": "Item Details & Lore",
+            "widgets": [
+              "widget_item_details_inspector"
+            ]
           }
         ]
       }
@@ -170,56 +166,52 @@
     "SEX": {
       "enabled": true,
       "rootNode": {
-        "id": "sex_root_column",
+        "id": "sex_root_row",
         "type": "CONTAINER",
-        "direction": "COLUMN",
-        "sizes": [6.0, 72.0, 22.0],
+        "direction": "ROW",
+        "sizes": [20.0, 60.0, 20.0],
         "children": [
           {
-            "id": "sex_top_bar",
+            "id": "sex_left_column",
             "type": "LEAF",
-            "name": "Top Status Bar",
-            "widgets": ["widget_top_bar_full"]
+            "name": "Player Status & Paperdoll",
+            "widgets": [
+              "widget_lt_character_card",
+              "widget_paperdoll_equipment"
+            ]
           },
           {
-            "id": "sex_middle_row",
+            "id": "sex_center_column",
             "type": "CONTAINER",
-            "direction": "ROW",
-            "sizes": [24.0, 52.0, 24.0],
+            "direction": "COLUMN",
+            "sizes": [78.0, 22.0],
             "children": [
               {
-                "id": "sex_left_sheet",
+                "id": "sex_encounter_box",
                 "type": "LEAF",
-                "name": "Player Anatomy & Fluids",
-                "widgets": [
-                  "widget_char_overview",
-                  "widget_vitals_gauges",
-                  "widget_anatomy_fluids"
-                ]
-              },
-              {
-                "id": "sex_center_encounter",
-                "type": "LEAF",
-                "name": "Erotic Encounter Log",
+                "name": "Intimate Scene Narrative",
                 "widgets": [
                   "widget_erotic_encounter"
                 ]
               },
               {
-                "id": "sex_right_target",
+                "id": "sex_bottom_actions",
                 "type": "LEAF",
-                "name": "Partner Inspector",
+                "name": "Action Commands Grid",
                 "widgets": [
-                  "widget_target_inspector"
+                  "widget_action_commands"
                 ]
               }
             ]
           },
           {
-            "id": "sex_bottom_actions",
+            "id": "sex_right_column",
             "type": "LEAF",
-            "name": "Sex Actions",
-            "widgets": ["widget_action_commands"]
+            "name": "Partner Status & Paperdoll",
+            "widgets": [
+              "widget_target_inspector",
+              "widget_partner_paperdoll"
+            ]
           }
         ]
       }

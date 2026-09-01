@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <format>
 #include <string>
 #include <string_view>
@@ -16,63 +17,127 @@
 
 namespace PaperdollWidgets
 {
-    struct GridSlotDef {
+    // Mode tracker for Player and Partner grids
+    static bool s_playerTattooMode = false;
+    static bool s_partnerTattooMode = false;
+
+    struct EquipGridSlotDef {
         std::string shortName;
+        std::string fullName;
         equipSlot slot;
-        bool isActionButton = false;
+        bool isSwapButton = false;
     };
 
-    static const std::array<GridSlotDef, 36> s_equipmentGrid = {{
-        // Row 0
-        { "EYES", equipSlot::EYEWEAR },
-        { "HEAD", equipSlot::HEADWEAR },
-        { "HAIR", equipSlot::HAIR_WEAR },
-        { "HORNS", equipSlot::HORNS_SLOT },
-        { "MAIN", equipSlot::WEAPON_MAIN },
-        { "OFF", equipSlot::WEAPON_OFF },
+    static const std::array<EquipGridSlotDef, 36> s_equipmentGrid = {{
+        // Row 0: Eyes, Head, Hair, Horns, Main Hand, Off Hand
+        { "EYES", "Eyes / Eyewear", equipSlot::EYEWEAR },
+        { "HEAD", "Headwear / Hat", equipSlot::HEADWEAR },
+        { "HAIR", "Hair Accessory", equipSlot::HAIR_WEAR },
+        { "HORN", "Horn Jewelry", equipSlot::HORNS_SLOT },
+        { "MAIN", "Main Hand Weapon", equipSlot::WEAPON_MAIN },
+        { "OFF", "Off-Hand / Shield", equipSlot::WEAPON_OFF },
 
-        // Row 1
-        { "MOUTH", equipSlot::MOUTHWEAR },
-        { "NECK", equipSlot::NECKWEAR },
-        { "COAT", equipSlot::TORSO_OVER },
-        { "WINGS", equipSlot::WINGS_SLOT },
-        { "P:EAR", equipSlot::PIERCING_EAR },
-        { "P:NOSE", equipSlot::PIERCING_NOSE },
+        // Row 1: Mouth, Neck, Over-Torso, Wings, Ear Piercing, Nose Piercing
+        { "MOUTH", "Mouth / Mask", equipSlot::MOUTHWEAR },
+        { "NECK", "Neck / Scarf", equipSlot::NECKWEAR },
+        { "COAT", "Over-Torso / Coat", equipSlot::TORSO_OVER },
+        { "WING", "Wing Accessory", equipSlot::WINGS_SLOT },
+        { "P.EAR", "Ear Piercing", equipSlot::PIERCING_EAR },
+        { "P.NOS", "Nose Piercing", equipSlot::PIERCING_NOSE },
 
-        // Row 2
-        { "WRISTS", equipSlot::WRISTS },
-        { "SHIRT", equipSlot::TORSO_UNDER },
-        { "BRA", equipSlot::CHEST_WEAR },
-        { "NIPPLE", equipSlot::NIPPLES_WEAR },
-        { "P:LIP", equipSlot::PIERCING_LIP },
-        { "P:TONG", equipSlot::PIERCING_TONGUE },
+        // Row 2: Wrists, Torso Under, Bra, Nipples, Lip Piercing, Tongue Piercing
+        { "WRIST", "Wrists / Cuffs", equipSlot::WRISTS },
+        { "SHIRT", "Torso / Shirt", equipSlot::TORSO_UNDER },
+        { "BRA", "Chest / Bra", equipSlot::CHEST_WEAR },
+        { "NIPL", "Nipples / Pasties", equipSlot::NIPPLES_WEAR },
+        { "P.LIP", "Lip Piercing", equipSlot::PIERCING_LIP },
+        { "P.TNG", "Tongue Piercing", equipSlot::PIERCING_TONGUE },
 
-        // Row 3
-        { "HANDS", equipSlot::HANDS },
-        { "BELT", equipSlot::HIPS_WEAR },
-        { "STOMACH", equipSlot::STOMACH_WEAR },
-        { "RING", equipSlot::FINGER_PRIMARY },
-        { "P:NIP", equipSlot::PIERCING_NIPPLE },
-        { "P:NAV", equipSlot::PIERCING_NAVEL },
+        // Row 3: Hands, Belt, Stomach, Ring, Nipple Piercing, Navel Piercing
+        { "HAND", "Hands / Gloves", equipSlot::HANDS },
+        { "BELT", "Waist / Belt", equipSlot::HIPS_WEAR },
+        { "STOM", "Stomach / Corset", equipSlot::STOMACH_WEAR },
+        { "RING", "Finger Ring", equipSlot::FINGER_PRIMARY },
+        { "P.NIP", "Nipple Piercing", equipSlot::PIERCING_NIPPLE },
+        { "P.NAV", "Navel Piercing", equipSlot::PIERCING_NAVEL },
 
-        // Row 4
-        { "ANKLES", equipSlot::ANKLES },
-        { "PANTS", equipSlot::LEGS_OUTER },
-        { "UNDIES", equipSlot::GROIN_OVER },
-        { "TAIL", equipSlot::TAIL_SLOT },
-        { "P:COCK", equipSlot::PIERCING_COCK },
-        { "P:VAG", equipSlot::PIERCING_VAGINA },
+        // Row 4: Ankles, Pants, Underwear, Tail, Penis Piercing, Vagina Piercing
+        { "ANKL", "Ankles / Bands", equipSlot::ANKLES },
+        { "PANT", "Legs / Pants", equipSlot::LEGS_OUTER },
+        { "UNDY", "Groin / Panties", equipSlot::GROIN_OVER },
+        { "TAIL", "Tail Accessory", equipSlot::TAIL_SLOT },
+        { "P.COK", "Cock Piercing", equipSlot::PIERCING_COCK },
+        { "P.VAG", "Vagina Piercing", equipSlot::PIERCING_VAGINA },
 
-        // Row 5
-        { "SOCKS", equipSlot::CALVES },
-        { "SHOES", equipSlot::FEET },
-        { "PLUG", equipSlot::ASS_WEAR },
-        { "COCK", equipSlot::PENIS_WEAR },
-        { "VAGINA", equipSlot::VAGINA_WEAR },
-        { "STRIP", equipSlot::NONE, true }
+        // Row 5: Socks, Shoes, Anus Plug, Penis Wear, Vagina Wear, TATTOO SWAP BUTTON
+        { "SOCK", "Socks / Calves", equipSlot::CALVES },
+        { "SHOE", "Feet / Shoes", equipSlot::FEET },
+        { "PLUG", "Anus / Plug", equipSlot::ASS_WEAR },
+        { "COCK", "Penis / Condom", equipSlot::PENIS_WEAR },
+        { "VAG", "Vagina / Insert", equipSlot::VAGINA_WEAR },
+        { "TATTOO", "Switch to Tattoos", equipSlot::NONE, true }
     }};
 
-    static bool isSlotAvailableForEntity(const entity* character, equipSlot slot)
+    struct TattooGridSlotDef {
+        std::string shortName;
+        std::string fullName;
+        tattooSlot slot;
+        bodySlot reqPart = bodySlot::HEAD;
+        bool requiresGating = false;
+        bool isSwapButton = false;
+    };
+
+    static const std::array<TattooGridSlotDef, 36> s_tattooGrid = {{
+        // Row 0: Head & Neck
+        { "FACE", "Face / Forehead", tattooSlot::FACE, bodySlot::HEAD, false },
+        { "CHK.L", "Left Cheek", tattooSlot::FACE, bodySlot::HEAD, false },
+        { "CHK.R", "Right Cheek", tattooSlot::FACE, bodySlot::HEAD, false },
+        { "NECK", "Neck / Throat", tattooSlot::NECK, bodySlot::NECK, false },
+        { "HORN", "Horns", tattooSlot::NONE, bodySlot::HORNS, true },
+        { "EARS", "Ears", tattooSlot::NONE, bodySlot::EARS, false },
+
+        // Row 1: Shoulders & Upper Chest
+        { "SHL.L", "Left Shoulder", tattooSlot::SHOULDERS, bodySlot::TORSO, false },
+        { "ARM.L", "Upper Left Arm", tattooSlot::ARM_LEFT, bodySlot::ARMS, false },
+        { "CHST", "Chest / Sternum", tattooSlot::CHEST, bodySlot::BREASTS, false },
+        { "ARM.R", "Upper Right Arm", tattooSlot::ARM_RIGHT, bodySlot::ARMS, false },
+        { "SHL.R", "Right Shoulder", tattooSlot::SHOULDERS, bodySlot::TORSO, false },
+        { "WING", "Wings", tattooSlot::NONE, bodySlot::WINGS, true },
+
+        // Row 2: Breasts & Forearms
+        { "FOR.L", "Left Forearm", tattooSlot::ARM_LEFT, bodySlot::ARMS, false },
+        { "BST.L", "Left Breast", tattooSlot::BREASTS, bodySlot::BREASTS, true },
+        { "CLEV", "Cleavage", tattooSlot::CHEST, bodySlot::BREASTS, false },
+        { "BST.R", "Right Breast", tattooSlot::BREASTS, bodySlot::BREASTS, true },
+        { "FOR.R", "Right Forearm", tattooSlot::ARM_RIGHT, bodySlot::ARMS, false },
+        { "HAND", "Hands / Knuckles", tattooSlot::HANDS, bodySlot::HANDS, false },
+
+        // Row 3: Stomach & Back
+        { "STOM", "Stomach", tattooSlot::STOMACH, bodySlot::STOMACH, false },
+        { "NAVL", "Belly Button", tattooSlot::STOMACH, bodySlot::STOMACH, false },
+        { "U.BCK", "Upper Back", tattooSlot::BACK, bodySlot::BACK, false },
+        { "M.BCK", "Middle Back", tattooSlot::BACK, bodySlot::BACK, false },
+        { "L.BCK", "Lower Back (Tramp Stamp)", tattooSlot::BACK, bodySlot::BACK, false },
+        { "HIPS", "Hips / Pelvis", tattooSlot::HIPS, bodySlot::HIPS, false },
+
+        // Row 4: Lower Body & Intimates
+        { "BUT.L", "Left Buttock", tattooSlot::ASS, bodySlot::ASS, false },
+        { "BUT.R", "Right Buttock", tattooSlot::ASS, bodySlot::ASS, false },
+        { "PUBC", "Pubic Mound", tattooSlot::GROIN, bodySlot::GROIN, false },
+        { "PENIS", "Penis / Shaft", tattooSlot::GROIN, bodySlot::GROIN, true },
+        { "VAGN", "Vagina / Labia", tattooSlot::GROIN, bodySlot::GROIN, true },
+        { "TAIL", "Tail Base", tattooSlot::NONE, bodySlot::TAIL, true },
+
+        // Row 5: Legs, Feet & Swap Button
+        { "THG.L", "Left Thigh", tattooSlot::LEG_LEFT, bodySlot::LEGS, false },
+        { "THG.R", "Right Thigh", tattooSlot::LEG_RIGHT, bodySlot::LEGS, false },
+        { "CAL.L", "Left Calf", tattooSlot::LEG_LEFT, bodySlot::LEGS, false },
+        { "CAL.R", "Right Calf", tattooSlot::LEG_RIGHT, bodySlot::LEGS, false },
+        { "FEET", "Feet / Ankles", tattooSlot::FEET, bodySlot::FEET, false },
+        { "EQUIP", "Switch to Clothes", tattooSlot::NONE, bodySlot::HEAD, false, true }
+    }};
+
+    static bool isEquipSlotAvailable(const entity* character, equipSlot slot)
     {
         if (!character) return false;
 
@@ -106,137 +171,236 @@ namespace PaperdollWidgets
         }
     }
 
-    float renderWidgetPaperdoll(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
+    static bool isTattooSlotAvailable(const entity* character, bodySlot reqSlot, bool requiresGating)
     {
-        if (!gameContext || !gameContext->getPlayer()) return 0.0f;
+        if (!character) return false;
+        if (!requiresGating) return true;
 
-        float startY = curY;
-        float padX = curX + (8.0f * uiScale);
-        float availableW = innerW - (16.0f * uiScale);
+        if (reqSlot == bodySlot::HORNS) return character->anatomy.hasPart(bodySlot::HORNS);
+        if (reqSlot == bodySlot::WINGS) return character->anatomy.hasPart(bodySlot::WINGS);
+        if (reqSlot == bodySlot::TAIL) return character->anatomy.hasPart(bodySlot::TAIL);
+        if (reqSlot == bodySlot::BREASTS) return character->anatomy.hasPart(bodySlot::BREASTS);
 
-        entity* player = gameContext->getPlayer();
+        return true;
+    }
+
+    float renderWidgetPaperdoll(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& panelRect, float curY, float uiScale, entity* targetEntity)
+    {
+        if (!gameContext) return 0.0f;
+
+        entity* character = targetEntity ? targetEntity : gameContext->getPlayer();
+        if (!character) return 0.0f;
+
+        bool isPlayer = (character == gameContext->getPlayer());
+        bool& inTattooMode = isPlayer ? s_playerTattooMode : s_partnerTattooMode;
+
+        float padX = panelRect.x + (8.0f * uiScale);
+        float availableW = panelRect.w - (16.0f * uiScale);
+
         auto mousePos = gameContext->input.getMousePosition();
         bool clicked = gameContext->input.isLeftMouseJustClicked();
 
-        // Header Card
-        float headerH = 26.0f * uiScale;
-        SDL_FRect headerRect = { padX, curY, availableW, headerH };
-        UIWidget::drawHeader(renderer, headerRect, "EQUIPMENT PAPERDOLL (6x6)", Theme::colors.bgHeader, Theme::colors.textGold, uiScale * 0.85f);
-        curY += headerH + (8.0f * uiScale);
-
-        // 6 Columns x 6 Rows Grid
+        // Calculate 6x6 square tile sizes
         const int cols = 6;
         const int rows = 6;
-        float slotGap = 4.0f * uiScale;
-        float slotW = (availableW - (slotGap * (cols - 1))) / static_cast<float>(cols);
-        float slotH = 46.0f * uiScale;
+        const float slotGap = 2.5f * uiScale;
+        const float innerPadding = 6.0f * uiScale;
+        const float gridAreaW = availableW - (innerPadding * 2.0f);
+        const float tileSize = std::floor((gridAreaW - (slotGap * (cols - 1))) / static_cast<float>(cols));
+        const float totalGridW = (tileSize * cols) + (slotGap * (cols - 1));
+        const float totalGridH = (tileSize * rows) + (slotGap * (rows - 1));
+
+        float toolH = 22.0f * uiScale;
+        float cardH = (24.0f * uiScale) + totalGridH + (8.0f * uiScale) + toolH + (8.0f * uiScale);
+
+        // Pin to the bottom of the sidebar panel (matching mini-map radar positioning)
+        float bottomPinnedY = panelRect.y + panelRect.h - cardH - (6.0f * uiScale);
+        curY = std::max(curY, bottomPinnedY);
+        float startY = curY;
+
+        // =========================================================================
+        // OVERARCHING CONTAINER: Equipment / Tattoo Grid Box
+        // =========================================================================
+        SDL_FRect mainCardRect = { padX, curY, availableW, cardH };
+        UIWidget::drawPanel(renderer, mainCardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+
+        float innerX = padX + innerPadding;
+        float cardCurY = curY + (5.0f * uiScale);
+
+        std::string headerTitle = inTattooMode ? "TATTOOS (6x6)" : "EQUIPMENT (6x6)";
+        UIWidget::drawText(renderer, headerTitle, innerX, cardCurY, Theme::colors.textGold, uiScale * 0.78f);
+        cardCurY += (18.0f * uiScale);
+
+        // Centered 6x6 Grid Container
+        float gridStartX = padX + ((availableW - totalGridW) / 2.0f);
 
         for (int r = 0; r < rows; ++r)
         {
             for (int c = 0; c < cols; ++c)
             {
                 int index = (r * cols) + c;
-                const auto& def = s_equipmentGrid[index];
-
-                float slotX = padX + (c * (slotW + slotGap));
-                float slotY = curY + (r * (slotH + slotGap));
-                SDL_FRect slotRect = { slotX, slotY, slotW, slotH };
-
-                bool isAvailable = def.isActionButton || isSlotAvailableForEntity(player, def.slot);
-                bool isSelected = (!def.isActionButton && gameContext->selectedEquipmentSlot == def.slot);
+                float slotX = gridStartX + (c * (tileSize + slotGap));
+                float slotY = cardCurY + (r * (tileSize + slotGap));
+                SDL_FRect slotRect = { slotX, slotY, tileSize, tileSize };
 
                 bool hovered = (mousePos.x >= slotRect.x && mousePos.x <= slotRect.x + slotRect.w &&
                                 mousePos.y >= slotRect.y && mousePos.y <= slotRect.y + slotRect.h);
 
-                if (def.isActionButton)
+                if (inTattooMode)
                 {
-                    // Special Action Button: [ Strip All ]
-                    SDL_Color fillCol = hovered ? Theme::colors.bgHeader : Theme::colors.bgHeader;
-                    SDL_Color borderCol = hovered ? Theme::colors.borderSelected : Theme::colors.borderButton;
-                    UIWidget::drawPanel(renderer, slotRect, fillCol, borderCol);
+                    // -----------------------------------------------------------------
+                    // TATTOO MODE TILES
+                    // -----------------------------------------------------------------
+                    const auto& def = s_tattooGrid[index];
+                    bool isAvailable = def.isSwapButton || isTattooSlotAvailable(character, def.reqPart, def.requiresGating);
+                    bool isSelected = (!def.isSwapButton && isPlayer && gameContext->selectedEquipmentSlot == equipSlot::NONE);
 
-                    float lblW = UIWidget::getTextWidth("ACTION", uiScale * 0.65f);
-                    UIWidget::drawText(renderer, "ACTION", slotX + ((slotW - lblW) / 2.0f), slotY + (3.0f * uiScale), Theme::colors.textGold, uiScale * 0.65f);
-
-                    float btnW = UIWidget::getTextWidth("Strip", uiScale * 0.72f);
-                    UIWidget::drawText(renderer, "Strip", slotX + ((slotW - btnW) / 2.0f), slotY + (20.0f * uiScale), Theme::colors.health, uiScale * 0.72f);
-
-                    if (hovered && clicked)
+                    if (def.isSwapButton)
                     {
-                        // Strip all equipped items
-                        for (size_t s = 0; s < EQUIP_SLOT_COUNT; ++s)
+                        // Swap Button: Switches back to Equipment mode
+                        SDL_Color fill = hovered ? Theme::colors.bgHeader : Theme::colors.bgHeader;
+                        SDL_Color bd = hovered ? Theme::colors.borderSelected : Theme::colors.borderButton;
+                        UIWidget::drawPanel(renderer, slotRect, fill, bd);
+
+                        float lW = UIWidget::getTextWidth("EQ", uiScale * 0.65f);
+                        UIWidget::drawText(renderer, "EQ", slotX + ((tileSize - lW) / 2.0f), slotY + (tileSize * 0.28f), Theme::colors.textGold, uiScale * 0.65f);
+
+                        if (hovered && clicked)
                         {
-                            player->inventory.unequipItem(static_cast<equipSlot>(s));
+                            inTattooMode = false;
+                            gameContext->input.consumeMouseClick();
                         }
-                        gameContext->selectedEquipmentSlot = equipSlot::NONE;
-                        gameContext->refreshActionGrid();
-                        gameContext->input.consumeMouseClick();
                     }
-                }
-                else if (!isAvailable)
-                {
-                    // Disabled / Anatomically Locked Slot
-                    UIWidget::drawPanel(renderer, slotRect, SDL_Color{ 16, 18, 22, 255 }, SDL_Color{ 28, 30, 36, 255 });
-                    float lblW = UIWidget::getTextWidth(def.shortName, uiScale * 0.65f);
-                    UIWidget::drawText(renderer, def.shortName, slotX + ((slotW - lblW) / 2.0f), slotY + (3.0f * uiScale), SDL_Color{ 65, 70, 80, 255 }, uiScale * 0.65f);
-
-                    float lockW = UIWidget::getTextWidth("Locked", uiScale * 0.62f);
-                    UIWidget::drawText(renderer, "Locked", slotX + ((slotW - lockW) / 2.0f), slotY + (20.0f * uiScale), SDL_Color{ 50, 55, 65, 255 }, uiScale * 0.62f);
-                }
-                else
-                {
-                    // Active Equipment Slot
-                    auto eqItem = player->inventory.getEquippedItem(def.slot);
-                    DisplacementMode disp = player->inventory.getDisplacement(def.slot);
-
-                    SDL_Color fillCol = isSelected ? Theme::colors.bgHeader : (hovered ? Theme::colors.bgHeader : Theme::colors.bgSlot);
-                    SDL_Color borderCol = isSelected ? Theme::colors.borderSelected : (hovered ? Theme::colors.borderButton : Theme::colors.borderNormal);
-
-                    UIWidget::drawPanel(renderer, slotRect, fillCol, borderCol);
-
-                    // Slot Short Name
-                    float lblW = UIWidget::getTextWidth(def.shortName, uiScale * 0.65f);
-                    UIWidget::drawText(renderer, def.shortName, slotX + ((slotW - lblW) / 2.0f), slotY + (3.0f * uiScale), isSelected ? Theme::colors.textGold : Theme::colors.textSecondary, uiScale * 0.65f);
-
-                    if (eqItem)
+                    else if (!isAvailable)
                     {
-                        // Item Name (first 6-7 chars if long)
-                        std::string dName = eqItem->name;
-                        if (dName.length() > 7) dName = dName.substr(0, 6) + ".";
-
-                        float itemW = UIWidget::getTextWidth(dName, uiScale * 0.68f);
-                        UIWidget::drawText(renderer, dName, slotX + ((slotW - itemW) / 2.0f), slotY + (18.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.68f);
-
-                        // Displacement Indicator Pill
-                        if (disp != DisplacementMode::NONE)
-                        {
-                            std::string dispTag = (disp == DisplacementMode::UNBUTTON) ? "Open" :
-                                                  (disp == DisplacementMode::PULL_ASIDE) ? "Aside" :
-                                                  (disp == DisplacementMode::LIFT_UP) ? "Up" : "Down";
-
-                            float dTagW = UIWidget::getTextWidth(dispTag, uiScale * 0.58f);
-                            UIWidget::drawText(renderer, dispTag, slotX + ((slotW - dTagW) / 2.0f), slotY + (32.0f * uiScale), Theme::colors.lust, uiScale * 0.58f);
-                        }
+                        // Disabled / Locked
+                        UIWidget::drawPanel(renderer, slotRect, SDL_Color{ 16, 18, 22, 255 }, SDL_Color{ 28, 30, 36, 255 });
+                        float lW = UIWidget::getTextWidth("·", uiScale * 0.65f);
+                        UIWidget::drawText(renderer, "·", slotX + ((tileSize - lW) / 2.0f), slotY + (tileSize * 0.25f), SDL_Color{ 45, 50, 60, 255 }, uiScale * 0.65f);
                     }
                     else
                     {
-                        float empW = UIWidget::getTextWidth("---", uiScale * 0.65f);
-                        UIWidget::drawText(renderer, "---", slotX + ((slotW - empW) / 2.0f), slotY + (20.0f * uiScale), Theme::colors.textMuted, uiScale * 0.65f);
-                    }
+                        // Active Tattoo Slot
+                        bool hasTat = character->anatomy.hasTattoo(def.slot);
+                        SDL_Color fill = hasTat ? Theme::colors.bgSlotOccupied : (hovered ? Theme::colors.bgHeader : Theme::colors.bgDark);
+                        SDL_Color bd = hovered ? Theme::colors.borderButton : Theme::colors.borderNormal;
+                        UIWidget::drawPanel(renderer, slotRect, fill, bd);
 
-                    if (hovered && clicked)
+                        float lW = UIWidget::getTextWidth(def.shortName, uiScale * 0.52f);
+                        SDL_Color textCol = hasTat ? Theme::colors.arcane : Theme::colors.textSecondary;
+                        UIWidget::drawText(renderer, def.shortName, slotX + ((tileSize - lW) / 2.0f), slotY + (tileSize * 0.28f), textCol, uiScale * 0.52f);
+                    }
+                }
+                else
+                {
+                    // -----------------------------------------------------------------
+                    // EQUIPMENT MODE TILES
+                    // -----------------------------------------------------------------
+                    const auto& def = s_equipmentGrid[index];
+                    bool isAvailable = def.isSwapButton || isEquipSlotAvailable(character, def.slot);
+                    bool isSelected = (!def.isSwapButton && isPlayer && gameContext->selectedEquipmentSlot == def.slot);
+
+                    if (def.isSwapButton)
                     {
-                        gameContext->selectedEquipmentSlot = def.slot;
-                        gameContext->selectedInventoryIndex = -1;
-                        gameContext->refreshActionGrid();
-                        gameContext->input.consumeMouseClick();
+                        // Swap Button: Switches to Tattoo mode
+                        SDL_Color fill = hovered ? Theme::colors.bgHeader : Theme::colors.bgHeader;
+                        SDL_Color bd = hovered ? Theme::colors.borderSelected : Theme::colors.borderButton;
+                        UIWidget::drawPanel(renderer, slotRect, fill, bd);
+
+                        float lW = UIWidget::getTextWidth("TAT", uiScale * 0.65f);
+                        UIWidget::drawText(renderer, "TAT", slotX + ((tileSize - lW) / 2.0f), slotY + (tileSize * 0.28f), Theme::colors.arcane, uiScale * 0.65f);
+
+                        if (hovered && clicked)
+                        {
+                            inTattooMode = true;
+                            gameContext->input.consumeMouseClick();
+                        }
+                    }
+                    else if (!isAvailable)
+                    {
+                        // Disabled / Anatomically Locked
+                        UIWidget::drawPanel(renderer, slotRect, SDL_Color{ 16, 18, 22, 255 }, SDL_Color{ 28, 30, 36, 255 });
+                        float lW = UIWidget::getTextWidth("·", uiScale * 0.65f);
+                        UIWidget::drawText(renderer, "·", slotX + ((tileSize - lW) / 2.0f), slotY + (tileSize * 0.25f), SDL_Color{ 45, 50, 60, 255 }, uiScale * 0.65f);
+                    }
+                    else
+                    {
+                        // Active Equipment Socket
+                        auto eqItem = character->inventory.getEquippedItem(def.slot);
+                        DisplacementMode disp = character->inventory.getDisplacement(def.slot);
+
+                        SDL_Color fill = isSelected ? Theme::colors.bgHeader : (eqItem ? Theme::colors.bgSlotOccupied : (hovered ? Theme::colors.bgHeader : Theme::colors.bgDark));
+                        SDL_Color bd = isSelected ? Theme::colors.borderSelected : (hovered ? Theme::colors.borderButton : Theme::colors.borderNormal);
+                        UIWidget::drawPanel(renderer, slotRect, fill, bd);
+
+                        // Label
+                        float lW = UIWidget::getTextWidth(def.shortName, uiScale * 0.52f);
+                        SDL_Color textCol = isSelected ? Theme::colors.textGold : (eqItem ? Theme::colors.textGold : Theme::colors.textSecondary);
+                        UIWidget::drawText(renderer, def.shortName, slotX + ((tileSize - lW) / 2.0f), slotY + (3.0f * uiScale), textCol, uiScale * 0.52f);
+
+                        // Item indicator or displacement dot
+                        if (eqItem)
+                        {
+                            if (disp != DisplacementMode::NONE)
+                            {
+                                float dotW = UIWidget::getTextWidth("!", uiScale * 0.65f);
+                                UIWidget::drawText(renderer, "!", slotX + ((tileSize - dotW) / 2.0f), slotY + (tileSize * 0.42f), Theme::colors.lust, uiScale * 0.65f);
+                            }
+                            else
+                            {
+                                float dotW = UIWidget::getTextWidth("★", uiScale * 0.55f);
+                                UIWidget::drawText(renderer, "*", slotX + ((tileSize - dotW) / 2.0f), slotY + (tileSize * 0.42f), Theme::colors.textGold, uiScale * 0.55f);
+                            }
+                        }
+
+                        if (hovered && clicked && isPlayer)
+                        {
+                            gameContext->selectedEquipmentSlot = def.slot;
+                            gameContext->selectedInventoryIndex = -1;
+                            gameContext->refreshActionGrid();
+                            gameContext->input.consumeMouseClick();
+                        }
                     }
                 }
             }
         }
 
-        curY += (rows * (slotH + slotGap)) + (8.0f * uiScale);
+        cardCurY += totalGridH + (8.0f * uiScale);
+
+        // =========================================================================
+        // TOOLBAR BUTTONS UNDER THE 6x6 GRID
+        // =========================================================================
+        static const std::vector<std::pair<std::string, CommandType>> tools = {
+            { "Inv", CommandType::OPEN_INVENTORY },
+            { "Phone", CommandType::OPEN_PHONE },
+            { "TF", CommandType::OPEN_TRANSFORMATION },
+            { "Opt", CommandType::OPEN_SETTINGS }
+        };
+
+        float toolW = (availableW - (innerPadding * 2.0f) - (3 * 4.0f * uiScale)) / 4.0f;
+
+        for (size_t i = 0; i < tools.size(); ++i)
+        {
+            SDL_FRect tRect = { innerX + (i * (toolW + (4.0f * uiScale))), cardCurY, toolW, toolH };
+            bool hov = (mousePos.x >= tRect.x && mousePos.x <= tRect.x + tRect.w &&
+                        mousePos.y >= tRect.y && mousePos.y <= tRect.y + tRect.h);
+
+            UIWidget::drawButton(renderer, tRect, tools[i].first, hov, true, false, uiScale * 0.74f);
+
+            if (hov && clicked)
+            {
+                gameContext->handleCommand(UICommand{ tools[i].second });
+                gameContext->input.consumeMouseClick();
+            }
+        }
+
+        curY += cardH;
         return (curY - startY);
+    }
+
+    float renderWidgetPaperdoll(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
+    {
+        return renderWidgetPaperdoll(renderer, gameContext, { curX, curY, innerW, 260.0f * uiScale }, curY, uiScale, nullptr);
     }
 
     float renderWidgetItemInspector(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
