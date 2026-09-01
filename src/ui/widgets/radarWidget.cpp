@@ -93,11 +93,13 @@ namespace RadarWidgets
         // Calculate dimensions for 5x5 tile grid
         const int radius = 2; // 5x5 grid
         const int gridSize = (radius * 2) + 1; // 5
-        const float tileSize = std::clamp((availableW - (20.0f * uiScale)) / static_cast<float>(gridSize), 20.0f * uiScale, 30.0f * uiScale);
+        const float innerPadding = 6.0f * uiScale;
+        const float innerW = availableW - (innerPadding * 2.0f);
+        const float tileSize = std::floor(innerW / static_cast<float>(gridSize));
         const float totalGridW = tileSize * static_cast<float>(gridSize);
 
         float toolH = 22.0f * uiScale;
-        float cardH = (24.0f * uiScale) + totalGridW + (8.0f * uiScale) + toolH + (8.0f * uiScale);
+        float cardH = (22.0f * uiScale) + totalGridW + (8.0f * uiScale) + toolH + (8.0f * uiScale);
 
         // ==========================================
         // CARD: Mini-Map Radar & Quick Toolbar
@@ -105,8 +107,7 @@ namespace RadarWidgets
         SDL_FRect mainCardRect = { padX, curY, availableW, cardH };
         UIWidget::drawPanel(renderer, mainCardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
-        float innerX = padX + (8.0f * uiScale);
-        float innerW = availableW - (16.0f * uiScale);
+        float innerX = padX + innerPadding;
         float cardCurY = curY + (5.0f * uiScale);
 
         UIWidget::drawText(renderer, "MINI-MAP RADAR", innerX, cardCurY, Theme::colors.textGold, uiScale * 0.78f);
@@ -114,7 +115,7 @@ namespace RadarWidgets
 
         // Center the 5x5 grid inside the card
         float gridStartX = padX + ((availableW - totalGridW) / 2.0f);
-        SDL_FRect radarBox = { gridStartX - (2.0f * uiScale), cardCurY - (2.0f * uiScale), totalGridW + (4.0f * uiScale), totalGridW + (4.0f * uiScale) };
+        SDL_FRect radarBox = { gridStartX - (1.0f * uiScale), cardCurY - (1.0f * uiScale), totalGridW + (2.0f * uiScale), totalGridW + (2.0f * uiScale) };
         UIWidget::drawPanel(renderer, radarBox, Theme::colors.bgDark, Theme::colors.borderButton);
 
         for (int dy = -radius; dy <= radius; ++dy)
@@ -127,8 +128,8 @@ namespace RadarWidgets
                 SDL_FRect tileRect = {
                     gridStartX + static_cast<float>(dx + radius) * tileSize,
                     cardCurY + static_cast<float>(dy + radius) * tileSize,
-                    tileSize - (2.0f * uiScale),
-                    tileSize - (2.0f * uiScale)
+                    tileSize,
+                    tileSize
                 };
 
                 SDL_Color tileColor = SDL_Color{ 14, 16, 20, 255 };
@@ -257,10 +258,12 @@ namespace RadarWidgets
 
         const int radius = 2;
         const int gridSize = (radius * 2) + 1;
-        const float tileSize = std::clamp((availableW - (20.0f * uiScale)) / static_cast<float>(gridSize), 20.0f * uiScale, 30.0f * uiScale);
+        const float innerPadding = 6.0f * uiScale;
+        const float innerW = availableW - (innerPadding * 2.0f);
+        const float tileSize = std::floor(innerW / static_cast<float>(gridSize));
         const float totalGridW = tileSize * static_cast<float>(gridSize);
         float toolH = 22.0f * uiScale;
-        float mapCardH = (24.0f * uiScale) + totalGridW + (8.0f * uiScale) + toolH + (8.0f * uiScale);
+        float mapCardH = (22.0f * uiScale) + totalGridW + (8.0f * uiScale) + toolH + (8.0f * uiScale);
 
         float totalNavH = timeCardH + gapBetweenCards + mapCardH;
 

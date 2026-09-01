@@ -203,15 +203,15 @@ namespace PaperdollWidgets
         // Calculate 6x6 square tile sizes
         const int cols = 6;
         const int rows = 6;
-        const float slotGap = 2.5f * uiScale;
         const float innerPadding = 6.0f * uiScale;
-        const float gridAreaW = availableW - (innerPadding * 2.0f);
-        const float tileSize = std::floor((gridAreaW - (slotGap * (cols - 1))) / static_cast<float>(cols));
-        const float totalGridW = (tileSize * cols) + (slotGap * (cols - 1));
-        const float totalGridH = (tileSize * rows) + (slotGap * (rows - 1));
+        const float innerW = availableW - (innerPadding * 2.0f);
+        const float slotGap = 2.0f * uiScale;
+        const float tileSize = std::floor((innerW - (slotGap * static_cast<float>(cols - 1))) / static_cast<float>(cols));
+        const float totalGridW = (tileSize * cols) + (slotGap * static_cast<float>(cols - 1));
+        const float totalGridH = totalGridW;
 
         float toolH = 22.0f * uiScale;
-        float cardH = (24.0f * uiScale) + totalGridH + (8.0f * uiScale) + toolH + (8.0f * uiScale);
+        float cardH = (22.0f * uiScale) + totalGridH + (8.0f * uiScale) + toolH + (8.0f * uiScale);
 
         // Pin to the bottom of the sidebar panel (matching mini-map radar positioning)
         float bottomPinnedY = panelRect.y + panelRect.h - cardH - (6.0f * uiScale);
@@ -231,8 +231,10 @@ namespace PaperdollWidgets
         UIWidget::drawText(renderer, headerTitle, innerX, cardCurY, Theme::colors.textGold, uiScale * 0.78f);
         cardCurY += (18.0f * uiScale);
 
-        // Centered 6x6 Grid Container
+        // Centered 6x6 Grid Container Box matching Mini-Map Radar
         float gridStartX = padX + ((availableW - totalGridW) / 2.0f);
+        SDL_FRect gridBox = { gridStartX - (1.0f * uiScale), cardCurY - (1.0f * uiScale), totalGridW + (2.0f * uiScale), totalGridH + (2.0f * uiScale) };
+        UIWidget::drawPanel(renderer, gridBox, Theme::colors.bgDark, Theme::colors.borderButton);
 
         for (int r = 0; r < rows; ++r)
         {
