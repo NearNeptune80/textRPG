@@ -20,9 +20,9 @@ namespace EntityListWidgets
         if (!gameContext || !gameContext->getPlayer()) return 0.0f;
 
         float startY = curY;
-        float padX = curX + (8.0f * uiScale);
-        float availableW = innerW - (16.0f * uiScale);
-        float innerPad = 8.0f * uiScale;
+        float padX = curX + (5.0f * uiScale);
+        float availableW = innerW - (10.0f * uiScale);
+        float innerPad = 5.0f * uiScale;
         float innerX = padX + innerPad;
         float cW = availableW - (innerPad * 2.0f);
 
@@ -42,14 +42,14 @@ namespace EntityListWidgets
             if (!m->getName().empty() && m->getName() != "District Map") locName = m->getName();
         }
 
-        UIWidget::drawText(renderer, locName, innerX, curY + (6.0f * uiScale), Theme::colors.textGold, uiScale * 0.88f);
-        std::string safeTag = "[ Safe Sanctuary ]";
-        float safeW = UIWidget::getTextWidth(safeTag, uiScale * 0.74f);
-        UIWidget::drawText(renderer, safeTag, innerX + cW - safeW, curY + (6.0f * uiScale), Theme::colors.companion, uiScale * 0.74f);
+        UIWidget::drawText(renderer, locName, innerX, curY + (5.0f * uiScale), Theme::colors.textGold, uiScale * 0.78f);
+        std::string safeTag = "[ Safe ]";
+        float safeW = UIWidget::getTextWidth(safeTag, uiScale * 0.68f);
+        UIWidget::drawText(renderer, safeTag, innerX + cW - safeW, curY + (5.0f * uiScale), Theme::colors.companion, uiScale * 0.68f);
 
-        UIWidget::drawText(renderer, "Sanctuary interior • Quiet atmosphere", innerX, curY + (24.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.70f);
+        UIWidget::drawText(renderer, "Sanctuary interior", innerX, curY + (22.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.66f);
 
-        curY += card1H + (10.0f * uiScale);
+        curY += card1H + (8.0f * uiScale);
 
         // ==========================================
         // CARD 2: Characters Present Card
@@ -66,26 +66,26 @@ namespace EntityListWidgets
             }
         }
 
-        float card2H = hasNpc ? (68.0f * uiScale) : (52.0f * uiScale);
+        float card2H = hasNpc ? (64.0f * uiScale) : (48.0f * uiScale);
         SDL_FRect card2Rect = { padX, curY, availableW, card2H };
         UIWidget::drawPanel(renderer, card2Rect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
-        UIWidget::drawText(renderer, "CHARACTERS PRESENT", innerX, curY + (6.0f * uiScale), Theme::colors.textGold, uiScale * 0.78f);
+        UIWidget::drawText(renderer, "CHARACTERS PRESENT", innerX, curY + (5.0f * uiScale), Theme::colors.textGold, uiScale * 0.74f);
 
         if (hasNpc && npc)
         {
-            float npcY = curY + (24.0f * uiScale);
-            UIWidget::drawText(renderer, npc->name, innerX, npcY, Theme::colors.textGold, uiScale * 0.85f);
+            float npcY = curY + (22.0f * uiScale);
+            UIWidget::drawText(renderer, npc->name, innerX, npcY, Theme::colors.textGold, uiScale * 0.78f);
             std::string raceStr = npc->anatomy.getRacialTitle().empty() ? "Demon" : npc->anatomy.getRacialTitle();
-            UIWidget::drawText(renderer, raceStr, innerX, npcY + (16.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.70f);
+            UIWidget::drawText(renderer, raceStr, innerX, npcY + (14.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.66f);
 
             // Action buttons: [ Talk ] [ View ]
-            float btnW = 46.0f * uiScale;
-            float btnH = 22.0f * uiScale;
-            SDL_FRect talkBtn = { innerX + cW - (btnW * 2.0f) - (6.0f * uiScale), npcY + (2.0f * uiScale), btnW, btnH };
+            float btnW = 38.0f * uiScale;
+            float btnH = 20.0f * uiScale;
+            SDL_FRect talkBtn = { innerX + cW - (btnW * 2.0f) - (4.0f * uiScale), npcY + (2.0f * uiScale), btnW, btnH };
             bool tHov = (mousePos.x >= talkBtn.x && mousePos.x <= talkBtn.x + talkBtn.w &&
                          mousePos.y >= talkBtn.y && mousePos.y <= talkBtn.y + talkBtn.h);
-            UIWidget::drawButton(renderer, talkBtn, "Talk", tHov, true, false, uiScale * 0.72f);
+            UIWidget::drawButton(renderer, talkBtn, "Talk", tHov, true, false, uiScale * 0.66f);
             if (tHov && clicked)
             {
                 auto& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
@@ -97,7 +97,7 @@ namespace EntityListWidgets
             SDL_FRect inspBtn = { innerX + cW - btnW, npcY + (2.0f * uiScale), btnW, btnH };
             bool iHov = (mousePos.x >= inspBtn.x && mousePos.x <= inspBtn.x + inspBtn.w &&
                          mousePos.y >= inspBtn.y && mousePos.y <= inspBtn.y + inspBtn.h);
-            UIWidget::drawButton(renderer, inspBtn, "View", iHov, true, false, uiScale * 0.72f);
+            UIWidget::drawButton(renderer, inspBtn, "View", iHov, true, false, uiScale * 0.66f);
             if (iHov && clicked)
             {
                 auto& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
@@ -108,10 +108,10 @@ namespace EntityListWidgets
         }
         else
         {
-            UIWidget::drawText(renderer, "No other characters present in this area.", innerX, curY + (26.0f * uiScale), Theme::colors.textMuted, uiScale * 0.74f);
+            UIWidget::drawText(renderer, "No characters here.", innerX, curY + (22.0f * uiScale), Theme::colors.textMuted, uiScale * 0.68f);
         }
 
-        curY += card2H + (10.0f * uiScale);
+        curY += card2H + (8.0f * uiScale);
         return (curY - startY);
     }
 
@@ -120,9 +120,9 @@ namespace EntityListWidgets
         if (!gameContext || !gameContext->getPlayer()) return 0.0f;
 
         float startY = curY;
-        float padX = curX + (8.0f * uiScale);
-        float availableW = innerW - (16.0f * uiScale);
-        float innerPad = 8.0f * uiScale;
+        float padX = curX + (5.0f * uiScale);
+        float availableW = innerW - (10.0f * uiScale);
+        float innerPad = 5.0f * uiScale;
         float innerX = padX + innerPad;
         float cW = availableW - (innerPad * 2.0f);
 
@@ -133,34 +133,34 @@ namespace EntityListWidgets
         // ==========================================
         // CARD 3: Items on Ground Card
         // ==========================================
-        float card3H = ground.empty() ? (52.0f * uiScale) : ((32.0f * uiScale) + (ground.size() * (32.0f * uiScale)));
-        card3H = std::min(card3H, 140.0f * uiScale);
+        float card3H = ground.empty() ? (48.0f * uiScale) : ((28.0f * uiScale) + (ground.size() * (26.0f * uiScale)));
+        card3H = std::min(card3H, 130.0f * uiScale);
 
         SDL_FRect card3Rect = { padX, curY, availableW, card3H };
         UIWidget::drawPanel(renderer, card3Rect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
-        UIWidget::drawText(renderer, "ITEMS PRESENT", innerX, curY + (6.0f * uiScale), Theme::colors.textGold, uiScale * 0.78f);
+        UIWidget::drawText(renderer, "ITEMS PRESENT", innerX, curY + (5.0f * uiScale), Theme::colors.textGold, uiScale * 0.74f);
 
         if (ground.empty())
         {
-            UIWidget::drawText(renderer, "No items dropped on the floor.", innerX, curY + (26.0f * uiScale), Theme::colors.textMuted, uiScale * 0.74f);
+            UIWidget::drawText(renderer, "No items dropped.", innerX, curY + (22.0f * uiScale), Theme::colors.textMuted, uiScale * 0.68f);
         }
         else
         {
-            float itemY = curY + (24.0f * uiScale);
+            float itemY = curY + (22.0f * uiScale);
             for (size_t i = 0; i < ground.size() && i < 3; ++i)
             {
                 if (ground[i].itemPtr)
                 {
                     std::string line = std::format("{}x {}", ground[i].totalCount, ground[i].itemPtr->name);
-                    UIWidget::drawText(renderer, line, innerX, itemY + (4.0f * uiScale), Theme::colors.textGold, uiScale * 0.76f);
+                    UIWidget::drawText(renderer, line, innerX, itemY + (3.0f * uiScale), Theme::colors.textGold, uiScale * 0.70f);
 
-                    float pickBtnW = 48.0f * uiScale;
-                    float pickBtnH = 20.0f * uiScale;
+                    float pickBtnW = 38.0f * uiScale;
+                    float pickBtnH = 18.0f * uiScale;
                     SDL_FRect pickBtn = { innerX + cW - pickBtnW, itemY + (2.0f * uiScale), pickBtnW, pickBtnH };
                     bool pHov = (mousePos.x >= pickBtn.x && mousePos.x <= pickBtn.x + pickBtn.w &&
                                  mousePos.y >= pickBtn.y && mousePos.y <= pickBtn.y + pickBtn.h);
-                    UIWidget::drawButton(renderer, pickBtn, "Take", pHov, true, false, uiScale * 0.68f);
+                    UIWidget::drawButton(renderer, pickBtn, "Take", pHov, true, false, uiScale * 0.64f);
 
                     if (pHov && clicked)
                     {
@@ -169,12 +169,12 @@ namespace EntityListWidgets
                         break;
                     }
 
-                    itemY += (28.0f * uiScale);
+                    itemY += (24.0f * uiScale);
                 }
             }
         }
 
-        curY += card3H + (10.0f * uiScale);
+        curY += card3H + (8.0f * uiScale);
         return (curY - startY);
     }
 
@@ -183,21 +183,21 @@ namespace EntityListWidgets
         if (!gameContext || !gameContext->getPlayer()) return 0.0f;
 
         float startY = curY;
-        float padX = curX + (8.0f * uiScale);
-        float availableW = innerW - (16.0f * uiScale);
-        float innerPad = 8.0f * uiScale;
+        float padX = curX + (5.0f * uiScale);
+        float availableW = innerW - (10.0f * uiScale);
+        float innerPad = 5.0f * uiScale;
         float innerX = padX + innerPad;
 
         // ==========================================
         // CARD 4: Activity & Event Log Card
         // ==========================================
-        float card4H = 150.0f * uiScale;
+        float card4H = 145.0f * uiScale;
         SDL_FRect logBox = { padX, curY, availableW, card4H };
         UIWidget::drawPanel(renderer, logBox, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
-        UIWidget::drawText(renderer, "ACTIVITY & EVENT LOG", innerX, curY + (6.0f * uiScale), Theme::colors.textGold, uiScale * 0.78f);
+        UIWidget::drawText(renderer, "ACTIVITY & EVENT LOG", innerX, curY + (5.0f * uiScale), Theme::colors.textGold, uiScale * 0.74f);
 
-        float logCurY = curY + (24.0f * uiScale);
+        float logCurY = curY + (22.0f * uiScale);
 
         struct LogEntry {
             std::string tag;
@@ -206,23 +206,24 @@ namespace EntityListWidgets
         };
 
         static const std::vector<LogEntry> logEntries = {
-            { "[ZONE]", "Entered Lilaya's Home F1", Theme::colors.companion },
-            { "[TASK]", "Discovered: Lilaya's Tests", Theme::colors.textGold },
-            { "[LORE]", "Encyclopedia: Demon Morph", Theme::colors.arcane },
-            { "[ITEM]", "Equipped: Opaque Demonstone", Theme::colors.health },
-            { "[GOLD]", "Gained: 5,000 ¤", Theme::colors.currency },
-            { "[INFO]", "All systems operational", Theme::colors.textSecondary }
+            { "[ZONE]", "Lilaya's Home F1", Theme::colors.companion },
+            { "[TASK]", "Lilaya's Tests", Theme::colors.textGold },
+            { "[LORE]", "Demon Morph", Theme::colors.arcane },
+            { "[ITEM]", "Equipped Demonstone", Theme::colors.health },
+            { "[GOLD]", "+5,000 ¤", Theme::colors.currency },
+            { "[INFO]", "Systems active", Theme::colors.textSecondary }
         };
 
         for (const auto& entry : logEntries)
         {
-            UIWidget::drawText(renderer, entry.tag, innerX, logCurY, entry.tagColor, uiScale * 0.70f);
-            float tagW = UIWidget::getTextWidth(entry.tag, uiScale * 0.70f);
-            UIWidget::drawText(renderer, entry.text, innerX + tagW + (6.0f * uiScale), logCurY, Theme::colors.textPrimary, uiScale * 0.70f);
+            UIWidget::drawText(renderer, entry.tag, innerX, logCurY, entry.tagColor, uiScale * 0.65f);
+            float tagW = UIWidget::getTextWidth(entry.tag, uiScale * 0.65f);
+
+            UIWidget::drawText(renderer, entry.text, innerX + tagW + (4.0f * uiScale), logCurY, Theme::colors.textPrimary, uiScale * 0.65f);
             logCurY += (18.0f * uiScale);
         }
 
-        curY += card4H + (10.0f * uiScale);
+        curY += card4H + (8.0f * uiScale);
         return (curY - startY);
     }
 }

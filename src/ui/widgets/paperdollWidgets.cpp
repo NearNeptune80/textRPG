@@ -201,17 +201,18 @@ namespace PaperdollWidgets
         auto mousePos = gameContext->input.getMousePosition();
         bool clicked = gameContext->input.isLeftMouseJustClicked();
 
-        // Calculate linked 6x6 square tile sizes
+        // Calculate square dimensions for 6x6 tile grid filling the container
         const int cols = 6;
         const int rows = 6;
-        const float linkedSquareSize = std::min(availableW - (12.0f * uiScale), 160.0f * uiScale);
+        const float innerPadding = 4.0f * uiScale;
+        const float innerW = availableW - (innerPadding * 2.0f);
         const float slotGap = 2.0f * uiScale;
-        const float tileSize = std::floor((linkedSquareSize - (slotGap * static_cast<float>(cols - 1))) / static_cast<float>(cols));
+        const float tileSize = std::floor((innerW - (slotGap * static_cast<float>(cols - 1))) / static_cast<float>(cols));
         const float totalGridW = (tileSize * cols) + (slotGap * static_cast<float>(cols - 1));
         const float totalGridH = totalGridW;
 
         float toolH = 20.0f * uiScale;
-        float cardH = (20.0f * uiScale) + totalGridH + (6.0f * uiScale) + toolH + (6.0f * uiScale);
+        float cardH = (18.0f * uiScale) + totalGridH + (5.0f * uiScale) + toolH + (5.0f * uiScale);
 
         // Compute total height of Date & Time Card + Gap + 6x6 Equipment Card
         float timeCardH = 46.0f * uiScale;
@@ -233,12 +234,12 @@ namespace PaperdollWidgets
         SDL_FRect mainCardRect = { padX, curY, availableW, cardH };
         UIWidget::drawPanel(renderer, mainCardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
-        float innerX = padX + (6.0f * uiScale);
-        float cardCurY = curY + (4.0f * uiScale);
+        float innerX = padX + innerPadding;
+        float cardCurY = curY + (3.0f * uiScale);
 
         std::string headerTitle = inTattooMode ? "TATTOOS (6x6)" : "EQUIPMENT (6x6)";
-        UIWidget::drawText(renderer, headerTitle, innerX, cardCurY, Theme::colors.textGold, uiScale * 0.76f);
-        cardCurY += (16.0f * uiScale);
+        UIWidget::drawText(renderer, headerTitle, innerX, cardCurY, Theme::colors.textGold, uiScale * 0.74f);
+        cardCurY += (15.0f * uiScale);
 
         // Centered 6x6 Grid Container Box matching Mini-Map Radar
         float gridStartX = padX + ((availableW - totalGridW) / 2.0f);

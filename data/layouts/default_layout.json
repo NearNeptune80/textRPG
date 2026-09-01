@@ -5,7 +5,7 @@
     "id": "root_row",
     "type": "CONTAINER",
     "direction": "ROW",
-    "sizes": [20.0, 60.0, 20.0],
+    "sizes": [16.0, 68.0, 16.0],
     "children": [
       {
         "id": "left_column",
@@ -71,7 +71,7 @@
             "id": "combat_middle_row",
             "type": "CONTAINER",
             "direction": "ROW",
-            "sizes": [22.0, 56.0, 22.0],
+            "sizes": [16.0, 68.0, 16.0],
             "children": [
               {
                 "id": "combat_left_sidebar",
@@ -117,7 +117,7 @@
         "id": "inv_root_row",
         "type": "CONTAINER",
         "direction": "ROW",
-        "sizes": [20.0, 80.0],
+        "sizes": [16.0, 84.0],
         "children": [
           {
             "id": "inv_left_column",
@@ -162,7 +162,7 @@
         "id": "sex_root_row",
         "type": "CONTAINER",
         "direction": "ROW",
-        "sizes": [20.0, 60.0, 20.0],
+        "sizes": [16.0, 68.0, 16.0],
         "children": [
           {
             "id": "sex_left_column",
