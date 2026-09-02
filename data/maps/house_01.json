@@ -25,5 +25,43 @@
       "targetX": 8,
       "targetY": 1
     }
-  ]
+  ],
+  "defaultDescriptions": [
+    "You are inside the Cozy Cottage. Polished timber floorboards gleam warmly in the soft indoor light, and a cheerful hearth crackles in the corner.",
+    "The cozy interior is warm and tranquil. Quaint embroidered cushions, bookshelves, and woven tapestries create a deeply relaxing sanctuary."
+  ],
+  "tileDescriptions": {
+    "2,3": [
+      "You stand near the front foyer of the cottage. A heavy timber door leads outside toward the Town District avenues.",
+      "The entryway features a braided rug and brass umbrella stand right beside the cottage's exit door."
+    ],
+    "2,2": [
+      "The central parlor is furnished with a plush armchair and a low wooden coffee table strewn with scholarly journals.",
+      "In the middle of the cottage, a soft wool rug cushions your footsteps between the parlor and dining nook."
+    ]
+  },
+  "tileTags": {
+    "1,1": [ "bookshelf_corner" ],
+    "3,1": [ "hearth" ],
+    "1,2": [ "window_nook" ],
+    "3,2": [ "kitchenette" ]
+  },
+  "tagDescriptions": {
+    "bookshelf_corner": [
+      "Tall mahogany bookshelves line the wall here, crammed with antique tomes on arcane theory, folklore, and local herbology.",
+      "A quiet reading corner with rows of leather-bound books and a small brass reading lantern."
+    ],
+    "hearth": [
+      "A stone fireplace radiates steady, comforting warmth throughout the room, embers glowing a mellow amber.",
+      "The fireplace mantelpiece holds carved wooden figurines and dried lavender bundles that scent the air."
+    ],
+    "window_nook": [
+      "A bay window with lace curtains looks out onto the street, admitting gentle ambient light.",
+      "A cushioned bench beneath the window offers a peaceful view of the district's rooftops."
+    ],
+    "kitchenette": [
+      "A compact preparation counter holds ceramic jars of tea leaves, honey, and neatly stacked earthenware mugs.",
+      "Copper kettles and wooden cooking spoons hang above a spotless stone counter."
+    ]
+  }
 }

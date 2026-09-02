@@ -23,7 +23,17 @@ void mainMenuState::onExit(game* gameContext) {}
 
 void mainMenuState::update(game* gameContext, float deltaTime) {}
 
-void mainMenuState::handleInput(game* gameContext, const SDL_Event& event) {}
+void mainMenuState::handleInput(game* gameContext, const SDL_Event& event)
+{
+    if (!gameContext) return;
+    if (event.type == SDL_EVENT_KEY_DOWN)
+    {
+        if (event.key.key == SDLK_ESCAPE && gameContext->getPlayer())
+        {
+            gameContext->changeState(std::make_unique<explorationState>());
+        }
+    }
+}
 
 void mainMenuState::handleCommand(game* gameContext, const UICommand& cmd)
 {
@@ -35,9 +45,14 @@ void mainMenuState::handleCommand(game* gameContext, const UICommand& cmd)
     }
     else if (cmd.type == CommandType::CONTINUE_GAME)
     {
-        entity* p = gameContext->getPlayer();
-        std::string charName = (p && !p->name.empty()) ? p->name : "Hero";
-        if (!saveManager::loadFromFile(gameContext, charName + "_QuickSave.json"))
+        if (gameContext->getPlayer())
+        {
+            gameContext->changeState(std::make_unique<explorationState>());
+            return;
+        }
+
+        std::string charName = "Hero";
+        if (!saveManager::loadFromFile(gameContext, "Hero_QuickSave.json"))
         {
             if (!saveManager::loadFromFile(gameContext, "QuickSave.json"))
             {

@@ -28,7 +28,25 @@ void phoneAppsState::onExit(game* gameContext) {}
 
 void phoneAppsState::update(game* gameContext, float deltaTime) {}
 
-void phoneAppsState::handleInput(game* gameContext, const SDL_Event& event) {}
+void phoneAppsState::handleInput(game* gameContext, const SDL_Event& event)
+{
+    if (!gameContext) return;
+    if (event.type == SDL_EVENT_KEY_DOWN)
+    {
+        if (event.key.key == SDLK_ESCAPE)
+        {
+            if (m_mode == PhoneAppMode::HOME)
+            {
+                gameContext->changeState(std::make_unique<explorationState>());
+            }
+            else
+            {
+                setAppMode(PhoneAppMode::HOME);
+                gameContext->refreshActionGrid();
+            }
+        }
+    }
+}
 
 void phoneAppsState::handleCommand(game* gameContext, const UICommand& cmd) {}
 

@@ -116,6 +116,7 @@ void from_json(const json& j, item& itemObj)
     itemObj.isConsumable = j.value("isConsumable", false);
     itemObj.isEquippable = j.value("isEquippable", false);
     itemObj.isStackable = j.value("isStackable", false);
+    itemObj.isKeyItem = j.value("isKeyItem", false);
     itemObj.count = j.value("count", 1);
     itemObj.baseRace = j.value("baseRace", "");
 
@@ -127,6 +128,33 @@ void from_json(const json& j, item& itemObj)
     else
     {
         itemObj.targetSlot = equipSlot::NONE;
+    }
+
+    if (j.contains("category"))
+    {
+        itemObj.category = stringToItemCategory(j.at("category").get<std::string>());
+    }
+    else if (j.contains("sortTag"))
+    {
+        itemObj.category = stringToItemCategory(j.at("sortTag").get<std::string>());
+    }
+    else
+    {
+        itemObj.category = determineItemCategory(itemObj);
+    }
+
+    if (j.contains("validSlots"))
+    {
+        itemObj.validSlots.clear();
+        for (const auto& sItem : j["validSlots"])
+        {
+            equipSlot s = stringToEquipSlot(sItem.get<std::string>());
+            if (s != equipSlot::NONE) itemObj.validSlots.push_back(s);
+        }
+    }
+    if (itemObj.validSlots.empty() && itemObj.targetSlot != equipSlot::NONE)
+    {
+        itemObj.validSlots = itemObj.getValidEquipSlots();
     }
 
     if (j.contains("requiredTags"))

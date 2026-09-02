@@ -43,6 +43,8 @@
       "x": 1,
       "y": 1,
       "label": "Talk to Stranger",
+      "tooltip": "Approach the cloaked figure standing near the gateway.",
+      "description": "A mysterious cloaked stranger stands quietly near the stone archway, watching the road with an observant gaze.",
       "sceneId": "quest_intro_01",
       "conditions": [
         {
@@ -52,5 +54,64 @@
         }
       ]
     }
-  ]
+  ],
+  "defaultDescriptions": [
+    "You are exploring the Town District. Stone-paved paths meander between multi-storey timber buildings and quiet residential avenues.",
+    "A refreshing breeze sweeps through the town streets, carrying the scent of woodsmoke, fresh bread, and distant blooming gardens."
+  ],
+  "tileDescriptions": {
+    "1,1": [
+      "You stand near the northern town gate of the settlement. A grand stone archway spans overhead, framing the cobbled avenue that stretches deeper into the Town District.",
+      "The northern gateway is quiet and welcoming. Sturdy iron-bound arch stones rise above you, offering a vantage point across the district's paved roads."
+    ],
+    "8,1": [
+      "You arrive before the entrance to a charming, ivy-draped residence known as the Cozy Cottage. A warm glow emanates from behind its curtained front windows.",
+      "Standing on the front steps of the Cozy Cottage, a polished wooden door with brass fittings invites you to enter."
+    ]
+  },
+  "tileTags": {
+    "2,1": [ "cobblestone", "high_street" ],
+    "3,1": [ "cobblestone", "high_street" ],
+    "4,1": [ "cobblestone", "plaza" ],
+    "7,1": [ "residential", "walkway" ],
+    "1,2": [ "avenue", "residential" ],
+    "4,2": [ "alleyway" ],
+    "1,3": [ "market_quarter" ],
+    "2,3": [ "market_quarter" ],
+    "3,3": [ "market_quarter" ],
+    "4,3": [ "central_square" ],
+    "5,3": [ "central_square" ],
+    "6,3": [ "residential" ],
+    "7,3": [ "residential" ]
+  },
+  "tagDescriptions": {
+    "cobblestone": [
+      "Smooth, rounded cobblestones form the thoroughfare underfoot, worn level by years of foot traffic.",
+      "The stone pavement beneath your boots is firm and clean, with neatly fitted curbing running along either side."
+    ],
+    "high_street": [
+      "Quaint shopfronts with hanging painted signs flank this bustling section of the town street.",
+      "Neat timber-and-plaster buildings with flower boxes overlook this pleasant thoroughfare."
+    ],
+    "plaza": [
+      "The street broadens into a modest open plaza, where townfolk often gather around a stone bench.",
+      "An open paved square opens up ahead, giving you a clear view of the surrounding rooftops."
+    ],
+    "residential": [
+      "Rows of quiet, two-story homes line this peaceful lane, their curtained windows looking out onto the street.",
+      "This residential avenue is calm and sheltered, with decorative iron lampposts standing at intervals."
+    ],
+    "alleyway": [
+      "A narrow, shadowed passage runs between the tall brick walls of adjoining buildings.",
+      "The cool air of this side alley is quiet, offering a secluded shortcut between the main thoroughfares."
+    ],
+    "central_square": [
+      "You find yourself near the heart of the district, where multiple avenues converge around paved footways.",
+      "The wide central intersection offers pathways leading towards residential quarters and outer thoroughfares alike."
+    ],
+    "market_quarter": [
+      "Canopies and stalls of local merchants line the road, their wares neatly arranged for browsing customers.",
+      "A lively section of the street frequented by vendors and travelers trading daily provisions."
+    ]
+  }
 }

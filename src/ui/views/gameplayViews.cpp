@@ -113,12 +113,279 @@ namespace GameplayViews
         std::string appTitle = phoneAppModeToString(app->getAppMode());
         float headerH = 26.0f * uiScale;
         SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
-        UIWidget::drawHeader(renderer, headerRect, std::format("📱 PHONE APP - {}", appTitle), Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
-        curY += headerH + (12.0f * uiScale);
+        UIWidget::drawHeader(renderer, headerRect, std::format("📱 PHONE - {}", appTitle), Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
+        curY += headerH + (10.0f * uiScale);
+
+        // Feedback notification banner (e.g. rest feedback, masturbation climax)
+        if (!app->getFeedbackText().empty())
+        {
+            float fbH = 28.0f * uiScale;
+            SDL_FRect fbRect = { padX, curY, innerW, fbH };
+            UIWidget::drawPanel(renderer, fbRect, Theme::colors.bgHeader, Theme::colors.borderSelected);
+            UIWidget::drawText(renderer, "💬 " + app->getFeedbackText(), padX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textGold, uiScale * 0.82f);
+            curY += fbH + (10.0f * uiScale);
+        }
 
         const auto& data = app->getAppData();
 
-        if (app->getAppMode() == PhoneAppMode::QUESTS)
+        if (app->getAppMode() == PhoneAppMode::HOME)
+        {
+            // 1. Status Bar Card
+            float barCardH = 34.0f * uiScale;
+            SDL_FRect barRect = { padX, curY, innerW, barCardH };
+            UIWidget::drawPanel(renderer, barRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+            std::string timeStr = std::format("📅 Day {}, {:02d}:{:02d}", gameContext->gameTime.day, gameContext->gameTime.hour, gameContext->gameTime.minute);
+            UIWidget::drawText(renderer, timeStr, padX + (10.0f * uiScale), curY + (8.0f * uiScale), Theme::colors.textGold, uiScale * 0.85f);
+            std::string signalStr = "Signal: Arcane 5G [█████]   Battery: 98% ⚡";
+            float sigW = UIWidget::getTextWidth(signalStr, uiScale * 0.78f);
+            UIWidget::drawText(renderer, signalStr, padX + innerW - sigW - (10.0f * uiScale), curY + (9.0f * uiScale), Theme::colors.companion, uiScale * 0.78f);
+            curY += barCardH + (10.0f * uiScale);
+
+            // 2. Active Notification / Ticker Card
+            entity* p = gameContext->getPlayer();
+            float notifH = 50.0f * uiScale;
+            SDL_FRect notifRect = { padX, curY, innerW, notifH };
+            UIWidget::drawPanel(renderer, notifRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+            UIWidget::drawText(renderer, "NOTIFICATIONS & STATUS", padX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textGold, uiScale * 0.72f);
+            std::string notif1 = "• Active Quest: Lilaya's Tests — Chapter 1: The New World";
+            UIWidget::drawText(renderer, notif1, padX + (10.0f * uiScale), curY + (22.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.80f);
+            std::string notif2 = p ? std::format("• Vitals: {:.0f}/{:.0f} HP | {:.0f}/{:.0f} MP | Lust: {:.0f}% | Arousal: {:.0f}%",
+                p->getStat("health"), std::max(100.0f, p->getStat("max_health")),
+                p->getStat("mana"), std::max(80.0f, p->getStat("max_mana")),
+                p->getStat("lust"), p->getStat("arousal")) : "";
+            UIWidget::drawText(renderer, notif2, padX + (10.0f * uiScale), curY + (34.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.74f);
+            curY += notifH + (12.0f * uiScale);
+
+            // 3. Installed Applications Directory
+            UIWidget::drawText(renderer, "INSTALLED APPLICATIONS & IN-GAME UTILITIES", padX, curY, Theme::colors.textGold, uiScale * 0.85f);
+            curY += (18.0f * uiScale);
+
+            struct AppSummary {
+                std::string num;
+                std::string name;
+                std::string desc;
+            };
+            static const std::vector<AppSummary> apps = {
+                { "1", "Quests", "Quest log, active chapters, objective checklist, and rewards." },
+                { "2", "Perk Tree", "Browse unlocked talents, character perks, and passive traits." },
+                { "3", "Spells & Moves", "Review arcane spells, physical moves, and MP costs." },
+                { "4", "Stats & Diagnostics", "Check attributes, combat ratings, and anatomical dimensions." },
+                { "5", "Contacts", "Directory of known characters, companions, and relationships." },
+                { "6", "Encyclopedia", "Access world lore, demon species biology, and bestiary." },
+                { "7", "Regional Maps", "Dominion map overview, district status, and points of interest." },
+                { "8", "Transformations", "Inspect bodily morphs, mutations, horns, wings, and tails." },
+                { "9", "Wait & Rest", "Pass in-game time, sleep, and recover health/mana." },
+                { "10", "Solo Intimacy", "Take a secluded moment to relieve lust and built-up arousal." },
+                { "11", "Fetishes", "Configure gameplay content filters and preference ratings." }
+            };
+
+            for (const auto& a : apps)
+            {
+                std::string line = std::format("[{}] {} — {}", a.num, a.name, a.desc);
+                UIWidget::drawText(renderer, line, padX + (6.0f * uiScale), curY, Theme::colors.textPrimary, uiScale * 0.78f);
+                curY += (17.0f * uiScale);
+            }
+        }
+        else if (app->getAppMode() == PhoneAppMode::WAIT_REST)
+        {
+            UIWidget::drawText(renderer, "Rest & Recuperation:", padX, curY, Theme::colors.textGold, uiScale * 1.05f);
+            curY += (22.0f * uiScale);
+
+            entity* p = gameContext->getPlayer();
+            std::string phaseStr = (gameContext->gameTime.getPhase() == TimePhase::NIGHT) ? "Night" :
+                                   (gameContext->gameTime.getPhase() == TimePhase::DAWN) ? "Dawn" :
+                                   (gameContext->gameTime.getPhase() == TimePhase::DUSK) ? "Dusk" : "Day";
+            std::string timeInfo = std::format("Current Time: Day {}, {:02d}:{:02d} ({})",
+                gameContext->gameTime.day, gameContext->gameTime.hour, gameContext->gameTime.minute, phaseStr);
+            UIWidget::drawText(renderer, timeInfo, padX, curY, Theme::colors.textAccent, uiScale * 0.88f);
+            curY += (20.0f * uiScale);
+
+            std::string pDesc = "You can take a brief break, meditate, or sleep to allow time to pass. Resting naturally regenerates your Health and Mana over time, while advancing world events and merchant restocking cycles.";
+            float pH = UIWidget::drawTextWrapped(renderer, pDesc, padX, curY, innerW, Theme::colors.textPrimary, uiScale * 0.85f);
+            curY += pH + (16.0f * uiScale);
+
+            std::string statInfo = p ? std::format("Current Vitals: {:.0f}/{:.0f} Health | {:.0f}/{:.0f} Mana",
+                p->getStat("health"), std::max(100.0f, p->getStat("max_health")),
+                p->getStat("mana"), std::max(80.0f, p->getStat("max_mana"))) : "";
+            UIWidget::drawText(renderer, statInfo, padX, curY, Theme::colors.friendly, uiScale * 0.85f);
+            curY += (20.0f * uiScale);
+
+            UIWidget::drawText(renderer, "Select how long you wish to wait or rest using the action buttons below.", padX, curY, Theme::colors.textSecondary, uiScale * 0.82f);
+            curY += (20.0f * uiScale);
+        }
+        else if (app->getAppMode() == PhoneAppMode::MASTURBATE)
+        {
+            UIWidget::drawText(renderer, "Solo Intimacy & Self-Pleasure:", padX, curY, Theme::colors.textGold, uiScale * 1.05f);
+            curY += (22.0f * uiScale);
+
+            entity* p = gameContext->getPlayer();
+            float curLust = p ? p->getStat("lust") : 0.0f;
+            float curArousal = p ? p->getStat("arousal") : 0.0f;
+
+            std::string lustGauge = std::format("Current Lust: {:.0f}%  |  Arousal: {:.0f}%", curLust, curArousal);
+            UIWidget::drawText(renderer, lustGauge, padX, curY, Theme::colors.lust, uiScale * 0.88f);
+            curY += (20.0f * uiScale);
+
+            std::string intro = "Finding a quiet, secluded alcove away from prying eyes, you allow your thoughts to wander toward sensual indulgence. Heat steadily tingles across your skin as your fingers explore sensitive curves and private contours.";
+            float iH = UIWidget::drawTextWrapped(renderer, intro, padX, curY, innerW, Theme::colors.textPrimary, uiScale * 0.85f);
+            curY += iH + (16.0f * uiScale);
+
+            if (p)
+            {
+                std::string anatomyDetails;
+                const bodyPart* b = p->anatomy.getPart(bodySlot::BREASTS);
+                if (b && b->cupSize > 0)
+                {
+                    anatomyDetails += std::format("Your {} cup breasts swell with warm sensitivity to the touch. ",
+                        bodyPart::getCupSizeName(b->cupSize));
+                }
+                if (p->anatomy.hasVagina())
+                {
+                    anatomyDetails += "A slick wetness gathers between your thighs, inviting deeper stimulation. ";
+                }
+                if (p->anatomy.hasPenis())
+                {
+                    anatomyDetails += "Your shaft pulses with firm, eager warmth in your grasp. ";
+                }
+                if (!anatomyDetails.empty())
+                {
+                    float aH = UIWidget::drawTextWrapped(renderer, anatomyDetails, padX, curY, innerW, Theme::colors.textSecondary, uiScale * 0.82f);
+                    curY += aH + (16.0f * uiScale);
+                }
+            }
+
+            UIWidget::drawText(renderer, "Select an intimate action from the buttons below to build arousal toward climax.", padX, curY, Theme::colors.textGold, uiScale * 0.82f);
+            curY += (20.0f * uiScale);
+        }
+        else if (app->getAppMode() == PhoneAppMode::TRANSFORM)
+        {
+            UIWidget::drawText(renderer, "Biological Transformations & Morphology:", padX, curY, Theme::colors.textGold, uiScale * 1.05f);
+            curY += (22.0f * uiScale);
+
+            entity* p = gameContext->getPlayer();
+            if (p)
+            {
+                std::string raceStr = p->anatomy.getRacialTitle().empty() ? "Human" : p->anatomy.getRacialTitle();
+                UIWidget::drawText(renderer, std::format("Primary Morphology: {}", raceStr), padX, curY, Theme::colors.arcane, uiScale * 0.90f);
+                curY += (20.0f * uiScale);
+
+                std::vector<std::string> morphFeatures;
+                const bodyPart* h = p->anatomy.getPart(bodySlot::HORNS);
+                if (h) morphFeatures.push_back(std::format("Horns: {:.0f}cm length ({})", h->length, h->race));
+                else morphFeatures.push_back("Horns: None");
+
+                const bodyPart* w = p->anatomy.getPart(bodySlot::WINGS);
+                if (w) morphFeatures.push_back(std::format("Wings: {:.0f}cm span ({})", w->length, w->race));
+                else morphFeatures.push_back("Wings: None");
+
+                const bodyPart* t = p->anatomy.getPart(bodySlot::TAIL);
+                if (t) morphFeatures.push_back(std::format("Tail: {} ({})", t->race, t->style.empty() ? "Flexible" : t->style));
+                else morphFeatures.push_back("Tail: None");
+
+                const bodyPart* e = p->anatomy.getPart(bodySlot::EARS);
+                if (e) morphFeatures.push_back(std::format("Ears: {}", e->race));
+
+                const bodyPart* br = p->anatomy.getPart(bodySlot::BREASTS);
+                if (br)
+                {
+                    std::string cup = bodyPart::getCupSizeName(br->cupSize);
+                    morphFeatures.push_back(std::format("Breasts: {} Cup (Milk: {:.0f}ml)", cup, br->currentFluidMl));
+                }
+
+                if (p->anatomy.hasVagina()) morphFeatures.push_back("Genitalia: Vagina");
+                if (p->anatomy.hasPenis())
+                {
+                    const bodyPart* gr = p->anatomy.getPart(bodySlot::GROIN);
+                    float pLen = gr ? gr->length : 15.0f;
+                    morphFeatures.push_back(std::format("Genitalia: Penis ({:.0f}cm length)", pLen));
+                }
+
+                for (const auto& feat : morphFeatures)
+                {
+                    UIWidget::drawText(renderer, "• " + feat, padX + (10.0f * uiScale), curY, Theme::colors.textPrimary, uiScale * 0.82f);
+                    curY += (18.0f * uiScale);
+                }
+
+                curY += (10.0f * uiScale);
+                std::string morphNote = "Morphological changes stabilize dynamically as demonic elixirs or arcane transformations take effect. Select 'Open Full Editor' below to enter the full transformation studio.";
+                float mH = UIWidget::drawTextWrapped(renderer, morphNote, padX, curY, innerW, Theme::colors.textSecondary, uiScale * 0.82f);
+                curY += mH + (16.0f * uiScale);
+            }
+        }
+        else if (app->getAppMode() == PhoneAppMode::STATS)
+        {
+            UIWidget::drawText(renderer, "Character Diagnostics & Statistics:", padX, curY, Theme::colors.textGold, uiScale * 1.05f);
+            curY += (22.0f * uiScale);
+
+            entity* p = gameContext->getPlayer();
+            if (p)
+            {
+                UIWidget::drawText(renderer, "Core Attributes:", padX, curY, Theme::colors.textAccent, uiScale * 0.90f);
+                curY += (18.0f * uiScale);
+
+                std::vector<std::pair<std::string, float>> statList = {
+                    { "Strength", p->getStat("strength") },
+                    { "Agility", p->getStat("agility") },
+                    { "Toughness", p->getStat("toughness") },
+                    { "Intelligence", p->getStat("intelligence") },
+                    { "Willpower", p->getStat("willpower") },
+                    { "Libido", p->getStat("libido") },
+                    { "Allure", p->getStat("allure") },
+                    { "Sensitivity", p->getStat("sensitivity") }
+                };
+
+                for (size_t i = 0; i < statList.size(); i += 2)
+                {
+                    std::string col1 = std::format("{:<14}: {:.0f}", statList[i].first, statList[i].second);
+                    UIWidget::drawText(renderer, col1, padX + (10.0f * uiScale), curY, Theme::colors.textPrimary, uiScale * 0.82f);
+
+                    if (i + 1 < statList.size())
+                    {
+                        std::string col2 = std::format("{:<14}: {:.0f}", statList[i+1].first, statList[i+1].second);
+                        UIWidget::drawText(renderer, col2, padX + (innerW / 2.0f), curY, Theme::colors.textPrimary, uiScale * 0.82f);
+                    }
+                    curY += (18.0f * uiScale);
+                }
+
+                curY += (10.0f * uiScale);
+                UIWidget::drawText(renderer, "Body Dimensions:", padX, curY, Theme::colors.textAccent, uiScale * 0.90f);
+                curY += (18.0f * uiScale);
+
+                std::string bDim = std::format("Body Size: {} | Muscle Tone: {} | Height: {:.2f}m",
+                    p->anatomy.bodySize, p->anatomy.muscleTone, p->anatomy.heightMeters);
+                UIWidget::drawText(renderer, bDim, padX + (10.0f * uiScale), curY, Theme::colors.textSecondary, uiScale * 0.82f);
+                curY += (20.0f * uiScale);
+            }
+        }
+        else if (app->getAppMode() == PhoneAppMode::FETISHES)
+        {
+            UIWidget::drawText(renderer, "Fetishes & Content Preferences:", padX, curY, Theme::colors.textGold, uiScale * 1.05f);
+            curY += (22.0f * uiScale);
+
+            std::string fDesc = "TextRPG features a comprehensive content filter and demographic preference matrix. You can adjust your attraction ratings, taboo settings, and anatomical generation weights directly in the options editor.";
+            float fH = UIWidget::drawTextWrapped(renderer, fDesc, padX, curY, innerW, Theme::colors.textPrimary, uiScale * 0.85f);
+            curY += fH + (16.0f * uiScale);
+
+            static const std::vector<std::string> cats = {
+                "• Category 0: Miscellaneous & Narrative Toggles",
+                "• Category 1: Gameplay Mechanics & Encounter Balancing",
+                "• Category 2: Sex & Physical Intimacy Scenarios",
+                "• Category 3: Bodies, Transformations & Extreme Morphs",
+                "• Categories 4-7: Gender Demographics (Male, Female, Hermaphrodite)",
+                "• Category 8: Granular Fetish Ratings (Dislike, Neutral, Like, Love)"
+            };
+
+            for (const auto& cat : cats)
+            {
+                UIWidget::drawText(renderer, cat, padX + (10.0f * uiScale), curY, Theme::colors.textSecondary, uiScale * 0.80f);
+                curY += (18.0f * uiScale);
+            }
+
+            curY += (10.0f * uiScale);
+            UIWidget::drawText(renderer, "Select 'Configure Options' below to open the complete content configuration panel.", padX, curY, Theme::colors.textGold, uiScale * 0.82f);
+            curY += (20.0f * uiScale);
+        }
+        else if (app->getAppMode() == PhoneAppMode::QUESTS)
         {
             // Quest Journal
             UIWidget::drawText(renderer, "Lilaya's Tests (Active Main Quest)", padX, curY, Theme::colors.textGold, uiScale * 1.05f);
@@ -249,6 +516,36 @@ namespace GameplayViews
 
                     curY += cardRect.h + (6.0f * uiScale);
                 }
+            }
+        }
+        else if (app->getAppMode() == PhoneAppMode::CONTACTS)
+        {
+            UIWidget::drawText(renderer, "Known Contacts & Companions:", padX, curY, Theme::colors.textGold, uiScale * 0.95f);
+            curY += (20.0f * uiScale);
+
+            if (data.contains("contacts") && data["contacts"].is_array())
+            {
+                for (const auto& ct : data["contacts"])
+                {
+                    std::string cName = ct.value("name", "Contact");
+                    std::string role = ct.value("role", "Acquaintance");
+                    std::string location = ct.value("location", "Unknown");
+                    std::string status = ct.value("status", "Available");
+
+                    SDL_FRect cardRect = { padX, curY, innerW, 36.0f * uiScale };
+                    UIWidget::drawPanel(renderer, cardRect);
+
+                    UIWidget::drawText(renderer, cName, padX + (8.0f * uiScale), curY + (4.0f * uiScale), Theme::colors.textGold, uiScale * 0.85f);
+                    UIWidget::drawText(renderer, std::format("Role: {}", role), padX + innerW - (140.0f * uiScale), curY + (4.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.75f);
+                    UIWidget::drawText(renderer, std::format("Location: {}  •  Status: {}", location, status), padX + (8.0f * uiScale), curY + (18.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.78f);
+
+                    curY += cardRect.h + (6.0f * uiScale);
+                }
+            }
+            else
+            {
+                UIWidget::drawText(renderer, "No new messages or contacts recorded in address book.", padX, curY, Theme::colors.textSecondary, uiScale * 0.85f);
+                curY += (20.0f * uiScale);
             }
         }
         else if (app->getAppMode() == PhoneAppMode::MAPS)
@@ -612,8 +909,11 @@ namespace GameplayViews
         }
 
         const gameMap* m = gameContext->getActiveMap();
-        std::string locTitle = "Lilaya's Home F1 — Main Corridor";
-        if (m && !m->getName().empty() && m->getName() != "Enchanted Forest" && m->getName() != "District Map")
+        int pX = gameContext->gridX;
+        int pY = gameContext->gridY;
+
+        std::string locTitle = "Unknown Area";
+        if (m && !m->getName().empty())
         {
             locTitle = m->getName();
         }
@@ -624,28 +924,89 @@ namespace GameplayViews
         UIWidget::drawHeader(renderer, headerRect, locTitle, Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
         curY += headerH + (12.0f * uiScale);
 
-        // 2. Main Narrative Story Card
-        std::string p1 = "Immaculately-clean red carpet runs down the centre of the wide corridor which you're currently walking down, while the walls are decorated in a pale, light-blue wallpaper that sports a series of delicate white floral patterns. Fine landscape paintings and portraits of beautiful demons are hung up on the walls at regular intervals, while all manner of antique curiosities are perched upon the many wooden cabinets which line the sides of these hallways.";
-        std::string p2 = "As it's currently night time, heavy fabric curtains have been drawn over the corridor's large glass windows, leaving the area to be illuminated by the many arcane-powered wall-lights.";
-        std::string p3 = "This corridor is quiet at the moment. You can explore adjacent wings of the manor or check your inventory and status using the action commands below.";
+        // 2. Build Dynamic Narrative Prose
+        std::string p1 = m ? m->getTileDescription(pX, pY) : "You look around your surroundings.";
 
-        SDL_FRect cardRect = { padX, curY, innerW, 200.0f * uiScale };
+        // Time / Lighting Atmosphere
+        std::string timeAtmosphere = "";
+        TimePhase phase = gameContext->getTime().getPhase();
+        if (phase == TimePhase::NIGHT)
+        {
+            timeAtmosphere = "Night has settled over the realm. Deep shadows drape across the area, illuminated only by ambient wall-sconces and the gentle glow of the moons.";
+        }
+        else if (phase == TimePhase::DAWN)
+        {
+            timeAtmosphere = "The pale morning light of dawn filters through the sky, casting long, soft shadows across the ground.";
+        }
+        else if (phase == TimePhase::DUSK)
+        {
+            timeAtmosphere = "The sun is sinking low on the horizon, bathing the environment in warm hues of amber and violet.";
+        }
+        else
+        {
+            timeAtmosphere = "Clear daylight brightens the surroundings, granting crisp visibility across the paths and structures.";
+        }
+
+        // Context / Interactive Objects on Tile
+        std::vector<std::string> contextParagraphs;
+
+        if (m)
+        {
+            auto triggers = m->getTriggersAt(pX, pY);
+            for (const auto& trig : triggers)
+            {
+                if (gameContext->checkConditions(trig.conditions) && !trig.description.empty())
+                {
+                    contextParagraphs.push_back(trig.description);
+                }
+            }
+
+            auto& tileData = const_cast<gameMap*>(m)->getRuntimeData(pX, pY);
+            if (tileData.persistentNPC)
+            {
+                contextParagraphs.push_back(std::format("{} is standing here.", tileData.persistentNPC->name));
+            }
+            if (!tileData.droppedItems.empty())
+            {
+                if (tileData.droppedItems.size() == 1)
+                {
+                    contextParagraphs.push_back(std::format("You notice {} lying on the ground here.", tileData.droppedItems[0].itemPtr ? tileData.droppedItems[0].itemPtr->name : "an item"));
+                }
+                else
+                {
+                    contextParagraphs.push_back(std::format("You notice {} items scattered on the ground here.", tileData.droppedItems.size()));
+                }
+            }
+            MapWarp warp;
+            if (m->checkWarp(pX, pY, warp))
+            {
+                std::string targetName = warp.targetMap;
+                if (targetName == "house_01") targetName = "the Cozy Cottage";
+                else if (targetName == "overworld") targetName = "the Town District avenues";
+                contextParagraphs.push_back(std::format("A doorway or threshold here leads toward {}.", targetName));
+            }
+        }
+
+        SDL_FRect cardRect = { padX, curY, innerW, 120.0f * uiScale };
         UIWidget::drawPanel(renderer, cardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
-        float pY = curY + (12.0f * uiScale);
-        float pX = padX + (14.0f * uiScale);
-        float pW = innerW - (28.0f * uiScale);
+        float textY = curY + (12.0f * uiScale);
+        float textX = padX + (14.0f * uiScale);
+        float textW = innerW - (28.0f * uiScale);
 
-        float h1 = UIWidget::drawTextWrapped(renderer, p1, pX, pY, pW, Theme::colors.textPrimary, uiScale * 0.84f);
-        pY += h1 + (12.0f * uiScale);
+        float h1 = UIWidget::drawTextWrapped(renderer, p1, textX, textY, textW, Theme::colors.textPrimary, uiScale * 0.84f);
+        textY += h1 + (10.0f * uiScale);
 
-        float h2 = UIWidget::drawTextWrapped(renderer, p2, pX, pY, pW, Theme::colors.textPrimary, uiScale * 0.84f);
-        pY += h2 + (12.0f * uiScale);
+        float h2 = UIWidget::drawTextWrapped(renderer, timeAtmosphere, textX, textY, textW, Theme::colors.textSecondary, uiScale * 0.82f);
+        textY += h2 + (10.0f * uiScale);
 
-        float h3 = UIWidget::drawTextWrapped(renderer, p3, pX, pY, pW, Theme::colors.textSecondary, uiScale * 0.82f);
-        pY += h3 + (12.0f * uiScale);
+        for (const auto& cp : contextParagraphs)
+        {
+            float hp = UIWidget::drawTextWrapped(renderer, cp, textX, textY, textW, Theme::colors.textGold, uiScale * 0.84f);
+            textY += hp + (8.0f * uiScale);
+        }
 
-        cardRect.h = (pY - curY) + (4.0f * uiScale);
+        cardRect.h = (textY - curY) + (4.0f * uiScale);
         curY += cardRect.h + (12.0f * uiScale);
 
         return (curY - startY);

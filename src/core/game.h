@@ -106,9 +106,14 @@ public:
 
     void handleDropAction(int stackedIndex, int quantity);
     void handlePickupAction(int groundIndex, int quantity);
-    void handleEquipAction(int backpackIndex);
+    void handleEquipAction(int backpackIndex, equipSlot targetSlotOverride = equipSlot::NONE);
+    void handleEquipGroundAction(int groundIndex, equipSlot slot = equipSlot::NONE);
     void handleUseItemAction(int backpackIndex);
     void handleUnequipAction(equipSlot slot);
+    void handleLootAllAction();
+    void handleUnequipAllAction();
+    void handleStripToUnderwearAction();
+    void handleResetAllDisplacementsAction();
     bool checkSingleCondition(const gameCondition &cond) const;
 
     void loadScene(const std::string& sceneId);

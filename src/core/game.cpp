@@ -22,6 +22,7 @@
 #include "state/loadGameState.h"
 #include "state/mainMenuState.h"
 #include "state/optionsState.h"
+#include "state/phoneAppsState.h"
 #include "state/shopState.h"
 #include "state/transformationState.h"
 #include "ui/actionGridManager.h"
@@ -224,7 +225,6 @@ void game::refreshActionGrid()
 InventorySlotInfo game::getInventorySlotItem(int side, int absoluteIndex)
 {
     InventorySlotInfo info;
-    TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
 
     if (side == 0 && Player)
     {
@@ -248,11 +248,15 @@ InventorySlotInfo game::getInventorySlotItem(int side, int absoluteIndex)
                 info.isValid = true;
             }
         }
-        else if (absoluteIndex >= 0 && static_cast<size_t>(absoluteIndex) < static_cast<int>(tileData.droppedItems.size()))
+        else
         {
-            info.itemPtr = tileData.droppedItems[absoluteIndex].itemPtr;
-            info.count = (info.itemPtr && info.itemPtr->isStackable) ? info.itemPtr->count : 1;
-            info.isValid = true;
+            auto tileView = getTileInventoryStacked();
+            if (absoluteIndex >= 0 && static_cast<size_t>(absoluteIndex) < tileView.size())
+            {
+                info.itemPtr = tileView[absoluteIndex].itemPtr;
+                info.count = tileView[absoluteIndex].totalCount;
+                info.isValid = true;
+            }
         }
     }
 
@@ -303,26 +307,8 @@ void game::movePlayer(int nextX, int nextY)
     gameTime.advanceTime(2);
     map->updateDiscovery(gridX, gridY, 3);
 
-    // 1. Check Map Triggers & Global Quest Triggers
-    auto tileTriggers = map->getTriggersAt(gridX, gridY);
-    for (const auto& trig : tileTriggers)
-    {
-        if (checkConditions(trig.conditions))
-        {
-            loadScene(trig.sceneId);
-            return;
-        }
-    }
-
-    auto questTriggers = questDatabase::getTriggersForLocation(map->getId(), gridX, gridY);
-    for (const auto& trig : questTriggers)
-    {
-        if (checkConditions(trig.conditions))
-        {
-            loadScene(trig.sceneId);
-            return;
-        }
-    }
+    // Note: Map & Quest Triggers are presented as interactive buttons in the Action Grid
+    // rather than abruptly hijacking player movement on step.
 
     // 3. Check Dynamic Encounters
     TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
@@ -363,30 +349,48 @@ void game::handleDropAction(int stackedIndex, int quantity)
         transferCopy->count = actualDropCount;
         activeTargetNPC->inventory.addItem(transferCopy);
     }
-    else if (map)
+    else
     {
-        TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
-
-        bool merged = false;
-        if (slotData.itemPtr->isStackable)
+        characterCreationState* cc = dynamic_cast<characterCreationState*>(getActiveState());
+        if (!cc)
         {
-            for (auto& entry : tileData.droppedItems)
+            if (auto* inv = dynamic_cast<inventoryState*>(getActiveState()))
             {
-                if (entry.itemPtr && entry.itemPtr->id == targetItemId)
-                {
-                    entry.itemPtr->count += actualDropCount;
-                    entry.minutesRemaining = 120; // Refresh decay timer on merge
-                    merged = true;
-                    break;
-                }
+                cc = dynamic_cast<characterCreationState*>(inv->getReturnState());
             }
         }
 
-        if (!merged)
+        if (cc)
         {
             auto droppedCopy = std::make_shared<item>(*slotData.itemPtr);
             droppedCopy->count = actualDropCount;
-            tileData.addDroppedItem(droppedCopy, 120);
+            cc->availableWardrobe.push_back(droppedCopy);
+        }
+        else if (map)
+        {
+            TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
+
+            bool merged = false;
+            if (slotData.itemPtr->isStackable)
+            {
+                for (auto& entry : tileData.droppedItems)
+                {
+                    if (entry.itemPtr && entry.itemPtr->id == targetItemId)
+                    {
+                        entry.itemPtr->count += actualDropCount;
+                        entry.minutesRemaining = 120; // Refresh decay timer on merge
+                        merged = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!merged)
+            {
+                auto droppedCopy = std::make_shared<item>(*slotData.itemPtr);
+                droppedCopy->count = actualDropCount;
+                tileData.addDroppedItem(droppedCopy, 120);
+            }
         }
     }
 
@@ -398,6 +402,25 @@ void game::handleDropAction(int stackedIndex, int quantity)
 void game::handlePickupAction(int groundIndex, int quantity)
 {
     if (!Player) return;
+
+    int actualGroundIdx = groundIndex;
+    if (!activeTargetNPC)
+    {
+        auto tileView = getTileInventoryStacked();
+        if (groundIndex >= 0 && static_cast<size_t>(groundIndex) < tileView.size())
+        {
+            actualGroundIdx = tileView[groundIndex].firstBackpackIndex;
+        }
+    }
+
+    characterCreationState* cc = dynamic_cast<characterCreationState*>(getActiveState());
+    if (!cc)
+    {
+        if (auto* inv = dynamic_cast<inventoryState*>(getActiveState()))
+        {
+            cc = dynamic_cast<characterCreationState*>(inv->getReturnState());
+        }
+    }
 
     if (activeTargetNPC)
     {
@@ -413,12 +436,11 @@ void game::handlePickupAction(int groundIndex, int quantity)
         Player->inventory.addItem(playerCopy);
         activeTargetNPC->inventory.removeItem(targetItemId, actualTakeCount);
     }
-    else if (map)
+    else if (cc)
     {
-        TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
-        if (groundIndex < 0 || static_cast<size_t>(groundIndex) >= tileData.droppedItems.size()) return;
+        if (actualGroundIdx < 0 || static_cast<size_t>(actualGroundIdx) >= cc->availableWardrobe.size()) return;
 
-        auto groundItem = tileData.droppedItems[groundIndex].itemPtr;
+        auto groundItem = cc->availableWardrobe[actualGroundIdx];
         if (!groundItem) return;
 
         int totalGroundCount = groundItem->isStackable ? groundItem->count : 1;
@@ -434,7 +456,31 @@ void game::handlePickupAction(int groundIndex, int quantity)
         }
         else
         {
-            tileData.droppedItems.erase(tileData.droppedItems.begin() + groundIndex);
+            cc->availableWardrobe.erase(cc->availableWardrobe.begin() + actualGroundIdx);
+        }
+    }
+    else if (map)
+    {
+        TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
+        if (actualGroundIdx < 0 || static_cast<size_t>(actualGroundIdx) >= tileData.droppedItems.size()) return;
+
+        auto groundItem = tileData.droppedItems[actualGroundIdx].itemPtr;
+        if (!groundItem) return;
+
+        int totalGroundCount = groundItem->isStackable ? groundItem->count : 1;
+        int actualTakeCount = std::min(quantity, totalGroundCount);
+
+        auto playerCopy = std::make_shared<item>(*groundItem);
+        playerCopy->count = actualTakeCount;
+        Player->inventory.addItem(playerCopy);
+
+        if (groundItem->isStackable && totalGroundCount > actualTakeCount)
+        {
+            groundItem->count -= actualTakeCount;
+        }
+        else
+        {
+            tileData.droppedItems.erase(tileData.droppedItems.begin() + actualGroundIdx);
         }
     }
 
@@ -442,19 +488,45 @@ void game::handlePickupAction(int groundIndex, int quantity)
     refreshActionGrid();
 }
 
-void game::handleEquipAction(int backpackIndex)
+void game::handleEquipAction(int backpackIndex, equipSlot targetSlotOverride)
 {
-    if (!Player || backpackIndex < 0 || static_cast<size_t>(backpackIndex) >= Player->inventory.backpack.size()) return;
+    if (!Player) return;
 
-    std::shared_ptr<item> targetItem = Player->inventory.backpack[backpackIndex];
-    if (!targetItem || !targetItem->isEquippable || targetItem->targetSlot == equipSlot::NONE) return;
+    int actualIdx = backpackIndex;
+    auto stackedView = Player->inventory.getStackedView();
+    if (backpackIndex >= 0 && static_cast<size_t>(backpackIndex) < stackedView.size())
+    {
+        actualIdx = stackedView[backpackIndex].firstBackpackIndex;
+    }
+
+    if (actualIdx < 0 || static_cast<size_t>(actualIdx) >= Player->inventory.backpack.size()) return;
+
+    std::shared_ptr<item> targetItem = Player->inventory.backpack[actualIdx];
+    if (!targetItem || !targetItem->isEquippable) return;
+
+    equipSlot slot = (targetSlotOverride != equipSlot::NONE) ? targetSlotOverride : targetItem->targetSlot;
+    if (slot == equipSlot::NONE) return;
 
     std::vector<std::string> bodyTags = Player->anatomy.getAllTags();
-    if (Player->inventory.equipItem(static_cast<size_t>(backpackIndex), targetItem->targetSlot, bodyTags))
+    if (Player->inventory.equipItem(static_cast<size_t>(actualIdx), slot, bodyTags))
     {
         selectedInventoryIndex = -1;
-        selectedEquipmentSlot = targetItem->targetSlot;
+        selectedEquipmentSlot = slot;
         refreshActionGrid();
+    }
+}
+
+void game::handleEquipGroundAction(int groundIndex, equipSlot slot)
+{
+    if (!Player) return;
+
+    size_t prevBackpackSize = Player->inventory.backpack.size();
+    handlePickupAction(groundIndex, 1);
+
+    if (Player->inventory.backpack.size() > prevBackpackSize)
+    {
+        int newBackpackIdx = static_cast<int>(Player->inventory.backpack.size()) - 1;
+        handleEquipAction(newBackpackIdx, slot);
     }
 }
 
@@ -464,17 +536,49 @@ void game::handleUnequipAction(equipSlot slot)
 
     if (Player->inventory.unequipItem(slot))
     {
+        characterCreationState* cc = dynamic_cast<characterCreationState*>(getActiveState());
+        if (!cc)
+        {
+            if (auto* inv = dynamic_cast<inventoryState*>(getActiveState()))
+            {
+                cc = dynamic_cast<characterCreationState*>(inv->getReturnState());
+            }
+        }
+
+        if (cc)
+        {
+            if (!Player->inventory.backpack.empty())
+            {
+                auto unequippedItem = Player->inventory.backpack.back();
+                Player->inventory.backpack.pop_back();
+                cc->availableWardrobe.push_back(unequippedItem);
+            }
+        }
+        else
+        {
+            selectedEquipmentSlot = equipSlot::NONE;
+            selectedInventoryIndex = static_cast<int>(Player->inventory.backpack.size()) - 1;
+        }
+
         selectedEquipmentSlot = equipSlot::NONE;
-        selectedInventoryIndex = static_cast<int>(Player->inventory.backpack.size()) - 1;
         refreshActionGrid();
     }
 }
 
 void game::handleUseItemAction(int backpackIndex)
 {
-    if (!Player || backpackIndex < 0 || static_cast<size_t>(backpackIndex) >= Player->inventory.backpack.size()) return;
+    if (!Player) return;
 
-    std::shared_ptr<item> targetItem = Player->inventory.backpack[backpackIndex];
+    int actualIdx = backpackIndex;
+    auto stackedView = Player->inventory.getStackedView();
+    if (backpackIndex >= 0 && static_cast<size_t>(backpackIndex) < stackedView.size())
+    {
+        actualIdx = stackedView[backpackIndex].firstBackpackIndex;
+    }
+
+    if (actualIdx < 0 || static_cast<size_t>(actualIdx) >= Player->inventory.backpack.size()) return;
+
+    std::shared_ptr<item> targetItem = Player->inventory.backpack[actualIdx];
     if (!targetItem || !targetItem->isConsumable) return;
 
     // Apply consumable stat effects
@@ -515,10 +619,95 @@ void game::handleUseItemAction(int backpackIndex)
     }
     else
     {
-        Player->inventory.backpack.erase(Player->inventory.backpack.begin() + backpackIndex);
+        Player->inventory.backpack.erase(Player->inventory.backpack.begin() + actualIdx);
         selectedInventoryIndex = -1;
     }
 
+    refreshActionGrid();
+}
+
+void game::handleLootAllAction()
+{
+    if (!Player) return;
+
+    characterCreationState* cc = dynamic_cast<characterCreationState*>(getActiveState());
+    if (!cc)
+    {
+        if (auto* inv = dynamic_cast<inventoryState*>(getActiveState()))
+        {
+            cc = dynamic_cast<characterCreationState*>(inv->getReturnState());
+        }
+    }
+
+    if (cc)
+    {
+        for (const auto& it : cc->availableWardrobe)
+        {
+            if (it) Player->inventory.addItem(std::make_shared<item>(*it));
+        }
+        cc->availableWardrobe.clear();
+    }
+    else if (map)
+    {
+        TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
+        for (const auto& entry : tileData.droppedItems)
+        {
+            if (entry.itemPtr) Player->inventory.addItem(std::make_shared<item>(*entry.itemPtr));
+        }
+        tileData.droppedItems.clear();
+    }
+
+    selectedInventoryIndex = -1;
+    refreshActionGrid();
+}
+
+void game::handleUnequipAllAction()
+{
+    if (!Player) return;
+    for (size_t s = 0; s < EQUIP_SLOT_COUNT; ++s)
+    {
+        equipSlot slot = static_cast<equipSlot>(s);
+        if (Player->inventory.isEquipped(slot))
+        {
+            handleUnequipAction(slot);
+        }
+    }
+    selectedEquipmentSlot = equipSlot::NONE;
+    selectedInventoryIndex = -1;
+    refreshActionGrid();
+}
+
+void game::handleStripToUnderwearAction()
+{
+    if (!Player) return;
+    for (size_t s = 0; s < EQUIP_SLOT_COUNT; ++s)
+    {
+        equipSlot slot = static_cast<equipSlot>(s);
+        if (!Player->inventory.isEquipped(slot)) continue;
+
+        // Keep underwear / piercings / intimate items
+        if (slot == equipSlot::CHEST_WEAR || slot == equipSlot::NIPPLES_WEAR ||
+            slot == equipSlot::GROIN_OVER || slot == equipSlot::PENIS_WEAR ||
+            slot == equipSlot::VAGINA_WEAR || slot == equipSlot::ASS_WEAR ||
+            slot == equipSlot::PIERCING_EAR || slot == equipSlot::PIERCING_NOSE ||
+            slot == equipSlot::PIERCING_LIP || slot == equipSlot::PIERCING_TONGUE ||
+            slot == equipSlot::PIERCING_NIPPLE || slot == equipSlot::PIERCING_NAVEL ||
+            slot == equipSlot::PIERCING_COCK || slot == equipSlot::PIERCING_VAGINA)
+        {
+            continue;
+        }
+
+        handleUnequipAction(slot);
+    }
+    selectedEquipmentSlot = equipSlot::NONE;
+    selectedInventoryIndex = -1;
+    refreshActionGrid();
+}
+
+void game::handleResetAllDisplacementsAction()
+{
+    if (!Player) return;
+    Player->inventory.resetAllDisplacements();
     refreshActionGrid();
 }
 
@@ -1006,7 +1195,12 @@ void game::clean()
 
 void game::handleCommand(const UICommand& cmd)
 {
-    if (cmd.type == CommandType::OPEN_SETTINGS)
+    if (cmd.type == CommandType::OPEN_MAIN_MENU)
+    {
+        changeState(std::make_unique<mainMenuState>());
+        return;
+    }
+    else if (cmd.type == CommandType::OPEN_SETTINGS)
     {
         changeState(std::make_unique<optionsState>(OptionsScreenMode::GENERAL_OPTIONS));
         return;
@@ -1018,6 +1212,12 @@ void game::handleCommand(const UICommand& cmd)
     }
     else if (cmd.type == CommandType::OPEN_INVENTORY)
     {
+        if (auto cc = dynamic_cast<characterCreationState*>(activeGameState.get()))
+        {
+            auto curState = std::move(activeGameState);
+            changeState(std::make_unique<inventoryState>(std::move(curState)));
+            return;
+        }
         changeState(std::make_unique<inventoryState>());
         return;
     }
@@ -1038,8 +1238,12 @@ void game::handleCommand(const UICommand& cmd)
     }
     else if (cmd.type == CommandType::OPEN_PHONE)
     {
-        isPhoneMenuOpen = !isPhoneMenuOpen;
-        refreshActionGrid();
+        if (dynamic_cast<phoneAppsState*>(activeGameState.get()))
+        {
+            changeState(std::make_unique<explorationState>());
+            return;
+        }
+        changeState(std::make_unique<phoneAppsState>(PhoneAppMode::HOME));
         return;
     }
     else if (cmd.type == CommandType::CLOSE_MENU)
@@ -1084,6 +1288,33 @@ std::vector<InventorySlot> game::getPlayerInventoryStacked() const
 
 std::vector<InventorySlot> game::getTileInventoryStacked() const
 {
+    characterCreationState* cc = dynamic_cast<characterCreationState*>(const_cast<game*>(this)->getActiveState());
+    if (!cc)
+    {
+        if (auto* inv = dynamic_cast<inventoryState*>(const_cast<game*>(this)->getActiveState()))
+        {
+            cc = dynamic_cast<characterCreationState*>(inv->getReturnState());
+        }
+    }
+
+    if (cc)
+    {
+        std::vector<InventorySlot> view;
+        for (size_t i = 0; i < cc->availableWardrobe.size(); ++i)
+        {
+            const auto& itemPtr = cc->availableWardrobe[i];
+            if (!itemPtr) continue;
+            view.push_back(InventorySlot{ itemPtr, itemPtr->isStackable ? itemPtr->count : 1, static_cast<int>(i) });
+        }
+        std::sort(view.begin(), view.end(), [](const InventorySlot& a, const InventorySlot& b) {
+            if (!a.itemPtr && !b.itemPtr) return false;
+            if (!a.itemPtr) return false;
+            if (!b.itemPtr) return true;
+            return compareItemsNatural(*a.itemPtr, *b.itemPtr);
+        });
+        return view;
+    }
+
     if (!map) return {};
     const TileRuntimeData& tileData = const_cast<gameMap*>(map)->getRuntimeData(gridX, gridY);
     std::vector<InventorySlot> view;
@@ -1093,5 +1324,11 @@ std::vector<InventorySlot> game::getTileInventoryStacked() const
         if (!entry.itemPtr) continue;
         view.push_back(InventorySlot{ entry.itemPtr, entry.itemPtr->isStackable ? entry.itemPtr->count : 1, static_cast<int>(i) });
     }
+    std::sort(view.begin(), view.end(), [](const InventorySlot& a, const InventorySlot& b) {
+        if (!a.itemPtr && !b.itemPtr) return false;
+        if (!a.itemPtr) return false;
+        if (!b.itemPtr) return true;
+        return compareItemsNatural(*a.itemPtr, *b.itemPtr);
+    });
     return view;
 }

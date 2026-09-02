@@ -21,6 +21,7 @@
 #include "state/sexState.h"
 #include "state/shopState.h"
 #include "state/transformationState.h"
+#include "quest/questDatabase.h"
 #include "ui/theme.h"
 
 namespace
@@ -74,27 +75,42 @@ void ActionGridManager::refresh(game* gameContext)
     // 1. Main Menu
     if (auto menu = dynamic_cast<mainMenuState*>(currentState))
     {
+        bool inGame = (gameContext->getPlayer() != nullptr);
+
         addBtn(gameContext, "New Game", [gameContext]() {
             gameContext->handleCommand({ CommandType::START_NEW_GAME, 0, 0, "" });
-        });
-        addBtn(gameContext, "Save/Load", [gameContext]() {
-            gameContext->changeState(std::make_unique<loadGameState>(SaveMenuMode::LOAD_ONLY));
-        });
+        }, true, false, "Begin a new adventure with character creation.");
+
+        addBtn(gameContext, "Save/Load", [gameContext, inGame]() {
+            gameContext->changeState(std::make_unique<loadGameState>(inGame ? SaveMenuMode::SAVE_AND_LOAD : SaveMenuMode::LOAD_ONLY, std::make_unique<mainMenuState>()));
+        }, true, false, inGame ? "Save current progress or load another save profile." : "Load a saved character profile.");
+
         addBtn(gameContext, "", nullptr, false);
         addBtn(gameContext, "", nullptr, false);
+
         addBtn(gameContext, "Quit", [gameContext]() {
             gameContext->handleCommand({ CommandType::QUIT_GAME, 0, 0, "" });
-        });
+        }, true, false, "Exit the game application.");
+
         addBtn(gameContext, "Options", [gameContext]() {
             gameContext->changeState(std::make_unique<optionsState>(OptionsScreenMode::GENERAL_OPTIONS, std::make_unique<mainMenuState>()));
-        });
+        }, true, false, "Adjust display, resolution, themes, and keybindings.");
+
         addBtn(gameContext, "Content Options", [gameContext]() {
             gameContext->changeState(std::make_unique<optionsState>(OptionsScreenMode::CONTENT_OPTIONS, std::make_unique<mainMenuState>()));
-        });
+        }, true, false, "Configure gameplay content filters and demographic preferences.");
+
         padButtonsTo(gameContext, 14);
-        addBtn(gameContext, "Resume", [gameContext]() {
-            if (gameContext->getPlayer()) gameContext->changeState(std::make_unique<explorationState>());
-        }, gameContext->getPlayer() != nullptr);
+        addBtn(gameContext, "Continue", [gameContext, inGame]() {
+            if (inGame)
+            {
+                gameContext->changeState(std::make_unique<explorationState>());
+            }
+            else
+            {
+                gameContext->handleCommand({ CommandType::CONTINUE_GAME, 0, 0, "" });
+            }
+        }, true, false, inGame ? "Return to active game exploration." : "Continue from your latest saved profile.");
         return;
     }
 
@@ -112,9 +128,17 @@ void ActionGridManager::refresh(game* gameContext)
             for (int i = startIdx; i < std::min(startIdx + 5, tabCount); ++i)
             {
                 std::string btnLabel = std::format("{}. {}", i + 1, cc->getTabName(activeTabs[i]));
-                addBtn(gameContext, btnLabel, [cc, gameContext, i]() {
-                    cc->step = i;
-                    gameContext->refreshActionGrid();
+                bool isClothingTab = (activeTabs[i] == EditorTabId::WARDROBE);
+                addBtn(gameContext, btnLabel, [cc, gameContext, i, isClothingTab]() {
+                    if (isClothingTab)
+                    {
+                        gameContext->handleCommand(UICommand{ CommandType::OPEN_INVENTORY });
+                    }
+                    else
+                    {
+                        cc->step = i;
+                        gameContext->refreshActionGrid();
+                    }
                 }, true, cc->step == i);
             }
         }
@@ -123,29 +147,16 @@ void ActionGridManager::refresh(game* gameContext)
             addBtn(gameContext, cc->getTabName(activeTabs[0]), [cc, gameContext]() {}, true, true);
         }
 
-        // Row 2: Step Navigation & Finish Action (Shift + 1..5)
-        padButtonsTo(gameContext, 5);
-        if (cc->step > 0 && tabCount > 1)
+        // Row 2: Wardrobe Dressing Room Launcher if on Wardrobe tab
+        if (cc->getCurrentTabId() == EditorTabId::WARDROBE)
         {
-            addBtn(gameContext, "Previous Step", [cc, gameContext]() {
-                cc->step--;
-                gameContext->refreshActionGrid();
-            });
-        }
-        else
-        {
-            padButtonsTo(gameContext, 6);
+            padButtonsTo(gameContext, 5);
+            addBtn(gameContext, "Open Clothing (I)", [gameContext]() {
+                gameContext->handleCommand(UICommand{ CommandType::OPEN_INVENTORY });
+            }, true, false, "Open full dual inventory and dressing room to equip garments and inspect items.");
         }
 
-        if (cc->step < tabCount - 1 && tabCount > 1)
-        {
-            addBtn(gameContext, "Next Step", [cc, gameContext]() {
-                cc->step++;
-                gameContext->refreshActionGrid();
-            });
-        }
-
-        // Only place finish button in Slot 9 (Shift + 5) when on the final step
+        // Row 2: Final Action (Shift + 5 / Slot 9)
         if (cc->step == tabCount - 1)
         {
             padButtonsTo(gameContext, 9);
@@ -155,22 +166,7 @@ void ActionGridManager::refresh(game* gameContext)
             }, true, true);
         }
 
-        // Row 3: Utilities, Skip Prologue & Return (Ctrl + 1..5)
-        padButtonsTo(gameContext, 10);
-        addBtn(gameContext, "Randomize All", [cc, gameContext]() {
-            cc->randomizeAll();
-            gameContext->refreshActionGrid();
-        });
-
-        if (cc->config.isNewGameCreation && cc->step == tabCount - 1)
-        {
-            padButtonsTo(gameContext, 11);
-            addBtn(gameContext, "Skip Prologue", [cc, gameContext]() {
-                cc->skipPrologue = true;
-                cc->finalizeCharacter(gameContext);
-            });
-        }
-
+        // Row 3: Return to Menu (Ctrl + 5 / Slot 14)
         padButtonsTo(gameContext, 14);
         std::string backLabel = cc->config.isNewGameCreation ? "Back to Menu" : "Cancel";
         addBackBtn(gameContext, backLabel, [gameContext]() {
@@ -353,7 +349,7 @@ void ActionGridManager::refresh(game* gameContext)
         return;
     }
 
-    // 8. Phone Apps
+    // 8. Phone Apps & Submenus
     if (auto phoneApp = dynamic_cast<phoneAppsState*>(currentState))
     {
         auto setApp = [gameContext, phoneApp](PhoneAppMode mode) {
@@ -362,27 +358,221 @@ void ActionGridManager::refresh(game* gameContext)
             gameContext->refreshActionGrid();
         };
 
-        addBtn(gameContext, "Quests", [=]() { setApp(PhoneAppMode::QUESTS); }, true, phoneApp->getAppMode() == PhoneAppMode::QUESTS);
-        addBtn(gameContext, "Perk Tree", [=]() { setApp(PhoneAppMode::PERKS); }, true, phoneApp->getAppMode() == PhoneAppMode::PERKS);
-        addBtn(gameContext, "Spells", [=]() { setApp(PhoneAppMode::SPELLS); }, true, phoneApp->getAppMode() == PhoneAppMode::SPELLS);
-        addBtn(gameContext, "Contacts", [=]() { setApp(PhoneAppMode::CONTACTS); }, true, phoneApp->getAppMode() == PhoneAppMode::CONTACTS);
-        addBtn(gameContext, "Stats", [gameContext, phoneApp]() { phoneApp->setAppMode(PhoneAppMode::STATS); gameContext->refreshActionGrid(); }, true, phoneApp->getAppMode() == PhoneAppMode::STATS);
+        if (phoneApp->getAppMode() == PhoneAppMode::HOME)
+        {
+            // Row 1: Core Apps
+            addBtn(gameContext, "Quests", [=]() { setApp(PhoneAppMode::QUESTS); }, true, false, "View active quest objectives and chapters.");
+            addBtn(gameContext, "Perk Tree", [=]() { setApp(PhoneAppMode::PERKS); }, true, false, "Browse unlocked talents and character perks.");
+            addBtn(gameContext, "Spells", [=]() { setApp(PhoneAppMode::SPELLS); }, true, false, "Review arcane spells and combat techniques.");
+            addBtn(gameContext, "Stats", [=]() { setApp(PhoneAppMode::STATS); }, true, false, "Check attributes, vitals, and anatomical dimensions.");
+            addBtn(gameContext, "Contacts", [=]() { setApp(PhoneAppMode::CONTACTS); }, true, false, "Address book of known characters and companions.");
 
-        addBtn(gameContext, "Encyclopedia", [=]() { setApp(PhoneAppMode::ENCYCLOPEDIA); }, true, phoneApp->getAppMode() == PhoneAppMode::ENCYCLOPEDIA);
-        addBtn(gameContext, "Maps", [gameContext, phoneApp]() { phoneApp->setAppMode(PhoneAppMode::MAPS); gameContext->refreshActionGrid(); }, true, phoneApp->getAppMode() == PhoneAppMode::MAPS);
-        addBtn(gameContext, "Next Entry", [gameContext, phoneApp]() { phoneApp->setSelectedItemIndex(phoneApp->getSelectedItemIndex() + 1); gameContext->refreshActionGrid(); });
-        addBtn(gameContext, "Prev Entry", [gameContext, phoneApp]() {
-            if (phoneApp->getSelectedItemIndex() > 0)
-            {
-                phoneApp->setSelectedItemIndex(phoneApp->getSelectedItemIndex() - 1);
+            // Row 2: Secondary Apps & Utilities
+            addBtn(gameContext, "Encyclopedia", [=]() { setApp(PhoneAppMode::ENCYCLOPEDIA); }, true, false, "Access world lore, demonic biology, and bestiary.");
+            addBtn(gameContext, "Maps", [=]() { setApp(PhoneAppMode::MAPS); }, true, false, "Dominion regional overview and points of interest.");
+            addBtn(gameContext, "Transform", [=]() { setApp(PhoneAppMode::TRANSFORM); }, true, false, "Inspect mutations, bodily morphs, and alchemy.");
+            addBtn(gameContext, "Wait / Rest", [=]() { setApp(PhoneAppMode::WAIT_REST); }, true, false, "Pass time, sleep, and recover health/mana.");
+            addBtn(gameContext, "Masturbate", [=]() { setApp(PhoneAppMode::MASTURBATE); }, true, false, "Take a private moment to relieve lust and arousal.");
+
+            // Row 3: Settings & Back
+            addBtn(gameContext, "Fetishes", [=]() { setApp(PhoneAppMode::FETISHES); }, true, false, "Review content toggles and fetish preferences.");
+            padButtonsTo(gameContext, 14);
+            addBtn(gameContext, "Back", [gameContext]() {
+                gameContext->changeState(std::make_unique<explorationState>());
+            }, true, false, "Close smartphone and return to exploration.");
+            return;
+        }
+
+        // --- Submenu Modes ---
+        if (phoneApp->getAppMode() == PhoneAppMode::WAIT_REST)
+        {
+            addBtn(gameContext, "Wait 15 Mins", [gameContext, phoneApp]() {
+                gameContext->gameTime.advanceTime(15);
+                entity* p = gameContext->getPlayer();
+                if (p) {
+                    p->stats.setBaseStat("health", std::min(p->getStat("max_health"), p->getStat("health") + 5.0f));
+                    p->stats.setBaseStat("mana", std::min(p->getStat("max_mana"), p->getStat("mana") + 5.0f));
+                }
+                phoneApp->setFeedbackText("You rested for 15 minutes. Regained a little stamina.");
                 gameContext->refreshActionGrid();
-            }
-        });
+            }, true, false, "Pass 15 minutes of in-game time (+5 HP/MP).");
 
-        addBackBtn(gameContext, "Back (Phone)", [gameContext]() {
-            gameContext->isPhoneMenuOpen = true;
-            gameContext->changeState(std::make_unique<explorationState>());
-        });
+            addBtn(gameContext, "Wait 1 Hour", [gameContext, phoneApp]() {
+                gameContext->gameTime.advanceTime(60);
+                entity* p = gameContext->getPlayer();
+                if (p) {
+                    p->stats.setBaseStat("health", std::min(p->getStat("max_health"), p->getStat("health") + 20.0f));
+                    p->stats.setBaseStat("mana", std::min(p->getStat("max_mana"), p->getStat("mana") + 20.0f));
+                }
+                phoneApp->setFeedbackText("You waited for 1 hour. Regained 20 Health and Mana.");
+                gameContext->refreshActionGrid();
+            }, true, false, "Pass 1 hour of in-game time (+20 HP/MP).");
+
+            addBtn(gameContext, "Rest 4 Hours", [gameContext, phoneApp]() {
+                gameContext->gameTime.advanceTime(240);
+                entity* p = gameContext->getPlayer();
+                if (p) {
+                    p->stats.setBaseStat("health", std::min(p->getStat("max_health"), p->getStat("health") + 60.0f));
+                    p->stats.setBaseStat("mana", std::min(p->getStat("max_mana"), p->getStat("mana") + 60.0f));
+                }
+                phoneApp->setFeedbackText("You rested deeply for 4 hours. Regained 60 Health and Mana.");
+                gameContext->refreshActionGrid();
+            }, true, false, "Pass 4 hours of in-game time (+60 HP/MP).");
+
+            addBtn(gameContext, "Sleep 8 Hours", [gameContext, phoneApp]() {
+                gameContext->gameTime.advanceTime(480);
+                entity* p = gameContext->getPlayer();
+                if (p) {
+                    p->stats.setBaseStat("health", p->getStat("max_health"));
+                    p->stats.setBaseStat("mana", p->getStat("max_mana"));
+                }
+                phoneApp->setFeedbackText("You slept peacefully for 8 hours and feel completely revitalized! (Full Health & Mana restored)");
+                gameContext->refreshActionGrid();
+            }, true, false, "Sleep 8 hours to restore full Health and Mana.");
+
+            addBtn(gameContext, "Wait to Dawn/Dusk", [gameContext, phoneApp]() {
+                int targetHour = (gameContext->gameTime.hour >= 6 && gameContext->gameTime.hour < 20) ? 20 : 6;
+                int hoursToAdvance = (targetHour - gameContext->gameTime.hour + 24) % 24;
+                if (hoursToAdvance == 0) hoursToAdvance = 24;
+                gameContext->gameTime.advanceTime(hoursToAdvance * 60);
+                phoneApp->setFeedbackText(std::format("You waited until {} ({}:00).", targetHour == 6 ? "Dawn" : "Dusk", targetHour));
+                gameContext->refreshActionGrid();
+            }, true, false, "Wait until the next diurnal lighting phase shift.");
+        }
+        else if (phoneApp->getAppMode() == PhoneAppMode::MASTURBATE)
+        {
+            entity* p = gameContext->getPlayer();
+            float curArousal = p ? p->getStat("arousal") : 0.0f;
+
+            addBtn(gameContext, "Caress Chest", [gameContext, phoneApp, p]() {
+                if (p) {
+                    float newA = std::min(100.0f, p->getStat("arousal") + 15.0f);
+                    p->stats.setBaseStat("arousal", newA);
+                }
+                phoneApp->setFeedbackText("You gently brush your fingers over your chest, feeling your breath hitch as sensitivity rises.");
+                gameContext->refreshActionGrid();
+            }, true, false, "Caress sensitive zones to gently build arousal (+15%).");
+
+            addBtn(gameContext, "Fondle Groin", [gameContext, phoneApp, p]() {
+                if (p) {
+                    float newA = std::min(100.0f, p->getStat("arousal") + 25.0f);
+                    p->stats.setBaseStat("arousal", newA);
+                }
+                phoneApp->setFeedbackText("Your touch slips lower, eliciting a soft gasp as intense warmth radiates through your core.");
+                gameContext->refreshActionGrid();
+            }, true, false, "Directly stimulate intimate areas (+25% arousal).");
+
+            addBtn(gameContext, "Tease Climax", [gameContext, phoneApp, p]() {
+                if (p) {
+                    p->stats.setBaseStat("arousal", std::max(85.0f, p->getStat("arousal") + 20.0f));
+                }
+                phoneApp->setFeedbackText("You rhythmically build tension right on the edge of ecstasy, your body trembling with delicious anticipation.");
+                gameContext->refreshActionGrid();
+            }, true, false, "Edge close to orgasm (Brings arousal to 85%+).");
+
+            bool canClimax = (curArousal >= 60.0f);
+            addBtn(gameContext, "Climax & Relief", [gameContext, phoneApp, p]() {
+                if (p) {
+                    p->stats.setBaseStat("arousal", 0.0f);
+                    p->stats.setBaseStat("lust", 0.0f);
+                    p->stats.setBaseStat("mana", std::min(p->getStat("max_mana"), p->getStat("mana") + 15.0f));
+                }
+                phoneApp->setFeedbackText("A breathless, overwhelming wave of climax crashes through you, washing away all tension and leaving you thoroughly satisfied and blissfully relaxed! (Lust & Arousal reset to 0%)");
+                gameContext->refreshActionGrid();
+            }, canClimax, false, canClimax ? "Surrender to orgasm and purge all accumulated lust!" : "Requires at least 60% arousal to climax.");
+        }
+        else if (phoneApp->getAppMode() == PhoneAppMode::TRANSFORM)
+        {
+            addBtn(gameContext, "Open Full Editor", [gameContext]() {
+                gameContext->changeState(std::make_unique<transformationState>());
+            }, true, false, "Launch full mutation and body transformation studio.");
+
+            addBtn(gameContext, "Reset Baseline", [gameContext, phoneApp]() {
+                entity* p = gameContext->getPlayer();
+                if (p) {
+                    p->anatomy.removePart(bodySlot::HORNS);
+                    p->anatomy.removePart(bodySlot::WINGS);
+                    p->anatomy.removePart(bodySlot::TAIL);
+                }
+                phoneApp->setFeedbackText("Cleared active exotic mutations. Restored Human baseline.");
+                gameContext->refreshActionGrid();
+            }, true, false, "Clear horns, wings, and tails to revert to baseline.");
+        }
+        else if (phoneApp->getAppMode() == PhoneAppMode::FETISHES)
+        {
+            addBtn(gameContext, "Configure Options", [gameContext]() {
+                gameContext->changeState(std::make_unique<optionsState>(OptionsScreenMode::CONTENT_OPTIONS, std::make_unique<phoneAppsState>(PhoneAppMode::FETISHES)));
+            }, true, false, "Open complete demographic preferences and fetish rating matrix.");
+        }
+        else if (phoneApp->getAppMode() == PhoneAppMode::ENCYCLOPEDIA)
+        {
+            addBtn(gameContext, "Prev Entry", [gameContext, phoneApp]() {
+                if (phoneApp->getSelectedItemIndex() > 0)
+                {
+                    phoneApp->setSelectedItemIndex(phoneApp->getSelectedItemIndex() - 1);
+                    gameContext->refreshActionGrid();
+                }
+            }, true, false, "Scroll to previous encyclopedia entry.");
+
+            addBtn(gameContext, "Next Entry", [gameContext, phoneApp]() {
+                phoneApp->setSelectedItemIndex(phoneApp->getSelectedItemIndex() + 1);
+                gameContext->refreshActionGrid();
+            }, true, false, "Scroll to next encyclopedia entry.");
+        }
+        else if (phoneApp->getAppMode() == PhoneAppMode::SPELLS)
+        {
+            addBtn(gameContext, "Arcane Focus", [gameContext, phoneApp]() {
+                phoneApp->setFeedbackText("Arcane spellbook catalog indexed.");
+                gameContext->refreshActionGrid();
+            }, true, false, "Filter spell list by arcane and elemental disciplines.");
+
+            addBtn(gameContext, "Physical Moves", [gameContext, phoneApp]() {
+                phoneApp->setFeedbackText("Physical combat techniques indexed.");
+                gameContext->refreshActionGrid();
+            }, true, false, "Filter moves by melee strikes, parries, and evasions.");
+        }
+        else if (phoneApp->getAppMode() == PhoneAppMode::QUESTS)
+        {
+            addBtn(gameContext, "Track Active", [gameContext, phoneApp]() {
+                phoneApp->setFeedbackText("Tracking main objective: Lilaya's Tests.");
+                gameContext->refreshActionGrid();
+            }, true, false, "Highlight active quest in HUD.");
+        }
+        else if (phoneApp->getAppMode() == PhoneAppMode::PERKS)
+        {
+            addBtn(gameContext, "Filter: All", [gameContext, phoneApp]() {
+                phoneApp->setSelectedCategory(0);
+                gameContext->refreshActionGrid();
+            }, true, false, "Show all perks across categories.");
+        }
+        else if (phoneApp->getAppMode() == PhoneAppMode::STATS)
+        {
+            addBtn(gameContext, "Attributes", [gameContext, phoneApp]() {
+                phoneApp->setSelectedCategory(0);
+                gameContext->refreshActionGrid();
+            }, true, false, "Display primary physical, arcane, and seduction attributes.");
+        }
+        else if (phoneApp->getAppMode() == PhoneAppMode::CONTACTS)
+        {
+            addBtn(gameContext, "Lilaya", [gameContext, phoneApp]() {
+                phoneApp->setFeedbackText("Lilaya: Resident alchemist and researcher. Location: Manor Laboratory.");
+                gameContext->refreshActionGrid();
+            }, true, false, "Inspect dossier for Lilaya.");
+        }
+        else if (phoneApp->getAppMode() == PhoneAppMode::MAPS)
+        {
+            addBtn(gameContext, "Town District", [gameContext, phoneApp]() {
+                phoneApp->setFeedbackText("Sector Alpha-1: North Town Gates. Safe civilian sanctuary.");
+                gameContext->refreshActionGrid();
+            }, true, false, "Center map focus on Town District.");
+        }
+
+        // Slot 14: Universal Back button in all submenus
+        padButtonsTo(gameContext, 14);
+        addBtn(gameContext, "Back", [gameContext, phoneApp]() {
+            phoneApp->setAppMode(PhoneAppMode::HOME);
+            gameContext->refreshActionGrid();
+        }, true, false, "Return to Smartphone Home.");
         return;
     }
 
@@ -436,6 +626,43 @@ void ActionGridManager::refresh(game* gameContext)
     if (dynamic_cast<inventoryState*>(currentState))
     {
         auto p = gameContext->getPlayer();
+        bool hasEquipped = false;
+        bool hasDisplacement = false;
+        if (p)
+        {
+            for (size_t s = 0; s < EQUIP_SLOT_COUNT; ++s)
+            {
+                equipSlot slot = static_cast<equipSlot>(s);
+                if (p->inventory.isEquipped(slot))
+                {
+                    hasEquipped = true;
+                    if (p->inventory.getDisplacement(slot) != DisplacementMode::NONE)
+                    {
+                        hasDisplacement = true;
+                    }
+                }
+            }
+        }
+
+        bool hasGroundItems = false;
+        characterCreationState* ccState = dynamic_cast<characterCreationState*>(gameContext->getActiveState());
+        if (!ccState)
+        {
+            if (auto* invState = dynamic_cast<inventoryState*>(gameContext->getActiveState()))
+            {
+                ccState = dynamic_cast<characterCreationState*>(invState->getReturnState());
+            }
+        }
+        if (ccState)
+        {
+            hasGroundItems = !ccState->availableWardrobe.empty();
+        }
+        else if (gameContext->map)
+        {
+            const auto& td = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
+            hasGroundItems = !td.droppedItems.empty();
+        }
+
         if (gameContext->selectedEquipmentSlot != equipSlot::NONE)
         {
             auto eqItem = p ? p->inventory.getEquippedItem(gameContext->selectedEquipmentSlot) : nullptr;
@@ -464,6 +691,15 @@ void ActionGridManager::refresh(game* gameContext)
             addBtn(gameContext, "Reset Fit", [gameContext]() {
                 if (auto pl = gameContext->getPlayer()) { pl->inventory.setDisplacement(gameContext->selectedEquipmentSlot, DisplacementMode::NONE); gameContext->refreshActionGrid(); }
             }, canReset, false, canReset ? "Restore garment to properly worn placement." : "Garment is already worn normally.");
+
+            addBtn(gameContext, "Reset All Fits", [gameContext]() {
+                gameContext->handleResetAllDisplacementsAction();
+            }, hasDisplacement, false, "Restore all displaced garments to properly worn placement.");
+
+            addBtn(gameContext, "Deselect Slot", [gameContext]() {
+                gameContext->selectedEquipmentSlot = equipSlot::NONE;
+                gameContext->refreshActionGrid();
+            }, true, false, "Clear slot selection and return to general inventory actions.");
         }
         else if (gameContext->selectedInventoryIndex != -1)
         {
@@ -472,37 +708,33 @@ void ActionGridManager::refresh(game* gameContext)
 
             if (gameContext->selectedInventorySide == 0)
             {
-                bool canEquipOrUse = false;
-                std::string equipUseDesc = "Select an item to equip or consume.";
-                std::string btnLabel = "Equip / Use";
-
                 if (slotInfo.isValid && slotInfo.itemPtr)
                 {
                     if (slotInfo.itemPtr->isEquippable)
                     {
-                        btnLabel = "Equip";
-                        canEquipOrUse = true;
-                        equipUseDesc = "Equip " + slotInfo.itemPtr->name + " to " + gameContext->formatEquipSlotName(slotInfo.itemPtr->targetSlot) + ".";
-                        if (!slotInfo.itemPtr->tooltip.empty()) equipUseDesc += " " + slotInfo.itemPtr->tooltip;
-                        else if (!slotInfo.itemPtr->description.empty()) equipUseDesc += " " + slotInfo.itemPtr->description;
+                        auto validSlots = slotInfo.itemPtr->getValidEquipSlots();
+                        for (equipSlot s : validSlots)
+                        {
+                            std::string slotName = gameContext->formatEquipSlotName(s);
+                            std::string btnLabel = std::format("Equip ({})", slotName);
+                            std::string desc = std::format("Equip {} to {}.", slotInfo.itemPtr->name, slotName);
+                            if (!slotInfo.itemPtr->tooltip.empty()) desc += " " + slotInfo.itemPtr->tooltip;
+                            else if (!slotInfo.itemPtr->description.empty()) desc += " " + slotInfo.itemPtr->description;
+
+                            addBtn(gameContext, btnLabel, [gameContext, s]() {
+                                gameContext->handleEquipAction(gameContext->selectedInventoryIndex, s);
+                            }, true, false, desc);
+                        }
                     }
-                    else if (slotInfo.itemPtr->isConsumable)
+
+                    if (slotInfo.itemPtr->isConsumable)
                     {
-                        btnLabel = "Use";
-                        canEquipOrUse = true;
-                        equipUseDesc = "Consume " + slotInfo.itemPtr->name + ". " + (!slotInfo.itemPtr->tooltip.empty() ? slotInfo.itemPtr->tooltip : slotInfo.itemPtr->description);
-                    }
-                    else
-                    {
-                        equipUseDesc = "This item cannot be equipped or consumed.";
+                        std::string desc = "Consume " + slotInfo.itemPtr->name + ". " + (!slotInfo.itemPtr->tooltip.empty() ? slotInfo.itemPtr->tooltip : slotInfo.itemPtr->description);
+                        addBtn(gameContext, "Use", [gameContext]() {
+                            gameContext->handleUseItemAction(gameContext->selectedInventoryIndex);
+                        }, true, false, desc);
                     }
                 }
-
-                bool isConsumable = (slotInfo.isValid && slotInfo.itemPtr && slotInfo.itemPtr->isConsumable);
-                addBtn(gameContext, btnLabel, [gameContext, isConsumable]() {
-                    if (isConsumable) gameContext->handleUseItemAction(gameContext->selectedInventoryIndex);
-                    else gameContext->handleEquipAction(gameContext->selectedInventoryIndex);
-                }, canEquipOrUse, false, equipUseDesc);
 
                 bool isKey = (slotInfo.isValid && slotInfo.itemPtr && slotInfo.itemPtr->isKeyItem);
                 bool canDrop = slotInfo.isValid && !isKey;
@@ -513,6 +745,11 @@ void ActionGridManager::refresh(game* gameContext)
 
                 addBtn(gameContext, give1, [gameContext]() { gameContext->handleDropAction(gameContext->selectedInventoryIndex, 1); }, canDrop, false, dropDesc);
                 addBtn(gameContext, giveAll, [gameContext]() { gameContext->handleDropAction(gameContext->selectedInventoryIndex, 999); }, canDrop, false, dropAllDesc);
+
+                addBtn(gameContext, "Deselect Item", [gameContext]() {
+                    gameContext->selectedInventoryIndex = -1;
+                    gameContext->refreshActionGrid();
+                }, true, false, "Clear item selection and return to general actions.");
             }
             else if (gameContext->selectedInventorySide == 1)
             {
@@ -520,10 +757,62 @@ void ActionGridManager::refresh(game* gameContext)
                 std::string takeAll = hasNpc ? "Take All" : "Pickup All";
                 addBtn(gameContext, take1, [gameContext]() { gameContext->handlePickupAction(gameContext->selectedInventoryIndex, 1); }, slotInfo.isValid, false, "Take 1 item into your backpack.");
                 addBtn(gameContext, takeAll, [gameContext]() { gameContext->handlePickupAction(gameContext->selectedInventoryIndex, 999); }, slotInfo.isValid, false, "Take entire stack into your backpack.");
+
+                addBtn(gameContext, "Loot All", [gameContext]() {
+                    gameContext->handleLootAllAction();
+                }, hasGroundItems, false, "Pick up all items from the ground into your backpack.");
+
+                if (slotInfo.isValid && slotInfo.itemPtr && slotInfo.itemPtr->isEquippable)
+                {
+                    auto validSlots = slotInfo.itemPtr->getValidEquipSlots();
+                    for (equipSlot s : validSlots)
+                    {
+                        std::string slotName = gameContext->formatEquipSlotName(s);
+                        std::string btnLabel = std::format("Equip ({})", slotName);
+                        std::string desc = std::format("Pick up and equip {} to {}.", slotInfo.itemPtr->name, slotName);
+                        if (!slotInfo.itemPtr->tooltip.empty()) desc += " " + slotInfo.itemPtr->tooltip;
+                        else if (!slotInfo.itemPtr->description.empty()) desc += " " + slotInfo.itemPtr->description;
+
+                        addBtn(gameContext, btnLabel, [gameContext, s]() {
+                            gameContext->handleEquipGroundAction(gameContext->selectedInventoryIndex, s);
+                        }, true, false, desc);
+                    }
+                }
+
+                addBtn(gameContext, "Deselect Item", [gameContext]() {
+                    gameContext->selectedInventoryIndex = -1;
+                    gameContext->refreshActionGrid();
+                }, true, false, "Clear item selection.");
             }
         }
+        else
+        {
+            // Global Inventory Actions (nothing selected)
+            addBtn(gameContext, "Loot All", [gameContext]() {
+                gameContext->handleLootAllAction();
+            }, hasGroundItems, false, hasGroundItems ? "Transfer all items from the ground into your backpack." : "No items on the ground to loot.");
 
-        addBackBtn(gameContext, "Close (I / ESC)", [gameContext]() { gameContext->changeState(std::make_unique<explorationState>()); }, "Return to exploration view.");
+            addBtn(gameContext, "Unequip All", [gameContext]() {
+                gameContext->handleUnequipAllAction();
+            }, hasEquipped, false, hasEquipped ? "Unequip all worn garments, weapons, and accessories into your backpack." : "No items currently equipped to unequip.");
+
+            addBtn(gameContext, "Strip to Underwear", [gameContext]() {
+                gameContext->handleStripToUnderwearAction();
+            }, hasEquipped, false, hasEquipped ? "Unequip outer and middle clothing, keeping only underwear and intimate items equipped." : "No clothing currently equipped.");
+
+            addBtn(gameContext, "Reset All Fits", [gameContext]() {
+                gameContext->handleResetAllDisplacementsAction();
+            }, hasDisplacement, false, hasDisplacement ? "Restore all pulled aside/down or unbuttoned garments to properly worn fit." : "No garments are currently displaced.");
+        }
+
+        auto inv = dynamic_cast<inventoryState*>(currentState);
+        bool isSubmenu = (inv && inv->getReturnState() != nullptr);
+        std::string backLabel = isSubmenu ? "Back to Creation" : "Close (I / ESC)";
+        std::string backDesc = isSubmenu ? "Return to Character Creation." : "Return to exploration view.";
+        addBackBtn(gameContext, backLabel, [gameContext, inv]() {
+            if (inv) inv->goBack(gameContext);
+            else gameContext->changeState(std::make_unique<explorationState>());
+        }, backDesc);
         return;
     }
 
@@ -610,37 +899,18 @@ void ActionGridManager::refresh(game* gameContext)
     // 13. Exploration Movement & Interaction Shortcuts
     if (dynamic_cast<explorationState*>(currentState))
     {
-        if (gameContext->isPhoneMenuOpen)
-        {
-            // Row 1: Core Phone Apps
-            addBtn(gameContext, "Quests", [gameContext]() { gameContext->changeState(std::make_unique<phoneAppsState>(PhoneAppMode::QUESTS)); });
-            addBtn(gameContext, "Perk Tree", [gameContext]() { gameContext->changeState(std::make_unique<phoneAppsState>(PhoneAppMode::PERKS)); });
-            addBtn(gameContext, "Spells", [gameContext]() { gameContext->changeState(std::make_unique<phoneAppsState>(PhoneAppMode::SPELLS)); });
-            addBtn(gameContext, "Fetishes", [gameContext]() { gameContext->changeState(std::make_unique<optionsState>(OptionsScreenMode::CONTENT_OPTIONS)); });
-            addBtn(gameContext, "Stats", [gameContext]() { gameContext->changeState(std::make_unique<phoneAppsState>(PhoneAppMode::STATS)); });
-
-            // Row 2: Secondary Phone Apps
-            addBtn(gameContext, "Selfie", [gameContext]() { gameContext->changeState(std::make_unique<characterCreationState>(3)); });
-            addBtn(gameContext, "Contacts", [gameContext]() { gameContext->changeState(std::make_unique<phoneAppsState>(PhoneAppMode::CONTACTS)); });
-            addBtn(gameContext, "Encyclopedia", [gameContext]() { gameContext->changeState(std::make_unique<phoneAppsState>(PhoneAppMode::ENCYCLOPEDIA)); });
-            addBtn(gameContext, "Transform", [gameContext]() { gameContext->changeState(std::make_unique<transformationState>()); });
-            addBtn(gameContext, "Maps", [gameContext]() { gameContext->changeState(std::make_unique<phoneAppsState>(PhoneAppMode::MAPS)); });
-
-            // Row 3: Actions & Navigation
-            addBtn(gameContext, "Combat Moves", [gameContext]() { gameContext->changeState(std::make_unique<phoneAppsState>(PhoneAppMode::SPELLS)); });
-            addBtn(gameContext, "Masturbate", [gameContext]() { gameContext->changeState(std::make_unique<sexState>()); });
-            addBtn(gameContext, "Loiter", [gameContext]() { gameContext->gameTime.advanceTime(15); gameContext->refreshActionGrid(); });
-            addBtn(gameContext, "Elemental", []() {}, false);
-            addBackBtn(gameContext, "Back", [gameContext]() { gameContext->isPhoneMenuOpen = false; gameContext->refreshActionGrid(); });
-        }
-        else
-        {
-            if (gameContext->map)
+        // Row 1: Context Actions on Tile (Warps, NPCs, Map & Quest Triggers, Ground Loot, Merchants)
+        if (gameContext->map)
             {
                 MapWarp warp;
                 if (gameContext->map->checkWarp(gameContext->gridX, gameContext->gridY, warp))
                 {
-                    addBtn(gameContext, std::format("Enter {}", warp.targetMap.empty() ? "Door" : warp.targetMap), [gameContext, warp]() {
+                    std::string warpLabel = "Enter Area";
+                    if (warp.targetMap == "house_01") warpLabel = "Enter Cottage";
+                    else if (warp.targetMap == "overworld") warpLabel = "Enter Town";
+                    else if (!warp.targetMap.empty()) warpLabel = "Enter " + warp.targetMap;
+
+                    addBtn(gameContext, warpLabel, [gameContext, warp]() {
                         gameContext->loadMap(warp.targetMap, warp.targetX, warp.targetY);
                     }, true, false, "Transition into " + (warp.targetMap.empty() ? "adjacent area" : warp.targetMap) + ".");
                 }
@@ -651,6 +921,40 @@ void ActionGridManager::refresh(game* gameContext)
                     addBtn(gameContext, std::format("Talk to {}", tileData.persistentNPC->name), [gameContext, npc = tileData.persistentNPC]() {
                         gameContext->triggerEncounter(npc);
                     }, true, false, "Initiate dialogue with " + tileData.persistentNPC->name + ".");
+
+                    if (tileData.persistentNPC->name.find("Merchant") != std::string::npos || tileData.persistentNPC->name.find("Shop") != std::string::npos)
+                    {
+                        addBtn(gameContext, "Visit Shop", [gameContext]() {
+                            gameContext->changeState(std::make_unique<shopState>());
+                        }, true, false, "Browse merchant inventory and trade goods.");
+                    }
+                }
+
+                // Map & Quest Triggers on this tile (deduplicated by id)
+                std::unordered_set<std::string> addedTriggerIds;
+
+                auto tileTriggers = gameContext->map->getTriggersAt(gameContext->gridX, gameContext->gridY);
+                for (const auto& trig : tileTriggers)
+                {
+                    if (gameContext->checkConditions(trig.conditions) && !addedTriggerIds.contains(trig.id))
+                    {
+                        addedTriggerIds.insert(trig.id);
+                        addBtn(gameContext, trig.label, [gameContext, scene = trig.sceneId]() {
+                            gameContext->loadScene(scene);
+                        }, true, false, trig.tooltip.empty() ? ("Trigger " + trig.label) : trig.tooltip);
+                    }
+                }
+
+                auto questTriggers = questDatabase::getTriggersForLocation(gameContext->map->getId(), gameContext->gridX, gameContext->gridY);
+                for (const auto& trig : questTriggers)
+                {
+                    if (gameContext->checkConditions(trig.conditions) && !addedTriggerIds.contains(trig.id))
+                    {
+                        addedTriggerIds.insert(trig.id);
+                        addBtn(gameContext, trig.label, [gameContext, scene = trig.sceneId]() {
+                            gameContext->loadScene(scene);
+                        }, true, false, trig.tooltip.empty() ? ("Trigger " + trig.label) : trig.tooltip);
+                    }
                 }
 
                 if (!tileData.droppedItems.empty())
@@ -660,28 +964,5 @@ void ActionGridManager::refresh(game* gameContext)
                     }, true, false, "Inspect and pick up items lying on the ground.");
                 }
             }
-
-            addBtn(gameContext, "Inventory (I)", [gameContext]() { gameContext->changeState(std::make_unique<inventoryState>()); }, true, false, "Open dual 5x4 player inventory and ground storage.");
-            addBtn(gameContext, "Visit Shop (K)", [gameContext]() { gameContext->changeState(std::make_unique<shopState>()); }, true, false, "Browse merchant catalog and purchase supplies.");
-            addBtn(gameContext, "Mutations & TF (M)", [gameContext]() { gameContext->changeState(std::make_unique<transformationState>()); }, true, false, "Inspect anatomical changes and body transformations.");
-            addBtn(gameContext, "Test Combat (C)", [gameContext]() {
-                std::vector<std::shared_ptr<entity>> pParty = { gameContext->playerEntity };
-                std::vector<std::shared_ptr<entity>> eParty;
-                auto& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
-                if (tileData.persistentNPC) eParty.push_back(tileData.persistentNPC);
-                else if (gameContext->activeTargetNPC) eParty.push_back(gameContext->activeTargetNPC);
-                else eParty.push_back(encounterResolver::createEncounterNPC(1, gameContext->settings));
-                gameContext->changeState(std::make_unique<CombatState>(pParty, eParty));
-            }, true, false, "Engage in tactical turn-based combat encounter.");
-            addBtn(gameContext, "Wait / Rest (1 hr)", [gameContext]() { gameContext->gameTime.advanceTime(60); gameContext->refreshActionGrid(); }, true, false, "Pass 1 hour of in-game time.");
-            addBtn(gameContext, "Phone (Menu)", [gameContext]() { gameContext->isPhoneMenuOpen = true; gameContext->refreshActionGrid(); }, true, false, "Access smartphone apps, contacts, and map.");
-            addBtn(gameContext, "QuickSave (F5)", [gameContext]() { saveManager::saveNamedGame(gameContext, "QuickSave"); }, true, false, "Quick save your current progress.");
-            addBtn(gameContext, "QuickLoad (F9)", [gameContext]() {
-                entity* p = gameContext->getPlayer();
-                std::string charName = (p && !p->name.empty()) ? p->name : "Hero";
-                saveManager::loadFromFile(gameContext, charName + "_QuickSave.json");
-                gameContext->refreshActionGrid();
-            }, true, false, "Quick load your last saved game state.");
         }
     }
-}

@@ -12,6 +12,8 @@
 #include "state/iGameState.h"
 #include "state/editorConfig.h"
 
+class entity;
+
 class characterCreationState : public iGameState
 {
 public:
@@ -25,6 +27,7 @@ public:
     void update(game* gameContext, float deltaTime) override;
     void handleInput(game* gameContext, const SDL_Event& event) override;
     void handleCommand(game* gameContext, const UICommand& cmd) override;
+    void syncPreviewEntity(game* gameContext);
 
     // Granular Configuration
     EditorConfig config = EditorConfig::newGamePreset();
@@ -152,6 +155,9 @@ public:
     bool wardrobeInitialized = false;
 
     void initializeWardrobe();
+    void rebuildAvailableWardrobe();
+    void applyWardrobePreset(const std::string& presetName);
+    std::string getEquippedItemName(equipSlot slot) const;
     bool equipWardrobeItem(size_t wardrobeIndex);
     bool unequipWardrobeItem(equipSlot slot);
     bool isClothedEnough() const;
@@ -160,5 +166,6 @@ public:
     void randomizeFirstNames();
     void randomizeSurname();
     void randomizeAll();
+    void applyToEntity(entity* player);
     void finalizeCharacter(game* gameContext);
 };

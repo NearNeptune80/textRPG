@@ -49,6 +49,9 @@ public:
     std::string getId() const { return mapId; }
     std::string getName() const { return mapName; }
 
+    std::string getTileDescription(int x, int y) const;
+    const std::vector<std::string>& getTileTags(int x, int y) const;
+
 private:
     int width = 0;
     int height = 0;
@@ -59,4 +62,9 @@ private:
     std::vector<MapWarp> warps;
     std::vector<MapTrigger> triggers;
     std::unordered_map<uint64_t, TileRuntimeData> runtimeData;
+
+    std::vector<std::string> defaultDescriptions;
+    std::unordered_map<std::string, std::vector<std::string>> tileDescriptions;
+    std::unordered_map<std::string, std::vector<std::string>> tileTags;
+    std::unordered_map<std::string, std::vector<std::string>> tagDescriptions;
 };

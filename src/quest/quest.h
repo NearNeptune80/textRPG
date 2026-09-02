@@ -39,6 +39,7 @@ struct MapTrigger {
     std::string mapId;
     std::string label;
     std::string tooltip;
+    std::string description;
     std::string sceneId;
     int x{0};
     int y{0};

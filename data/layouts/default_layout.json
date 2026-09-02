@@ -53,6 +53,60 @@
     ]
   },
   "stateOverrides": {
+    "EXPLORATION": {
+      "enabled": true,
+      "rootNode": {
+        "id": "exp_root_row",
+        "type": "CONTAINER",
+        "direction": "ROW",
+        "sizes": [16.0, 68.0, 16.0],
+        "children": [
+          {
+            "id": "exp_left_column",
+            "type": "LEAF",
+            "name": "Navigation & Status Sidebar",
+            "widgets": [
+              "widget_lt_character_card",
+              "widget_lt_dpad_radar"
+            ]
+          },
+          {
+            "id": "exp_center_column",
+            "type": "CONTAINER",
+            "direction": "COLUMN",
+            "sizes": [78.0, 22.0],
+            "children": [
+              {
+                "id": "exp_center_narrative",
+                "type": "LEAF",
+                "name": "Story Narrative & Scene",
+                "widgets": [
+                  "widget_narrative_story"
+                ]
+              },
+              {
+                "id": "exp_bottom_actions",
+                "type": "LEAF",
+                "name": "Action Commands Grid",
+                "widgets": [
+                  "widget_action_commands"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "exp_right_column",
+            "type": "LEAF",
+            "name": "Entities & Activity Sidebar",
+            "widgets": [
+              "widget_lt_characters_present",
+              "widget_lt_items_present",
+              "widget_lt_event_log"
+            ]
+          }
+        ]
+      }
+    },
     "COMBAT": {
       "enabled": true,
       "rootNode": {
@@ -384,24 +438,43 @@
     "CHARACTER_CREATION": {
       "enabled": true,
       "rootNode": {
-        "id": "cc_root_column",
+        "id": "cc_root_row",
         "type": "CONTAINER",
-        "direction": "COLUMN",
-        "sizes": [78.0, 22.0],
+        "direction": "ROW",
+        "sizes": [18.0, 82.0],
         "children": [
           {
-            "id": "cc_center_pane",
+            "id": "cc_left_sidebar",
             "type": "LEAF",
-            "name": "Character Creation & Transformation Studio",
+            "name": "Player Status & Paperdoll",
             "widgets": [
-              "widget_character_creation"
+              "widget_lt_character_card",
+              "widget_paperdoll_equipment"
             ]
           },
           {
-            "id": "cc_bottom_actions",
-            "type": "LEAF",
-            "name": "Step Navigation & Creation Actions",
-            "widgets": ["widget_action_commands"]
+            "id": "cc_center_column",
+            "type": "CONTAINER",
+            "direction": "COLUMN",
+            "sizes": [78.0, 22.0],
+            "children": [
+              {
+                "id": "cc_center_pane",
+                "type": "LEAF",
+                "name": "Character Customization Options",
+                "widgets": [
+                  "widget_character_creation"
+                ]
+              },
+              {
+                "id": "cc_bottom_actions",
+                "type": "LEAF",
+                "name": "Step Navigation & Creation Actions",
+                "widgets": [
+                  "widget_action_commands"
+                ]
+              }
+            ]
           }
         ]
       }
@@ -409,24 +482,53 @@
     "PHONE_APP": {
       "enabled": true,
       "rootNode": {
-        "id": "phone_root_column",
+        "id": "phone_root_row",
         "type": "CONTAINER",
-        "direction": "COLUMN",
-        "sizes": [78.0, 22.0],
+        "direction": "ROW",
+        "sizes": [16.0, 68.0, 16.0],
         "children": [
           {
-            "id": "phone_center_pane",
+            "id": "phone_left_column",
             "type": "LEAF",
-            "name": "Mobile Phone & Diagnostic Apps",
+            "name": "Navigation & Status Sidebar",
             "widgets": [
-              "widget_phone_menu"
+              "widget_lt_character_card",
+              "widget_lt_dpad_radar"
             ]
           },
           {
-            "id": "phone_bottom_actions",
+            "id": "phone_center_column",
+            "type": "CONTAINER",
+            "direction": "COLUMN",
+            "sizes": [78.0, 22.0],
+            "children": [
+              {
+                "id": "phone_center_pane",
+                "type": "LEAF",
+                "name": "Mobile Phone & Diagnostic Apps",
+                "widgets": [
+                  "widget_phone_menu"
+                ]
+              },
+              {
+                "id": "phone_bottom_actions",
+                "type": "LEAF",
+                "name": "Phone Navigation Actions",
+                "widgets": [
+                  "widget_action_commands"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "phone_right_column",
             "type": "LEAF",
-            "name": "Phone Navigation Actions",
-            "widgets": ["widget_action_commands"]
+            "name": "Entities & Activity Sidebar",
+            "widgets": [
+              "widget_lt_characters_present",
+              "widget_lt_items_present",
+              "widget_lt_event_log"
+            ]
           }
         ]
       }

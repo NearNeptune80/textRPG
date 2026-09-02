@@ -98,8 +98,25 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
     fontManager::getInstance().setPointSize(static_cast<float>(gameContext->settings.display.fontSize));
     fontManager::getInstance().setScale(uiScale);
 
-    std::string stateKey = "";
     iGameState* curState = gameContext->getActiveState();
+
+    static iGameState* s_lastState = nullptr;
+    static int s_lastCcStep = -1;
+    if (curState != s_lastState)
+    {
+        s_lastState = curState;
+        m_panelScrollY.clear();
+    }
+    if (auto* cc = dynamic_cast<characterCreationState*>(curState))
+    {
+        if (cc->step != s_lastCcStep)
+        {
+            s_lastCcStep = cc->step;
+            m_panelScrollY["cc_center_pane"] = 0.0f;
+        }
+    }
+
+    std::string stateKey = "";
     if (dynamic_cast<mainMenuState*>(curState)) stateKey = "MAIN_MENU";
     else if (dynamic_cast<characterCreationState*>(curState)) stateKey = "CHARACTER_CREATION";
     else if (dynamic_cast<loadGameState*>(curState)) stateKey = "LOAD_GAME";
@@ -110,6 +127,7 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
     else if (dynamic_cast<shopState*>(curState)) stateKey = "SHOP";
     else if (dynamic_cast<transformationState*>(curState)) stateKey = "TRANSFORMATION";
     else if (dynamic_cast<phoneAppsState*>(curState)) stateKey = "PHONE_APP";
+    else if (dynamic_cast<explorationState*>(curState)) stateKey = "EXPLORATION";
 
     auto panels = m_layoutEngine.computeLayout(static_cast<float>(winW), static_cast<float>(winH), uiScale, stateKey);
 

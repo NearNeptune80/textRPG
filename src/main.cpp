@@ -10,6 +10,7 @@
 #include "state/characterCreationState.h"
 #include "state/explorationState.h"
 #include "state/inventoryState.h"
+#include "state/phoneAppsState.h"
 #include "state/transformationState.h"
 #include "save/saveManager.h"
 #include "ui/theme.h"
@@ -211,7 +212,8 @@ int main(int argc, char* argv[])
                     engine.getPlayer()->addStatusEffect(StatusEffect{ "buff_regen", "Regeneration", "Restores 10 HP every turn", 12, false });
                 }
             }
-            engine.loadMap("house_01", 1, 1);
+            if (screenshotState == "exploration_overworld") engine.loadMap("overworld", 1, 1);
+            else engine.loadMap("house_01", 1, 1);
             engine.changeState(std::make_unique<explorationState>());
         }
         else if (screenshotState.starts_with("inventory") || screenshotState == "tooltip_inventory" || screenshotState == "tooltip_equipment")
@@ -276,11 +278,51 @@ int main(int argc, char* argv[])
                 heels->targetSlot = equipSlot::FEET;
                 p->inventory.addItem(heels);
 
+                auto bra = std::make_shared<item>();
+                bra->id = "item_silk_bra";
+                bra->name = "Silk Bra";
+                bra->description = "Delicate lace and silk bra.";
+                bra->isEquippable = true;
+                bra->targetSlot = equipSlot::CHEST_WEAR;
+                p->inventory.addItem(bra);
+
+                auto key = std::make_shared<item>();
+                key->id = "item_iron_key";
+                key->name = "Iron Key";
+                key->description = "An old dungeon key.";
+                key->isKeyItem = true;
+                p->inventory.addItem(key);
+
                 p->inventory.equipped[static_cast<size_t>(equipSlot::TORSO_UNDER)] = blouse;
                 p->inventory.equipped[static_cast<size_t>(equipSlot::LEGS_OUTER)] = skirt;
 
                 engine.playerEntity = p;
             }
+
+            if (engine.map)
+            {
+                auto& tileData = engine.map->getRuntimeData(engine.gridX, engine.gridY);
+                if (tileData.droppedItems.empty())
+                {
+                    auto dropStaff = std::make_shared<item>();
+                    dropStaff->id = "item_staff_arcane";
+                    dropStaff->name = "Arcane Staff";
+                    dropStaff->description = "A wooden staff humming with mana.";
+                    dropStaff->isEquippable = true;
+                    dropStaff->targetSlot = equipSlot::WEAPON_MAIN;
+                    tileData.addDroppedItem(dropStaff, 120);
+
+                    auto dropPot = std::make_shared<item>();
+                    dropPot->id = "item_potion_mana";
+                    dropPot->name = "Mana Potion";
+                    dropPot->description = "Restores 40 MP.";
+                    dropPot->isConsumable = true;
+                    dropPot->isStackable = true;
+                    dropPot->count = 2;
+                    tileData.addDroppedItem(dropPot, 120);
+                }
+            }
+
             engine.changeState(std::make_unique<inventoryState>());
             if (screenshotState == "inventory_slot")
             {
@@ -318,6 +360,39 @@ int main(int argc, char* argv[])
         else if (screenshotState == "tooltip_quest")
         {
             engine.loadScene("quest_intro_01");
+        }
+        else if (screenshotState == "main_menu_ingame")
+        {
+            if (!engine.getPlayer())
+            {
+                auto p = std::make_shared<entity>("hero_player", "Aria Vesper");
+                p->genderArchetype = GenderArchetype::FEMALE;
+                p->stats.level = 1;
+                engine.playerEntity = p;
+                engine.Player = p.get();
+            }
+            engine.changeState(std::make_unique<mainMenuState>());
+        }
+        else if (screenshotState == "phone_home" || screenshotState == "phone_wait")
+        {
+            if (!engine.getPlayer())
+            {
+                auto p = std::make_shared<entity>("hero_player", "Aria Vesper");
+                p->genderArchetype = GenderArchetype::FEMALE;
+                p->stats.level = 1;
+                engine.playerEntity = p;
+                engine.Player = p.get();
+            }
+            if (screenshotState == "phone_wait")
+            {
+                auto phState = std::make_unique<phoneAppsState>(PhoneAppMode::WAIT_REST);
+                phState->setFeedbackText("You rested for 1 hour. Regained 20 Health and Mana.");
+                engine.changeState(std::move(phState));
+            }
+            else
+            {
+                engine.changeState(std::make_unique<phoneAppsState>(PhoneAppMode::HOME));
+            }
         }
 
         engine.refreshActionGrid();

@@ -89,6 +89,14 @@ std::vector<InventorySlot> inventoryComponent::getStackedView() const
             slots.push_back({ itemPtr, 1, static_cast<int>(i) });
         }
     }
+
+    std::sort(slots.begin(), slots.end(), [](const InventorySlot& a, const InventorySlot& b) {
+        if (!a.itemPtr && !b.itemPtr) return false;
+        if (!a.itemPtr) return false;
+        if (!b.itemPtr) return true;
+        return compareItemsNatural(*a.itemPtr, *b.itemPtr);
+    });
+
     return slots;
 }
 

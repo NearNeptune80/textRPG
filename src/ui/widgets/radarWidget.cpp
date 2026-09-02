@@ -12,6 +12,9 @@
 #include "map/gameMap.h"
 #include "map/tile.h"
 #include "state/characterCreationState.h"
+#include "state/inventoryState.h"
+#include "state/phoneAppsState.h"
+#include "state/mainMenuState.h"
 #include "ui/theme.h"
 #include "ui/uiWidget.h"
 #include "ui/tooltipManager.h"
@@ -226,29 +229,30 @@ namespace RadarWidgets
 
         cardCurY += boxSize + (5.0f * uiScale);
 
-        // Quick Navigation Toolbar (Inv, Phone, TF, Opt)
+        // Quick Navigation Toolbar (Inv, Phone, Main Menu)
         static const std::vector<std::pair<std::string, CommandType>> tools = {
             { "Inv", CommandType::OPEN_INVENTORY },
             { "Phone", CommandType::OPEN_PHONE },
-            { "TF", CommandType::OPEN_TRANSFORMATION },
-            { "Opt", CommandType::OPEN_SETTINGS }
+            { "Main Menu", CommandType::OPEN_MAIN_MENU }
         };
 
-        float toolW = (boxSize - (3 * 4.0f * uiScale)) / 4.0f;
+        float toolW = (boxSize - (2 * 4.0f * uiScale)) / 3.0f;
 
         for (size_t i = 0; i < tools.size(); ++i)
         {
             SDL_FRect tRect = { innerX + (i * (toolW + (4.0f * uiScale))), cardCurY, toolW, toolH };
             bool hov = (mousePos.x >= tRect.x && mousePos.x <= tRect.x + tRect.w &&
                         mousePos.y >= tRect.y && mousePos.y <= tRect.y + tRect.h);
-            bool isActive = (i == 1 && gameContext->isPhoneMenuOpen);
+            bool isActive = false;
+            if (i == 0 && dynamic_cast<inventoryState*>(gameContext->getActiveState())) isActive = true;
+            else if (i == 1 && dynamic_cast<phoneAppsState*>(gameContext->getActiveState())) isActive = true;
+            else if (i == 2 && dynamic_cast<mainMenuState*>(gameContext->getActiveState())) isActive = true;
 
-            UIWidget::drawButton(renderer, tRect, tools[i].first, hov, true, isActive, uiScale * 0.74f);
+            UIWidget::drawButton(renderer, tRect, tools[i].first, hov, true, isActive, uiScale * 0.70f);
 
             if (i == 0) TooltipManager::setHoverTooltip(tRect, mousePos, "Inventory & Storage", "Opens dual 5x4 player inventory and ground loot storage.", "Storage", "[ I ]");
-            else if (i == 1) TooltipManager::setHoverTooltip(tRect, mousePos, "Phone & Messaging", "Access smartphone apps, contacts, messages, and map.", "Communication", "[ P ]");
-            else if (i == 2) TooltipManager::setHoverTooltip(tRect, mousePos, "Transformations & Mutations", "Inspect body changes, demon morphs, horns, wings, and anatomy editor.", "Biology", "[ M ]");
-            else if (i == 3) TooltipManager::setHoverTooltip(tRect, mousePos, "Game Options & Settings", "Adjust gameplay options, content filters, keybindings, and themes.", "System", "[ O / ESC ]");
+            else if (i == 1) TooltipManager::setHoverTooltip(tRect, mousePos, "Phone & In-Game Actions", "Access smartphone apps, transformations, resting, and regional map.", "Communication", "[ P ]");
+            else if (i == 2) TooltipManager::setHoverTooltip(tRect, mousePos, "Main Menu", "Open main menu, save/load, settings, and game options.", "System", "[ ESC ]");
 
             if (hov && clicked)
             {

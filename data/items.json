@@ -10,6 +10,7 @@
       "isStackable": false,
       "count": 1,
       "targetSlot": "TORSO_UNDER",
+      "validSlots": ["TORSO_UNDER", "TORSO_OVER"],
       "requiredTags": [],
       "forbiddenTags": [],
       "statModifiers": [

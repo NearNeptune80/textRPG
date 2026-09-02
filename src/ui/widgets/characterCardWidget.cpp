@@ -242,14 +242,14 @@ namespace CharacterCardWidget
         s2Y += barH + barGap;
 
         // 2. Mana Bar
-        float curMp = inPrologue ? 0.0f : player->getStat("mana");
-        float maxMp = inPrologue ? 0.0f : player->getStat("max_mana");
-        if (!inPrologue && maxMp <= 0.0f) maxMp = std::max(curMp, 100.0f);
-        if (!inPrologue) curMp = std::clamp(curMp, 0.0f, maxMp);
+        float curMp = player->getStat("mana");
+        float maxMp = player->getStat("max_mana");
+        if (maxMp <= 0.0f) maxMp = std::max(curMp, 100.0f);
+        curMp = std::clamp(curMp, 0.0f, maxMp);
 
         UIWidget::drawText(renderer, "Mana", s2ContentX, s2Y, Theme::colors.mana, uiScale * 0.65f);
         UIWidget::drawProgressBar(renderer, { s2ContentX + labelW, s2Y, progressW, barH }, curMp, std::max(1.0f, maxMp), Theme::colors.mana, Theme::colors.bgHeader, "", uiScale);
-        std::string mpStr = inPrologue ? "0/0" : std::format("{:.0f}/{:.0f}", curMp, maxMp);
+        std::string mpStr = std::format("{:.0f}/{:.0f}", curMp, maxMp);
         UIWidget::drawText(renderer, mpStr, s2ContentX + labelW + progressW + (4.0f * uiScale), s2Y, Theme::colors.textPrimary, uiScale * 0.62f);
         TooltipManager::setHoverTooltip({ s2ContentX, s2Y, s2ContentW, barH }, mousePos, "Arcane Mana (MP)",
                                         "Magical reserves consumed by spells, abilities, enchantments, and transformations.",

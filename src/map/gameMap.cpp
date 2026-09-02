@@ -88,6 +88,7 @@ bool gameMap::loadFromFile(const std::string& filePath)
                 trig.id = tJson.value("id", "");
                 trig.label = tJson.value("label", "Interact");
                 trig.tooltip = tJson.value("tooltip", "");
+                trig.description = tJson.value("description", "");
                 trig.x = tJson.at("x").get<int>();
                 trig.y = tJson.at("y").get<int>();
                 trig.sceneId = tJson.at("sceneId").get<std::string>();
@@ -106,6 +107,75 @@ bool gameMap::loadFromFile(const std::string& filePath)
                 triggers.push_back(trig);
             }
         }
+
+        // Descriptions & Tags
+        defaultDescriptions.clear();
+        if (data.contains("defaultDescriptions") && data["defaultDescriptions"].is_array())
+        {
+            for (const auto& d : data["defaultDescriptions"])
+            {
+                if (d.is_string()) defaultDescriptions.push_back(d.get<std::string>());
+            }
+        }
+        else if (data.contains("description") && data["description"].is_string())
+        {
+            defaultDescriptions.push_back(data["description"].get<std::string>());
+        }
+
+        tileDescriptions.clear();
+        if (data.contains("tileDescriptions") && data["tileDescriptions"].is_object())
+        {
+            for (const auto& [coordKey, val] : data["tileDescriptions"].items())
+            {
+                if (val.is_array())
+                {
+                    std::vector<std::string> list;
+                    for (const auto& item : val) if (item.is_string()) list.push_back(item.get<std::string>());
+                    tileDescriptions[coordKey] = list;
+                }
+                else if (val.is_string())
+                {
+                    tileDescriptions[coordKey] = { val.get<std::string>() };
+                }
+            }
+        }
+
+        tileTags.clear();
+        if (data.contains("tileTags") && data["tileTags"].is_object())
+        {
+            for (const auto& [coordKey, val] : data["tileTags"].items())
+            {
+                if (val.is_array())
+                {
+                    std::vector<std::string> list;
+                    for (const auto& item : val) if (item.is_string()) list.push_back(item.get<std::string>());
+                    tileTags[coordKey] = list;
+                }
+                else if (val.is_string())
+                {
+                    tileTags[coordKey] = { val.get<std::string>() };
+                }
+            }
+        }
+
+        tagDescriptions.clear();
+        if (data.contains("tagDescriptions") && data["tagDescriptions"].is_object())
+        {
+            for (const auto& [tagKey, val] : data["tagDescriptions"].items())
+            {
+                if (val.is_array())
+                {
+                    std::vector<std::string> list;
+                    for (const auto& item : val) if (item.is_string()) list.push_back(item.get<std::string>());
+                    tagDescriptions[tagKey] = list;
+                }
+                else if (val.is_string())
+                {
+                    tagDescriptions[tagKey] = { val.get<std::string>() };
+                }
+            }
+        }
+
         return true;
     }
     catch (const json::exception& e)
@@ -113,6 +183,54 @@ bool gameMap::loadFromFile(const std::string& filePath)
         std::cerr << "Map JSON Error (" << filePath << "): " << e.what() << "\n";
         return false;
     }
+}
+
+const std::vector<std::string>& gameMap::getTileTags(int x, int y) const
+{
+    static const std::vector<std::string> emptyTags;
+    std::string key = std::to_string(x) + "," + std::to_string(y);
+    auto it = tileTags.find(key);
+    if (it != tileTags.end()) return it->second;
+    return emptyTags;
+}
+
+std::string gameMap::getTileDescription(int x, int y) const
+{
+    std::string key = std::to_string(x) + "," + std::to_string(y);
+    auto pickStable = [x, y](const std::vector<std::string>& list) -> std::string {
+        if (list.empty()) return "";
+        uint32_t h = (static_cast<uint32_t>(x) * 73856093u) ^ (static_cast<uint32_t>(y) * 19349663u);
+        return list[h % list.size()];
+    };
+
+    // 1. Specific coordinate description
+    auto itDesc = tileDescriptions.find(key);
+    if (itDesc != tileDescriptions.end() && !itDesc->second.empty())
+    {
+        return pickStable(itDesc->second);
+    }
+
+    // 2. Tag-based descriptions
+    auto itTags = tileTags.find(key);
+    if (itTags != tileTags.end())
+    {
+        for (const auto& tag : itTags->second)
+        {
+            auto itTagDesc = tagDescriptions.find(tag);
+            if (itTagDesc != tagDescriptions.end() && !itTagDesc->second.empty())
+            {
+                return pickStable(itTagDesc->second);
+            }
+        }
+    }
+
+    // 3. Default map descriptions
+    if (!defaultDescriptions.empty())
+    {
+        return pickStable(defaultDescriptions);
+    }
+
+    return "You are in " + mapName + ".";
 }
 
 bool gameMap::isWalkable(int x, int y) const

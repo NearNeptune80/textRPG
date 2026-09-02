@@ -607,12 +607,22 @@ namespace EngineTests
         cc.femininity = "Feminine";
         cc.initializeWardrobe();
 
-        // 1. Initial outfit is decent
-        bool initDecent = cc.isClothedEnough();
-        logResult("Initial populated wardrobe setup is Decent", initDecent);
-        allPassed &= initDecent;
+        // 1. Initial state starts unclad with clothes in available pool
+        bool initUnclad = !cc.isClothedEnough();
+        std::string initStatus = cc.getDecencyStatus();
+        bool initMentionsAll = (initStatus.find("Must put on footwear") != std::string::npos &&
+                                initStatus.find("Must conceal groin") != std::string::npos &&
+                                initStatus.find("Must conceal chest") != std::string::npos);
+        logResult("Initial empty inventory wardrobe setup is Indecent", initUnclad && initMentionsAll);
+        allPassed &= (initUnclad && initMentionsAll);
 
-        // 2. Strip footwear -> Indecent
+        // 2. Equip dress and shoes -> Decent
+        cc.applyWardrobePreset("Evening Dress");
+        bool dressedDecent = cc.isClothedEnough();
+        logResult("Equipping coordinated dress & shoes achieves Decent status", dressedDecent);
+        allPassed &= dressedDecent;
+
+        // 3. Strip footwear -> Indecent
         cc.unequipWardrobeItem(equipSlot::FEET);
         bool noShoesIndecent = !cc.isClothedEnough();
         std::string status1 = cc.getDecencyStatus();
@@ -620,7 +630,7 @@ namespace EngineTests
         logResult("Stripping footwear flags indecency with warning", noShoesIndecent && mentionsShoes);
         allPassed &= (noShoesIndecent && mentionsShoes);
 
-        // 3. Strip all clothing -> Multiple warnings
+        // 4. Strip all clothing -> Multiple warnings
         cc.unequipWardrobeItem(equipSlot::TORSO_OVER);
         cc.unequipWardrobeItem(equipSlot::TORSO_UNDER);
         cc.unequipWardrobeItem(equipSlot::CHEST_WEAR);
@@ -633,25 +643,8 @@ namespace EngineTests
         logResult("Fully stripped character flags groin and chest indecency", mentionsGroin && mentionsChest);
         allPassed &= (mentionsGroin && mentionsChest);
 
-        // 4. Equip wardrobe pile items back
-        while (!cc.availableWardrobe.empty())
-        {
-            size_t beforeSize = cc.availableWardrobe.size();
-            for (size_t i = 0; i < cc.availableWardrobe.size(); ++i)
-            {
-                if (cc.availableWardrobe[i]->targetSlot == equipSlot::FEET ||
-                    cc.availableWardrobe[i]->targetSlot == equipSlot::TORSO_OVER ||
-                    cc.availableWardrobe[i]->targetSlot == equipSlot::LEGS_OUTER ||
-                    cc.availableWardrobe[i]->targetSlot == equipSlot::GROIN_OVER ||
-                    cc.availableWardrobe[i]->targetSlot == equipSlot::CHEST_WEAR)
-                {
-                    cc.equipWardrobeItem(i);
-                    break;
-                }
-            }
-            if (cc.availableWardrobe.size() == beforeSize) break;
-        }
-
+        // 5. Re-equip wardrobe garments
+        cc.applyWardrobePreset("Formal Suit");
         bool reEquippedDecent = cc.isClothedEnough();
         logResult("Re-equipping wardrobe garments restores Decent status", reEquippedDecent);
         allPassed &= reEquippedDecent;
@@ -1035,6 +1028,102 @@ namespace EngineTests
         return allPassed;
     }
 
+    bool testInventoryCategoricalSortingAndActions()
+    {
+        std::cout << "\n--- Running Test 16: Inventory Categorical Sorting & Extended Actions ---\n";
+        bool allPassed = true;
+
+        game g;
+        auto player = std::make_shared<entity>("hero_test", "Sorting Hero");
+        g.playerEntity = player;
+        g.Player = player.get();
+
+        // Add items out of order: Consumable, Key Item, Weapon, Underwear, Clothing
+        auto pot = std::make_shared<item>();
+        pot->id = "item_potion_health";
+        pot->name = "Health Potion";
+        pot->isConsumable = true;
+        player->inventory.addItem(pot);
+
+        auto key = std::make_shared<item>();
+        key->id = "item_dungeon_key";
+        key->name = "Skeleton Key";
+        key->isKeyItem = true;
+        player->inventory.addItem(key);
+
+        auto sword = std::make_shared<item>();
+        sword->id = "item_iron_sword";
+        sword->name = "Iron Sword";
+        sword->isEquippable = true;
+        sword->targetSlot = equipSlot::WEAPON_MAIN;
+        player->inventory.addItem(sword);
+
+        auto bra = std::make_shared<item>();
+        bra->id = "item_silk_bra";
+        bra->name = "Silk Bra";
+        bra->isEquippable = true;
+        bra->targetSlot = equipSlot::CHEST_WEAR;
+        player->inventory.addItem(bra);
+
+        auto shirt = std::make_shared<item>();
+        shirt->id = "item_linen_shirt";
+        shirt->name = "Linen Shirt";
+        shirt->isEquippable = true;
+        shirt->targetSlot = equipSlot::TORSO_UNDER;
+        player->inventory.addItem(shirt);
+
+        auto stacked = player->inventory.getStackedView();
+        bool correctCount = (stacked.size() == 5);
+        bool sortCorrect = (correctCount &&
+            stacked[0].itemPtr->id == "item_iron_sword" &&      // Weapon (10)
+            stacked[1].itemPtr->id == "item_linen_shirt" &&     // Clothing (20)
+            stacked[2].itemPtr->id == "item_silk_bra" &&        // Underwear (30)
+            stacked[3].itemPtr->id == "item_potion_health" &&   // Consumable (50)
+            stacked[4].itemPtr->id == "item_dungeon_key");      // Key Item (70)
+
+        logResult("Natural categorical sorting groups items (Weapon -> Clothing -> Underwear -> Consumable -> Key)", sortCorrect);
+        allPassed &= sortCorrect;
+
+        // Test Strip to Underwear
+        player->inventory.equipped[static_cast<size_t>(equipSlot::TORSO_UNDER)] = shirt;
+        player->inventory.equipped[static_cast<size_t>(equipSlot::CHEST_WEAR)] = bra;
+        g.handleStripToUnderwearAction();
+
+        bool shirtUnequipped = (player->inventory.equipped[static_cast<size_t>(equipSlot::TORSO_UNDER)] == nullptr);
+        bool braRetained = (player->inventory.equipped[static_cast<size_t>(equipSlot::CHEST_WEAR)] != nullptr);
+        bool stripCorrect = (shirtUnequipped && braRetained);
+        logResult("Strip to Underwear removes outer garments while retaining underwear", stripCorrect);
+        allPassed &= stripCorrect;
+
+        // Test Reset All Fits
+        player->inventory.setDisplacement(equipSlot::CHEST_WEAR, DisplacementMode::PULL_DOWN);
+        bool dispActive = (player->inventory.getDisplacement(equipSlot::CHEST_WEAR) == DisplacementMode::PULL_DOWN);
+        g.handleResetAllDisplacementsAction();
+        bool dispReset = (player->inventory.getDisplacement(equipSlot::CHEST_WEAR) == DisplacementMode::NONE);
+        bool resetCorrect = (dispActive && dispReset);
+        logResult("Reset All Fits restores all active garment displacements", resetCorrect);
+        allPassed &= resetCorrect;
+
+        // Test Loot All
+        if (g.map)
+        {
+            auto& td = g.map->getRuntimeData(g.gridX, g.gridY);
+            td.droppedItems.clear();
+            auto droppedGem = std::make_shared<item>();
+            droppedGem->id = "item_gem_ruby";
+            droppedGem->name = "Ruby Gem";
+            td.addDroppedItem(droppedGem, 120);
+
+            size_t preSize = player->inventory.backpack.size();
+            g.handleLootAllAction();
+            bool looted = (td.droppedItems.empty() && player->inventory.backpack.size() == preSize + 1);
+            logResult("Loot All transfers all ground items into backpack and clears ground", looted);
+            allPassed &= looted;
+        }
+
+        return allPassed;
+    }
+
     bool runAllTests()
     {
         g_passCount = 0;
@@ -1058,6 +1147,7 @@ namespace EngineTests
         bool t13 = testLegacySaveCompatibility();
         bool t14 = testTooltipSystem();
         bool t15 = testPlayerStatsAndItemUsage();
+        bool t16 = testInventoryCategoricalSortingAndActions();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";
