@@ -8,6 +8,17 @@ phoneAppsState::phoneAppsState(PhoneAppMode mode)
     : m_mode(mode)
 {
     loadData(m_mode);
+    static const std::vector<std::string> defaultFetishes = {
+        "Exhibitionism", "Anal", "Oral", "Lactation", "Transformations",
+        "Dominance", "Submission", "Furry", "BDSM", "Foot Worship"
+    };
+    for (const auto& fKey : defaultFetishes)
+    {
+        if (m_fetishDesires.find(fKey) == m_fetishDesires.end())
+        {
+            m_fetishDesires[fKey] = FetishDesireLevel::NEUTRAL;
+        }
+    }
 }
 
 void phoneAppsState::initialise(game* gameContext)
@@ -28,27 +39,23 @@ void phoneAppsState::onExit(game* gameContext) {}
 
 void phoneAppsState::update(game* gameContext, float deltaTime) {}
 
-void phoneAppsState::handleInput(game* gameContext, const SDL_Event& event)
+void phoneAppsState::handleCommand(game* gameContext, const UICommand& cmd)
 {
     if (!gameContext) return;
-    if (event.type == SDL_EVENT_KEY_DOWN)
+
+    if (cmd.type == CommandType::CLOSE_MENU)
     {
-        if (event.key.key == SDLK_ESCAPE)
+        if (m_mode == PhoneAppMode::HOME)
         {
-            if (m_mode == PhoneAppMode::HOME)
-            {
-                gameContext->changeState(std::make_unique<explorationState>());
-            }
-            else
-            {
-                setAppMode(PhoneAppMode::HOME);
-                gameContext->refreshActionGrid();
-            }
+            gameContext->changeState(std::make_unique<explorationState>());
+        }
+        else
+        {
+            setAppMode(PhoneAppMode::HOME);
+            gameContext->refreshActionGrid();
         }
     }
 }
-
-void phoneAppsState::handleCommand(game* gameContext, const UICommand& cmd) {}
 
 void phoneAppsState::loadData(PhoneAppMode mode)
 {

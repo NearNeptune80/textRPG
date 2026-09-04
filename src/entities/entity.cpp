@@ -19,10 +19,12 @@ void entity::addStatusEffect(const StatusEffect& effect)
         if (fx.id == effect.id)
         {
             fx.durationTurns = effect.durationTurns;
+            invalidateStatCache();
             return;
         }
     }
     statusEffects.push_back(effect);
+    invalidateStatCache();
 }
 
 /**
@@ -31,6 +33,7 @@ void entity::addStatusEffect(const StatusEffect& effect)
 void entity::removeStatusEffect(const std::string& effectId)
 {
     std::erase_if(statusEffects, [&](const StatusEffect& fx) { return fx.id == effectId; });
+    invalidateStatCache();
 }
 
 bool entity::hasStatusEffect(const std::string& effectId) const
@@ -51,10 +54,39 @@ void entity::updateStatusEffectsOnTurn()
         if (fx.durationTurns > 0) fx.durationTurns--;
         return fx.durationTurns == 0;
     });
+    invalidateStatCache();
+}
+
+void entity::invalidateStatCache() const
+{
+    m_statsDirty = true;
+    m_statCache.clear();
 }
 
 float entity::getStat(const std::string& statName) const
 {
+    if (m_cachedEquipVersion != inventory.equipVersion || m_cachedStatsVersion != stats.statsVersion)
+    {
+        m_cachedEquipVersion = inventory.equipVersion;
+        m_cachedStatsVersion = stats.statsVersion;
+        m_statsDirty = true;
+        m_statCache.clear();
+    }
+
+    if (!m_statsDirty)
+    {
+        auto it = m_statCache.find(statName);
+        if (it != m_statCache.end())
+        {
+            return it->second;
+        }
+    }
+    else
+    {
+        m_statCache.clear();
+        m_statsDirty = false;
+    }
+
     float val = stats.getEffectiveStat(statName, statusEffects);
 
     // Sum flat and percent bonuses from equipped items
@@ -74,7 +106,9 @@ float entity::getStat(const std::string& statName) const
         }
     }
 
-    return std::max(0.0f, (val + flatEquipment) * (1.0f + percentEquipment));
+    float result = std::max(0.0f, (val + flatEquipment) * (1.0f + percentEquipment));
+    m_statCache[statName] = result;
+    return result;
 }
 
 json entity::toJson() const
@@ -87,6 +121,10 @@ json entity::toJson() const
     j["merchantAffinity"] = merchantAffinity;
     j["lastRestockDay"] = lastRestockDay;
     j["baseMerchantGold"] = baseMerchantGold;
+    j["buyMarkup"] = buyMarkup;
+    j["sellMarkdown"] = sellMarkdown;
+    j["tradePerkModifier"] = tradePerkModifier;
+    j["unlockedPerks"] = unlockedPerks;
 
     json statsJson;
     statsJson["level"] = stats.level;
@@ -194,6 +232,7 @@ json entity::toJson() const
         dispJson[equipSlotToString(slot)] = displacementModeToString(mode);
     }
     j["activeDisplacements"] = dispJson;
+    j["quests"] = quests.toJson();
 
     return j;
 }
@@ -209,6 +248,14 @@ void entity::fromJson(const json& j)
     merchantAffinity = j.value("merchantAffinity", 1.0f);
     lastRestockDay = j.value("lastRestockDay", -1);
     baseMerchantGold = j.value("baseMerchantGold", 500.0f);
+    buyMarkup = j.value("buyMarkup", 1.25f);
+    sellMarkdown = j.value("sellMarkdown", 0.50f);
+    tradePerkModifier = j.value("tradePerkModifier", 0.0f);
+    if (j.contains("unlockedPerks") && j["unlockedPerks"].is_array())
+    {
+        unlockedPerks = j["unlockedPerks"].get<std::vector<std::string>>();
+        recalculatePerkModifiers();
+    }
 
     if (j.contains("gestation"))
     {
@@ -260,7 +307,7 @@ void entity::fromJson(const json& j)
 
     if (j.contains("quests"))
     {
-        quests.activeQuests = j["quests"].get<std::unordered_map<std::string, int>>();
+        quests.fromJson(j["quests"]);
     }
 
     if (j.contains("essences"))
@@ -353,5 +400,40 @@ void entity::fromJson(const json& j)
                 inventory.activeDisplacements[slot] = mode;
             }
         }
+    }
+
+    invalidateStatCache();
+}
+
+void entity::unlockPerk(const std::string& perkId)
+{
+    if (std::find(unlockedPerks.begin(), unlockedPerks.end(), perkId) == unlockedPerks.end())
+    {
+        unlockedPerks.push_back(perkId);
+        recalculatePerkModifiers();
+    }
+}
+
+bool entity::hasPerk(const std::string& perkId) const
+{
+    return std::find(unlockedPerks.begin(), unlockedPerks.end(), perkId) != unlockedPerks.end();
+}
+
+void entity::resetPerks()
+{
+    unlockedPerks.clear();
+    recalculatePerkModifiers();
+}
+
+void entity::recalculatePerkModifiers()
+{
+    tradePerkModifier = 0.0f;
+    if (hasPerk("silver_tongue"))
+    {
+        tradePerkModifier += 0.10f;
+    }
+    if (hasPerk("master_trader"))
+    {
+        tradePerkModifier += 0.15f;
     }
 }

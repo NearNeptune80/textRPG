@@ -1,6 +1,10 @@
 {
   "id": "cottage_investigation",
   "name": "The Mysterious Bookshelf",
+  "category": "Side Quest",
+  "giver": "Ancient Bookshelf",
+  "location": "Cozy Cottage",
+  "rewards": "Arcane Codex and arcane insight",
   "description": "Investigate the strange ancient bookshelf inside the Cozy Cottage.",
   "triggers": [
     {

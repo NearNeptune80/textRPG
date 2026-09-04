@@ -20,6 +20,13 @@
 #include "ui/theme.h"
 #include "ui/fontManager.h"
 #include "ui/tooltipManager.h"
+#include "common/enums.h"
+#include "quest/questDatabase.h"
+#include "quest/quest.h"
+#include "entities/questComponent.h"
+#include "state/phoneAppsState.h"
+#include "state/shopState.h"
+#include "items/merchantValuation.h"
 
 namespace EngineTests
 {
@@ -1124,6 +1131,552 @@ namespace EngineTests
         return allPassed;
     }
 
+    bool testDecouplingAndCaching()
+    {
+        std::cout << "\n--- Running Test 17: Headless Command Routing, Stat Caching & Enums ---\n";
+        bool allPassed = true;
+
+        // 1. Centralized Enums String Conversions Round-trip
+        bool enumRoundtrip = true;
+        for (std::size_t s = 0; s < EQUIP_SLOT_COUNT; ++s)
+        {
+            auto slot = static_cast<equipSlot>(s);
+            std::string_view name = equipSlotToString(slot);
+            equipSlot parsed = stringToEquipSlot(name);
+            if (parsed != slot) { enumRoundtrip = false; break; }
+        }
+        logResult("Centralized equipSlotToString round-trip for all slots", enumRoundtrip);
+        allPassed &= enumRoundtrip;
+
+        bool bodyRoundtrip = true;
+        for (std::size_t b = 0; b < BODY_SLOT_COUNT; ++b)
+        {
+            auto slot = static_cast<bodySlot>(b);
+            std::string_view name = bodySlotToString(slot);
+            bodySlot parsed = stringToBodySlot(name);
+            if (parsed != slot) { bodyRoundtrip = false; break; }
+        }
+        logResult("Centralized bodySlotToString round-trip for all slots", bodyRoundtrip);
+        allPassed &= bodyRoundtrip;
+
+        // 2. Stat Caching & Dynamic Invalidation on Equipment Change
+        auto hero = std::make_shared<entity>("caching_hero", "Cache Hero");
+        hero->stats.setBaseStat("physique", 20.0f);
+        float basePhys = hero->getStat("physique");
+        float cachedPhys = hero->getStat("physique");
+        bool cacheMatch = (basePhys == 20.0f && cachedPhys == 20.0f);
+
+        auto ring = std::make_shared<item>();
+        ring->id = "ring_strength";
+        ring->name = "Strength Ring";
+        ring->isEquippable = true;
+        ring->targetSlot = equipSlot::FINGER_PRIMARY;
+        ring->statModifiers.push_back(StatModifier{ "physique", 10.0f, 0.0f });
+        hero->inventory.equipped[static_cast<size_t>(equipSlot::FINGER_PRIMARY)] = ring;
+        hero->inventory.equipVersion++; // Invalidate equip cache
+
+        float modifiedPhys = hero->getStat("physique");
+        bool cacheInvalidated = (modifiedPhys == 30.0f);
+        logResult("Stat cache invalidation on inventory equipVersion increment", cacheMatch && cacheInvalidated);
+        allPassed &= (cacheMatch && cacheInvalidated);
+
+        // 3. Headless UICommand Dispatch
+        game g;
+        g.changeState(std::make_unique<mainMenuState>());
+        UICommand openOpt = UICommand::triggerActionButton(5); // Slot 5 = Options
+        g.handleCommand(openOpt);
+        bool inOptions = (dynamic_cast<optionsState*>(g.getActiveState()) != nullptr);
+        logResult("UICommand dispatches button trigger and transitions state", inOptions);
+        allPassed &= inOptions;
+
+        UICommand closeMenu = UICommand::closeMenu();
+        g.handleCommand(closeMenu);
+        bool backToMainMenu = (dynamic_cast<mainMenuState*>(g.getActiveState()) != nullptr);
+        logResult("UICommand::closeMenu returns to previous state", backToMainMenu);
+        allPassed &= backToMainMenu;
+
+        return allPassed;
+    }
+
+    bool testQuestJournalSystem()
+    {
+        std::cout << "\n--- Running Test 18: Quest Database, Component & Phone Journal System ---\n";
+        bool allPassed = true;
+
+        // 1. Quest Database Loading & Definitions
+        questDatabase::loadDatabase("data/quests");
+        auto allQuests = questDatabase::getAllQuests();
+        bool hasQuests = !allQuests.empty();
+        logResult("Quest Database loaded quest definitions from data/quests", hasQuests);
+        allPassed &= hasQuests;
+
+        const auto* introQuest = questDatabase::getQuest("root_delivery");
+        bool validIntro = (introQuest != nullptr && introQuest->id == "root_delivery" && !introQuest->stages.empty());
+        logResult("Quest 'root_delivery' correctly defined with non-empty stages", validIntro);
+        allPassed &= validIntro;
+
+        // 2. Quest Component Tracking, Progression & Completion
+        questComponent qc;
+        qc.setQuestStage("root_delivery", 0);
+        bool hasRoot = qc.hasQuest("root_delivery");
+        logResult("QuestComponent registers active quest", hasRoot);
+        allPassed &= hasRoot;
+
+        qc.setTrackedQuest("root_delivery");
+        bool trackedRoot = (qc.getTrackedQuest() == "root_delivery");
+        logResult("QuestComponent tracks quest 'root_delivery'", trackedRoot);
+        allPassed &= trackedRoot;
+
+        // Advance to stage 2 (completion)
+        qc.setQuestStage("root_delivery", 2);
+        bool isComp = qc.isCompleted("root_delivery");
+        logResult("QuestComponent successfully marks quest as completed at completionStage", isComp);
+        allPassed &= isComp;
+
+        // 3. Serialization Round-trip
+        nlohmann::json qJson = qc.toJson();
+        questComponent qcLoaded;
+        qcLoaded.fromJson(qJson);
+        bool serTracked = (qcLoaded.getTrackedQuest() == "root_delivery");
+        bool serComp = qcLoaded.isCompleted("root_delivery");
+        logResult("QuestComponent JSON serialization preserves completed stages and tracked quest", serTracked && serComp);
+        allPassed &= (serTracked && serComp);
+
+        // 4. Phone Apps State Quests Navigation & Action Grid
+        game g;
+        g.playerEntity = std::make_shared<entity>("hero_quest", "Quest Hero");
+        g.Player = g.playerEntity.get();
+        g.Player->quests.setQuestStage("root_delivery", 0);
+        g.Player->quests.setTrackedQuest("root_delivery");
+
+        auto phoneState = std::make_unique<phoneAppsState>(PhoneAppMode::QUESTS);
+        g.changeState(std::move(phoneState));
+
+        auto* activePhone = dynamic_cast<phoneAppsState*>(g.getActiveState());
+        bool inQuestApp = (activePhone != nullptr && activePhone->getAppMode() == PhoneAppMode::QUESTS);
+        logResult("phoneAppsState initializes in PhoneAppMode::QUESTS", inQuestApp);
+        allPassed &= inQuestApp;
+
+        if (activePhone)
+        {
+            // Verify Action Grid layout: Slots 0-13 are empty, Slot 14 is Back
+            bool slots0To13Empty = true;
+            for (int i = 0; i < 14; ++i)
+            {
+                if (i < static_cast<int>(g.activeButtons.size()) && !g.activeButtons[i].label.empty())
+                {
+                    slots0To13Empty = false;
+                }
+            }
+            logResult("Action Grid Slots 0-13 are completely empty (clean layout)", slots0To13Empty);
+            allPassed &= slots0To13Empty;
+
+            bool slot14IsBack = (g.activeButtons.size() > 14 && g.activeButtons[14].label == "Back");
+            logResult("Action Grid Slot 14 is 'Back' button", slot14IsBack);
+            allPassed &= slot14IsBack;
+
+            // Test Category Filter Transitions (controlled via Center Pane UI)
+            activePhone->setQuestCategoryFilter(QuestCategoryFilter::MAIN);
+            bool isMain = (activePhone->getQuestCategoryFilter() == QuestCategoryFilter::MAIN);
+            logResult("Quest category filter selects Main Quests", isMain);
+            allPassed &= isMain;
+
+            activePhone->setQuestCategoryFilter(QuestCategoryFilter::SIDE);
+            bool isSide = (activePhone->getQuestCategoryFilter() == QuestCategoryFilter::SIDE);
+            logResult("Quest category filter selects Side Quests", isSide);
+            allPassed &= isSide;
+
+            activePhone->setQuestCategoryFilter(QuestCategoryFilter::ALL);
+            bool isAll = (activePhone->getQuestCategoryFilter() == QuestCategoryFilter::ALL);
+            logResult("Quest category filter selects All Quests", isAll);
+            allPassed &= isAll;
+
+            // Test Completed Toggle (controlled via Center Pane UI)
+            bool compBefore = activePhone->isShowCompleted();
+            activePhone->toggleShowCompleted();
+            bool compAfter = activePhone->isShowCompleted();
+            activePhone->toggleShowCompleted();
+            bool compReverted = activePhone->isShowCompleted();
+            bool compToggleOk = (!compBefore && compAfter && !compReverted);
+            logResult("Quests app toggles Completed filter state", compToggleOk);
+            allPassed &= compToggleOk;
+
+            // Test Card Expansion (controlled via Center Pane Card Click)
+            activePhone->toggleExpandedQuest("root_delivery");
+            bool isExpanded = (activePhone->getExpandedQuestId() == "root_delivery");
+            activePhone->toggleExpandedQuest("root_delivery");
+            bool isCollapsed = (activePhone->getExpandedQuestId().empty());
+            bool expOk = (isExpanded && isCollapsed);
+            logResult("Quests app toggles quest card details expansion", expOk);
+            allPassed &= expOk;
+
+            // Test Scrolling bounds
+            activePhone->setQuestMaxScrollY(150.0f);
+            activePhone->scrollQuestList(50.0f);
+            bool scrolled = (activePhone->getQuestScrollY() == 50.0f);
+            activePhone->scrollQuestList(200.0f);
+            bool clamped = (activePhone->getQuestScrollY() == 150.0f);
+            bool scrollOk = (scrolled && clamped);
+            logResult("Quest list scroll offset adjusts smoothly and clamps to max scroll bounds", scrollOk);
+            allPassed &= scrollOk;
+
+            // Action Grid Slot 14 returns back to Phone Home
+            UICommand backCmd = UICommand::triggerActionButton(14);
+            g.handleCommand(backCmd);
+            bool atHome = (activePhone->getAppMode() == PhoneAppMode::HOME);
+            logResult("Action Grid Slot 14 returns to Phone Home", atHome);
+            allPassed &= atHome;
+        }
+
+        return allPassed;
+    }
+
+    bool testFullPhoneSystem()
+    {
+        std::cout << "\n--- Running Test 19: Full 14-App Smartphone System & 5-Tier Fetishes ---\n";
+        bool allPassed = true;
+
+        game g;
+        g.playerEntity = std::make_shared<entity>("hero_phone", "Phone Hero");
+        g.Player = g.playerEntity.get();
+        g.changeState(std::make_unique<phoneAppsState>(PhoneAppMode::HOME));
+
+        auto* phone = dynamic_cast<phoneAppsState*>(g.getActiveState());
+        bool initOk = (phone != nullptr && phone->getAppMode() == PhoneAppMode::HOME);
+        logResult("phoneAppsState initialises in HOME mode", initOk);
+        allPassed &= initOk;
+
+        if (phone)
+        {
+            // 1. Check all 14 Apps in Home Action Grid (slots 0..13) + Slot 14 Back
+            const auto& grid = g.activeButtons;
+            bool has14Apps = (grid.size() == 15);
+            std::vector<std::string> expectedApps = {
+                "Quests", "Perk Tree", "Spells", "Fetishes", "Stats",
+                "Selfie", "Contacts", "Encyclopedia", "Transform", "Maps",
+                "Combat Moves", "Masturbate", "Wait / Rest", "Elemental", "Back"
+            };
+            bool appsMatch = has14Apps;
+            for (size_t i = 0; i < std::min(grid.size(), expectedApps.size()); ++i)
+            {
+                if (grid[i].label != expectedApps[i])
+                {
+                    appsMatch = false;
+                    break;
+                }
+            }
+            logResult("Home screen contains exact 14 apps (Slots 0-13) and Back (Slot 14)", appsMatch);
+            allPassed &= appsMatch;
+
+            // 2. Test 5-Tier Fetish Desires (Hate, Dislike, Neutral, Like, Love)
+            phone->setFetishDesire("Exhibitionism", FetishDesireLevel::HATE);
+            phone->setFetishDesire("Anal", FetishDesireLevel::LOVE);
+            phone->setFetishDesire("Oral", FetishDesireLevel::LIKE);
+            phone->setFetishDesire("Lactation", FetishDesireLevel::DISLIKE);
+            bool fHate = (phone->getFetishDesire("Exhibitionism") == FetishDesireLevel::HATE);
+            bool fLove = (phone->getFetishDesire("Anal") == FetishDesireLevel::LOVE);
+            bool fLike = (phone->getFetishDesire("Oral") == FetishDesireLevel::LIKE);
+            bool fDislike = (phone->getFetishDesire("Lactation") == FetishDesireLevel::DISLIKE);
+            bool fNeutral = (phone->getFetishDesire("Transformations") == FetishDesireLevel::NEUTRAL);
+            bool fetish5TierOk = (fHate && fLove && fLike && fDislike && fNeutral);
+            logResult("Fetishes support 5-tier desire system including 'Hate' toggle", fetish5TierOk);
+            allPassed &= fetish5TierOk;
+
+            // 3. Test Navigation into Masturbate App & Arousal Manipulation
+            g.handleCommand(UICommand::triggerActionButton(11)); // Masturbate (slot 11)
+            bool inMasturbate = (phone->getAppMode() == PhoneAppMode::MASTURBATE);
+            logResult("Action Grid Slot 11 transitions to Masturbate App", inMasturbate);
+            allPassed &= inMasturbate;
+
+            entity* p = g.getPlayer();
+            if (p)
+            {
+                p->stats.setBaseStat("arousal", 20.0f);
+                p->stats.setBaseStat("lust", 30.0f);
+                // Trigger Caress Chest (Button 0)
+                g.handleCommand(UICommand::triggerActionButton(0));
+                bool arousalUp = (p->getStat("arousal") >= 35.0f);
+                logResult("Solo intimacy caress actions build arousal", arousalUp);
+                allPassed &= arousalUp;
+
+                // Trigger Climax & Relief (Button 3) when arousal is high
+                p->stats.setBaseStat("arousal", 85.0f);
+                g.refreshActionGrid();
+                g.handleCommand(UICommand::triggerActionButton(3));
+                bool climaxReset = (p->getStat("arousal") == 0.0f && p->getStat("lust") == 0.0f);
+                logResult("Climax & Relief purges lust and resets arousal to 0%", climaxReset);
+                allPassed &= climaxReset;
+            }
+
+            // Return to Home via Slot 14
+            g.handleCommand(UICommand::triggerActionButton(14));
+            bool backHome1 = (phone->getAppMode() == PhoneAppMode::HOME);
+            allPassed &= backHome1;
+
+            // 4. Test Elemental Companion App
+            g.handleCommand(UICommand::triggerActionButton(13)); // Elemental (slot 13)
+            bool inElemental = (phone->getAppMode() == PhoneAppMode::ELEMENTAL);
+            logResult("Action Grid Slot 13 transitions to Elemental App", inElemental);
+            allPassed &= inElemental;
+
+            phone->toggleElementalSummoned();
+            bool summoned = phone->isElementalSummoned();
+            phone->toggleElementalActiveForm();
+            bool activeForm = phone->isElementalActiveForm();
+            bool elemOk = (summoned && activeForm);
+            logResult("Elemental companion manifests and toggles battle/passive aspects", elemOk);
+            allPassed &= elemOk;
+
+            // Return Home
+            g.handleCommand(UICommand::triggerActionButton(14));
+
+            // 5. Test Combat Moves Deck Editor (10 Slots in Action Grid)
+            g.handleCommand(UICommand::triggerActionButton(10)); // Combat Moves (slot 10 on home screen)
+            bool inCombatMoves = (phone->getAppMode() == PhoneAppMode::COMBAT_MOVES);
+            logResult("Action Grid Slot 10 transitions to Combat Moves Deck Editor", inCombatMoves);
+            allPassed &= inCombatMoves;
+
+            // Click action grid button 2 to select slot 2 (3rd deck slot)
+            g.handleCommand(UICommand::triggerActionButton(2));
+            bool slot2Selected = (phone->getSelectedCombatSlot() == 2);
+            logResult("Action Grid button selects combat deck slot #3", slot2Selected);
+            allPassed &= slot2Selected;
+
+            if (p)
+            {
+                p->preparedCombatSlots[2] = "Arcane Dart";
+                bool slotAssigned = (p->preparedCombatSlots[2] == "Arcane Dart");
+                // Trigger Clear Slot (Action Grid Button 10 in COMBAT_MOVES)
+                g.handleCommand(UICommand::triggerActionButton(10));
+                bool slotCleared = (p->preparedCombatSlots[2].empty());
+                bool combatDeckOk = (slotAssigned && slotCleared);
+                logResult("Combat deck prepares and clears action slot techniques via Action Grid", combatDeckOk);
+                allPassed &= combatDeckOk;
+            }
+
+            // Return Home
+            g.handleCommand(UICommand::triggerActionButton(14));
+
+            // 6. Test Stats Tab Navigation
+            phone->setAppMode(PhoneAppMode::STATS);
+            phone->setStatsTab(1); // Body Stats
+            bool bodyTab = (phone->getStatsTab() == 1);
+            phone->setStatsTab(2); // Sex Stats
+            bool sexTab = (phone->getStatsTab() == 2);
+            phone->setStatsTab(3); // Pregnancy
+            bool pregTab = (phone->getStatsTab() == 3);
+            bool statsOk = (bodyTab && sexTab && pregTab);
+            logResult("Stats app navigates across Core, Body, Sex, and Pregnancy tabs", statsOk);
+            allPassed &= statsOk;
+
+            // 7. Test Contacts App Card Expansion & Dossier Transition
+            phone->setAppMode(PhoneAppMode::CONTACTS);
+            phone->toggleContactsExpanded(1); // Expand contact card 1 (Elena)
+            bool cardExpanded = (phone->getContactsExpandedIdx() == 1);
+            phone->toggleContactsExpanded(1); // Collapse contact card 1
+            bool cardCollapsed = (phone->getContactsExpandedIdx() == -1);
+            phone->setContactsSelectedIdx(0); // View first contact dossier
+            bool inDossier = (phone->getContactsSelectedIdx() == 0);
+            phone->setContactsSelectedIdx(-1); // Return to list
+            bool backToList = (phone->getContactsSelectedIdx() == -1);
+            bool contactsOk = (cardExpanded && cardCollapsed && inDossier && backToList);
+            logResult("Contacts app supports card expansion/collapse and detailed dossiers", contactsOk);
+            allPassed &= contactsOk;
+
+            // Return Home
+            phone->setAppMode(PhoneAppMode::HOME);
+            g.refreshActionGrid();
+            bool finalHome = (g.activeButtons[14].label == "Back");
+            logResult("Universal Slot 14 [Back] button maintained across all menus", finalHome);
+            allPassed &= finalHome;
+        }
+
+        return allPassed;
+    }
+
+    bool testEconomyAndShopTrading()
+    {
+        std::cout << "\n--- Running Test 20: Economy, Merchant Valuation & Shop Trading System ---\n";
+        bool allPassed = true;
+
+        game g;
+
+        auto player = std::make_shared<entity>("hero", "Hero");
+        player->stats.setBaseStat("currency", 500.0f);
+        g.playerEntity = player;
+        g.Player = player.get();
+
+        auto merchant = std::make_shared<entity>("marcus", "Marcus");
+        merchant->stats.setBaseStat("currency", 1500.0f);
+        merchant->baseMerchantGold = 1500.0f;
+        merchant->buyMarkup = 1.20f;   // 20% markup
+        merchant->sellMarkdown = 0.55f;// 55% markdown
+        merchant->merchantAffinity = 1.0f;
+
+        // 1. Merchant Valuation Formula: Baseline item without perks
+        auto potion = std::make_shared<item>();
+        potion->id = "item_canis_root";
+        potion->name = "Canis Root Potion";
+        potion->baseValue = 100;
+        potion->isStackable = true;
+        potion->count = 5;
+
+        int buyPriceBase = merchantValuation::calculateBuyPrice(potion.get(), player.get(), merchant.get());
+        int sellPriceBase = merchantValuation::calculateSellPrice(potion.get(), player.get(), merchant.get());
+        // Buy: 100 * 1.20 = 120
+        // Sell: 100 * 0.55 = 55
+        bool baselineMath = (buyPriceBase == 120 && sellPriceBase == 55);
+        logResult("Merchant valuation baseline math without perks (Buy: 120¤, Sell: 55¤)", baselineMath);
+        allPassed &= baselineMath;
+
+        // 2. Player Perks modify prices: Silver Tongue (+10%)
+        player->unlockPerk("silver_tongue");
+        bool hasPerk = player->hasPerk("silver_tongue");
+        bool perkModApplied = (player->tradePerkModifier == 0.10f);
+        int buyPriceWithPerk = merchantValuation::calculateBuyPrice(potion.get(), player.get(), merchant.get());
+        int sellPriceWithPerk = merchantValuation::calculateSellPrice(potion.get(), player.get(), merchant.get());
+        // Buy with 10% discount: 100 * 1.20 * (1 - 0.10) = 108
+        // Sell with 10% bonus: 100 * 0.55 * (1 + 0.10) = 60.5 -> 61 (rounded)
+        bool perkDiscountOk = (buyPriceWithPerk == 108 && sellPriceWithPerk == 61);
+        bool perkOk = (hasPerk && perkModApplied && perkDiscountOk);
+        logResult("Trade perk (Silver Tongue) grants -10% buy discount and +10% sell bonus", perkOk);
+        allPassed &= perkOk;
+
+        // Stacking Master Trader (+15%) -> Total 25%
+        player->unlockPerk("master_trader");
+        bool stackedMod = (player->tradePerkModifier == 0.25f);
+        int buyPriceStacked = merchantValuation::calculateBuyPrice(potion.get(), player.get(), merchant.get());
+        int sellPriceStacked = merchantValuation::calculateSellPrice(potion.get(), player.get(), merchant.get());
+        // Buy: 100 * 1.20 * 0.75 = 90
+        // Sell: 100 * 0.55 * 1.25 = 68.75 -> 69
+        bool stackedOk = (stackedMod && buyPriceStacked == 90 && sellPriceStacked == 69);
+        logResult("Stacking trade perks (Silver Tongue + Master Trader) grants 25% total discount/bonus", stackedOk);
+        allPassed &= stackedOk;
+
+        // Reset perks
+        player->resetPerks();
+        bool perksReset = (player->tradePerkModifier == 0.0f && !player->hasPerk("silver_tongue"));
+        logResult("resetPerks clears perks and restores baseline trade modifiers", perksReset);
+        allPassed &= perksReset;
+
+        // 3. ShopState Lifecycle and Inventory Setup
+        merchant->inventory.addItem(potion);
+        auto shop = std::make_unique<shopState>(merchant);
+        g.changeState(std::move(shop));
+
+        bool inShopState = (dynamic_cast<shopState*>(g.getActiveState()) != nullptr);
+        bool merchantActive = (g.getActiveTargetNPC() == merchant.get());
+        bool shopInitOk = (inShopState && merchantActive);
+        logResult("shopState initializes with active merchant entity", shopInitOk);
+        allPassed &= shopInitOk;
+
+        // 4. Action Grid Navigation in Shop
+        // Initially nothing selected:
+        g.refreshActionGrid();
+        bool slot0Guide = (g.activeButtons[0].label == "Select Item to Trade" && !g.activeButtons[0].isEnabled);
+        bool slot14Leave = (g.activeButtons[14].label == "Leave Shop" && g.activeButtons[14].isEnabled);
+        bool slotsClean = true;
+        for (int s = 1; s < 14; ++s)
+        {
+            if (!g.activeButtons[s].label.empty() || g.activeButtons[s].isEnabled)
+            {
+                slotsClean = false;
+                break;
+            }
+        }
+        bool unselectedGridOk = (slot0Guide && slot14Leave && slotsClean);
+        logResult("Action Grid unselected layout: guidance on Slot 0, Slot 14 Leave Shop, Slots 1-13 empty", unselectedGridOk);
+        allPassed &= unselectedGridOk;
+
+        // 5. Selecting Merchant Item for BUYING
+        // Side 1 (Merchant), Stack index 0
+        g.handleCommand({ CommandType::SELECT_INVENTORY_SLOT, 1, 0, "" });
+        bool buyButton1 = (g.activeButtons[0].label == "Buy 1 (120¤)" && g.activeButtons[0].isEnabled);
+        bool buyAllButton = (g.activeButtons[1].label == "Buy All (600¤)");
+        bool deselectBtn = (g.activeButtons[2].label == "Deselect Item");
+        bool buyActionGridOk = (buyButton1 && buyAllButton && deselectBtn);
+        logResult("Selecting merchant item configures Buy 1, Buy All, and Deselect on Action Grid", buyActionGridOk);
+        allPassed &= buyActionGridOk;
+
+        // 6. Buying an Item
+        float prePlayerGold = player->getStat("currency"); // 500
+        float preMerchantGold = merchant->getStat("currency"); // 1500
+        size_t prePlayerBackpack = player->inventory.backpack.size(); // 0
+
+        g.handleCommand({ CommandType::BUY_SHOP_ITEM, 0, 2, "" }); // Buy 2 for 240¤
+
+        float postPlayerGold = player->getStat("currency");
+        float postMerchantGold = merchant->getStat("currency");
+        size_t postPlayerBackpack = player->inventory.backpack.size();
+
+        bool goldDeducted = (postPlayerGold == prePlayerGold - 240.0f);
+        bool merchantPaid = (postMerchantGold == preMerchantGold + 240.0f);
+        bool itemReceived = (postPlayerBackpack == prePlayerBackpack + 2);
+        bool buyOk = (goldDeducted && merchantPaid && itemReceived);
+        logResult("Buying items transfers items, deducts player gold, and credits merchant purse", buyOk);
+        allPassed &= buyOk;
+
+        // 7. Selecting Player Item for SELLING
+        // Side 0 (Player), Stack index 0 (the bought Canis Root)
+        g.handleCommand({ CommandType::SELECT_INVENTORY_SLOT, 0, 0, "" });
+        bool sellButton1 = (g.activeButtons[0].label == "Sell 1 (55¤)" && g.activeButtons[0].isEnabled);
+        bool sellAllButton = (g.activeButtons[1].label == "Sell All (110¤)");
+        bool sellActionGridOk = (sellButton1 && sellAllButton);
+        logResult("Selecting player item configures Sell 1 and Sell All with calculated resale price", sellActionGridOk);
+        allPassed &= sellActionGridOk;
+
+        // 8. Selling an Item
+        float preSellPlayerGold = player->getStat("currency");
+        float preSellMerchantGold = merchant->getStat("currency");
+
+        g.handleCommand({ CommandType::SELL_SHOP_ITEM, 0, 1, "" }); // Sell 1 for 55¤
+
+        float postSellPlayerGold = player->getStat("currency");
+        float postSellMerchantGold = merchant->getStat("currency");
+
+        bool playerCredited = (postSellPlayerGold == preSellPlayerGold + 55.0f);
+        bool merchantDeducted = (postSellMerchantGold == preSellMerchantGold - 55.0f);
+        bool sellOk = (playerCredited && merchantDeducted);
+        logResult("Selling item transfers item to merchant, pays player, and deducts merchant funds", sellOk);
+        allPassed &= sellOk;
+
+        // 9. Key Quest Item Protection: Quest item cannot be sold
+        auto keyItem = std::make_shared<item>();
+        keyItem->id = "item_ancient_sun_relic";
+        keyItem->name = "Ancient Sun Relic";
+        keyItem->baseValue = 1000;
+        keyItem->isKeyItem = true;
+        player->inventory.addItem(keyItem);
+
+        auto playerStack = player->inventory.getStackedView();
+        int keyIndex = -1;
+        for (size_t i = 0; i < playerStack.size(); ++i)
+        {
+            if (playerStack[i].itemPtr && playerStack[i].itemPtr->isKeyItem)
+            {
+                keyIndex = static_cast<int>(i);
+                break;
+            }
+        }
+
+        g.handleCommand({ CommandType::SELECT_INVENTORY_SLOT, 0, keyIndex, "" });
+        bool keySellDisabled = (!g.activeButtons[0].isEnabled);
+        float preKeyGold = player->getStat("currency");
+        g.handleCommand({ CommandType::SELL_SHOP_ITEM, keyIndex, 1, "" });
+        float postKeyGold = player->getStat("currency");
+        bool keyProtected = (keySellDisabled && preKeyGold == postKeyGold);
+        logResult("Key quest items cannot be sold (action disabled & transaction blocked)", keyProtected);
+        allPassed &= keyProtected;
+
+        // 10. Leave Shop returns to exploration
+        g.handleCommand(UICommand::triggerActionButton(14));
+        bool leftShop = (dynamic_cast<explorationState*>(g.getActiveState()) != nullptr);
+        logResult("Leave Shop returns cleanly to exploration state", leftShop);
+        allPassed &= leftShop;
+
+        return allPassed;
+    }
+
     bool runAllTests()
     {
         g_passCount = 0;
@@ -1148,6 +1701,10 @@ namespace EngineTests
         bool t14 = testTooltipSystem();
         bool t15 = testPlayerStatsAndItemUsage();
         bool t16 = testInventoryCategoricalSortingAndActions();
+        bool t17 = testDecouplingAndCaching();
+        bool t18 = testQuestJournalSystem();
+        bool t19 = testFullPhoneSystem();
+        bool t20 = testEconomyAndShopTrading();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";

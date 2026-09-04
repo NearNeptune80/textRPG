@@ -18,4 +18,6 @@ namespace EngineTests
     bool testSubmenuButtonFunctionality();
     bool testContentOptionsAllCategories();
     bool testPlayerStatsAndItemUsage();
+    bool testDecouplingAndCaching();
+    bool testQuestJournalSystem();
 }

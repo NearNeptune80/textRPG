@@ -62,8 +62,6 @@ void sexState::onExit(game* gameContext)
 
 void sexState::update(game* gameContext, float deltaTime) {}
 
-void sexState::handleInput(game* gameContext, const SDL_Event& event) {}
-
 void sexState::appendNarrative(const std::string& text)
 {
     if (!m_narrativeLog.empty())

@@ -22,6 +22,7 @@
 #include "state/shopState.h"
 #include "state/transformationState.h"
 #include "quest/questDatabase.h"
+#include "items/merchantValuation.h"
 #include "ui/theme.h"
 
 namespace
@@ -248,14 +249,101 @@ void ActionGridManager::refresh(game* gameContext)
     // 5. Shop State
     if (auto shop = dynamic_cast<shopState*>(currentState))
     {
-        const auto& catalog = shop->getCatalog();
-        for (size_t i = 0; i < catalog.size(); ++i)
+        entity* player = gameContext->getPlayer();
+        entity* merchant = shop->getMerchant().get();
+        if (!merchant) merchant = gameContext->getActiveTargetNPC();
+
+        if (gameContext->selectedInventoryIndex != -1)
         {
-            addBtn(gameContext, std::format("Buy {} ({}¤)", catalog[i].name, catalog[i].price), [gameContext, i]() {
-                gameContext->handleCommand({ CommandType::BUY_SHOP_ITEM, static_cast<int>(i), 0, "" });
-            }, catalog[i].stock > 0);
+            auto slotInfo = gameContext->getInventorySlotItem(gameContext->selectedInventorySide, gameContext->selectedInventoryIndex);
+
+            if (gameContext->selectedInventorySide == 0)
+            {
+                // Player's item selected -> Selling
+                if (slotInfo.isValid && slotInfo.itemPtr)
+                {
+                    int unitSell = merchantValuation::calculateSellPrice(slotInfo.itemPtr.get(), player, merchant);
+                    bool isKey = slotInfo.itemPtr->isKeyItem;
+                    float merchGold = merchant ? merchant->getStat("currency") : 999999.0f;
+                    bool canSell1 = !isKey && (merchGold >= static_cast<float>(unitSell));
+
+                    std::string sell1Label = std::format("Sell 1 ({}¤)", unitSell);
+                    std::string sell1Desc = isKey
+                        ? "Key quest items cannot be sold."
+                        : (merchGold < static_cast<float>(unitSell)
+                            ? std::format("Merchant cannot afford {}¤ (has {:.0f}¤).", unitSell, merchGold)
+                            : std::format("Sell 1 {} to {} for {}¤.", slotInfo.itemPtr->name, merchant ? merchant->name : "merchant", unitSell));
+
+                    addBtn(gameContext, sell1Label, [gameContext]() {
+                        gameContext->handleCommand({ CommandType::SELL_SHOP_ITEM, gameContext->selectedInventoryIndex, 1, "" });
+                    }, canSell1, false, sell1Desc);
+
+                    if (slotInfo.count > 1)
+                    {
+                        int totalSell = unitSell * slotInfo.count;
+                        bool canSellAll = !isKey && (merchGold >= static_cast<float>(unitSell));
+                        std::string sellAllLabel = std::format("Sell All ({}¤)", totalSell);
+                        std::string sellAllDesc = std::format("Sell all {} {} to {} for up to {}¤.", slotInfo.count, slotInfo.itemPtr->name, merchant ? merchant->name : "merchant", totalSell);
+
+                        addBtn(gameContext, sellAllLabel, [gameContext, cnt = slotInfo.count]() {
+                            gameContext->handleCommand({ CommandType::SELL_SHOP_ITEM, gameContext->selectedInventoryIndex, cnt, "" });
+                        }, canSellAll, false, sellAllDesc);
+                    }
+
+                    addBtn(gameContext, "Deselect Item", [gameContext]() {
+                        gameContext->selectedInventoryIndex = -1;
+                        gameContext->refreshActionGrid();
+                    }, true, false, "Deselect item and return to general shop actions.");
+                }
+            }
+            else if (gameContext->selectedInventorySide == 1)
+            {
+                // Merchant's item selected -> Buying
+                if (slotInfo.isValid && slotInfo.itemPtr)
+                {
+                    int unitBuy = merchantValuation::calculateBuyPrice(slotInfo.itemPtr.get(), player, merchant);
+                    float playerGold = player ? player->getStat("currency") : 0.0f;
+                    bool canBuy1 = (playerGold >= static_cast<float>(unitBuy));
+
+                    std::string buy1Label = std::format("Buy 1 ({}¤)", unitBuy);
+                    std::string buy1Desc = canBuy1
+                        ? std::format("Purchase 1 {} from {} for {}¤.", slotInfo.itemPtr->name, merchant ? merchant->name : "merchant", unitBuy)
+                        : std::format("Cannot afford! Requires {}¤ (You have {:.0f}¤).", unitBuy, playerGold);
+
+                    addBtn(gameContext, buy1Label, [gameContext]() {
+                        gameContext->handleCommand({ CommandType::BUY_SHOP_ITEM, gameContext->selectedInventoryIndex, 1, "" });
+                    }, canBuy1, false, buy1Desc);
+
+                    if (slotInfo.count > 1)
+                    {
+                        int totalBuy = unitBuy * slotInfo.count;
+                        bool canBuyAll = (playerGold >= static_cast<float>(totalBuy));
+                        std::string buyAllLabel = std::format("Buy All ({}¤)", totalBuy);
+                        std::string buyAllDesc = std::format("Purchase entire stock of {} {} for {}¤.", slotInfo.count, slotInfo.itemPtr->name, totalBuy);
+
+                        addBtn(gameContext, buyAllLabel, [gameContext, cnt = slotInfo.count]() {
+                            gameContext->handleCommand({ CommandType::BUY_SHOP_ITEM, gameContext->selectedInventoryIndex, cnt, "" });
+                        }, canBuy1, false, buyAllDesc);
+                    }
+
+                    addBtn(gameContext, "Deselect Item", [gameContext]() {
+                        gameContext->selectedInventoryIndex = -1;
+                        gameContext->refreshActionGrid();
+                    }, true, false, "Deselect item and return to general shop actions.");
+                }
+            }
         }
-        addBackBtn(gameContext, "Leave Shop (ESC)", [gameContext]() { gameContext->handleCommand({ CommandType::CLOSE_MENU, 0, 0, "" }); });
+        else
+        {
+            // Nothing selected: guidance button
+            addBtn(gameContext, "Select Item to Trade", [gameContext]() {}, false, false, "Click any item in your inventory to sell, or in the shop inventory to buy.");
+        }
+
+        // Pad to slot 14 and place Leave Shop
+        padButtonsTo(gameContext, 14);
+        addBackBtn(gameContext, "Leave Shop", [gameContext]() {
+            gameContext->handleCommand({ CommandType::CLOSE_MENU, 0, 0, "" });
+        });
         return;
     }
 
@@ -360,23 +448,25 @@ void ActionGridManager::refresh(game* gameContext)
 
         if (phoneApp->getAppMode() == PhoneAppMode::HOME)
         {
-            // Row 1: Core Apps
-            addBtn(gameContext, "Quests", [=]() { setApp(PhoneAppMode::QUESTS); }, true, false, "View active quest objectives and chapters.");
-            addBtn(gameContext, "Perk Tree", [=]() { setApp(PhoneAppMode::PERKS); }, true, false, "Browse unlocked talents and character perks.");
-            addBtn(gameContext, "Spells", [=]() { setApp(PhoneAppMode::SPELLS); }, true, false, "Review arcane spells and combat techniques.");
-            addBtn(gameContext, "Stats", [=]() { setApp(PhoneAppMode::STATS); }, true, false, "Check attributes, vitals, and anatomical dimensions.");
+            // Row 1: Core Character Apps (Slots 0..4)
+            addBtn(gameContext, "Quests", [=]() { setApp(PhoneAppMode::QUESTS); }, true, false, "View active quest objectives, stages, and rewards.");
+            addBtn(gameContext, "Perk Tree", [=]() { setApp(PhoneAppMode::PERKS); }, true, false, "Browse and allocate talent perks and passive traits.");
+            addBtn(gameContext, "Spells", [=]() { setApp(PhoneAppMode::SPELLS); }, true, false, "Review elemental spellbooks and cast out-of-combat spells.");
+            addBtn(gameContext, "Fetishes", [=]() { setApp(PhoneAppMode::FETISHES); }, true, false, "Configure 5-tier desire ratings and sexual preferences.");
+            addBtn(gameContext, "Stats", [=]() { setApp(PhoneAppMode::STATS); }, true, false, "Inspect core vitals, body measurements, and sex stats.");
+
+            // Row 2: Secondary Utilities & Lore (Slots 5..9)
+            addBtn(gameContext, "Selfie", [=]() { setApp(PhoneAppMode::SELFIE); }, true, false, "Take a selfie to inspect appearance, clothing, and modesty.");
             addBtn(gameContext, "Contacts", [=]() { setApp(PhoneAppMode::CONTACTS); }, true, false, "Address book of known characters and companions.");
-
-            // Row 2: Secondary Apps & Utilities
-            addBtn(gameContext, "Encyclopedia", [=]() { setApp(PhoneAppMode::ENCYCLOPEDIA); }, true, false, "Access world lore, demonic biology, and bestiary.");
-            addBtn(gameContext, "Maps", [=]() { setApp(PhoneAppMode::MAPS); }, true, false, "Dominion regional overview and points of interest.");
+            addBtn(gameContext, "Encyclopedia", [=]() { setApp(PhoneAppMode::ENCYCLOPEDIA); }, true, false, "Compendium of discovered species, weapons, and items.");
             addBtn(gameContext, "Transform", [=]() { setApp(PhoneAppMode::TRANSFORM); }, true, false, "Inspect mutations, bodily morphs, and alchemy.");
-            addBtn(gameContext, "Wait / Rest", [=]() { setApp(PhoneAppMode::WAIT_REST); }, true, false, "Pass time, sleep, and recover health/mana.");
-            addBtn(gameContext, "Masturbate", [=]() { setApp(PhoneAppMode::MASTURBATE); }, true, false, "Take a private moment to relieve lust and arousal.");
+            addBtn(gameContext, "Maps", [=]() { setApp(PhoneAppMode::MAPS); }, true, false, "World and local regional maps with coordinates.");
 
-            // Row 3: Settings & Back
-            addBtn(gameContext, "Fetishes", [=]() { setApp(PhoneAppMode::FETISHES); }, true, false, "Review content toggles and fetish preferences.");
-            padButtonsTo(gameContext, 14);
+            // Row 3: Combat, Intimacy & Rest (Slots 10..14)
+            addBtn(gameContext, "Combat Moves", [=]() { setApp(PhoneAppMode::COMBAT_MOVES); }, true, false, "Prepare and customize active combat deck slots.");
+            addBtn(gameContext, "Masturbate", [=]() { setApp(PhoneAppMode::MASTURBATE); }, true, false, "Take a secluded moment to relieve lust and build arousal.");
+            addBtn(gameContext, "Wait / Rest", [=]() { setApp(PhoneAppMode::WAIT_REST); }, true, false, "Pass in-game time, sleep, and recover health/mana.");
+            addBtn(gameContext, "Elemental", [=]() { setApp(PhoneAppMode::ELEMENTAL); }, true, false, "Manage and interact with your elemental companion.");
             addBtn(gameContext, "Back", [gameContext]() {
                 gameContext->changeState(std::make_unique<explorationState>());
             }, true, false, "Close smartphone and return to exploration.");
@@ -500,79 +590,88 @@ void ActionGridManager::refresh(game* gameContext)
         }
         else if (phoneApp->getAppMode() == PhoneAppMode::FETISHES)
         {
-            addBtn(gameContext, "Configure Options", [gameContext]() {
+            addBtn(gameContext, "Options Menu", [gameContext]() {
                 gameContext->changeState(std::make_unique<optionsState>(OptionsScreenMode::CONTENT_OPTIONS, std::make_unique<phoneAppsState>(PhoneAppMode::FETISHES)));
-            }, true, false, "Open complete demographic preferences and fetish rating matrix.");
-        }
-        else if (phoneApp->getAppMode() == PhoneAppMode::ENCYCLOPEDIA)
-        {
-            addBtn(gameContext, "Prev Entry", [gameContext, phoneApp]() {
-                if (phoneApp->getSelectedItemIndex() > 0)
-                {
-                    phoneApp->setSelectedItemIndex(phoneApp->getSelectedItemIndex() - 1);
-                    gameContext->refreshActionGrid();
-                }
-            }, true, false, "Scroll to previous encyclopedia entry.");
-
-            addBtn(gameContext, "Next Entry", [gameContext, phoneApp]() {
-                phoneApp->setSelectedItemIndex(phoneApp->getSelectedItemIndex() + 1);
-                gameContext->refreshActionGrid();
-            }, true, false, "Scroll to next encyclopedia entry.");
-        }
-        else if (phoneApp->getAppMode() == PhoneAppMode::SPELLS)
-        {
-            addBtn(gameContext, "Arcane Focus", [gameContext, phoneApp]() {
-                phoneApp->setFeedbackText("Arcane spellbook catalog indexed.");
-                gameContext->refreshActionGrid();
-            }, true, false, "Filter spell list by arcane and elemental disciplines.");
-
-            addBtn(gameContext, "Physical Moves", [gameContext, phoneApp]() {
-                phoneApp->setFeedbackText("Physical combat techniques indexed.");
-                gameContext->refreshActionGrid();
-            }, true, false, "Filter moves by melee strikes, parries, and evasions.");
-        }
-        else if (phoneApp->getAppMode() == PhoneAppMode::QUESTS)
-        {
-            addBtn(gameContext, "Track Active", [gameContext, phoneApp]() {
-                phoneApp->setFeedbackText("Tracking main objective: Lilaya's Tests.");
-                gameContext->refreshActionGrid();
-            }, true, false, "Highlight active quest in HUD.");
+            }, true, false, "Open complete content and demographic preference settings.");
         }
         else if (phoneApp->getAppMode() == PhoneAppMode::PERKS)
         {
-            addBtn(gameContext, "Filter: All", [gameContext, phoneApp]() {
-                phoneApp->setSelectedCategory(0);
-                gameContext->refreshActionGrid();
-            }, true, false, "Show all perks across categories.");
+            padButtonsTo(gameContext, 13);
+            addBtn(gameContext, "Reset Perks", [gameContext, phoneApp]() {
+                entity* p = gameContext->getPlayer();
+                if (p)
+                {
+                    p->stats.setBaseStat("perk_points", p->getStat("perk_points") + 3.0f);
+                    phoneApp->setFeedbackText("All spent perk points refunded.");
+                    gameContext->refreshActionGrid();
+                }
+            }, true, false, "Refund all allocated talent perks and points.");
         }
-        else if (phoneApp->getAppMode() == PhoneAppMode::STATS)
+        else if (phoneApp->getAppMode() == PhoneAppMode::COMBAT_MOVES)
         {
-            addBtn(gameContext, "Attributes", [gameContext, phoneApp]() {
-                phoneApp->setSelectedCategory(0);
-                gameContext->refreshActionGrid();
-            }, true, false, "Display primary physical, arcane, and seduction attributes.");
+            entity* p = gameContext->getPlayer();
+            int curSel = phoneApp->getSelectedCombatSlot();
+            for (int i = 0; i < 10; ++i)
+            {
+                std::string move = (p && !p->preparedCombatSlots[i].empty()) ? p->preparedCombatSlots[i] : "Empty";
+                if (move.size() > 10) move = move.substr(0, 9) + "..";
+                std::string btnLabel = std::format("{}: {}", i + 1, move);
+                bool isSelected = (curSel == i);
+                std::string tooltip = (p && !p->preparedCombatSlots[i].empty())
+                    ? std::format("Deck Slot #{}: {}. Click to select this slot for assignment.", i + 1, p->preparedCombatSlots[i])
+                    : std::format("Deck Slot #{}: [Empty]. Click to select this slot for assignment.", i + 1);
+
+                addBtn(gameContext, btnLabel, [gameContext, phoneApp, i]() {
+                    phoneApp->setSelectedCombatSlot(i);
+                    gameContext->refreshActionGrid();
+                }, true, isSelected, tooltip);
+            }
+
+            // Slot 10 (Row 3, Col 1): Clear Slot
+            addBtn(gameContext, "Clear Slot", [gameContext, phoneApp]() {
+                entity* p = gameContext->getPlayer();
+                int s = phoneApp->getSelectedCombatSlot();
+                if (p && s >= 0 && s < 10)
+                {
+                    p->preparedCombatSlots[s] = "";
+                    phoneApp->setFeedbackText(std::format("Cleared combat action slot #{}.", s + 1));
+                    gameContext->refreshActionGrid();
+                }
+            }, true, false, "Clear technique from currently selected combat slot.");
         }
-        else if (phoneApp->getAppMode() == PhoneAppMode::CONTACTS)
+        else if (phoneApp->getAppMode() == PhoneAppMode::ELEMENTAL)
         {
-            addBtn(gameContext, "Lilaya", [gameContext, phoneApp]() {
-                phoneApp->setFeedbackText("Lilaya: Resident alchemist and researcher. Location: Manor Laboratory.");
+            bool isSummoned = phoneApp->isElementalSummoned();
+            addBtn(gameContext, isSummoned ? "Dispel" : "Summon", [gameContext, phoneApp]() {
+                phoneApp->toggleElementalSummoned();
+                phoneApp->setFeedbackText(phoneApp->isElementalSummoned() ? "Elemental companion manifested." : "Elemental companion dispelled.");
                 gameContext->refreshActionGrid();
-            }, true, false, "Inspect dossier for Lilaya.");
-        }
-        else if (phoneApp->getAppMode() == PhoneAppMode::MAPS)
-        {
-            addBtn(gameContext, "Town District", [gameContext, phoneApp]() {
-                phoneApp->setFeedbackText("Sector Alpha-1: North Town Gates. Safe civilian sanctuary.");
-                gameContext->refreshActionGrid();
-            }, true, false, "Center map focus on Town District.");
+            }, true, false, isSummoned ? "Dismiss elemental companion back to its plane." : "Manifest elemental companion via arcane link.");
+
+            if (isSummoned)
+            {
+                bool isActive = phoneApp->isElementalActiveForm();
+                addBtn(gameContext, isActive ? "Passive Form" : "Active Form", [gameContext, phoneApp]() {
+                    phoneApp->toggleElementalActiveForm();
+                    phoneApp->setFeedbackText(phoneApp->isElementalActiveForm() ? "Elemental assumed humanoid battle form." : "Elemental assumed compact creature form.");
+                    gameContext->refreshActionGrid();
+                }, true, false, "Toggle between combat humanoid form and passive wisp creature form.");
+            }
         }
 
         // Slot 14: Universal Back button in all submenus
         padButtonsTo(gameContext, 14);
         addBtn(gameContext, "Back", [gameContext, phoneApp]() {
-            phoneApp->setAppMode(PhoneAppMode::HOME);
+            if (phoneApp->getAppMode() == PhoneAppMode::CONTACTS && phoneApp->getContactsSelectedIdx() >= 0)
+            {
+                phoneApp->setContactsSelectedIdx(-1);
+            }
+            else
+            {
+                phoneApp->setAppMode(PhoneAppMode::HOME);
+            }
             gameContext->refreshActionGrid();
-        }, true, false, "Return to Smartphone Home.");
+        }, true, false, "Return to previous menu.");
         return;
     }
 

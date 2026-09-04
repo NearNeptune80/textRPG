@@ -67,9 +67,11 @@ std::string characterDescription::buildHeadAndFaceSection(const entity* ent)
 
     if (eyes)
     {
-        s += std::format(" and striking {} eyes.\n", eyes->primaryColor.empty() ? "amber" : eyes->primaryColor);
+        if (hair) s += " and";
+        else s += std::format("{} possesses", ent->name);
+        s += std::format(" striking {} eyes.\n", eyes->primaryColor.empty() ? "amber" : eyes->primaryColor);
     }
-    else
+    else if (hair)
     {
         s += ".\n";
     }

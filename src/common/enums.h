@@ -62,6 +62,19 @@ enum class tattooSlot
 };
 
 /**
+ * Partial displacement modes for clothing items.
+ */
+enum class DisplacementMode
+{
+    NONE,
+    UNBUTTON,
+    PULL_ASIDE,
+    LIFT_UP,
+    PULL_DOWN,
+    OPEN
+};
+
+/**
  * Magical effect categories.
  */
 enum class effectType
@@ -95,46 +108,21 @@ enum class SexualOrientation
     ASEXUAL
 };
 
-inline std::string sexualOrientationToString(SexualOrientation so)
-{
-    switch (so)
-    {
-        case SexualOrientation::HETEROSEXUAL: return "Heterosexual";
-        case SexualOrientation::BISEXUAL:     return "Bisexual";
-        case SexualOrientation::HOMOSEXUAL:   return "Homosexual";
-        case SexualOrientation::ASEXUAL:      return "Asexual";
-        default:                              return "Heterosexual";
-    }
-}
+// Centralized string/enum conversion functions
+std::string bodySlotToString(bodySlot slot);
+bodySlot stringToBodySlot(std::string_view str);
 
-inline SexualOrientation stringToSexualOrientation(std::string_view str)
-{
-    if (str == "Bisexual" || str == "BI")         return SexualOrientation::BISEXUAL;
-    if (str == "Homosexual" || str == "HOMO")     return SexualOrientation::HOMOSEXUAL;
-    if (str == "Asexual" || str == "ASEXUAL")     return SexualOrientation::ASEXUAL;
-    return SexualOrientation::HETEROSEXUAL;
-}
+std::string equipSlotToString(equipSlot slot);
+equipSlot stringToEquipSlot(std::string_view str);
 
-inline std::string genderArchetypeToString(GenderArchetype ga)
-{
-    switch (ga)
-    {
-        case GenderArchetype::MALE:          return "Male";
-        case GenderArchetype::FEMALE:        return "Female";
-        case GenderArchetype::HERMAPHRODITE: return "Hermaphrodite";
-        case GenderArchetype::GYNOMORPH:     return "Gynomorph";
-        case GenderArchetype::ANDROMORPH:    return "Andromorph";
-        case GenderArchetype::ASEXUAL_NULL:  return "Asexual/Null";
-        default:                             return "Female";
-    }
-}
+std::string genderArchetypeToString(GenderArchetype ga);
+GenderArchetype stringToGenderArchetype(std::string_view str);
 
-inline GenderArchetype stringToGenderArchetype(std::string_view str)
-{
-    if (str == "Male")          return GenderArchetype::MALE;
-    if (str == "Hermaphrodite") return GenderArchetype::HERMAPHRODITE;
-    if (str == "Gynomorph")     return GenderArchetype::GYNOMORPH;
-    if (str == "Andromorph")    return GenderArchetype::ANDROMORPH;
-    if (str == "Asexual/Null")  return GenderArchetype::ASEXUAL_NULL;
-    return GenderArchetype::FEMALE;
-}
+std::string sexualOrientationToString(SexualOrientation so);
+SexualOrientation stringToSexualOrientation(std::string_view str);
+
+std::string displacementModeToString(DisplacementMode mode);
+DisplacementMode stringToDisplacementMode(std::string_view str);
+
+std::string tattooSlotToString(tattooSlot slot);
+tattooSlot stringToTattooSlot(std::string_view str);

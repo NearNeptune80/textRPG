@@ -19,8 +19,6 @@ void eventState::onExit(game* gameContext) {}
 
 void eventState::update(game* gameContext, float deltaTime) {}
 
-void eventState::handleInput(game* gameContext, const SDL_Event& event) {}
-
 void eventState::handleCommand(game* gameContext, const UICommand& cmd)
 {
 	if (!gameContext) return;

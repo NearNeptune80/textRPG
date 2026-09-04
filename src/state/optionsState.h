@@ -43,7 +43,6 @@ public:
     bool isKeybindsOpen = false;
 
     void initialise(game* gameContext) override;
-    void handleInput(game* gameContext, const SDL_Event& event) override;
     void handleCommand(game* gameContext, const UICommand& cmd) override;
     void update(game* gameContext, float deltaTime) override;
 

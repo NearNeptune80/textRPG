@@ -176,7 +176,7 @@ namespace CharacterCardWidget
         UIWidget::drawText(renderer, initials, avatarRect.x + ((avatarSize - initW) / 2.0f), avatarRect.y + (5.0f * uiScale), Theme::colors.textGold, uiScale * 0.78f);
 
         TooltipManager::setHoverTooltip(avatarRect, mousePos, player->name,
-                                        "Player protagonist exploring the realm of Dominion.",
+                                        "Player protagonist exploring the realm.",
                                         std::format("Level {} • {}", player->stats.level, player->anatomy.getRacialTitle()));
 
         // Name & Level / Species

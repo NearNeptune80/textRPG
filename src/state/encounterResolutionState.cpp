@@ -38,8 +38,6 @@ void encounterResolutionState::onExit(game* gameContext) {}
 
 void encounterResolutionState::update(game* gameContext, float deltaTime) {}
 
-void encounterResolutionState::handleInput(game* gameContext, const SDL_Event& event) {}
-
 void encounterResolutionState::handleCommand(game* gameContext, const UICommand& cmd)
 {
     if (!gameContext) return;

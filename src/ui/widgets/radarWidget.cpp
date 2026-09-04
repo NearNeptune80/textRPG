@@ -52,7 +52,7 @@ namespace RadarWidgets
         UIWidget::drawPanel(renderer, timeRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
         TooltipManager::setHoverTooltip(timeRect, gameContext->input.getMousePosition(),
                                         std::format("Calendar: {}", dateStr),
-                                        "Dominion diurnal cycle. Influences monster encounters, shop hours, and intimate interactions.",
+                                        "Diurnal environmental cycle. Influences monster encounters, shop hours, and intimate interactions.",
                                         timeStr);
 
         float innerPad = 8.0f * uiScale;
@@ -75,7 +75,7 @@ namespace RadarWidgets
             bool isActiveDay = (d == activeDayIdx);
             SDL_Color dColor = isActiveDay ? Theme::colors.textGold : Theme::colors.textMuted;
             SDL_Color dBorder = isActiveDay ? Theme::colors.borderSelected : Theme::colors.borderButton;
-            SDL_Color dFill = isActiveDay ? SDL_Color{ 45, 55, 68, 255 } : Theme::colors.bgDark;
+            SDL_Color dFill = isActiveDay ? Theme::colors.bgSlotOccupied : Theme::colors.bgDark;
 
             UIWidget::drawPanel(renderer, dRect, dFill, dBorder);
             float txtW = UIWidget::getTextWidth(days[d], uiScale * 0.65f);
@@ -98,55 +98,53 @@ namespace RadarWidgets
         float padX = SidebarGeometry::getPadX(rect, uiScale);
         float availableW = SidebarGeometry::getAvailableW(rect, uiScale);
 
-        const gameMap* map = gameContext->getActiveMap();
+        float cardH = SidebarGeometry::getSquareCardH(rect, uiScale);
+        SDL_FRect radarRect = { padX, curY, availableW, cardH };
+        UIWidget::drawPanel(renderer, radarRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+
+        TooltipPoint mousePos = gameContext->input.getMousePosition();
+        bool clicked = gameContext->input.isLeftMouseJustClicked();
+
+        gameMap* map = gameContext->map;
         int pX = gameContext->gridX;
         int pY = gameContext->gridY;
 
-        auto mousePos = gameContext->input.getMousePosition();
-        bool clicked = gameContext->input.isLeftMouseJustClicked();
+        float headerH = 18.0f * uiScale;
+        SDL_FRect headerRect = { padX, curY, availableW, headerH };
+        std::string mapTitle = map ? map->getName() : "Local Area";
+        UIWidget::drawHeader(renderer, headerRect, mapTitle, Theme::colors.bgHeader, Theme::colors.textAccent, uiScale * 0.72f);
 
-        // Calculate square dimensions for 5x5 tile grid filling the container
-        const int radius = 2; // 5x5 grid
-        const int gridSize = (radius * 2) + 1; // 5
-        const float boxSize = SidebarGeometry::getBoxSize(rect, uiScale);
-        const float tileSize = boxSize / static_cast<float>(gridSize);
+        curY += headerH + (4.0f * uiScale);
 
-        float toolH = SidebarGeometry::getToolbarH(uiScale);
-        float cardH = SidebarGeometry::getSquareCardH(rect, uiScale);
+        float cardCurY = curY;
+        float innerPad = 8.0f * uiScale;
+        float innerX = padX + innerPad;
+        float innerW = availableW - (innerPad * 2.0f);
 
-        // ==========================================
-        // CARD: Mini-Map Radar & Quick Toolbar
-        // ==========================================
-        SDL_FRect mainCardRect = { padX, curY, availableW, cardH };
-        UIWidget::drawPanel(renderer, mainCardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+        // Render 5x5 Local Radar Grid
+        float toolH = 20.0f * uiScale;
+        float boxSize = availableW - (innerPad * 2.0f);
+        float tileSize = (boxSize - (4 * 2.0f * uiScale)) / 5.0f;
 
-        float innerX = padX + (4.0f * uiScale);
-        float cardCurY = curY + (3.0f * uiScale);
-
-        UIWidget::drawText(renderer, "MINI-MAP RADAR", innerX, cardCurY, Theme::colors.textGold, uiScale * 0.74f);
-        cardCurY += (15.0f * uiScale);
-
-        // Center the 5x5 grid inside the card
-        float gridStartX = SidebarGeometry::getGridStartX(rect, uiScale);
-        SDL_FRect radarBox = { gridStartX - (1.0f * uiScale), cardCurY - (1.0f * uiScale), boxSize + (2.0f * uiScale), boxSize + (2.0f * uiScale) };
-        UIWidget::drawPanel(renderer, radarBox, Theme::colors.bgDark, Theme::colors.borderButton);
-
-        for (int dy = -radius; dy <= radius; ++dy)
+        for (int dy = -2; dy <= 2; ++dy)
         {
-            for (int dx = -radius; dx <= radius; ++dx)
+            for (int dx = -2; dx <= 2; ++dx)
             {
                 int targetX = pX + dx;
                 int targetY = pY + dy;
 
+                float tileX = innerX + ((dx + 2) * (tileSize + (2.0f * uiScale)));
+                float tileY = cardCurY + ((dy + 2) * (tileSize + (2.0f * uiScale)));
+
                 SDL_FRect tileRect = {
-                    gridStartX + static_cast<float>(dx + radius) * tileSize,
-                    cardCurY + static_cast<float>(dy + radius) * tileSize,
+                    tileX,
+                    tileY,
                     tileSize,
                     tileSize
                 };
 
-                SDL_Color tileColor = SDL_Color{ 14, 16, 20, 255 };
-                SDL_Color borderColor = SDL_Color{ 28, 30, 38, 255 };
+                SDL_Color tileColor = Theme::colors.bgDark;
+                SDL_Color borderColor = Theme::colors.slotEmptyBorder;
                 SDL_Color textCol = Theme::colors.textMuted;
                 std::string label = "";
 
@@ -155,7 +153,7 @@ namespace RadarWidgets
 
                 if (isPlayer)
                 {
-                    tileColor = SDL_Color{ 25, 55, 85, 255 };
+                    tileColor = Theme::colors.bgSlotSelected;
                     borderColor = Theme::colors.borderSelected;
                     label = "YOU";
                     textCol = Theme::colors.textGold;
@@ -168,15 +166,15 @@ namespace RadarWidgets
 
                     if (t.type == TILE_WALL)
                     {
-                        tileColor = SDL_Color{ 35, 38, 48, 255 };
-                        borderColor = SDL_Color{ 50, 55, 68, 255 };
+                        tileColor = Theme::colors.bgSlot;
+                        borderColor = Theme::colors.borderNormal;
                         label = "#";
-                        textCol = SDL_Color{ 80, 85, 100, 255 };
+                        textCol = Theme::colors.textDisabled;
                         TooltipManager::setHoverTooltip(tileRect, mousePos, "Impassable Wall", "Solid boundary wall or barrier.", std::format("Grid ({}, {})", targetX, targetY));
                     }
                     else if (t.type == TILE_DOOR)
                     {
-                        tileColor = SDL_Color{ 55, 45, 30, 255 };
+                        tileColor = Theme::colors.bgSlotOccupied;
                         borderColor = Theme::colors.textGold;
                         label = "+";
                         textCol = Theme::colors.textGold;
@@ -187,7 +185,7 @@ namespace RadarWidgets
                         MapWarp warp;
                         if (map->checkWarp(targetX, targetY, warp))
                         {
-                            tileColor = SDL_Color{ 20, 50, 60, 255 };
+                            tileColor = Theme::colors.bgSlotOccupied;
                             borderColor = Theme::colors.companion;
                             label = "W";
                             textCol = Theme::colors.companion;
@@ -195,10 +193,10 @@ namespace RadarWidgets
                         }
                         else
                         {
-                            tileColor = SDL_Color{ 22, 26, 34, 255 };
-                            borderColor = SDL_Color{ 45, 50, 65, 255 };
+                            tileColor = Theme::colors.bgInput;
+                            borderColor = Theme::colors.borderMuted;
                             label = "·";
-                            textCol = SDL_Color{ 100, 110, 130, 255 };
+                            textCol = Theme::colors.textMuted;
                             TooltipManager::setHoverTooltip(tileRect, mousePos, "Open Floor", "Walkable terrain tile. Click to navigate.", std::format("Grid ({}, {})", targetX, targetY));
                         }
                     }

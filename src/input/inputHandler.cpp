@@ -1,6 +1,8 @@
 #include "input/inputHandler.h"
 
 #include "core/game.h"
+#include "core/uiCommand.h"
+#include "state/characterCreationState.h"
 #include "state/explorationState.h"
 #include "state/iGameState.h"
 #include "state/loadGameState.h"
@@ -40,17 +42,96 @@ void inputHandler::update(game* g)
 
         processKeyEvent(event);
 
-        if (g->getActiveState())
+        // Forward text input to UICommand
+        if (event.type == SDL_EVENT_TEXT_INPUT)
         {
-            g->getActiveState()->handleInput(g, event);
+            g->handleCommand(UICommand::textInput(event.text.text));
         }
 
-        // Global hotkey routing for Action Grid buttons (1..5, SHIFT+1..5, CTRL+1..5, Q, E)
         if (event.type == SDL_EVENT_KEY_DOWN && !event.key.repeat)
         {
-            auto loadState = dynamic_cast<loadGameState*>(g->getActiveState());
-            if (!loadState || !loadState->isEditingSaveName)
+            bool isEditingText = false;
+            if (auto loadState = dynamic_cast<loadGameState*>(g->getActiveState()))
             {
+                isEditingText = loadState->isEditingSaveName;
+            }
+            else if (auto ccState = dynamic_cast<characterCreationState*>(g->getActiveState()))
+            {
+                isEditingText = (ccState->getCurrentTabId() == EditorTabId::NAME_FINISH);
+            }
+
+            if (isEditingText)
+            {
+                if (event.key.key == SDLK_BACKSPACE)
+                {
+                    g->handleCommand(UICommand::textBackspace());
+                }
+                else if (event.key.key == SDLK_RETURN || event.key.key == SDLK_KP_ENTER)
+                {
+                    g->handleCommand(UICommand::confirmInput());
+                }
+                else if (event.key.key == SDLK_TAB)
+                {
+                    g->handleCommand(UICommand::selectTab(-1));
+                }
+                else if (event.key.key == SDLK_ESCAPE)
+                {
+                    g->handleCommand(UICommand::closeMenu());
+                }
+            }
+            else
+            {
+                if (event.key.key == SDLK_ESCAPE)
+                {
+                    g->handleCommand(UICommand::closeMenu());
+                }
+                else if (event.key.scancode == SDL_SCANCODE_F5)
+                {
+                    g->handleCommand(UICommand::quickSave());
+                }
+                else if (event.key.scancode == SDL_SCANCODE_F9)
+                {
+                    g->handleCommand(UICommand::quickLoad());
+                }
+                else if (dynamic_cast<explorationState*>(g->getActiveState()))
+                {
+                    if (event.key.key == SDLK_I)
+                    {
+                        g->handleCommand(UICommand::openInventory());
+                    }
+                    else if (event.key.key == SDLK_K)
+                    {
+                        g->handleCommand(UICommand::openShop());
+                    }
+                    else if (event.key.key == SDLK_M)
+                    {
+                        g->handleCommand(UICommand::openTransformation());
+                    }
+                    else
+                    {
+                        int nextX = g->gridX;
+                        int nextY = g->gridY;
+                        bool isMove = true;
+                        switch (event.key.key)
+                        {
+                            case SDLK_W:
+                            case SDLK_UP:    nextY--; break;
+                            case SDLK_S:
+                            case SDLK_DOWN:  nextY++; break;
+                            case SDLK_A:
+                            case SDLK_LEFT:  nextX--; break;
+                            case SDLK_D:
+                            case SDLK_RIGHT: nextX++; break;
+                            default: isMove = false; break;
+                        }
+                        if (isMove)
+                        {
+                            g->handleCommand(UICommand::movePlayer(nextX, nextY));
+                        }
+                    }
+                }
+
+                // Global hotkey routing for Action Grid buttons (1..5, SHIFT+1..5, CTRL+1..5, Q, E)
                 SDL_Keymod mod = SDL_GetModState();
                 bool isShift = (mod & SDL_KMOD_SHIFT) != 0;
                 bool isCtrl = (mod & SDL_KMOD_CTRL) != 0;
@@ -66,13 +147,13 @@ void inputHandler::update(game* g)
                     case SDLK_Q:
                         if (!isCtrl)
                         {
-                            g->previousActionPage();
+                            g->handleCommand(UICommand::previousActionPage());
                         }
                         break;
                     case SDLK_E:
                         if (!dynamic_cast<explorationState*>(g->getActiveState()))
                         {
-                            g->nextActionPage();
+                            g->handleCommand(UICommand::nextActionPage());
                         }
                         break;
                     default:
@@ -81,7 +162,7 @@ void inputHandler::update(game* g)
 
                 if (slotIdx >= 0)
                 {
-                    g->triggerActionButton(slotIdx);
+                    g->handleCommand(UICommand::triggerActionButton(slotIdx));
                 }
             }
         }

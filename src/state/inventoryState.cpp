@@ -53,17 +53,6 @@ void inventoryState::goBack(game* gameContext)
     }
 }
 
-void inventoryState::handleInput(game* gameContext, const SDL_Event& event)
-{
-    if (!gameContext) return;
-
-    if (event.type == SDL_EVENT_KEY_DOWN && (event.key.key == SDLK_I || event.key.key == SDLK_ESCAPE))
-    {
-        goBack(gameContext);
-        return;
-    }
-}
-
 void inventoryState::handleCommand(game* gameContext, const UICommand& cmd)
 {
     if (!gameContext) return;

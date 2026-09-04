@@ -66,19 +66,6 @@ void transformationState::setTab(TransformationTab tab, game* gameContext)
     }
 }
 
-void transformationState::handleInput(game* gameContext, const SDL_Event& event)
-{
-    if (!gameContext) return;
-
-    if (event.type == SDL_EVENT_KEY_DOWN)
-    {
-        if (event.key.key == SDLK_ESCAPE)
-        {
-            gameContext->changeState(std::make_unique<explorationState>());
-        }
-    }
-}
-
 void transformationState::handleCommand(game* gameContext, const UICommand& cmd)
 {
     if (!gameContext) return;

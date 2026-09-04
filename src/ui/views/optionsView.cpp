@@ -160,8 +160,8 @@ namespace OptionsView
             bool onHovered = (mousePos.x >= onPill.x && mousePos.x <= onPill.x + onPill.w && mousePos.y >= onPill.y && mousePos.y <= onPill.y + onPill.h);
 
             bool isFadeOn = gameContext->settings.display.fadeInEnabled;
-            UIWidget::drawColoredButton(renderer, offPill, "OFF", !isFadeOn ? SDL_Color{ 160, 45, 55, 240 } : Theme::colors.bgButton, !isFadeOn ? Theme::colors.textPrimary : Theme::colors.textMuted, !isFadeOn, uiScale * 0.72f);
-            UIWidget::drawColoredButton(renderer, onPill, "ON", isFadeOn ? SDL_Color{ 45, 120, 65, 240 } : Theme::colors.bgButton, isFadeOn ? Theme::colors.textPrimary : Theme::colors.textMuted, isFadeOn, uiScale * 0.72f);
+            UIWidget::drawColoredButton(renderer, offPill, "OFF", !isFadeOn ? Theme::colors.toggleOff : Theme::colors.bgButton, !isFadeOn ? Theme::colors.textPrimary : Theme::colors.textMuted, !isFadeOn, uiScale * 0.72f);
+            UIWidget::drawColoredButton(renderer, onPill, "ON", isFadeOn ? Theme::colors.toggleOn : Theme::colors.bgButton, isFadeOn ? Theme::colors.textPrimary : Theme::colors.textMuted, isFadeOn, uiScale * 0.72f);
 
             if (offHovered && clicked)
             {
@@ -198,8 +198,8 @@ namespace OptionsView
             bool custHovered = (mousePos.x >= customPill.x && mousePos.x <= customPill.x + customPill.w && mousePos.y >= customPill.y && mousePos.y <= customPill.y + customPill.h);
 
             bool isNorm = (gameContext->settings.gameplay.genderPronounMode == "Normal");
-            UIWidget::drawColoredButton(renderer, normalPill, "Normal", isNorm ? SDL_Color{ 45, 120, 65, 240 } : Theme::colors.bgButton, isNorm ? Theme::colors.textPrimary : Theme::colors.textMuted, isNorm, uiScale * 0.72f);
-            UIWidget::drawColoredButton(renderer, customPill, "Custom", !isNorm ? SDL_Color{ 45, 120, 65, 240 } : Theme::colors.bgButton, !isNorm ? Theme::colors.textPrimary : Theme::colors.textMuted, !isNorm, uiScale * 0.72f);
+            UIWidget::drawColoredButton(renderer, normalPill, "Normal", isNorm ? Theme::colors.toggleOn : Theme::colors.bgButton, isNorm ? Theme::colors.textPrimary : Theme::colors.textMuted, isNorm, uiScale * 0.72f);
+            UIWidget::drawColoredButton(renderer, customPill, "Custom", !isNorm ? Theme::colors.toggleOn : Theme::colors.bgButton, !isNorm ? Theme::colors.textPrimary : Theme::colors.textMuted, !isNorm, uiScale * 0.72f);
 
             if (normHovered && clicked)
             {
@@ -236,8 +236,8 @@ namespace OptionsView
             bool impHovered = (mousePos.x >= imperialPill.x && mousePos.x <= imperialPill.x + imperialPill.w && mousePos.y >= imperialPill.y && mousePos.y <= imperialPill.y + imperialPill.h);
 
             bool isMetric = (gameContext->settings.gameplay.unitPreference == "Metric");
-            UIWidget::drawColoredButton(renderer, metricPill, "Metric", isMetric ? SDL_Color{ 45, 120, 65, 240 } : Theme::colors.bgButton, isMetric ? Theme::colors.textPrimary : Theme::colors.textMuted, isMetric, uiScale * 0.72f);
-            UIWidget::drawColoredButton(renderer, imperialPill, "Imperial", !isMetric ? SDL_Color{ 45, 120, 65, 240 } : Theme::colors.bgButton, !isMetric ? Theme::colors.textPrimary : Theme::colors.textMuted, !isMetric, uiScale * 0.72f);
+            UIWidget::drawColoredButton(renderer, metricPill, "Metric", isMetric ? Theme::colors.toggleOn : Theme::colors.bgButton, isMetric ? Theme::colors.textPrimary : Theme::colors.textMuted, isMetric, uiScale * 0.72f);
+            UIWidget::drawColoredButton(renderer, imperialPill, "Imperial", !isMetric ? Theme::colors.toggleOn : Theme::colors.bgButton, !isMetric ? Theme::colors.textPrimary : Theme::colors.textMuted, !isMetric, uiScale * 0.72f);
 
             if (metricHovered && clicked)
             {
@@ -255,22 +255,21 @@ namespace OptionsView
                 gameContext->refreshActionGrid();
                 gameContext->input.consumeMouseClick();
             }
-            curY += unitsRect.h + (12.0f * uiScale);
+            curY += unitsRect.h + (10.0f * uiScale);
 
-            // Section: Difficulty
-            static const char* diffNames[] = { "Human", "Morph", "Demon", "Lilin", "Lilith" };
-            std::string diffHeader = std::format("Difficulty (Currently set to {}):", diffNames[gameContext->settings.gameplay.difficultyLevel % 5]);
-            UIWidget::drawText(renderer, diffHeader, textX, curY, Theme::colors.textPrimary, uiScale * 0.92f);
-            curY += (18.0f * uiScale);
+            // Section: Difficulty Tiers
+            SDL_FRect diffHeaderRect = { textX, curY, textW, 24.0f * uiScale };
+            UIWidget::drawText(renderer, "Gameplay Difficulty Tiers:", textX, curY + (4.0f * uiScale), Theme::colors.textGold, uiScale * 0.95f);
+            curY += (26.0f * uiScale);
 
             // Colored difficulty tiers (interactive cards)
             struct DiffTier { std::string name; std::string desc; SDL_Color col; };
-            static const DiffTier tiers[5] = {
+            const DiffTier tiers[5] = {
                 { "Human", "The standard gameplay experience. Balanced level progression and baseline enemy stats.", Theme::colors.textPrimary },
-                { "Morph", "Enemies level up alongside your character, but do normal damage.", SDL_Color{ 180, 140, 200, 255 } },
-                { "Demon", "Enemies level up alongside your character and do 200% damage.", SDL_Color{ 190, 120, 220, 255 } },
-                { "Lilin", "Enemies level up alongside your character, do 200% damage, and take only 50% damage from all sources.", SDL_Color{ 210, 110, 240, 255 } },
-                { "Lilith", "Enemies are always 2x your character's level, do 400% damage, and take only 25% damage from all sources. Prepare for intense challenge.", SDL_Color{ 240, 90, 110, 255 } }
+                { "Morph", "Enemies level up alongside your character, but do normal damage.", Theme::colors.textAccent },
+                { "Demon", "Enemies level up alongside your character and do 200% damage.", Theme::colors.arcane },
+                { "Lilin", "Enemies level up alongside your character, do 200% damage, and take only 50% damage from all sources.", Theme::colors.corruption },
+                { "Lilith", "Enemies are always 2x your character's level, do 400% damage, and take only 25% damage from all sources. Prepare for intense challenge.", Theme::colors.enemy }
             };
 
             for (int i = 0; i < 5; ++i)
@@ -284,8 +283,8 @@ namespace OptionsView
                 SDL_FRect tierRect = { textX, curY, textW, cardH2 };
                 bool tierHovered = (mousePos.x >= tierRect.x && mousePos.x <= tierRect.x + tierRect.w && mousePos.y >= tierRect.y && mousePos.y <= tierRect.y + tierRect.h);
 
-                SDL_Color tierBg = isCurrentDiff ? SDL_Color{ 50, 20, 40, 255 } : (tierHovered ? SDL_Color{ 45, 48, 56, 255 } : Theme::colors.bgSlot);
-                SDL_Color tierBorder = isCurrentDiff ? Theme::colors.borderSelected : (tierHovered ? Theme::colors.textGold : Theme::colors.borderNormal);
+                SDL_Color tierBg = isCurrentDiff ? Theme::colors.bgSlotSelected : (tierHovered ? Theme::colors.bgButtonHover : Theme::colors.bgSlot);
+                SDL_Color tierBorder = isCurrentDiff ? Theme::colors.borderSelected : (tierHovered ? Theme::colors.borderButtonHover : Theme::colors.borderNormal);
                 UIWidget::drawPanel(renderer, tierRect, tierBg, tierBorder);
 
                 UIWidget::drawText(renderer, tiers[i].name, textX + (10.0f * uiScale), curY + (6.0f * uiScale), tiers[i].col, uiScale * 0.88f);
@@ -340,7 +339,7 @@ namespace OptionsView
                 UIWidget::drawPanel(renderer, dropRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
                 std::string infoStr = "> Click for more info.";
                 float strW = UIWidget::getTextWidth(infoStr, uiScale * 0.86f);
-                UIWidget::drawText(renderer, infoStr, padX + ((dropW - strW) / 2.0f), curY + (5.0f * uiScale), SDL_Color{ 180, 130, 255, 255 }, uiScale * 0.86f);
+                UIWidget::drawText(renderer, infoStr, padX + ((dropW - strW) / 2.0f), curY + (5.0f * uiScale), Theme::colors.textAccent, uiScale * 0.86f);
                 curY += dropH + (12.0f * uiScale);
             };
 
@@ -391,8 +390,8 @@ namespace OptionsView
                                      mousePos.y >= pRect.y && mousePos.y <= pRect.y + pRect.h);
                     bool isSelected = (static_cast<int>(p) == selectedIndex);
 
-                    SDL_Color bgCol = isSelected ? (pillLabels[p] == "OFF" ? SDL_Color{ 160, 45, 55, 240 } : SDL_Color{ 45, 120, 65, 240 }) : (pHovered ? SDL_Color{ 50, 54, 62, 255 } : Theme::colors.bgButton);
-                    SDL_Color borderCol = isSelected ? Theme::colors.borderSelected : (pHovered ? Theme::colors.textGold : Theme::colors.borderButton);
+                    SDL_Color bgCol = isSelected ? (pillLabels[p] == "OFF" ? Theme::colors.toggleOff : Theme::colors.toggleOn) : (pHovered ? Theme::colors.bgButtonHover : Theme::colors.bgButton);
+                    SDL_Color borderCol = isSelected ? Theme::colors.borderSelected : (pHovered ? Theme::colors.borderButtonHover : Theme::colors.borderButton);
 
                     SDL_SetRenderDrawColor(renderer, bgCol.r, bgCol.g, bgCol.b, bgCol.a);
                     SDL_RenderFillRect(renderer, &pRect);
@@ -437,15 +436,15 @@ namespace OptionsView
                                      mousePos.y >= pRect.y && mousePos.y <= pRect.y + pRect.h);
                     bool isSelected = (static_cast<int>(p) == selectedIndex);
 
-                    SDL_Color bgCol = isSelected ? SDL_Color{ 75, 24, 55, 255 } : (pHovered ? SDL_Color{ 50, 54, 62, 255 } : SDL_Color{ 38, 42, 50, 255 });
-                    SDL_Color borderCol = isSelected ? SDL_Color{ 245, 80, 175, 255 } : (pHovered ? Theme::colors.textGold : SDL_Color{ 58, 62, 72, 255 });
+                    SDL_Color bgCol = isSelected ? Theme::colors.bgSlotSelected : (pHovered ? Theme::colors.bgButtonHover : Theme::colors.bgSlot);
+                    SDL_Color borderCol = isSelected ? Theme::colors.borderSelected : (pHovered ? Theme::colors.borderButtonHover : Theme::colors.borderMuted);
 
                     SDL_SetRenderDrawColor(renderer, bgCol.r, bgCol.g, bgCol.b, bgCol.a);
                     SDL_RenderFillRect(renderer, &pRect);
                     SDL_SetRenderDrawColor(renderer, borderCol.r, borderCol.g, borderCol.b, borderCol.a);
                     SDL_RenderRect(renderer, &pRect);
 
-                    SDL_Color pTextCol = isSelected ? SDL_Color{ 255, 220, 245, 255 } : (pHovered ? Theme::colors.textGold : Theme::colors.textMuted);
+                    SDL_Color pTextCol = isSelected ? Theme::colors.textPrimary : (pHovered ? Theme::colors.textGold : Theme::colors.textMuted);
                     float labelW = UIWidget::getTextWidth(std::string(freqLabels[p]), uiScale * 0.75f);
                     UIWidget::drawText(renderer, std::string(freqLabels[p]), pRect.x + ((pRect.w - labelW) / 2.0f), pRect.y + (3.0f * uiScale), pTextCol, uiScale * 0.75f);
 
@@ -522,26 +521,26 @@ namespace OptionsView
                                  });
 
                 renderToggles({
-                    { "Artwork", SDL_Color{ 100, 200, 255, 255 }, "Enables artwork to be displayed in characters' information screens.", &gameContext->settings.display.showArtwork },
-                    { "Thumbnails", SDL_Color{ 100, 200, 255, 255 }, "Enables tooltips containing thumbnail images of the character.", &gameContext->settings.display.showThumbnails },
+                    { "Artwork", Theme::colors.friendly, "Enables artwork to be displayed in characters' information screens.", &gameContext->settings.display.showArtwork },
+                    { "Thumbnails", Theme::colors.friendly, "Enables tooltips containing thumbnail images of the character.", &gameContext->settings.display.showThumbnails },
                     { "Shared Encyclopedia", Theme::colors.textGold, "When enabled, your character will use the shared Encyclopedia across playthroughs.", &gameContext->settings.gameplay.sharedEncyclopedia },
-                    { "Storm interruptions", SDL_Color{ 235, 140, 255, 255 }, "When enabled, arcane storms will interrupt dialogue to let you know that they've started.", &gameContext->settings.gameplay.stormInterruptions }
+                    { "Storm interruptions", Theme::colors.arcane, "When enabled, arcane storms will interrupt dialogue to let you know that they've started.", &gameContext->settings.gameplay.stormInterruptions }
                 });
             }
             else if (opt->contentCategory == ContentOptionsCategory::GAMEPLAY)
             {
                 renderToggles({
-                    { "Enchantment Instability", SDL_Color{ 235, 140, 255, 255 }, "Toggle the 'enchantment instability' mechanic, restricting enchanted items.", &gameContext->settings.gameplay.enchantmentInstability },
-                    { "Bad Ends", SDL_Color{ 255, 110, 120, 255 }, "Toggle the ability to trigger 'bad ends', which end the game when encountered.", &gameContext->settings.gameplay.badEndsEnabled },
-                    { "Level Drain", SDL_Color{ 255, 90, 100, 255 }, "Toggle the use of the 'orgasmic level drain' perk by unique NPCs.", &gameContext->settings.gameplay.levelDrainEnabled },
-                    { "Opportunistic attackers", SDL_Color{ 255, 110, 120, 255 }, "Makes random attacks more likely when you're high on lust, low health, or exposed.", &gameContext->settings.gameplay.opportunisticAttackers },
-                    { "Auto-Loot Defeated Enemies", SDL_Color{ 100, 200, 255, 255 }, "Automatically collects dropped coin and essentials upon combat victory.", &gameContext->settings.gameplay.autoLoot }
+                    { "Enchantment Instability", Theme::colors.arcane, "Toggle the 'enchantment instability' mechanic, restricting enchanted items.", &gameContext->settings.gameplay.enchantmentInstability },
+                    { "Bad Ends", Theme::colors.enemy, "Toggle the ability to trigger 'bad ends', which end the game when encountered.", &gameContext->settings.gameplay.badEndsEnabled },
+                    { "Level Drain", Theme::colors.enemy, "Toggle the use of the 'orgasmic level drain' perk by unique NPCs.", &gameContext->settings.gameplay.levelDrainEnabled },
+                    { "Opportunistic attackers", Theme::colors.enemy, "Makes random attacks more likely when you're high on lust, low health, or exposed.", &gameContext->settings.gameplay.opportunisticAttackers },
+                    { "Auto-Loot Defeated Enemies", Theme::colors.friendly, "Automatically collects dropped coin and essentials upon combat victory.", &gameContext->settings.gameplay.autoLoot }
                 });
 
                 int curLossIdx = (gameContext->settings.gameplay.currencyLossOnDefeatPercent < 0.05f) ? 0 :
                                  (gameContext->settings.gameplay.currencyLossOnDefeatPercent < 0.20f ? 1 :
                                  (gameContext->settings.gameplay.currencyLossOnDefeatPercent < 0.40f ? 2 : 3));
-                renderOptionCard("Currency Loss on Defeat", SDL_Color{ 255, 180, 80, 255 }, "Percentage of carried gold dropped when suffering a defeat.",
+                renderOptionCard("Currency Loss on Defeat", Theme::colors.currency, "Percentage of carried gold dropped when suffering a defeat.",
                                  { "0%", "10%", "25%", "50%" },
                                  curLossIdx,
                                  [&](int idx) {
@@ -553,16 +552,16 @@ namespace OptionsView
             else if (opt->contentCategory == ContentOptionsCategory::SEX_AND_FETISHES)
             {
                 renderToggles({
-                    { "Non-consent", SDL_Color{ 255, 95, 120, 255 }, "This enables the 'resist' pace in sex scenes, which contains more extreme non-consensual descriptions.", &gameContext->settings.content.nonConEnabled },
-                    { "Sadistic sex / Extreme", SDL_Color{ 255, 95, 120, 255 }, "This unlocks 'sadistic' sex actions such as rough treatment and heavy restraints.", &gameContext->settings.content.extremeContentEnabled },
-                    { "Public Sex Exposure", SDL_Color{ 255, 105, 180, 255 }, "Allows public exhibitionism and onlookers during intimate encounters in open zones.", &gameContext->settings.content.publicSexEnabled }
+                    { "Non-consent", Theme::colors.enemy, "This enables the 'resist' pace in sex scenes, which contains more extreme non-consensual descriptions.", &gameContext->settings.content.nonConEnabled },
+                    { "Sadistic sex / Extreme", Theme::colors.enemy, "This unlocks 'sadistic' sex actions such as rough treatment and heavy restraints.", &gameContext->settings.content.extremeContentEnabled },
+                    { "Public Sex Exposure", Theme::colors.lust, "Allows public exhibitionism and onlookers during intimate encounters in open zones.", &gameContext->settings.content.publicSexEnabled }
                 });
 
                 int fluidIdx = (gameContext->settings.content.fluidMultiplier <= 0.3f) ? 0 :
                                (gameContext->settings.content.fluidMultiplier <= 0.7f ? 1 :
                                (gameContext->settings.content.fluidMultiplier <= 1.5f ? 2 :
                                (gameContext->settings.content.fluidMultiplier <= 3.0f ? 3 : 4)));
-                renderOptionCard("Fluid Multiplier", SDL_Color{ 100, 210, 255, 255 }, "Scales fluid volume generated during climax and bodily transformations.",
+                renderOptionCard("Fluid Multiplier", Theme::colors.friendly, "Scales fluid volume generated during climax and bodily transformations.",
                                  { "0.25x", "0.5x", "1.0x", "2.0x", "4.0x" },
                                  fluidIdx,
                                  [&](int idx) {
@@ -574,15 +573,15 @@ namespace OptionsView
             else if (opt->contentCategory == ContentOptionsCategory::BODIES)
             {
                 renderToggles({
-                    { "Pregnancy", SDL_Color{ 185, 230, 110, 255 }, "Enables insemination, gestation progression, and progeny generation mechanics.", &gameContext->settings.content.pregnancyEnabled },
-                    { "Lactation", SDL_Color{ 100, 210, 255, 255 }, "Enables breast engorgement, milk production, and related dialogue / feeding actions.", &gameContext->settings.content.lactationEnabled }
+                    { "Pregnancy", Theme::colors.companion, "Enables insemination, gestation progression, and progeny generation mechanics.", &gameContext->settings.content.pregnancyEnabled },
+                    { "Lactation", Theme::colors.friendly, "Enables breast engorgement, milk production, and related dialogue / feeding actions.", &gameContext->settings.content.lactationEnabled }
                 });
 
                 int tfIdx = (gameContext->settings.content.transformationSpeedMultiplier >= 5.0f) ? 0 :
                             (gameContext->settings.content.transformationSpeedMultiplier >= 1.5f ? 1 :
                             (gameContext->settings.content.transformationSpeedMultiplier >= 0.8f ? 2 :
                             (gameContext->settings.content.transformationSpeedMultiplier > 0.0f ? 3 : 4)));
-                renderOptionCard("Transformation Speed", SDL_Color{ 240, 180, 80, 255 }, "Governs speed of anatomical mutations and bodily reshaping.",
+                renderOptionCard("Transformation Speed", Theme::colors.currency, "Governs speed of anatomical mutations and bodily reshaping.",
                                  { "Instant", "Fast", "Normal", "Slow", "Off" },
                                  tfIdx,
                                  [&](int idx) {
@@ -595,32 +594,32 @@ namespace OptionsView
             {
                 auto& d = gameContext->settings.demographics;
                 renderDemographicCategory({
-                    { "Male / Masculine", SDL_Color{ 100, 160, 255, 255 }, "Masculine bodies with male anatomy.", &d.percentMale },
-                    { "Female / Feminine", SDL_Color{ 255, 120, 180, 255 }, "Feminine bodies with female anatomy.", &d.percentFemale },
-                    { "Hermaphrodite", SDL_Color{ 180, 130, 255, 255 }, "Dual sex anatomy with breasts and penis.", &d.percentHermaphrodite },
-                    { "Gynomorph", SDL_Color{ 255, 140, 220, 255 }, "Feminine frame with penis and breasts.", &d.percentGynomorph },
-                    { "Andromorph", SDL_Color{ 120, 190, 255, 255 }, "Masculine frame with vagina and flat chest.", &d.percentAndromorph },
-                    { "Asexual / Null", SDL_Color{ 180, 180, 190, 255 }, "Neutral form with smooth groin.", &d.percentNull }
+                    { "Male / Masculine", Theme::colors.friendly, "Masculine bodies with male anatomy.", &d.percentMale },
+                    { "Female / Feminine", Theme::colors.lust, "Feminine bodies with female anatomy.", &d.percentFemale },
+                    { "Hermaphrodite", Theme::colors.arcane, "Dual sex anatomy with breasts and penis.", &d.percentHermaphrodite },
+                    { "Gynomorph", Theme::colors.textAccent, "Feminine frame with penis and breasts.", &d.percentGynomorph },
+                    { "Andromorph", Theme::colors.friendly, "Masculine frame with vagina and flat chest.", &d.percentAndromorph },
+                    { "Asexual / Null", Theme::colors.textMuted, "Neutral form with smooth groin.", &d.percentNull }
                 });
             }
             else if (opt->contentCategory == ContentOptionsCategory::ORIENTATION_PREFS)
             {
                 auto& d = gameContext->settings.demographics;
                 renderDemographicCategory({
-                    { "Heterosexual", SDL_Color{ 100, 160, 255, 255 }, "Attracted to opposite sex.", &d.percentHetero },
-                    { "Bisexual", SDL_Color{ 180, 130, 255, 255 }, "Attracted to both sexes.", &d.percentBi },
-                    { "Homosexual", SDL_Color{ 255, 110, 180, 255 }, "Attracted to same sex.", &d.percentHomo },
-                    { "Asexual", SDL_Color{ 180, 180, 190, 255 }, "Low or no sexual interest.", &d.percentAsexual }
+                    { "Heterosexual", Theme::colors.friendly, "Attracted to opposite sex.", &d.percentHetero },
+                    { "Bisexual", Theme::colors.arcane, "Attracted to both sexes.", &d.percentBi },
+                    { "Homosexual", Theme::colors.lust, "Attracted to same sex.", &d.percentHomo },
+                    { "Asexual", Theme::colors.textMuted, "Low or no sexual interest.", &d.percentAsexual }
                 });
             }
             else if (opt->contentCategory == ContentOptionsCategory::AGE_PREFS)
             {
                 auto& d = gameContext->settings.demographics;
                 renderDemographicCategory({
-                    { "Young Adult (18-25)", SDL_Color{ 140, 220, 110, 255 }, "", &d.percentYoungAdult },
-                    { "Adult (26-40)", SDL_Color{ 100, 200, 255, 255 }, "", &d.percentAdult },
-                    { "Mature (41-60)", SDL_Color{ 220, 180, 90, 255 }, "", &d.percentMature },
-                    { "Elder (60+)", SDL_Color{ 200, 140, 140, 255 }, "", &d.percentElder }
+                    { "Young Adult (18-25)", Theme::colors.companion, "", &d.percentYoungAdult },
+                    { "Adult (26-40)", Theme::colors.friendly, "", &d.percentAdult },
+                    { "Mature (41-60)", Theme::colors.currency, "", &d.percentMature },
+                    { "Elder (60+)", Theme::colors.enemy, "", &d.percentElder }
                 });
             }
             else if (opt->contentCategory == ContentOptionsCategory::FURRY_PREFS)
@@ -628,9 +627,9 @@ namespace OptionsView
                 auto& d = gameContext->settings.demographics;
                 renderDemographicCategory({
                     { "Human / Pureblood", Theme::colors.textPrimary, "Regular human bodies without morph features.", &d.percentHuman },
-                    { "Partial Morph (Ears/Tail)", SDL_Color{ 200, 160, 120, 255 }, "Humanoid bodies with animal ears, tails, or horns.", &d.percentPartial },
-                    { "Anthropomorphic", SDL_Color{ 180, 130, 255, 255 }, "Full fur, muzzle, and digitigrade anatomy on bipedal form.", &d.percentAnthro },
-                    { "Feral / Bestial", SDL_Color{ 240, 110, 110, 255 }, "Quadrupedal / animalistic body structures.", &d.percentFeral }
+                    { "Partial Morph (Ears/Tail)", Theme::colors.currency, "Humanoid bodies with animal ears, tails, or horns.", &d.percentPartial },
+                    { "Anthropomorphic", Theme::colors.arcane, "Full fur, muzzle, and digitigrade anatomy on bipedal form.", &d.percentAnthro },
+                    { "Feral / Bestial", Theme::colors.enemy, "Quadrupedal / animalistic body structures.", &d.percentFeral }
                 });
             }
             else if (opt->contentCategory == ContentOptionsCategory::FETISH_PREFS)
@@ -682,18 +681,18 @@ namespace OptionsView
 
                         if (isSelected)
                         {
-                            if (p == 0) { bgCol = SDL_Color{ 45, 45, 52, 255 }; borderCol = SDL_Color{ 90, 90, 100, 255 }; pTextCol = Theme::colors.textMuted; }
-                            else if (p == 1) { bgCol = SDL_Color{ 100, 20, 25, 255 }; borderCol = SDL_Color{ 220, 50, 60, 255 }; pTextCol = Theme::colors.textPrimary; }
-                            else if (p == 2) { bgCol = SDL_Color{ 90, 45, 25, 255 }; borderCol = SDL_Color{ 200, 90, 50, 255 }; pTextCol = Theme::colors.textPrimary; }
-                            else if (p == 3) { bgCol = SDL_Color{ 75, 24, 55, 255 }; borderCol = SDL_Color{ 245, 80, 175, 255 }; pTextCol = SDL_Color{ 255, 220, 245, 255 }; }
-                            else if (p == 4) { bgCol = SDL_Color{ 24, 75, 45, 255 }; borderCol = SDL_Color{ 60, 200, 110, 255 }; pTextCol = SDL_Color{ 220, 255, 230, 255 }; }
-                            else if (p == 5) { bgCol = SDL_Color{ 20, 85, 100, 255 }; borderCol = SDL_Color{ 50, 220, 240, 255 }; pTextCol = SDL_Color{ 210, 255, 255, 255 }; }
-                            else { bgCol = SDL_Color{ 95, 75, 20, 255 }; borderCol = SDL_Color{ 255, 215, 60, 255 }; pTextCol = SDL_Color{ 255, 245, 200, 255 }; }
+                            if (p == 0) { bgCol = Theme::colors.bgButtonDisabled; borderCol = Theme::colors.borderButtonDisabled; pTextCol = Theme::colors.textDisabled; }
+                            else if (p == 1) { bgCol = Theme::colors.toggleOff; borderCol = Theme::colors.enemy; pTextCol = Theme::colors.textPrimary; }
+                            else if (p == 2) { bgCol = Theme::colors.bgSlotOccupied; borderCol = Theme::colors.physique; pTextCol = Theme::colors.textPrimary; }
+                            else if (p == 3) { bgCol = Theme::colors.bgSlotSelected; borderCol = Theme::colors.borderSelected; pTextCol = Theme::colors.textGold; }
+                            else if (p == 4) { bgCol = Theme::colors.bgSlotOccupied; borderCol = Theme::colors.companion; pTextCol = Theme::colors.textPrimary; }
+                            else if (p == 5) { bgCol = Theme::colors.bgButton; borderCol = Theme::colors.friendly; pTextCol = Theme::colors.textPrimary; }
+                            else { bgCol = Theme::colors.badgeBackground; borderCol = Theme::colors.textGold; pTextCol = Theme::colors.textGold; }
                         }
                         else if (pHovered)
                         {
-                            bgCol = SDL_Color{ 50, 54, 62, 255 };
-                            borderCol = Theme::colors.textGold;
+                            bgCol = Theme::colors.bgButtonHover;
+                            borderCol = Theme::colors.borderButtonHover;
                             pTextCol = Theme::colors.textGold;
                         }
 

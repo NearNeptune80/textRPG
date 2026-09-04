@@ -17,69 +17,6 @@ enum class CoveringType
     IRIS
 };
 
-inline std::string bodySlotToString(bodySlot slot)
-{
-    switch (slot)
-    {
-        case bodySlot::HAIR:      return "HAIR";
-        case bodySlot::HEAD:      return "HEAD";
-        case bodySlot::EYES:      return "EYES";
-        case bodySlot::EARS:      return "EARS";
-        case bodySlot::MOUTH:     return "MOUTH";
-        case bodySlot::NECK:      return "NECK";
-        case bodySlot::HORNS:     return "HORNS";
-        case bodySlot::ANTENNAE:  return "ANTENNAE";
-        case bodySlot::TORSO:     return "TORSO";
-        case bodySlot::BREASTS:   return "BREASTS";
-        case bodySlot::NIPPLES:   return "NIPPLES";
-        case bodySlot::STOMACH:   return "STOMACH";
-        case bodySlot::BACK:      return "BACK";
-        case bodySlot::ARMS:      return "ARMS";
-        case bodySlot::HANDS:     return "HANDS";
-        case bodySlot::FINGERS:   return "FINGERS";
-        case bodySlot::HIPS:      return "HIPS";
-        case bodySlot::GROIN:     return "GROIN";
-        case bodySlot::ASS:       return "ASS";
-        case bodySlot::TAIL:      return "TAIL";
-        case bodySlot::LEGS:      return "LEGS";
-        case bodySlot::FEET:      return "FEET";
-        case bodySlot::WINGS:     return "WINGS";
-        case bodySlot::TENTACLES: return "TENTACLES";
-        default:                  return "UNKNOWN";
-    }
-}
-
-inline bodySlot stringToBodySlot(const std::string& str)
-{
-    if (str == "HAIR")      return bodySlot::HAIR;
-    if (str == "HEAD")      return bodySlot::HEAD;
-    if (str == "EYES")      return bodySlot::EYES;
-    if (str == "EARS")      return bodySlot::EARS;
-    if (str == "MOUTH")     return bodySlot::MOUTH;
-    if (str == "NECK")      return bodySlot::NECK;
-    if (str == "HORNS")     return bodySlot::HORNS;
-    if (str == "ANTENNAE")  return bodySlot::ANTENNAE;
-    if (str == "TORSO")     return bodySlot::TORSO;
-    if (str == "BREASTS")   return bodySlot::BREASTS;
-    if (str == "NIPPLES")   return bodySlot::NIPPLES;
-    if (str == "STOMACH")   return bodySlot::STOMACH;
-    if (str == "BACK")      return bodySlot::BACK;
-    if (str == "ARMS")      return bodySlot::ARMS;
-    if (str == "HANDS")     return bodySlot::HANDS;
-    if (str == "FINGERS")   return bodySlot::FINGERS;
-    if (str == "HIPS")      return bodySlot::HIPS;
-    if (str == "GROIN")     return bodySlot::GROIN;
-    if (str == "ASS")       return bodySlot::ASS;
-    if (str == "TAIL")      return bodySlot::TAIL;
-    if (str == "LEGS")      return bodySlot::LEGS;
-    if (str == "FEET")      return bodySlot::FEET;
-    if (str == "WINGS")     return bodySlot::WINGS;
-    if (str == "TENTACLES") return bodySlot::TENTACLES;
-
-    try { return static_cast<bodySlot>(std::stoi(str)); }
-    catch (...) { return bodySlot::TORSO; }
-}
-
 inline std::string getCoveringNoun(CoveringType cov)
 {
     switch (cov)

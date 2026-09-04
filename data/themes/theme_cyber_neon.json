@@ -14,12 +14,25 @@
     "borderSelected": { "r": 0, "g": 240, "b": 255, "a": 255 },
     "borderButton": { "r": 0, "g": 180, "b": 230, "a": 255 },
     "borderButtonDisabled": { "r": 40, "g": 50, "b": 70, "a": 255 },
+    "borderButtonHover": { "r": 0, "g": 255, "b": 220, "a": 255 },
+    "borderMuted": { "r": 25, "g": 40, "b": 65, "a": 255 },
+    "slotEmptyBorder": { "r": 25, "g": 35, "b": 55, "a": 255 },
+    "borderTooltip": { "r": 0, "g": 200, "b": 230, "a": 255 },
+
+    "bgInput": { "r": 10, "g": 14, "b": 24, "a": 255 },
+    "bgTooltip": { "r": 8, "g": 10, "b": 18, "a": 250 },
+    "bgButtonHover": { "r": 35, "g": 50, "b": 75, "a": 255 },
+    "badgeBackground": { "r": 10, "g": 90, "b": 140, "a": 255 },
+
+    "toggleOn": { "r": 20, "g": 180, "b": 100, "a": 240 },
+    "toggleOff": { "r": 200, "g": 40, "b": 70, "a": 240 },
 
     "textPrimary": { "r": 240, "g": 250, "b": 255, "a": 255 },
     "textSecondary": { "r": 160, "g": 210, "b": 240, "a": 255 },
     "textMuted": { "r": 90, "g": 120, "b": 150, "a": 255 },
     "textGold": { "r": 255, "g": 210, "b": 50, "a": 255 },
     "textAccent": { "r": 0, "g": 255, "b": 200, "a": 255 },
+    "textDisabled": { "r": 60, "g": 80, "b": 110, "a": 255 },
 
     "health": { "r": 255, "g": 40, "b": 100, "a": 255 },
     "mana": { "r": 0, "g": 230, "b": 255, "a": 255 },

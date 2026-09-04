@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -51,13 +52,26 @@ public:
     int lastRestockDay = -1;       // Last day merchant restocked gold/inventory
     float baseMerchantGold = 500.0f;// Base gold stock
 
+    std::vector<std::string> unlockedPerks;
+    void unlockPerk(const std::string& perkId);
+    bool hasPerk(const std::string& perkId) const;
+    void resetPerks();
+    void recalculatePerkModifiers();
+
     void addStatusEffect(const StatusEffect& effect);
     void removeStatusEffect(const std::string& effectId);
     bool hasStatusEffect(const std::string& effectId) const;
     void updateStatusEffectsOnTurn();
 
+    void invalidateStatCache() const;
     float getStat(const std::string& statName) const;
 
     nlohmann::json toJson() const;
     void fromJson(const nlohmann::json& j);
+
+private:
+    mutable bool m_statsDirty = true;
+    mutable uint32_t m_cachedEquipVersion = 0;
+    mutable uint32_t m_cachedStatsVersion = 0;
+    mutable std::unordered_map<std::string, float> m_statCache;
 };

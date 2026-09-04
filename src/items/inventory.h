@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -22,6 +23,7 @@ class inventoryComponent
 public:
     std::vector<std::shared_ptr<item>> backpack;
     std::array<std::shared_ptr<item>, EQUIP_SLOT_COUNT> equipped{};
+    uint32_t equipVersion = 0;
 
     std::unordered_map<equipSlot, DisplacementMode> activeDisplacements;
 

@@ -58,11 +58,11 @@ void optionsState::goBack(game* gameContext)
     }
 }
 
-void optionsState::handleInput(game* gameContext, const SDL_Event& event)
+void optionsState::handleCommand(game* gameContext, const UICommand& cmd)
 {
     if (!gameContext) return;
 
-    if (event.type == SDL_EVENT_KEY_DOWN && event.key.key == SDLK_ESCAPE)
+    if (cmd.type == CommandType::CLOSE_MENU)
     {
         if (isKeybindsOpen)
         {
@@ -73,16 +73,6 @@ void optionsState::handleInput(game* gameContext, const SDL_Event& event)
         {
             goBack(gameContext);
         }
-    }
-}
-
-void optionsState::handleCommand(game* gameContext, const UICommand& cmd)
-{
-    if (!gameContext) return;
-
-    if (cmd.type == CommandType::CLOSE_MENU)
-    {
-        goBack(gameContext);
     }
     else if (cmd.type == CommandType::CYCLE_SETTING_OPTION)
     {

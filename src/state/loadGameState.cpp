@@ -39,48 +39,38 @@ void loadGameState::goBack(game* gameContext)
     }
 }
 
-void loadGameState::handleInput(game* gameContext, const SDL_Event& event)
-{
-    if (!gameContext) return;
-
-    if (event.type == SDL_EVENT_TEXT_INPUT && isEditingSaveName)
-    {
-        newSaveNameInput += event.text.text;
-    }
-    else if (event.type == SDL_EVENT_KEY_DOWN)
-    {
-        if (isEditingSaveName)
-        {
-            if (event.key.key == SDLK_BACKSPACE && !newSaveNameInput.empty())
-            {
-                newSaveNameInput.pop_back();
-            }
-            else if (event.key.key == SDLK_RETURN || event.key.key == SDLK_KP_ENTER)
-            {
-                isEditingSaveName = false;
-            }
-            else if (event.key.key == SDLK_ESCAPE)
-            {
-                isEditingSaveName = false;
-            }
-        }
-        else
-        {
-            if (event.key.key == SDLK_ESCAPE)
-            {
-                goBack(gameContext);
-            }
-        }
-    }
-}
-
 void loadGameState::handleCommand(game* gameContext, const UICommand& cmd)
 {
     if (!gameContext) return;
 
     if (cmd.type == CommandType::CLOSE_MENU)
     {
-        goBack(gameContext);
+        if (isEditingSaveName)
+        {
+            isEditingSaveName = false;
+        }
+        else
+        {
+            goBack(gameContext);
+        }
+    }
+    else if (cmd.type == CommandType::TEXT_INPUT)
+    {
+        if (isEditingSaveName)
+        {
+            newSaveNameInput += cmd.stringPayload;
+        }
+    }
+    else if (cmd.type == CommandType::TEXT_BACKSPACE)
+    {
+        if (isEditingSaveName && !newSaveNameInput.empty())
+        {
+            newSaveNameInput.pop_back();
+        }
+    }
+    else if (cmd.type == CommandType::CONFIRM_INPUT)
+    {
+        isEditingSaveName = false;
     }
     else if (cmd.type == CommandType::LOAD_GAME_SLOT)
     {

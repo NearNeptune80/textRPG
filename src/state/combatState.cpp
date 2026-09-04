@@ -62,8 +62,6 @@ void CombatState::onEnter(game* gameContext)
 
 void CombatState::onExit(game* gameContext) {}
 
-void CombatState::handleInput(game* gameContext, const SDL_Event& event) {}
-
 void CombatState::handleCommand(game* gameContext, const UICommand& cmd)
 {
     if (!gameContext) return;

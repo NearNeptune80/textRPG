@@ -22,8 +22,16 @@
       "name": "Silver Tongue",
       "category": "Social",
       "cost": 1,
-      "description": "Improves negotiation skill with merchants and enhances charm dialogue choices.",
+      "description": "Improves negotiation skill with merchants (-10% buy prices, +10% sell prices) and enhances charm dialogue choices.",
       "unlocked": true
+    },
+    {
+      "id": "master_trader",
+      "name": "Master Trader",
+      "category": "Social",
+      "cost": 2,
+      "description": "Mastery of merchant appraisal and haggling (-15% buy prices, +15% sell prices). Stacks with Silver Tongue.",
+      "unlocked": false
     },
     {
       "id": "libido_surge",

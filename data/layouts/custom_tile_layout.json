@@ -264,55 +264,53 @@
     "SHOP": {
       "enabled": true,
       "rootNode": {
-        "id": "shop_root_column",
+        "id": "shop_root_row",
         "type": "CONTAINER",
-        "direction": "COLUMN",
-        "sizes": [6.0, 72.0, 22.0],
+        "direction": "ROW",
+        "sizes": [16.0, 68.0, 16.0],
         "children": [
           {
-            "id": "shop_top_bar",
+            "id": "shop_left_column",
             "type": "LEAF",
-            "name": "Top Status Bar",
-            "widgets": ["widget_top_bar_full"]
+            "name": "Player Status & Paperdoll",
+            "widgets": [
+              "widget_lt_character_card",
+              "widget_paperdoll_equipment"
+            ]
           },
           {
-            "id": "shop_middle_row",
+            "id": "shop_center_column",
             "type": "CONTAINER",
-            "direction": "ROW",
-            "sizes": [36.0, 36.0, 28.0],
+            "direction": "COLUMN",
+            "sizes": [78.0, 22.0],
             "children": [
               {
-                "id": "shop_merchant_pane",
+                "id": "shop_center_pane",
                 "type": "LEAF",
-                "name": "Merchant Catalog",
+                "name": "Merchant Trading & Catalog",
                 "widgets": [
-                  "widget_merchant_dialog",
-                  "widget_merchant_catalog"
+                  "widget_shop_dual",
+                  "widget_item_details_inspector"
                 ]
               },
               {
-                "id": "shop_player_pane",
+                "id": "shop_bottom_actions",
                 "type": "LEAF",
-                "name": "Player Goods",
+                "name": "Action Commands Grid",
                 "widgets": [
-                  "widget_player_sell_grid"
-                ]
-              },
-              {
-                "id": "shop_cart_pane",
-                "type": "LEAF",
-                "name": "Transaction Cart",
-                "widgets": [
-                  "widget_transaction_cart"
+                  "widget_action_commands"
                 ]
               }
             ]
           },
           {
-            "id": "shop_bottom_actions",
+            "id": "shop_right_column",
             "type": "LEAF",
-            "name": "Shop Actions",
-            "widgets": ["widget_action_commands"]
+            "name": "Merchant Status & Paperdoll",
+            "widgets": [
+              "widget_target_inspector",
+              "widget_partner_paperdoll"
+            ]
           }
         ]
       }

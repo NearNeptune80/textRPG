@@ -1,6 +1,10 @@
 {
   "id": "root_delivery",
   "name": "Canis Root Delivery",
+  "category": "Main Quest",
+  "giver": "Hooded Stranger",
+  "location": "Town District",
+  "rewards": "50¤ and stranger's favor",
   "description": "Deliver the Canis Root to the stranger in the town district.",
   "triggers": [
     {

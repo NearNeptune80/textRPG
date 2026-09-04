@@ -36,10 +36,10 @@ namespace UIWidget
         if (!renderer) return;
 
         SDL_FRect cardRect = { centerX - (cardW / 2.0f), curY, cardW, cardH };
-        SDL_SetRenderDrawColor(renderer, 22, 24, 28, 240);
+        SDL_SetRenderDrawColor(renderer, Theme::colors.bgInput.r, Theme::colors.bgInput.g, Theme::colors.bgInput.b, 240);
         SDL_RenderFillRect(renderer, &cardRect);
 
-        SDL_SetRenderDrawColor(renderer, 50, 54, 62, 255);
+        SDL_SetRenderDrawColor(renderer, Theme::colors.borderMuted.r, Theme::colors.borderMuted.g, Theme::colors.borderMuted.b, Theme::colors.borderMuted.a);
         SDL_RenderRect(renderer, &cardRect);
 
         float textW = title.size() * (8.5f * scale);
@@ -137,7 +137,7 @@ namespace UIWidget
         }
         else
         {
-            SDL_SetRenderDrawColor(renderer, 45, 48, 56, 255);
+            SDL_SetRenderDrawColor(renderer, Theme::colors.slotEmptyBorder.r, Theme::colors.slotEmptyBorder.g, Theme::colors.slotEmptyBorder.b, Theme::colors.slotEmptyBorder.a);
             SDL_RenderRect(renderer, &rect);
         }
 
@@ -148,8 +148,8 @@ namespace UIWidget
     {
         if (!renderer) return false;
 
-        SDL_Color bg = isEnabled ? (isSelected ? SDL_Color{ 36, 40, 48, 255 } : (isHovered ? SDL_Color{ 52, 56, 68, 255 } : SDL_Color{ 28, 30, 36, 255 })) : SDL_Color{ 16, 18, 22, 255 };
-        SDL_Color border = isEnabled ? (isSelected ? Theme::colors.borderSelected : (isHovered ? Theme::colors.textGold : SDL_Color{ 55, 60, 72, 255 })) : SDL_Color{ 38, 42, 50, 255 };
+        SDL_Color bg = isEnabled ? (isSelected ? Theme::colors.bgSlotSelected : (isHovered ? Theme::colors.bgButtonHover : Theme::colors.bgSlot)) : Theme::colors.bgButtonDisabled;
+        SDL_Color border = isEnabled ? (isSelected ? Theme::colors.borderSelected : (isHovered ? Theme::colors.borderButtonHover : Theme::colors.borderButton)) : Theme::colors.borderButtonDisabled;
 
         SDL_SetRenderDrawColor(renderer, bg.r, bg.g, bg.b, bg.a);
         SDL_RenderFillRect(renderer, &rect);
@@ -162,7 +162,7 @@ namespace UIWidget
         {
             float hkScale = scale * 0.65f;
             float hotkeyW = getTextWidth(hotkey, hkScale);
-            SDL_Color hkCol = isEnabled ? (isSelected ? Theme::colors.textGold : SDL_Color{ 110, 115, 125, 190 }) : SDL_Color{ 75, 80, 90, 160 };
+            SDL_Color hkCol = isEnabled ? (isSelected ? Theme::colors.textGold : Theme::colors.textSecondary) : Theme::colors.textDisabled;
             drawText(renderer, hotkey, rect.x + rect.w - hotkeyW - (6.0f * scale), rect.y + (3.0f * scale), hkCol, hkScale);
         }
 
@@ -185,7 +185,7 @@ namespace UIWidget
 
                 if (label == "Reset")
                 {
-                    drawText(renderer, label, labelX, labelY, SDL_Color{ 255, 120, 140, 255 }, labelScale);
+                    drawText(renderer, label, labelX, labelY, Theme::colors.enemy, labelScale);
                 }
                 else if (label == "Quests" || label == "Encyclopedia")
                 {
@@ -193,7 +193,7 @@ namespace UIWidget
                 }
                 else if (label == "Masturbate")
                 {
-                    drawText(renderer, label, labelX, labelY, SDL_Color{ 255, 120, 180, 255 }, labelScale);
+                    drawText(renderer, label, labelX, labelY, Theme::colors.lust, labelScale);
                 }
                 else if (label.find(": OFF") != std::string_view::npos)
                 {

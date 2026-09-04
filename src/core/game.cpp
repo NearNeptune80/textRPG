@@ -1246,16 +1246,35 @@ void game::handleCommand(const UICommand& cmd)
         changeState(std::make_unique<phoneAppsState>(PhoneAppMode::HOME));
         return;
     }
-    else if (cmd.type == CommandType::CLOSE_MENU)
+    else if (cmd.type == CommandType::QUICK_SAVE)
     {
-        if (playerEntity)
+        saveManager::saveNamedGame(this, "QuickSave");
+        return;
+    }
+    else if (cmd.type == CommandType::QUICK_LOAD)
+    {
+        entity* p = getPlayer();
+        std::string charName = (p && !p->name.empty()) ? p->name : "Hero";
+        std::string fileName = charName + "_QuickSave.json";
+        if (saveManager::loadFromFile(this, fileName))
         {
-            changeState(std::make_unique<explorationState>());
+            refreshActionGrid();
         }
-        else
-        {
-            changeState(std::make_unique<mainMenuState>());
-        }
+        return;
+    }
+    else if (cmd.type == CommandType::TRIGGER_ACTION_BUTTON)
+    {
+        triggerActionButton(cmd.intPayload1);
+        return;
+    }
+    else if (cmd.type == CommandType::PREVIOUS_ACTION_PAGE)
+    {
+        previousActionPage();
+        return;
+    }
+    else if (cmd.type == CommandType::NEXT_ACTION_PAGE)
+    {
+        nextActionPage();
         return;
     }
     else if (cmd.type == CommandType::START_NEW_GAME)

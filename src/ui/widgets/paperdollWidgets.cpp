@@ -288,10 +288,9 @@ namespace PaperdollWidgets
                     else if (!isAvailable)
                     {
                         // Disabled / Locked
-                        UIWidget::drawPanel(renderer, slotRect, SDL_Color{ 16, 18, 22, 255 }, SDL_Color{ 28, 30, 36, 255 });
+                        UIWidget::drawPanel(renderer, slotRect, Theme::colors.bgDark, Theme::colors.slotEmptyBorder);
                         float lW = UIWidget::getTextWidth("·", uiScale * 0.65f);
-                        UIWidget::drawText(renderer, "·", slotX + ((tileSize - lW) / 2.0f), slotY + (tileSize * 0.25f), SDL_Color{ 45, 50, 60, 255 }, uiScale * 0.65f);
-
+                        UIWidget::drawText(renderer, "·", slotX + ((tileSize - lW) / 2.0f), slotY + (tileSize * 0.25f), Theme::colors.textDisabled, uiScale * 0.65f);
                     }
                     else
                     {
@@ -343,9 +342,9 @@ namespace PaperdollWidgets
                     else if (!isAvailable)
                     {
                         // Disabled / Anatomically Locked
-                        UIWidget::drawPanel(renderer, slotRect, SDL_Color{ 16, 18, 22, 255 }, SDL_Color{ 28, 30, 36, 255 });
+                        UIWidget::drawPanel(renderer, slotRect, Theme::colors.bgDark, Theme::colors.slotEmptyBorder);
                         float lW = UIWidget::getTextWidth("·", uiScale * 0.65f);
-                        UIWidget::drawText(renderer, "·", slotX + ((tileSize - lW) / 2.0f), slotY + (tileSize * 0.25f), SDL_Color{ 45, 50, 60, 255 }, uiScale * 0.65f);
+                        UIWidget::drawText(renderer, "·", slotX + ((tileSize - lW) / 2.0f), slotY + (tileSize * 0.25f), Theme::colors.textDisabled, uiScale * 0.65f);
                     }
                     else
                     {

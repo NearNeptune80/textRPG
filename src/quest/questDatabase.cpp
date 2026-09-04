@@ -11,6 +11,7 @@ namespace fs = std::filesystem;
 
 std::unordered_map<std::string, questScene> questDatabase::registry;
 std::vector<MapTrigger> questDatabase::globalTriggers;
+std::unordered_map<std::string, QuestDefinition> questDatabase::quests;
 
 static conditionNode parseConditionNode(const json& j)
 {
@@ -66,6 +67,7 @@ bool questDatabase::loadDatabase(const std::string& pathStr)
 {
     registry.clear();
     globalTriggers.clear();
+    quests.clear();
     fs::path p(pathStr);
 
     auto loadSingleFile = [](const fs::path& filePath)
@@ -141,6 +143,34 @@ bool questDatabase::loadDatabase(const std::string& pathStr)
                     questDatabase::globalTriggers.push_back(trig);
                 }
             }
+
+            // Parse Quest Definition if present
+            if (data.contains("id") && data.contains("name"))
+            {
+                QuestDefinition q;
+                q.id = data["id"].get<std::string>();
+                q.name = data.value("name", q.id);
+                q.description = data.value("description", "");
+                q.category = data.value("category", "Main Quest");
+                q.giver = data.value("giver", "Unknown");
+                q.location = data.value("location", "The Realm");
+                q.rewardsDescription = data.value("rewards", "");
+
+                int maxStage = 0;
+                if (data.contains("stages") && data["stages"].is_object())
+                {
+                    for (auto& [stKey, stVal] : data["stages"].items())
+                    {
+                        try {
+                            int stIdx = std::stoi(stKey);
+                            q.stages[stIdx] = stVal.get<std::string>();
+                            if (stIdx > maxStage) maxStage = stIdx;
+                        } catch (...) {}
+                    }
+                }
+                q.completionStage = data.value("completionStage", maxStage);
+                quests[q.id] = q;
+            }
         }
         catch (const json::exception& e)
         {
@@ -196,4 +226,22 @@ std::vector<MapTrigger> questDatabase::getTriggersForLocation(const std::string&
         if (trig.mapId == mapId && trig.x == x && trig.y == y) matches.push_back(trig);
     }
     return matches;
+}
+
+const QuestDefinition* questDatabase::getQuest(const std::string& id)
+{
+    auto it = quests.find(id);
+    if (it != quests.end()) return &it->second;
+    return nullptr;
+}
+
+std::vector<QuestDefinition> questDatabase::getAllQuests()
+{
+    std::vector<QuestDefinition> list;
+    list.reserve(quests.size());
+    for (const auto& [_, q] : quests)
+    {
+        list.push_back(q);
+    }
+    return list;
 }

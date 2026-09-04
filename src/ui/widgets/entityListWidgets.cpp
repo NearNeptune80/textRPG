@@ -37,7 +37,7 @@ namespace EntityListWidgets
         SDL_FRect card1Rect = { padX, curY, availableW, card1H };
         UIWidget::drawPanel(renderer, card1Rect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
-        std::string locName = "Lilaya's Home F1";
+        std::string locName = "Sanctuary Manor F1";
         if (const gameMap* m = gameContext->getActiveMap())
         {
             if (!m->getName().empty() && m->getName() != "District Map") locName = m->getName();
@@ -220,8 +220,8 @@ namespace EntityListWidgets
         };
 
         static const std::vector<LogEntry> logEntries = {
-            { "[ZONE]", "Lilaya's Home F1", Theme::colors.companion },
-            { "[TASK]", "Lilaya's Tests", Theme::colors.textGold },
+            { "[ZONE]", "Sanctuary Manor F1", Theme::colors.companion },
+            { "[TASK]", "Sanctuary Research", Theme::colors.textGold },
             { "[LORE]", "Demon Morph", Theme::colors.arcane },
             { "[ITEM]", "Equipped Demonstone", Theme::colors.health },
             { "[GOLD]", "+5,000 ¤", Theme::colors.currency },

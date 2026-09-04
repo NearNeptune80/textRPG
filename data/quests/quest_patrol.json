@@ -1,0 +1,17 @@
+{
+  "id": "patrol_duty",
+  "name": "Town District Patrol",
+  "category": "Side Quest",
+  "giver": "Guard Captain",
+  "location": "Town Square",
+  "rewards": "40¤ and militia reputation",
+  "description": "Assist the town militia by checking key points around the district and ensuring street safety.",
+  "triggers": [],
+  "stages": {
+    "0": "Report to the guard outpost near the town gate.",
+    "1": "Patrol the alleyways and check on the market vendors.",
+    "2": "Report your observations back to the Guard Captain."
+  },
+  "completionStage": 2,
+  "scenes": []
+}

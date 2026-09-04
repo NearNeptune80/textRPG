@@ -53,17 +53,17 @@
       "name": "Locations",
       "entries": [
         {
-          "id": "lilayas_home_f1",
-          "title": "Lilaya's Home F1",
+          "id": "sanctuary_manor_f1",
+          "title": "Sanctuary Manor F1",
           "subtitle": "First Floor Residence",
-          "description": "The ground floor of Lilaya's expansive mansion, featuring carpeted corridors, guest quarters, research laboratories, and arcane lighting.",
+          "description": "The ground floor of the sanctuary manor, featuring stone corridors, guest quarters, research laboratories, and arcane lighting.",
           "unlocked": true
         },
         {
-          "id": "dominion",
-          "title": "Dominion",
-          "subtitle": "Demonic Metropolis",
-          "description": "The sprawling capital city constructed amidst ancient arcane ruins, bustling with various morph races, merchant bazaars, and guild halls.",
+          "id": "capital_city",
+          "title": "Capital City",
+          "subtitle": "Arcane Metropolis",
+          "description": "The sprawling capital city constructed amidst ancient arcane ruins, bustling with various beastkin races, merchant bazaars, and guild halls.",
           "unlocked": false
         }
       ]

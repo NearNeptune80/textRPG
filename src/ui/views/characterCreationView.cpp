@@ -410,12 +410,12 @@ namespace CharacterCreationView
             std::string decencyStatus = cc->getDecencyStatus();
             float bannerH = 34.0f * uiScale;
             SDL_FRect bannerRect = { padX, curY, availableW, bannerH };
-            SDL_Color bannerBg = decent ? SDL_Color{ 24, 38, 30, 255 } : SDL_Color{ 45, 24, 24, 255 };
-            SDL_Color bannerBorder = decent ? Theme::colors.companion : SDL_Color{ 220, 60, 60, 255 };
+            SDL_Color bannerBg = decent ? Theme::colors.bgSlotOccupied : Theme::colors.bgDark;
+            SDL_Color bannerBorder = decent ? Theme::colors.companion : Theme::colors.enemy;
             UIWidget::drawPanel(renderer, bannerRect, bannerBg, bannerBorder);
             std::string statusText = std::format("Attire Decency: {}", decencyStatus);
             UIWidget::drawText(renderer, statusText, padX + (12.0f * uiScale), curY + (8.0f * uiScale),
-                               decent ? Theme::colors.companion : SDL_Color{ 240, 100, 100, 255 }, uiScale * 0.85f);
+                               decent ? Theme::colors.companion : Theme::colors.enemy, uiScale * 0.85f);
             curY += bannerH + (12.0f * uiScale);
 
             // 2. Dressing Room & Inventory Submenu Card
@@ -506,7 +506,7 @@ namespace CharacterCreationView
                 SDL_FRect firstBox = { padX + (12.0f * uiScale) + labelW, fieldY, inputW, boxH };
                 std::string chosenFirst = (cc->gender == "Female") ? cc->feminineName : cc->masculineName;
                 bool fnHover = inPanel && (mousePos.x >= firstBox.x && mousePos.x <= firstBox.x + firstBox.w && mousePos.y >= firstBox.y && mousePos.y <= firstBox.y + firstBox.h);
-                SDL_SetRenderDrawColor(renderer, 22, 24, 30, 255);
+                SDL_SetRenderDrawColor(renderer, Theme::colors.bgInput.r, Theme::colors.bgInput.g, Theme::colors.bgInput.b, Theme::colors.bgInput.a);
                 SDL_RenderFillRect(renderer, &firstBox);
                 SDL_Color fnBorder = fnHover ? Theme::colors.textGold : (cc->activeNameField == 0 ? Theme::colors.borderSelected : Theme::colors.borderNormal);
                 SDL_SetRenderDrawColor(renderer, fnBorder.r, fnBorder.g, fnBorder.b, fnBorder.a);
@@ -530,7 +530,7 @@ namespace CharacterCreationView
                     UIWidget::drawText(renderer, "Last:", lastX, fieldY + (4.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.82f);
                     SDL_FRect lastBox = { lastX + labelW, fieldY, inputW, boxH };
                     bool lnHover = inPanel && (mousePos.x >= lastBox.x && mousePos.x <= lastBox.x + lastBox.w && mousePos.y >= lastBox.y && mousePos.y <= lastBox.y + lastBox.h);
-                    SDL_SetRenderDrawColor(renderer, 22, 24, 30, 255);
+                    SDL_SetRenderDrawColor(renderer, Theme::colors.bgInput.r, Theme::colors.bgInput.g, Theme::colors.bgInput.b, Theme::colors.bgInput.a);
                     SDL_RenderFillRect(renderer, &lastBox);
                     SDL_Color lnBorder = lnHover ? Theme::colors.textGold : (cc->activeNameField == 3 ? Theme::colors.borderSelected : Theme::colors.borderNormal);
                     SDL_SetRenderDrawColor(renderer, lnBorder.r, lnBorder.g, lnBorder.b, lnBorder.a);

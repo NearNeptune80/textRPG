@@ -2,8 +2,21 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 #include "quest/conditionNode.h"
+
+struct QuestDefinition {
+    std::string id;
+    std::string name;
+    std::string description;
+    std::string category = "Main Quest";
+    std::string giver = "Unknown";
+    std::string location = "Unknown";
+    std::string rewardsDescription = "";
+    std::map<int, std::string> stages;
+    int completionStage = 1;
+};
 
 struct gameEffect {
     std::string action;

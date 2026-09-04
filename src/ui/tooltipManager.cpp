@@ -212,8 +212,8 @@ void TooltipManager::render(SDL_Renderer* renderer, float uiScale, float windowW
 
     // 2. Main Card Panel
     SDL_FRect cardRect = { posX, posY, cardW, cardH };
-    SDL_Color bgCol = SDL_Color{ 14, 16, 22, 250 };
-    SDL_Color bdCol = SDL_Color{ 70, 85, 110, 255 };
+    SDL_Color bgCol = Theme::colors.bgTooltip;
+    SDL_Color bdCol = Theme::colors.borderTooltip;
     UIWidget::drawPanel(renderer, cardRect, bgCol, bdCol);
 
     // 3. Top Accent Line (Gold)
@@ -238,7 +238,7 @@ void TooltipManager::render(SDL_Renderer* renderer, float uiScale, float windowW
             float hkX = posX + cardW - innerPad - hkBoxW;
             float hkY = curY + (1.0f * uiScale);
             SDL_FRect hkRect = { hkX, hkY, hkBoxW, hkBoxH };
-            UIWidget::drawPanel(renderer, hkRect, SDL_Color{ 30, 36, 48, 255 }, Theme::colors.borderSelected);
+            UIWidget::drawPanel(renderer, hkRect, Theme::colors.bgSlotOccupied, Theme::colors.borderSelected);
             float txtW = UIWidget::getTextWidth(tt.hotkey, hotkeyFontScale);
             UIWidget::drawText(renderer, tt.hotkey, hkX + ((hkBoxW - txtW) / 2.0f), hkY + (1.0f * uiScale), Theme::colors.textGold, hotkeyFontScale);
         }

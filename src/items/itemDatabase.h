@@ -7,9 +7,6 @@
 
 #include "items/item.h"
 
-equipSlot stringToEquipSlot(std::string_view str);
-std::string equipSlotToString(equipSlot slot);
-
 class itemDatabase
 {
 public:

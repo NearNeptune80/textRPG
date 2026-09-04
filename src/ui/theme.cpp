@@ -70,17 +70,30 @@ bool Theme::loadFromFile(const std::string& filePath)
         colors.bgSlotSelected = parseJsonColor(j, "bgSlotSelected", colors.bgSlotSelected);
         colors.bgButton = parseJsonColor(j, "bgButton", colors.bgButton);
         colors.bgButtonDisabled = parseJsonColor(j, "bgButtonDisabled", colors.bgButtonDisabled);
+        colors.bgInput = parseJsonColor(j, "bgInput", colors.bgInput);
+        colors.bgTooltip = parseJsonColor(j, "bgTooltip", colors.bgTooltip);
+        colors.bgButtonHover = parseJsonColor(j, "bgButtonHover", colors.bgButtonHover);
 
         colors.borderNormal = parseJsonColor(j, "borderNormal", colors.borderNormal);
         colors.borderSelected = parseJsonColor(j, "borderSelected", colors.borderSelected);
         colors.borderButton = parseJsonColor(j, "borderButton", colors.borderButton);
         colors.borderButtonDisabled = parseJsonColor(j, "borderButtonDisabled", colors.borderButtonDisabled);
+        colors.borderButtonHover = parseJsonColor(j, "borderButtonHover", colors.borderButtonHover);
+        colors.borderMuted = parseJsonColor(j, "borderMuted", colors.borderMuted);
+        colors.slotEmptyBorder = parseJsonColor(j, "slotEmptyBorder", colors.slotEmptyBorder);
+        colors.borderTooltip = parseJsonColor(j, "borderTooltip", colors.borderTooltip);
+
+        colors.toggleOn = parseJsonColor(j, "toggleOn", colors.toggleOn);
+        colors.toggleOff = parseJsonColor(j, "toggleOff", colors.toggleOff);
 
         colors.textPrimary = parseJsonColor(j, "textPrimary", colors.textPrimary);
         colors.textSecondary = parseJsonColor(j, "textSecondary", colors.textSecondary);
         colors.textMuted = parseJsonColor(j, "textMuted", colors.textMuted);
         colors.textGold = parseJsonColor(j, "textGold", colors.textGold);
         colors.textAccent = parseJsonColor(j, "textAccent", colors.textAccent);
+        colors.textDisabled = parseJsonColor(j, "textDisabled", colors.textDisabled);
+
+        colors.badgeBackground = parseJsonColor(j, "badgeBackground", colors.badgeBackground);
 
         colors.health = parseJsonColor(j, "health", colors.health);
         colors.mana = parseJsonColor(j, "mana", colors.mana);

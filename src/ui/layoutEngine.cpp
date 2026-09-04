@@ -68,6 +68,8 @@ void layoutEngine::loadDefaultLayout()
     m_layoutName = "Default Responsive 5-Pane";
     m_globalMargin = 6.0f;
     m_hasRootNode = false;
+    m_cachedWidth = 0.0f;
+    m_cachedResults.clear();
     m_panels.clear();
 
     // 1. Top Header Bar
@@ -135,6 +137,8 @@ bool layoutEngine::loadFromFile(const std::string& filePath)
         m_panels.clear();
         m_hasRootNode = false;
         m_stateOverrides.clear();
+        m_cachedWidth = 0.0f;
+        m_cachedResults.clear();
 
         // Check for textRPG-studio N-way container format
         if (j.contains("rootNode") && j["rootNode"].is_object())
@@ -255,6 +259,15 @@ void layoutEngine::computeStudioNode(const StudioLayoutNode& node, const SDL_FRe
 
 std::vector<PanelComputedBounds> layoutEngine::computeLayout(float windowWidth, float windowHeight, float uiScale, const std::string& activeState) const
 {
+    if (m_cachedWidth == windowWidth &&
+        m_cachedHeight == windowHeight &&
+        m_cachedUiScale == uiScale &&
+        m_cachedActiveState == activeState &&
+        !m_cachedResults.empty())
+    {
+        return m_cachedResults;
+    }
+
     std::vector<PanelComputedBounds> results;
     float margin = m_globalMargin * uiScale;
 
@@ -263,6 +276,11 @@ std::vector<PanelComputedBounds> layoutEngine::computeLayout(float windowWidth, 
     {
         SDL_FRect rootBounds = { margin / 2.0f, margin / 2.0f, windowWidth - margin, windowHeight - margin };
         computeStudioNode(m_stateOverrides.at(activeState), rootBounds, margin, results);
+        m_cachedWidth = windowWidth;
+        m_cachedHeight = windowHeight;
+        m_cachedUiScale = uiScale;
+        m_cachedActiveState = activeState;
+        m_cachedResults = results;
         return results;
     }
 
@@ -271,6 +289,11 @@ std::vector<PanelComputedBounds> layoutEngine::computeLayout(float windowWidth, 
     {
         SDL_FRect rootBounds = { margin / 2.0f, margin / 2.0f, windowWidth - margin, windowHeight - margin };
         computeStudioNode(m_rootNode, rootBounds, margin, results);
+        m_cachedWidth = windowWidth;
+        m_cachedHeight = windowHeight;
+        m_cachedUiScale = uiScale;
+        m_cachedActiveState = activeState;
+        m_cachedResults = results;
         return results;
     }
 
@@ -363,5 +386,10 @@ std::vector<PanelComputedBounds> layoutEngine::computeLayout(float windowWidth, 
         results.push_back(bounds);
     }
 
+    m_cachedWidth = windowWidth;
+    m_cachedHeight = windowHeight;
+    m_cachedUiScale = uiScale;
+    m_cachedActiveState = activeState;
+    m_cachedResults = results;
     return results;
 }

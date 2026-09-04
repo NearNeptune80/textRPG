@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -11,6 +12,7 @@ class statsComponent
 public:
 	int level = 1;
 	float currentXp = 0.0f;
+	uint32_t statsVersion = 0;
 
 	float getRequiredXp() const { return level * 100.0f; }
 	bool addXp(float amount);

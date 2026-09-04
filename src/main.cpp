@@ -11,7 +11,9 @@
 #include "state/explorationState.h"
 #include "state/inventoryState.h"
 #include "state/phoneAppsState.h"
+#include "state/shopState.h"
 #include "state/transformationState.h"
+#include "items/itemDatabase.h"
 #include "save/saveManager.h"
 #include "ui/theme.h"
 #include "ui/uiRenderer.h"
@@ -192,12 +194,12 @@ int main(int argc, char* argv[])
             }
             if (screenshotState == "exploration_companion" || screenshotState == "exploration_status" || screenshotState == "tooltip_action" || screenshotState == "tooltip_vitals")
             {
-                auto lilaya = std::make_shared<entity>("companion_lilaya", "Lilaya");
-                lilaya->stats.level = 5;
-                lilaya->stats.setBaseStat("health", 120.0f);
-                lilaya->stats.setBaseStat("max_health", 120.0f);
-                lilaya->stats.setBaseStat("lust", 25.0f);
-                engine.addCompanion(lilaya);
+                auto lyra = std::make_shared<entity>("companion_lyra", "Lyra");
+                lyra->stats.level = 5;
+                lyra->stats.setBaseStat("health", 120.0f);
+                lyra->stats.setBaseStat("max_health", 120.0f);
+                lyra->stats.setBaseStat("lust", 25.0f);
+                engine.addCompanion(lyra);
             }
             if (screenshotState == "exploration_status" || screenshotState == "tooltip_action" || screenshotState == "tooltip_vitals")
             {
@@ -337,12 +339,12 @@ int main(int argc, char* argv[])
             }
             else if (screenshotState == "inventory_companion" || screenshotState == "inventory_status")
             {
-                auto lilaya = std::make_shared<entity>("companion_lilaya", "Lilaya");
-                lilaya->stats.level = 5;
-                lilaya->stats.setBaseStat("health", 120.0f);
-                lilaya->stats.setBaseStat("max_health", 120.0f);
-                lilaya->stats.setBaseStat("lust", 25.0f);
-                engine.addCompanion(lilaya);
+                auto lyra = std::make_shared<entity>("companion_lyra", "Lyra");
+                lyra->stats.level = 5;
+                lyra->stats.setBaseStat("health", 120.0f);
+                lyra->stats.setBaseStat("max_health", 120.0f);
+                lyra->stats.setBaseStat("lust", 25.0f);
+                engine.addCompanion(lyra);
                 engine.selectedEquipmentSlot = equipSlot::TORSO_UNDER;
 
                 if (screenshotState == "inventory_status" && engine.getPlayer())
@@ -373,7 +375,39 @@ int main(int argc, char* argv[])
             }
             engine.changeState(std::make_unique<mainMenuState>());
         }
-        else if (screenshotState == "phone_home" || screenshotState == "phone_wait")
+        else if (screenshotState.starts_with("shop_"))
+        {
+            if (!engine.getPlayer())
+            {
+                auto p = std::make_shared<entity>("hero_player", "Aria Vesper");
+                p->genderArchetype = GenderArchetype::FEMALE;
+                p->stats.level = 1;
+                p->stats.setBaseStat("currency", 450.0f);
+                p->unlockPerk("silver_tongue");
+                auto shirt = itemDatabase::getItem("item_linen_shirt");
+                if (shirt) p->inventory.addItem(shirt);
+                auto potion = itemDatabase::getItem("item_canis_root");
+                if (potion) { potion->count = 3; p->inventory.addItem(potion); }
+                auto boots = itemDatabase::getItem("item_leather_boots");
+                if (boots) p->inventory.addItem(boots);
+
+                engine.playerEntity = p;
+                engine.Player = p.get();
+            }
+            auto sh = std::make_unique<shopState>();
+            engine.changeState(std::move(sh));
+            if (screenshotState == "shop_item_selected")
+            {
+                engine.selectedInventorySide = 1;
+                engine.selectedInventoryIndex = 0;
+            }
+            else if (screenshotState == "shop_sell_selected")
+            {
+                engine.selectedInventorySide = 0;
+                engine.selectedInventoryIndex = 0;
+            }
+        }
+        else if (screenshotState.starts_with("phone_"))
         {
             if (!engine.getPlayer())
             {
@@ -383,16 +417,32 @@ int main(int argc, char* argv[])
                 engine.playerEntity = p;
                 engine.Player = p.get();
             }
-            if (screenshotState == "phone_wait")
-            {
-                auto phState = std::make_unique<phoneAppsState>(PhoneAppMode::WAIT_REST);
-                phState->setFeedbackText("You rested for 1 hour. Regained 20 Health and Mana.");
-                engine.changeState(std::move(phState));
-            }
-            else
-            {
-                engine.changeState(std::make_unique<phoneAppsState>(PhoneAppMode::HOME));
-            }
+
+            PhoneAppMode mode = PhoneAppMode::HOME;
+            if (screenshotState == "phone_quests") mode = PhoneAppMode::QUESTS;
+            else if (screenshotState == "phone_perks") mode = PhoneAppMode::PERKS;
+            else if (screenshotState == "phone_spells") mode = PhoneAppMode::SPELLS;
+            else if (screenshotState == "phone_fetishes") mode = PhoneAppMode::FETISHES;
+            else if (screenshotState == "phone_stats") mode = PhoneAppMode::STATS;
+            else if (screenshotState == "phone_selfie") mode = PhoneAppMode::SELFIE;
+            else if (screenshotState == "phone_contacts") mode = PhoneAppMode::CONTACTS;
+            else if (screenshotState == "phone_contacts_expanded") mode = PhoneAppMode::CONTACTS;
+            else if (screenshotState == "phone_contacts_detail") mode = PhoneAppMode::CONTACTS;
+            else if (screenshotState == "phone_encyclopedia") mode = PhoneAppMode::ENCYCLOPEDIA;
+            else if (screenshotState == "phone_transform") mode = PhoneAppMode::TRANSFORM;
+            else if (screenshotState == "phone_maps") mode = PhoneAppMode::MAPS;
+            else if (screenshotState == "phone_combat_moves") mode = PhoneAppMode::COMBAT_MOVES;
+            else if (screenshotState == "phone_masturbate") mode = PhoneAppMode::MASTURBATE;
+            else if (screenshotState == "phone_wait") mode = PhoneAppMode::WAIT_REST;
+            else if (screenshotState == "phone_elemental") mode = PhoneAppMode::ELEMENTAL;
+
+            auto phState = std::make_unique<phoneAppsState>(mode);
+            if (screenshotState == "phone_contacts_detail") phState->setContactsSelectedIdx(0);
+            else if (screenshotState == "phone_contacts_expanded") phState->setContactsExpandedIdx(1);
+            else if (mode == PhoneAppMode::WAIT_REST) phState->setFeedbackText("You rested for 1 hour. Regained 20 Health and Mana.");
+            else if (mode == PhoneAppMode::FETISHES) phState->setFetishDesire("Exhibitionism", FetishDesireLevel::LOVE);
+            else if (mode == PhoneAppMode::ELEMENTAL) { phState->setElementalSummoned(true); phState->setElementalActiveForm(true); }
+            engine.changeState(std::move(phState));
         }
 
         engine.refreshActionGrid();
@@ -432,8 +482,8 @@ int main(int argc, char* argv[])
 
         if (screenshotOut.empty())
         {
-            std::filesystem::create_directories("/home/jackd/.gemini/antigravity/brain/0ae033e5-0614-491c-8eb5-fc151a7bb89a/screenshots");
-            screenshotOut = "/home/jackd/.gemini/antigravity/brain/0ae033e5-0614-491c-8eb5-fc151a7bb89a/screenshots/" + screenshotState + ".png";
+            std::filesystem::create_directories("/home/jackd/.gemini/antigravity/brain/17cebf5d-a9c4-44cd-9703-cc2989a137d1/screenshots");
+            screenshotOut = "/home/jackd/.gemini/antigravity/brain/17cebf5d-a9c4-44cd-9703-cc2989a137d1/screenshots/" + screenshotState + ".png";
         }
 
         SDL_Surface* surface = SDL_RenderReadPixels(renderer, NULL);

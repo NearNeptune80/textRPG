@@ -19,10 +19,10 @@ namespace MainMenuView
 
         curY += (28.0f * uiScale);
 
-        // Title: TextRPG Engine in glowing purple/pink
+        // Title: TextRPG Engine
         std::string_view mainTitle = "TextRPG Engine";
         float titleTextW = UIWidget::getTextWidth(mainTitle, uiScale * 1.8f);
-        UIWidget::drawText(renderer, mainTitle, centerX - (titleTextW / 2.0f), curY, SDL_Color{ 235, 145, 255, 255 }, uiScale * 1.8f);
+        UIWidget::drawText(renderer, mainTitle, centerX - (titleTextW / 2.0f), curY, Theme::colors.textAccent, uiScale * 1.8f);
         curY += (38.0f * uiScale);
 
         bool inGame = (gameContext && gameContext->getPlayer());
@@ -30,7 +30,7 @@ namespace MainMenuView
         // Subtitle
         std::string subTitle = inGame ? "Game Paused — Main Menu" : "Studio Edition";
         float subTextW = UIWidget::getTextWidth(subTitle, uiScale * 1.15f);
-        UIWidget::drawText(renderer, subTitle, centerX - (subTextW / 2.0f), curY, SDL_Color{ 200, 140, 235, 255 }, uiScale * 1.15f);
+        UIWidget::drawText(renderer, subTitle, centerX - (subTextW / 2.0f), curY, Theme::colors.textSecondary, uiScale * 1.15f);
         curY += (34.0f * uiScale);
 
         if (inGame)

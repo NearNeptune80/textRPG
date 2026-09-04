@@ -158,6 +158,7 @@ bool inventoryComponent::equipItem(size_t backpackIndex, equipSlot slot, const s
     equipped[slotIdx] = itemToEquip;
     activeDisplacements.erase(slot);
     backpack.erase(backpack.begin() + backpackIndex);
+    equipVersion++;
     return true;
 }
 
@@ -169,6 +170,7 @@ bool inventoryComponent::unequipItem(equipSlot slot)
     backpack.push_back(equipped[slotIdx]);
     equipped[slotIdx] = nullptr;
     activeDisplacements.erase(slot);
+    equipVersion++;
     return true;
 }
 

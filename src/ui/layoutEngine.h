@@ -82,7 +82,7 @@ public:
     [[nodiscard]] const PanelConfig* getPanelConfig(const std::string& id) const;
 
     float getMargin() const { return m_globalMargin; }
-    void setMargin(float margin) { m_globalMargin = margin; }
+    void setMargin(float margin) { m_globalMargin = margin; m_cachedWidth = 0.0f; }
 
 private:
     std::string m_layoutName = "Default Responsive Layout";
@@ -91,6 +91,12 @@ private:
     StudioLayoutNode m_rootNode;
     std::unordered_map<std::string, StudioLayoutNode> m_stateOverrides;
     std::vector<PanelConfig> m_panels;
+
+    mutable float m_cachedWidth = 0.0f;
+    mutable float m_cachedHeight = 0.0f;
+    mutable float m_cachedUiScale = 0.0f;
+    mutable std::string m_cachedActiveState = "";
+    mutable std::vector<PanelComputedBounds> m_cachedResults;
 
     void parseStudioNode(const nlohmann::json& j, StudioLayoutNode& node);
     void computeStudioNode(const StudioLayoutNode& node, const SDL_FRect& bounds, float margin, std::vector<PanelComputedBounds>& out) const;

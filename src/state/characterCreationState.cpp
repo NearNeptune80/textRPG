@@ -168,59 +168,55 @@ void characterCreationState::update(game* gameContext, float deltaTime)
 {
 }
 
-void characterCreationState::handleInput(game* gameContext, const SDL_Event& event)
+void characterCreationState::handleCommand(game* gameContext, const UICommand& cmd)
 {
     if (!gameContext) return;
 
-    if (step == 2) // Step 3: Name text input
+    if (cmd.type == CommandType::TEXT_INPUT)
     {
-        if (event.type == SDL_EVENT_TEXT_INPUT)
-        {
-            std::string text = event.text.text;
-            // Filter out '[' ']' '.'
-            text.erase(std::remove_if(text.begin(), text.end(), [](char c) {
-                return c == '[' || c == ']' || c == '.';
-            }), text.end());
+        std::string text = cmd.stringPayload;
+        text.erase(std::remove_if(text.begin(), text.end(), [](char c) {
+            return c == '[' || c == ']' || c == '.';
+        }), text.end());
 
-            if (activeNameField == 0)
-            {
-                if (masculineName == "Unknown") masculineName = "";
-                if (masculineName.size() + text.size() <= 32) masculineName += text;
-            }
-            else if (activeNameField == 1)
-            {
-                if (androgynousName == "Unknown") androgynousName = "";
-                if (androgynousName.size() + text.size() <= 32) androgynousName += text;
-            }
-            else if (activeNameField == 2)
-            {
-                if (feminineName == "Unknown") feminineName = "";
-                if (feminineName.size() + text.size() <= 32) feminineName += text;
-            }
-            else if (activeNameField == 3)
-            {
-                if (surname.size() + text.size() <= 32) surname += text;
-            }
-        }
-        else if (event.type == SDL_EVENT_KEY_DOWN)
+        if (activeNameField == 0)
         {
-            if (event.key.key == SDLK_BACKSPACE)
-            {
-                if (activeNameField == 0 && !masculineName.empty()) masculineName.pop_back();
-                else if (activeNameField == 1 && !androgynousName.empty()) androgynousName.pop_back();
-                else if (activeNameField == 2 && !feminineName.empty()) feminineName.pop_back();
-                else if (activeNameField == 3 && !surname.empty()) surname.pop_back();
-            }
-            else if (event.key.key == SDLK_TAB)
-            {
-                activeNameField = (activeNameField + 1) % 4;
-            }
+            if (masculineName == "Unknown") masculineName = "";
+            if (masculineName.size() + text.size() <= 32) masculineName += text;
+        }
+        else if (activeNameField == 1)
+        {
+            if (androgynousName == "Unknown") androgynousName = "";
+            if (androgynousName.size() + text.size() <= 32) androgynousName += text;
+        }
+        else if (activeNameField == 2)
+        {
+            if (feminineName == "Unknown") feminineName = "";
+            if (feminineName.size() + text.size() <= 32) feminineName += text;
+        }
+        else if (activeNameField == 3)
+        {
+            if (surname.size() + text.size() <= 32) surname += text;
         }
     }
-}
-
-void characterCreationState::handleCommand(game* gameContext, const UICommand& cmd)
-{
+    else if (cmd.type == CommandType::TEXT_BACKSPACE)
+    {
+        if (activeNameField == 0 && !masculineName.empty()) masculineName.pop_back();
+        else if (activeNameField == 1 && !androgynousName.empty()) androgynousName.pop_back();
+        else if (activeNameField == 2 && !feminineName.empty()) feminineName.pop_back();
+        else if (activeNameField == 3 && !surname.empty()) surname.pop_back();
+    }
+    else if (cmd.type == CommandType::SELECT_TAB)
+    {
+        if (cmd.intPayload1 >= 0)
+        {
+            step = cmd.intPayload1;
+        }
+        else
+        {
+            activeNameField = (activeNameField + 1) % 4;
+        }
+    }
 }
 
 void characterCreationState::randomizeFirstNames()
@@ -933,6 +929,21 @@ void characterCreationState::finalizeCharacter(game* gameContext)
             if (it && it->id == "item_golden_pendant") { hasPendant = true; break; }
         }
         if (pendant && !hasPendant) player->inventory.addItem(pendant);
+
+        // Grant starting quests (Main Quest + Side Quests)
+        if (!player->quests.hasQuest("root_delivery"))
+        {
+            player->quests.setQuestStage("root_delivery", 0);
+            player->quests.setTrackedQuest("root_delivery");
+        }
+        if (!player->quests.hasQuest("cottage_investigation"))
+        {
+            player->quests.setQuestStage("cottage_investigation", 0);
+        }
+        if (!player->quests.hasQuest("patrol_duty"))
+        {
+            player->quests.setQuestStage("patrol_duty", 0);
+        }
     }
 
     if (gameContext)

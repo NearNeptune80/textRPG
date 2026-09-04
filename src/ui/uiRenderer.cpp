@@ -222,7 +222,7 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
                     curY += GameplayViews::renderInventoryView(renderer, gameContext, p.rect, curY, uiScale);
                 else if (wId == "widget_tactical_combat" || wId == "COMBAT_VIEW")
                     curY += GameplayViews::renderCombatView(renderer, gameContext, p.rect, curY, uiScale);
-                else if (wId == "widget_merchant_dialog" || wId == "widget_merchant_catalog" || wId == "widget_player_sell_grid" || wId == "widget_transaction_cart")
+                else if (wId == "widget_shop_dual" || wId == "widget_merchant_dialog" || wId == "widget_merchant_catalog")
                     curY += GameplayViews::renderShopView(renderer, gameContext, p.rect, curY, uiScale);
                 else if (wId == "widget_lt_character_card")
                     curY += CharacterCardWidget::renderWidgetCharacterCard(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
@@ -431,7 +431,8 @@ void uiRenderer::renderBottomActionGrid(SDL_Renderer* renderer, game* gameContex
         SDL_FRect btnRect = { gridX + col * (btnWidth + spaceX), padY + row * (btnHeight + spaceY), btnWidth, btnHeight };
 
         int buttonIdx = startIndex + slotIdx;
-        if (buttonIdx < endIndex && !buttons[buttonIdx].label.empty())
+        bool hasValidButton = (buttonIdx < endIndex && !buttons[buttonIdx].label.empty() && buttons[buttonIdx].label != "-");
+        if (hasValidButton)
         {
             bool hovered = (mousePos.x >= btnRect.x && mousePos.x <= btnRect.x + btnRect.w &&
                             mousePos.y >= btnRect.y && mousePos.y <= btnRect.y + btnRect.h);
@@ -459,7 +460,11 @@ void uiRenderer::renderBottomActionGrid(SDL_Renderer* renderer, game* gameContex
         }
         else
         {
-            UIWidget::drawLTActionButton(renderer, btnRect, "", hotkeys[slotIdx], false, false, false, uiScale);
+            // Unused boxes are completely empty (no text, no dash, no hotkey)
+            SDL_SetRenderDrawColor(renderer, Theme::colors.bgSlot.r, Theme::colors.bgSlot.g, Theme::colors.bgSlot.b, Theme::colors.bgSlot.a);
+            SDL_RenderFillRect(renderer, &btnRect);
+            SDL_SetRenderDrawColor(renderer, Theme::colors.borderButtonDisabled.r, Theme::colors.borderButtonDisabled.g, Theme::colors.borderButtonDisabled.b, Theme::colors.borderButtonDisabled.a);
+            SDL_RenderRect(renderer, &btnRect);
         }
     }
 }

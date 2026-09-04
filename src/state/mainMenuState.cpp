@@ -23,23 +23,15 @@ void mainMenuState::onExit(game* gameContext) {}
 
 void mainMenuState::update(game* gameContext, float deltaTime) {}
 
-void mainMenuState::handleInput(game* gameContext, const SDL_Event& event)
-{
-    if (!gameContext) return;
-    if (event.type == SDL_EVENT_KEY_DOWN)
-    {
-        if (event.key.key == SDLK_ESCAPE && gameContext->getPlayer())
-        {
-            gameContext->changeState(std::make_unique<explorationState>());
-        }
-    }
-}
-
 void mainMenuState::handleCommand(game* gameContext, const UICommand& cmd)
 {
     if (!gameContext) return;
 
-    if (cmd.type == CommandType::START_NEW_GAME)
+    if (cmd.type == CommandType::CLOSE_MENU && gameContext->getPlayer())
+    {
+        gameContext->changeState(std::make_unique<explorationState>());
+    }
+    else if (cmd.type == CommandType::START_NEW_GAME)
     {
         gameContext->changeState(std::make_unique<characterCreationState>());
     }

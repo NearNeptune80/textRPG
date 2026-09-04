@@ -17,12 +17,14 @@ bool statsComponent::addXp(float amount)
 		level++;
 		leveledUp = true;
 	}
+	statsVersion++;
 	return leveledUp;
 }
 
 void statsComponent::setBaseStat(const std::string& name, float value)
 {
 	baseValues[name] = value;
+	statsVersion++;
 }
 
 /**
@@ -57,6 +59,7 @@ float statsComponent::getBaseStat(const std::string& name) const
 void statsComponent::modifyBaseStat(const std::string& name, float amount)
 {
 	baseValues[name] += amount;
+	statsVersion++;
 }
 
 /**
