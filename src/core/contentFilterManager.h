@@ -21,17 +21,28 @@ struct NarrativeSegment
     ContentDropdownBlock dropdown;
 };
 
+enum class ContentTagStatus
+{
+    ALLOWED = 0, // Fully enabled (ON)
+    WARN = 1,    // Warning enabled (WARN)
+    BLOCKED = 2  // Fully disabled (OFF)
+};
+
 class ContentFilterManager
 {
 public:
     static std::string normalizeTag(const std::string& tag);
 
+    static ContentTagStatus evaluateTag(const ContentSettings& settings, const std::string& tag);
+    static ContentTagStatus evaluateScene(const ContentSettings& settings, const questScene& scene);
+    static ContentTagStatus evaluateChoice(const ContentSettings& settings, const dialogueChoice& choice);
+
     static bool isTagAllowed(const ContentSettings& settings, const std::string& tag);
 
     static std::vector<std::string> getDisallowedTags(const ContentSettings& settings, const std::vector<std::string>& tags);
+    static std::vector<std::string> getWarningTags(const ContentSettings& settings, const std::vector<std::string>& tags);
 
     static bool isSceneAllowed(const ContentSettings& settings, const questScene& scene);
-
     static bool isChoiceAllowed(const ContentSettings& settings, const dialogueChoice& choice);
 
     static std::vector<NarrativeSegment> parseNarrativeSegments(const ContentSettings& settings, const std::string& rawText);

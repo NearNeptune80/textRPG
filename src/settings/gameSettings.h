@@ -67,6 +67,42 @@ struct DemographicSettings
         if (val < percentAndromorph) return GenderArchetype::ANDROMORPH;
         return GenderArchetype::ASEXUAL_NULL;
     }
+    int rollAge(float roll01) const
+    {
+        float total = percentYoungAdult + percentAdult + percentMature + percentElder;
+        if (total <= 0.0f) total = 100.0f;
+        float val = roll01 * total;
+        if (val < percentYoungAdult) {
+            float sub = val / std::max(1.0f, percentYoungAdult);
+            return 18 + static_cast<int>(sub * 7); // 18-25
+        }
+        val -= percentYoungAdult;
+        if (val < percentAdult) {
+            float sub = val / std::max(1.0f, percentAdult);
+            return 26 + static_cast<int>(sub * 14); // 26-40
+        }
+        val -= percentAdult;
+        if (val < percentMature) {
+            float sub = val / std::max(1.0f, percentMature);
+            return 41 + static_cast<int>(sub * 19); // 41-60
+        }
+        val -= percentMature;
+        float sub = val / std::max(1.0f, percentElder);
+        return 61 + static_cast<int>(sub * 25); // 61-86
+    }
+
+    std::string rollFurryStage(float roll01) const
+    {
+        float total = percentHuman + percentPartial + percentAnthro + percentFeral;
+        if (total <= 0.0f) total = 100.0f;
+        float val = roll01 * total;
+        if (val < percentHuman) return "Human";
+        val -= percentHuman;
+        if (val < percentPartial) return "Partial";
+        val -= percentPartial;
+        if (val < percentAnthro) return "Anthro";
+        return "Feral";
+    }
 };
 
 enum class ContentFilterMode
@@ -94,8 +130,57 @@ inline ContentFilterMode stringToContentFilterMode(const std::string& str)
     return ContentFilterMode::DROPDOWN;
 }
 
+enum class ContentToggleState
+{
+    OFF = 0,
+    WARN = 1,
+    ON = 2
+};
+
+inline std::string contentToggleStateToString(ContentToggleState state)
+{
+    switch (state)
+    {
+        case ContentToggleState::OFF: return "OFF";
+        case ContentToggleState::WARN: return "WARN";
+        case ContentToggleState::ON: return "ON";
+    }
+    return "OFF";
+}
+
+inline ContentToggleState stringToContentToggleState(const std::string& str)
+{
+    if (str == "ON" || str == "on" || str == "true" || str == "ENABLED" || str == "enabled") return ContentToggleState::ON;
+    if (str == "WARN" || str == "warn" || str == "WARNING" || str == "warning") return ContentToggleState::WARN;
+    return ContentToggleState::OFF;
+}
+
+inline ContentToggleState intToContentToggleState(int val)
+{
+    if (val >= 2) return ContentToggleState::ON;
+    if (val == 1) return ContentToggleState::WARN;
+    return ContentToggleState::OFF;
+}
+
 struct ContentSettings
 {
+    // 3-State Content Toggles: OFF (0), WARN (1), ON (2)
+    ContentToggleState pregnancyState = ContentToggleState::ON;
+    ContentToggleState lactationState = ContentToggleState::ON;
+    ContentToggleState nonConState = ContentToggleState::OFF;
+    ContentToggleState publicSexState = ContentToggleState::ON;
+    ContentToggleState extremeContentState = ContentToggleState::OFF;
+    ContentToggleState watersportsState = ContentToggleState::OFF;
+    ContentToggleState spittingState = ContentToggleState::ON;
+    ContentToggleState forcedTfState = ContentToggleState::OFF;
+    ContentToggleState tentaclesState = ContentToggleState::ON;
+    ContentToggleState bdsmState = ContentToggleState::ON;
+    ContentToggleState incestState = ContentToggleState::OFF;
+    ContentToggleState sizeDifferenceState = ContentToggleState::ON;
+    ContentToggleState prolapseState = ContentToggleState::OFF;
+    ContentToggleState aphrodisiacsState = ContentToggleState::ON;
+
+    // Synchronized boolean flags for fast query & backward compatibility
     bool pregnancyEnabled = true;
     bool lactationEnabled = true;
     bool nonConEnabled = false;
@@ -111,11 +196,53 @@ struct ContentSettings
     bool prolapseEnabled = false;
     bool aphrodisiacsEnabled = true;
 
+    void syncBools()
+    {
+        pregnancyEnabled = (pregnancyState != ContentToggleState::OFF);
+        lactationEnabled = (lactationState != ContentToggleState::OFF);
+        nonConEnabled = (nonConState != ContentToggleState::OFF);
+        publicSexEnabled = (publicSexState != ContentToggleState::OFF);
+        extremeContentEnabled = (extremeContentState != ContentToggleState::OFF);
+        watersportsEnabled = (watersportsState != ContentToggleState::OFF);
+        spittingEnabled = (spittingState != ContentToggleState::OFF);
+        forcedTfEnabled = (forcedTfState != ContentToggleState::OFF);
+        tentaclesEnabled = (tentaclesState != ContentToggleState::OFF);
+        bdsmEnabled = (bdsmState != ContentToggleState::OFF);
+        incestEnabled = (incestState != ContentToggleState::OFF);
+        sizeDifferenceEnabled = (sizeDifferenceState != ContentToggleState::OFF);
+        prolapseEnabled = (prolapseState != ContentToggleState::OFF);
+        aphrodisiacsEnabled = (aphrodisiacsState != ContentToggleState::OFF);
+    }
+
+    void syncStatesFromBools()
+    {
+        pregnancyState = pregnancyEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
+        lactationState = lactationEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
+        nonConState = nonConEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
+        publicSexState = publicSexEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
+        extremeContentState = extremeContentEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
+        watersportsState = watersportsEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
+        spittingState = spittingEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
+        forcedTfState = forcedTfEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
+        tentaclesState = tentaclesEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
+        bdsmState = bdsmEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
+        incestState = incestEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
+        sizeDifferenceState = sizeDifferenceEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
+        prolapseState = prolapseEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
+        aphrodisiacsState = aphrodisiacsEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
+    }
+
+    void setToggle(ContentToggleState& stateVar, bool& boolVar, ContentToggleState newState)
+    {
+        stateVar = newState;
+        boolVar = (newState != ContentToggleState::OFF);
+    }
+
     float fluidMultiplier = 1.0f;
     float transformationSpeedMultiplier = 1.0f;
     ContentFilterMode contentFilterMode = ContentFilterMode::DROPDOWN;
 
-    // 28 Lilith's Throne Fetishes: 0=Disabled, 1=Hate, 2=Dislike, 3=Neutral, 4=Like, 5=Love, 6=Always
+    // 28 Lilith's Throne Fetishes: 0=Never, 1=V.Rare, 2=Rare, 3=Average, 4=Common, 5=V.Common, 6=Always
     std::unordered_map<std::string, int> fetishPreferences = {
         { "Anal", 3 }, { "Buttslut", 3 }, { "Vaginal", 3 }, { "Pussy slut", 3 },
         { "Oral", 3 }, { "Oral performer", 3 }, { "Breasts lover", 3 }, { "Breasts", 3 },
@@ -167,6 +294,26 @@ struct GameSettings
 
     nlohmann::json toJson() const
     {
+        ContentSettings cSync = content;
+        auto syncToSerialize = [](ContentToggleState& st, bool en) {
+            if (!en) st = ContentToggleState::OFF;
+            else if (st == ContentToggleState::OFF) st = ContentToggleState::ON;
+        };
+        syncToSerialize(cSync.pregnancyState, cSync.pregnancyEnabled);
+        syncToSerialize(cSync.lactationState, cSync.lactationEnabled);
+        syncToSerialize(cSync.nonConState, cSync.nonConEnabled);
+        syncToSerialize(cSync.publicSexState, cSync.publicSexEnabled);
+        syncToSerialize(cSync.extremeContentState, cSync.extremeContentEnabled);
+        syncToSerialize(cSync.watersportsState, cSync.watersportsEnabled);
+        syncToSerialize(cSync.spittingState, cSync.spittingEnabled);
+        syncToSerialize(cSync.forcedTfState, cSync.forcedTfEnabled);
+        syncToSerialize(cSync.tentaclesState, cSync.tentaclesEnabled);
+        syncToSerialize(cSync.bdsmState, cSync.bdsmEnabled);
+        syncToSerialize(cSync.incestState, cSync.incestEnabled);
+        syncToSerialize(cSync.sizeDifferenceState, cSync.sizeDifferenceEnabled);
+        syncToSerialize(cSync.prolapseState, cSync.prolapseEnabled);
+        syncToSerialize(cSync.aphrodisiacsState, cSync.aphrodisiacsEnabled);
+
         return nlohmann::json{
             {"demographics", {
                 {"percentHetero", demographics.percentHetero},
@@ -189,20 +336,34 @@ struct GameSettings
                 {"percentFeral", demographics.percentFeral}
             }},
             {"content", {
-                {"pregnancyEnabled", content.pregnancyEnabled},
-                {"lactationEnabled", content.lactationEnabled},
-                {"nonConEnabled", content.nonConEnabled},
-                {"publicSexEnabled", content.publicSexEnabled},
-                {"extremeContentEnabled", content.extremeContentEnabled},
-                {"watersportsEnabled", content.watersportsEnabled},
-                {"spittingEnabled", content.spittingEnabled},
-                {"forcedTfEnabled", content.forcedTfEnabled},
-                {"tentaclesEnabled", content.tentaclesEnabled},
-                {"bdsmEnabled", content.bdsmEnabled},
-                {"incestEnabled", content.incestEnabled},
-                {"sizeDifferenceEnabled", content.sizeDifferenceEnabled},
-                {"prolapseEnabled", content.prolapseEnabled},
-                {"aphrodisiacsEnabled", content.aphrodisiacsEnabled},
+                {"pregnancyEnabled", cSync.pregnancyEnabled},
+                {"pregnancyState", static_cast<int>(cSync.pregnancyState)},
+                {"lactationEnabled", cSync.lactationEnabled},
+                {"lactationState", static_cast<int>(cSync.lactationState)},
+                {"nonConEnabled", cSync.nonConEnabled},
+                {"nonConState", static_cast<int>(cSync.nonConState)},
+                {"publicSexEnabled", cSync.publicSexEnabled},
+                {"publicSexState", static_cast<int>(cSync.publicSexState)},
+                {"extremeContentEnabled", cSync.extremeContentEnabled},
+                {"extremeContentState", static_cast<int>(cSync.extremeContentState)},
+                {"watersportsEnabled", cSync.watersportsEnabled},
+                {"watersportsState", static_cast<int>(cSync.watersportsState)},
+                {"spittingEnabled", cSync.spittingEnabled},
+                {"spittingState", static_cast<int>(cSync.spittingState)},
+                {"forcedTfEnabled", cSync.forcedTfEnabled},
+                {"forcedTfState", static_cast<int>(cSync.forcedTfState)},
+                {"tentaclesEnabled", cSync.tentaclesEnabled},
+                {"tentaclesState", static_cast<int>(cSync.tentaclesState)},
+                {"bdsmEnabled", cSync.bdsmEnabled},
+                {"bdsmState", static_cast<int>(cSync.bdsmState)},
+                {"incestEnabled", cSync.incestEnabled},
+                {"incestState", static_cast<int>(cSync.incestState)},
+                {"sizeDifferenceEnabled", cSync.sizeDifferenceEnabled},
+                {"sizeDifferenceState", static_cast<int>(cSync.sizeDifferenceState)},
+                {"prolapseEnabled", cSync.prolapseEnabled},
+                {"prolapseState", static_cast<int>(cSync.prolapseState)},
+                {"aphrodisiacsEnabled", cSync.aphrodisiacsEnabled},
+                {"aphrodisiacsState", static_cast<int>(cSync.aphrodisiacsState)},
                 {"contentFilterMode", static_cast<int>(content.contentFilterMode)},
                 {"fluidMultiplier", content.fluidMultiplier},
                 {"transformationSpeedMultiplier", content.transformationSpeedMultiplier},
@@ -266,20 +427,36 @@ struct GameSettings
         if (j.contains("content"))
         {
             const auto& c = j["content"];
-            if (c.contains("pregnancyEnabled")) content.pregnancyEnabled = c["pregnancyEnabled"].get<bool>();
-            if (c.contains("lactationEnabled")) content.lactationEnabled = c["lactationEnabled"].get<bool>();
-            if (c.contains("nonConEnabled")) content.nonConEnabled = c["nonConEnabled"].get<bool>();
-            if (c.contains("publicSexEnabled")) content.publicSexEnabled = c["publicSexEnabled"].get<bool>();
-            if (c.contains("extremeContentEnabled")) content.extremeContentEnabled = c["extremeContentEnabled"].get<bool>();
-            if (c.contains("watersportsEnabled")) content.watersportsEnabled = c["watersportsEnabled"].get<bool>();
-            if (c.contains("spittingEnabled")) content.spittingEnabled = c["spittingEnabled"].get<bool>();
-            if (c.contains("forcedTfEnabled")) content.forcedTfEnabled = c["forcedTfEnabled"].get<bool>();
-            if (c.contains("tentaclesEnabled")) content.tentaclesEnabled = c["tentaclesEnabled"].get<bool>();
-            if (c.contains("bdsmEnabled")) content.bdsmEnabled = c["bdsmEnabled"].get<bool>();
-            if (c.contains("incestEnabled")) content.incestEnabled = c["incestEnabled"].get<bool>();
-            if (c.contains("sizeDifferenceEnabled")) content.sizeDifferenceEnabled = c["sizeDifferenceEnabled"].get<bool>();
-            if (c.contains("prolapseEnabled")) content.prolapseEnabled = c["prolapseEnabled"].get<bool>();
-            if (c.contains("aphrodisiacsEnabled")) content.aphrodisiacsEnabled = c["aphrodisiacsEnabled"].get<bool>();
+            auto parseToggle = [&](const std::string& stateKey, const std::string& boolKey, ContentToggleState& stateVar, bool& boolVar) {
+                if (c.contains(stateKey))
+                {
+                    if (c[stateKey].is_number()) stateVar = intToContentToggleState(c[stateKey].get<int>());
+                    else if (c[stateKey].is_string()) stateVar = stringToContentToggleState(c[stateKey].get<std::string>());
+                    boolVar = (stateVar != ContentToggleState::OFF);
+                }
+                if (c.contains(boolKey))
+                {
+                    bool b = c[boolKey].get<bool>();
+                    boolVar = b;
+                    if (!b) stateVar = ContentToggleState::OFF;
+                    else if (stateVar == ContentToggleState::OFF) stateVar = ContentToggleState::ON;
+                }
+            };
+
+            parseToggle("pregnancyState", "pregnancyEnabled", content.pregnancyState, content.pregnancyEnabled);
+            parseToggle("lactationState", "lactationEnabled", content.lactationState, content.lactationEnabled);
+            parseToggle("nonConState", "nonConEnabled", content.nonConState, content.nonConEnabled);
+            parseToggle("publicSexState", "publicSexEnabled", content.publicSexState, content.publicSexEnabled);
+            parseToggle("extremeContentState", "extremeContentEnabled", content.extremeContentState, content.extremeContentEnabled);
+            parseToggle("watersportsState", "watersportsEnabled", content.watersportsState, content.watersportsEnabled);
+            parseToggle("spittingState", "spittingEnabled", content.spittingState, content.spittingEnabled);
+            parseToggle("forcedTfState", "forcedTfEnabled", content.forcedTfState, content.forcedTfEnabled);
+            parseToggle("tentaclesState", "tentaclesEnabled", content.tentaclesState, content.tentaclesEnabled);
+            parseToggle("bdsmState", "bdsmEnabled", content.bdsmState, content.bdsmEnabled);
+            parseToggle("incestState", "incestEnabled", content.incestState, content.incestEnabled);
+            parseToggle("sizeDifferenceState", "sizeDifferenceEnabled", content.sizeDifferenceState, content.sizeDifferenceEnabled);
+            parseToggle("prolapseState", "prolapseEnabled", content.prolapseState, content.prolapseEnabled);
+            parseToggle("aphrodisiacsState", "aphrodisiacsEnabled", content.aphrodisiacsState, content.aphrodisiacsEnabled);
             if (c.contains("contentFilterMode")) content.contentFilterMode = static_cast<ContentFilterMode>(c["contentFilterMode"].get<int>());
             if (c.contains("fluidMultiplier")) content.fluidMultiplier = c["fluidMultiplier"].get<float>();
             if (c.contains("transformationSpeedMultiplier")) content.transformationSpeedMultiplier = c["transformationSpeedMultiplier"].get<float>();

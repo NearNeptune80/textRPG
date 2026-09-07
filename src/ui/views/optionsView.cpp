@@ -26,6 +26,12 @@ namespace OptionsView
         auto mousePos = gameContext->input.getMousePosition();
         bool clicked = gameContext->input.isLeftMouseJustClicked();
 
+        auto isInView = [&](const SDL_FRect& r) {
+            return (mousePos.x >= rect.x && mousePos.x <= rect.x + rect.w &&
+                    mousePos.y >= rect.y && mousePos.y <= rect.y + rect.h &&
+                    r.y + r.h >= rect.y && r.y <= rect.y + rect.h);
+        };
+
         if (opt->isKeybindsOpen)
         {
             float cardW = std::min(availableW, 600.0f * uiScale);
@@ -56,7 +62,7 @@ namespace OptionsView
             drawKbRow("Save / Load", "F5 (QuickSave) / F9 (Load)", "Quick save / Quick load");
             drawKbRow("Back / Close", "ESC / Backspace", "Return to previous screen");
 
-            curY += panelH + (20.0f * uiScale);
+            curY += panelH + (60.0f * uiScale);
             return (curY - startY);
         }
 
@@ -79,7 +85,7 @@ namespace OptionsView
             else if (curThemeName == "theme_parchment") curThemeName = "Arcane Parchment";
 
             SDL_FRect themeCardRect = { textX, curY, textW, 44.0f * uiScale };
-            bool themeHovered = (mousePos.x >= themeCardRect.x && mousePos.x <= themeCardRect.x + themeCardRect.w &&
+            bool themeHovered = isInView(themeCardRect) && (mousePos.x >= themeCardRect.x && mousePos.x <= themeCardRect.x + themeCardRect.w &&
                                  mousePos.y >= themeCardRect.y && mousePos.y <= themeCardRect.y + themeCardRect.h);
             UIWidget::drawPanel(renderer, themeCardRect, Theme::colors.bgSlot, themeHovered ? Theme::colors.borderSelected : Theme::colors.borderNormal);
 
@@ -115,8 +121,8 @@ namespace OptionsView
             SDL_FRect minusBtn = { textX + textW - (btnW * 2.0f) - (14.0f * uiScale), curY + (11.0f * uiScale), btnW, btnH };
             SDL_FRect plusBtn = { textX + textW - btnW - (8.0f * uiScale), curY + (11.0f * uiScale), btnW, btnH };
 
-            bool minusHovered = (mousePos.x >= minusBtn.x && mousePos.x <= minusBtn.x + minusBtn.w && mousePos.y >= minusBtn.y && mousePos.y <= minusBtn.y + minusBtn.h);
-            bool plusHovered = (mousePos.x >= plusBtn.x && mousePos.x <= plusBtn.x + plusBtn.w && mousePos.y >= plusBtn.y && mousePos.y <= plusBtn.y + plusBtn.h);
+            bool minusHovered = isInView(minusBtn) && (mousePos.x >= minusBtn.x && mousePos.x <= minusBtn.x + minusBtn.w && mousePos.y >= minusBtn.y && mousePos.y <= minusBtn.y + minusBtn.h);
+            bool plusHovered = isInView(plusBtn) && (mousePos.x >= plusBtn.x && mousePos.x <= plusBtn.x + plusBtn.w && mousePos.y >= plusBtn.y && mousePos.y <= plusBtn.y + plusBtn.h);
 
             UIWidget::drawButton(renderer, minusBtn, "-", minusHovered, true, false, uiScale * 0.8f);
             UIWidget::drawButton(renderer, plusBtn, "+", plusHovered, true, false, uiScale * 0.8f);
@@ -156,8 +162,8 @@ namespace OptionsView
             SDL_FRect offPill = { fadeStartX, curY + (10.0f * uiScale), fadeW, 24.0f * uiScale };
             SDL_FRect onPill = { fadeStartX + fadeW, curY + (10.0f * uiScale), fadeW, 24.0f * uiScale };
 
-            bool offHovered = (mousePos.x >= offPill.x && mousePos.x <= offPill.x + offPill.w && mousePos.y >= offPill.y && mousePos.y <= offPill.y + offPill.h);
-            bool onHovered = (mousePos.x >= onPill.x && mousePos.x <= onPill.x + onPill.w && mousePos.y >= onPill.y && mousePos.y <= onPill.y + onPill.h);
+            bool offHovered = isInView(offPill) && (mousePos.x >= offPill.x && mousePos.x <= offPill.x + offPill.w && mousePos.y >= offPill.y && mousePos.y <= offPill.y + offPill.h);
+            bool onHovered = isInView(onPill) && (mousePos.x >= onPill.x && mousePos.x <= onPill.x + onPill.w && mousePos.y >= onPill.y && mousePos.y <= onPill.y + onPill.h);
 
             bool isFadeOn = gameContext->settings.display.fadeInEnabled;
             UIWidget::drawColoredButton(renderer, offPill, "OFF", !isFadeOn ? Theme::colors.toggleOff : Theme::colors.bgButton, !isFadeOn ? Theme::colors.textPrimary : Theme::colors.textMuted, !isFadeOn, uiScale * 0.72f);
@@ -194,8 +200,8 @@ namespace OptionsView
             SDL_FRect normalPill = { proStartX, curY + (10.0f * uiScale), proW, 24.0f * uiScale };
             SDL_FRect customPill = { proStartX + proW, curY + (10.0f * uiScale), proW, 24.0f * uiScale };
 
-            bool normHovered = (mousePos.x >= normalPill.x && mousePos.x <= normalPill.x + normalPill.w && mousePos.y >= normalPill.y && mousePos.y <= normalPill.y + normalPill.h);
-            bool custHovered = (mousePos.x >= customPill.x && mousePos.x <= customPill.x + customPill.w && mousePos.y >= customPill.y && mousePos.y <= customPill.y + customPill.h);
+            bool normHovered = isInView(normalPill) && (mousePos.x >= normalPill.x && mousePos.x <= normalPill.x + normalPill.w && mousePos.y >= normalPill.y && mousePos.y <= normalPill.y + normalPill.h);
+            bool custHovered = isInView(customPill) && (mousePos.x >= customPill.x && mousePos.x <= customPill.x + customPill.w && mousePos.y >= customPill.y && mousePos.y <= customPill.y + customPill.h);
 
             bool isNorm = (gameContext->settings.gameplay.genderPronounMode == "Normal");
             UIWidget::drawColoredButton(renderer, normalPill, "Normal", isNorm ? Theme::colors.toggleOn : Theme::colors.bgButton, isNorm ? Theme::colors.textPrimary : Theme::colors.textMuted, isNorm, uiScale * 0.72f);
@@ -232,8 +238,8 @@ namespace OptionsView
             SDL_FRect metricPill = { unitStartX, curY + (10.0f * uiScale), unitW, 24.0f * uiScale };
             SDL_FRect imperialPill = { unitStartX + unitW, curY + (10.0f * uiScale), unitW, 24.0f * uiScale };
 
-            bool metricHovered = (mousePos.x >= metricPill.x && mousePos.x <= metricPill.x + metricPill.w && mousePos.y >= metricPill.y && mousePos.y <= metricPill.y + metricPill.h);
-            bool impHovered = (mousePos.x >= imperialPill.x && mousePos.x <= imperialPill.x + imperialPill.w && mousePos.y >= imperialPill.y && mousePos.y <= imperialPill.y + imperialPill.h);
+            bool metricHovered = isInView(metricPill) && (mousePos.x >= metricPill.x && mousePos.x <= metricPill.x + metricPill.w && mousePos.y >= metricPill.y && mousePos.y <= metricPill.y + metricPill.h);
+            bool impHovered = isInView(imperialPill) && (mousePos.x >= imperialPill.x && mousePos.x <= imperialPill.x + imperialPill.w && mousePos.y >= imperialPill.y && mousePos.y <= imperialPill.y + imperialPill.h);
 
             bool isMetric = (gameContext->settings.gameplay.unitPreference == "Metric");
             UIWidget::drawColoredButton(renderer, metricPill, "Metric", isMetric ? Theme::colors.toggleOn : Theme::colors.bgButton, isMetric ? Theme::colors.textPrimary : Theme::colors.textMuted, isMetric, uiScale * 0.72f);
@@ -281,7 +287,7 @@ namespace OptionsView
                 float cardH2 = 30.0f * uiScale;
 
                 SDL_FRect tierRect = { textX, curY, textW, cardH2 };
-                bool tierHovered = (mousePos.x >= tierRect.x && mousePos.x <= tierRect.x + tierRect.w && mousePos.y >= tierRect.y && mousePos.y <= tierRect.y + tierRect.h);
+                bool tierHovered = isInView(tierRect) && (mousePos.x >= tierRect.x && mousePos.x <= tierRect.x + tierRect.w && mousePos.y >= tierRect.y && mousePos.y <= tierRect.y + tierRect.h);
 
                 SDL_Color tierBg = isCurrentDiff ? Theme::colors.bgSlotSelected : (tierHovered ? Theme::colors.bgButtonHover : Theme::colors.bgSlot);
                 SDL_Color tierBorder = isCurrentDiff ? Theme::colors.borderSelected : (tierHovered ? Theme::colors.borderButtonHover : Theme::colors.borderNormal);
@@ -304,6 +310,7 @@ namespace OptionsView
                 curY += cardH2 + (5.0f * uiScale);
             }
 
+            curY += (60.0f * uiScale);
             return (curY - startY);
         }
         else // Content Options (Misc., Gameplay, Sex & Fetishes, Bodies, Preferences, etc.)
@@ -386,12 +393,40 @@ namespace OptionsView
                 for (size_t p = 0; p < pillLabels.size(); ++p)
                 {
                     SDL_FRect pRect = { pillStartX + (p * pillItemW), pillY, pillItemW, pillH };
-                    bool pHovered = (mousePos.x >= pRect.x && mousePos.x <= pRect.x + pRect.w &&
+                    bool pHovered = isInView(pRect) && (mousePos.x >= pRect.x && mousePos.x <= pRect.x + pRect.w &&
                                      mousePos.y >= pRect.y && mousePos.y <= pRect.y + pRect.h);
                     bool isSelected = (static_cast<int>(p) == selectedIndex);
 
-                    SDL_Color bgCol = isSelected ? (pillLabels[p] == "OFF" ? Theme::colors.toggleOff : Theme::colors.toggleOn) : (pHovered ? Theme::colors.bgButtonHover : Theme::colors.bgButton);
-                    SDL_Color borderCol = isSelected ? Theme::colors.borderSelected : (pHovered ? Theme::colors.borderButtonHover : Theme::colors.borderButton);
+                    SDL_Color bgCol = Theme::colors.bgButton;
+                    SDL_Color borderCol = Theme::colors.borderButton;
+                    if (isSelected)
+                    {
+                        if (pillLabels[p] == "OFF")
+                        {
+                            bgCol = Theme::colors.toggleOff;
+                            borderCol = Theme::colors.enemy;
+                        }
+                        else if (pillLabels[p] == "WARN")
+                        {
+                            bgCol = SDL_Color{ 180, 110, 20, 255 };
+                            borderCol = Theme::colors.textGold;
+                        }
+                        else if (pillLabels[p] == "ON")
+                        {
+                            bgCol = Theme::colors.toggleOn;
+                            borderCol = Theme::colors.friendly;
+                        }
+                        else
+                        {
+                            bgCol = Theme::colors.bgSlotSelected;
+                            borderCol = Theme::colors.borderSelected;
+                        }
+                    }
+                    else if (pHovered)
+                    {
+                        bgCol = Theme::colors.bgButtonHover;
+                        borderCol = Theme::colors.borderButtonHover;
+                    }
 
                     SDL_SetRenderDrawColor(renderer, bgCol.r, bgCol.g, bgCol.b, bgCol.a);
                     SDL_RenderFillRect(renderer, &pRect);
@@ -432,7 +467,7 @@ namespace OptionsView
                 for (size_t p = 0; p < std::size(freqLabels); ++p)
                 {
                     SDL_FRect pRect = { pillStartX + (p * (pillItemW + 4.0f * uiScale)), pillY, pillItemW, pillH };
-                    bool pHovered = (mousePos.x >= pRect.x && mousePos.x <= pRect.x + pRect.w &&
+                    bool pHovered = isInView(pRect) && (mousePos.x >= pRect.x && mousePos.x <= pRect.x + pRect.w &&
                                      mousePos.y >= pRect.y && mousePos.y <= pRect.y + pRect.h);
                     bool isSelected = (static_cast<int>(p) == selectedIndex);
 
@@ -490,6 +525,26 @@ namespace OptionsView
                     renderOptionCard(def.title, def.color, def.description, { "OFF", "ON" }, *def.pVal ? 1 : 0,
                                      [&, p = def.pVal](int idx) {
                                          *p = (idx == 1);
+                                         settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                                     });
+                }
+            };
+
+            struct StateToggleDef {
+                std::string title;
+                SDL_Color color;
+                std::string description;
+                ContentToggleState* pState;
+                bool* pBool;
+            };
+
+            auto renderStateToggles = [&](const std::vector<StateToggleDef>& defs) {
+                for (const auto& def : defs)
+                {
+                    renderOptionCard(def.title, def.color, def.description, { "OFF", "WARN", "ON" }, static_cast<int>(*def.pState),
+                                     [&, pS = def.pState, pB = def.pBool](int idx) {
+                                         *pS = intToContentToggleState(idx);
+                                         *pB = (*pS != ContentToggleState::OFF);
                                          settingsManager::saveToFile(gameContext->settings, "data/settings.json");
                                      });
                 }
@@ -560,19 +615,19 @@ namespace OptionsView
                                      settingsManager::saveToFile(gameContext->settings, "data/settings.json");
                                  });
 
-                renderToggles({
-                    { "Non-consent", Theme::colors.enemy, "Enables non-consensual encounters, struggles, and rough sexual dialogue.", &gameContext->settings.content.nonConEnabled },
-                    { "Sadistic sex / Extreme", Theme::colors.enemy, "Unlocks extreme sadistic sex actions, severe violence, and heavy pain.", &gameContext->settings.content.extremeContentEnabled },
-                    { "Public Sex Exposure", Theme::colors.lust, "Allows public exhibitionism and onlookers during intimate encounters in open zones.", &gameContext->settings.content.publicSexEnabled },
-                    { "Watersports", Theme::colors.currency, "Enables urination, golden showers, and related bladder interactions.", &gameContext->settings.content.watersportsEnabled },
-                    { "Spitting", Theme::colors.friendly, "Enables spitting, oral degradation, and saliva exchange scenes.", &gameContext->settings.content.spittingEnabled },
-                    { "Forced Transformation", Theme::colors.arcane, "Allows involuntary anatomical mutations and forced corruption by enemies.", &gameContext->settings.content.forcedTfEnabled },
-                    { "Tentacles & Monsters", Theme::colors.arcane, "Enables monster, creature, and tentacle encounters.", &gameContext->settings.content.tentaclesEnabled },
-                    { "BDSM & Restraints", Theme::colors.enemy, "Enables bondage, leather bindings, gags, and heavy restraint mechanics.", &gameContext->settings.content.bdsmEnabled },
-                    { "Incest", Theme::colors.enemy, "Allows romantic or intimate encounters involving blood relatives.", &gameContext->settings.content.incestEnabled },
-                    { "Size Difference", Theme::colors.companion, "Enables extreme height and anatomical scale discrepancies.", &gameContext->settings.content.sizeDifferenceEnabled },
-                    { "Prolapse", Theme::colors.enemy, "Enables heavy anal or vaginal stretching and prolapse descriptions.", &gameContext->settings.content.prolapseEnabled },
-                    { "Aphrodisiacs & Drugs", Theme::colors.lust, "Enables involuntary administration of heat-inducing potions and alchemical drugs.", &gameContext->settings.content.aphrodisiacsEnabled }
+                renderStateToggles({
+                    { "Non-consent", Theme::colors.enemy, "Enables non-consensual encounters, struggles, and rough sexual dialogue.", &gameContext->settings.content.nonConState, &gameContext->settings.content.nonConEnabled },
+                    { "Sadistic sex / Extreme", Theme::colors.enemy, "Unlocks extreme sadistic sex actions, severe violence, and heavy pain.", &gameContext->settings.content.extremeContentState, &gameContext->settings.content.extremeContentEnabled },
+                    { "Public Sex Exposure", Theme::colors.lust, "Allows public exhibitionism and onlookers during intimate encounters in open zones.", &gameContext->settings.content.publicSexState, &gameContext->settings.content.publicSexEnabled },
+                    { "Watersports", Theme::colors.currency, "Enables urination, golden showers, and related bladder interactions.", &gameContext->settings.content.watersportsState, &gameContext->settings.content.watersportsEnabled },
+                    { "Spitting", Theme::colors.friendly, "Enables spitting, oral degradation, and saliva exchange scenes.", &gameContext->settings.content.spittingState, &gameContext->settings.content.spittingEnabled },
+                    { "Forced Transformation", Theme::colors.arcane, "Allows involuntary anatomical mutations and forced corruption by enemies.", &gameContext->settings.content.forcedTfState, &gameContext->settings.content.forcedTfEnabled },
+                    { "Tentacles & Monsters", Theme::colors.arcane, "Enables monster, creature, and tentacle encounters.", &gameContext->settings.content.tentaclesState, &gameContext->settings.content.tentaclesEnabled },
+                    { "BDSM & Restraints", Theme::colors.enemy, "Enables bondage, leather bindings, gags, and heavy restraint mechanics.", &gameContext->settings.content.bdsmState, &gameContext->settings.content.bdsmEnabled },
+                    { "Incest", Theme::colors.enemy, "Allows romantic or intimate encounters involving blood relatives.", &gameContext->settings.content.incestState, &gameContext->settings.content.incestEnabled },
+                    { "Size Difference", Theme::colors.companion, "Enables extreme height and anatomical scale discrepancies.", &gameContext->settings.content.sizeDifferenceState, &gameContext->settings.content.sizeDifferenceEnabled },
+                    { "Prolapse", Theme::colors.enemy, "Enables heavy anal or vaginal stretching and prolapse descriptions.", &gameContext->settings.content.prolapseState, &gameContext->settings.content.prolapseEnabled },
+                    { "Aphrodisiacs & Drugs", Theme::colors.lust, "Enables involuntary administration of heat-inducing potions and alchemical drugs.", &gameContext->settings.content.aphrodisiacsState, &gameContext->settings.content.aphrodisiacsEnabled }
                 });
 
                 int fluidIdx = (gameContext->settings.content.fluidMultiplier <= 0.3f) ? 0 :
@@ -590,9 +645,9 @@ namespace OptionsView
             }
             else if (opt->contentCategory == ContentOptionsCategory::BODIES)
             {
-                renderToggles({
-                    { "Pregnancy", Theme::colors.companion, "Enables insemination, gestation progression, and progeny generation mechanics.", &gameContext->settings.content.pregnancyEnabled },
-                    { "Lactation", Theme::colors.friendly, "Enables breast engorgement, milk production, and related dialogue / feeding actions.", &gameContext->settings.content.lactationEnabled }
+                renderStateToggles({
+                    { "Pregnancy", Theme::colors.companion, "Enables insemination, gestation progression, and progeny generation mechanics.", &gameContext->settings.content.pregnancyState, &gameContext->settings.content.pregnancyEnabled },
+                    { "Lactation", Theme::colors.friendly, "Enables breast engorgement, milk production, and related dialogue / feeding actions.", &gameContext->settings.content.lactationState, &gameContext->settings.content.lactationEnabled }
                 });
 
                 int tfIdx = (gameContext->settings.content.transformationSpeedMultiplier >= 5.0f) ? 0 :
@@ -664,7 +719,7 @@ namespace OptionsView
                 };
 
                 static constexpr std::string_view fetPills[] = {
-                    "Disabled", "Hate", "Dislike", "Neutral", "Like", "Love", "Always"
+                    "Never", "V.Rare", "Rare", "Average", "Common", "V.Common", "Always"
                 };
 
                 for (size_t i = 0; i < std::size(fetishes); ++i)
@@ -693,7 +748,7 @@ namespace OptionsView
                     for (size_t p = 0; p < std::size(fetPills); ++p)
                     {
                         SDL_FRect pRect = { pillStartX + (p * (pillItemW + 4.0f * uiScale)), pillY, pillItemW, pillH };
-                        bool pHovered = (mousePos.x >= pRect.x && mousePos.x <= pRect.x + pRect.w &&
+                        bool pHovered = isInView(pRect) && (mousePos.x >= pRect.x && mousePos.x <= pRect.x + pRect.w &&
                                          mousePos.y >= pRect.y && mousePos.y <= pRect.y + pRect.h);
                         bool isSelected = (static_cast<int>(p) == curRating);
 
@@ -738,6 +793,7 @@ namespace OptionsView
                 }
             }
 
+            curY += (60.0f * uiScale);
             return (curY - startY);
         }
     }

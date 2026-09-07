@@ -253,6 +253,55 @@ questScene questDatabase::getScene(const std::string& id)
     auto it = registry.find(id);
     if (it != registry.end()) return it->second;
 
+    if (id == "debug_content_test_scene")
+    {
+        questScene testScene;
+        testScene.id = "debug_content_test_scene";
+        testScene.speakerName = "Debug Content Inspector";
+        testScene.bodyText = "Welcome to the Content Preference Test Suite.\n\n"
+                             "This scene demonstrates text-level narrative gating and choice-level gating based on your Sex & Fetishes content toggles:\n\n"
+                             "Standard text: The chamber is dimly lit with glowing runes etched into the stone walls.\n\n"
+                             "[content:watersports:Golden Urination]A warm stream of golden fluid splashes across the dungeon stone floor, glistening in the torchlight.[/content]\n\n"
+                             "[content:bdsm:Heavy Bondage & Restraints]Heavy iron shackles and thick leather straps bind your arms firmly to the pillar, testing your endurance.[/content]\n\n"
+                             "[content:tentacles:Lurking Tentacles]Sinewy purple tentacles slide from the underground canal, pulsing with unnatural heat.[/content]\n\n"
+                             "Select a choice below to verify choice-level gating and warning tags:";
+
+        dialogueChoice c1;
+        c1.label = "Examine the chamber (Safe choice)";
+        c1.tooltip = "A safe action with no sensitive content tags.";
+        c1.nextSceneId = "debug_content_test_scene";
+        testScene.choices.push_back(c1);
+
+        dialogueChoice c2;
+        c2.label = "Touch the writhe of tentacles";
+        c2.tooltip = "Interacts with tentacle creatures.";
+        c2.nextSceneId = "debug_content_test_scene";
+        c2.contentTags = { "tentacles" };
+        testScene.choices.push_back(c2);
+
+        dialogueChoice c3;
+        c3.label = "Submit to heavy bondage";
+        c3.tooltip = "Tied with heavy leather and chains.";
+        c3.nextSceneId = "debug_content_test_scene";
+        c3.contentTags = { "bdsm" };
+        testScene.choices.push_back(c3);
+
+        dialogueChoice c4;
+        c4.label = "Experience watersports stream";
+        c4.tooltip = "Exposed to golden showers.";
+        c4.nextSceneId = "debug_content_test_scene";
+        c4.contentTags = { "watersports" };
+        testScene.choices.push_back(c4);
+
+        dialogueChoice c5;
+        c5.label = "Leave Test Scene";
+        c5.tooltip = "Exit back to exploration.";
+        c5.nextSceneId = "EXIT";
+        testScene.choices.push_back(c5);
+
+        return testScene;
+    }
+
     questScene fallback;
     fallback.id = "error";
     fallback.speakerName = "System";

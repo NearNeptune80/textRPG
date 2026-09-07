@@ -54,38 +54,75 @@ std::string ContentFilterManager::getTagDisplayName(const std::string& tag)
     return norm;
 }
 
-bool ContentFilterManager::isTagAllowed(const ContentSettings& settings, const std::string& tag)
+ContentTagStatus ContentFilterManager::evaluateTag(const ContentSettings& settings, const std::string& tag)
 {
     std::string norm = normalizeTag(tag);
-    if (norm.empty()) return true;
+    if (norm.empty()) return ContentTagStatus::ALLOWED;
 
-    // Explicit Core Content Toggles
-    if ((norm == "non_con" || norm == "noncon" || norm == "rape") && !settings.nonConEnabled) return false;
-    if ((norm == "extreme" || norm == "sadism" || norm == "sadistic" || norm == "gore" || norm == "snuff") && !settings.extremeContentEnabled) return false;
-    if ((norm == "public_sex" || norm == "publicsex" || norm == "exhibitionism") && !settings.publicSexEnabled) return false;
-    if ((norm == "pregnancy" || norm == "impregnation" || norm == "insemination") && !settings.pregnancyEnabled) return false;
-    if ((norm == "lactation" || norm == "milk" || norm == "nursing") && !settings.lactationEnabled) return false;
-    if ((norm == "watersports" || norm == "urination" || norm == "piss") && !settings.watersportsEnabled) return false;
-    if ((norm == "spitting" || norm == "oral_degradation") && !settings.spittingEnabled) return false;
-    if ((norm == "forced_tf" || norm == "forcedtf" || norm == "involuntary_tf") && !settings.forcedTfEnabled) return false;
-    if ((norm == "tentacles" || norm == "monsters" || norm == "tentacle") && !settings.tentaclesEnabled) return false;
-    if ((norm == "bdsm" || norm == "bondage" || norm == "restraints") && !settings.bdsmEnabled) return false;
-    if (norm == "incest" && !settings.incestEnabled) return false;
-    if ((norm == "size_diff" || norm == "size_difference" || norm == "macro" || norm == "micro") && !settings.sizeDifferenceEnabled) return false;
-    if ((norm == "prolapse" || norm == "stretching") && !settings.prolapseEnabled) return false;
-    if ((norm == "aphrodisiacs" || norm == "drugs") && !settings.aphrodisiacsEnabled) return false;
-
-    // Fetish Preferences Lookup (Rating 0 = Disabled)
+    // Fetish Preferences Lookup (Rating 0 = Never / Disabled) - checked first so 0-rating disables tag
     for (const auto& [fetName, rating] : settings.fetishPreferences)
     {
         std::string normFet = normalizeTag(fetName);
         if (normFet == norm || normFet.find(norm) != std::string::npos || norm.find(normFet) != std::string::npos)
         {
-            if (rating == 0) return false;
+            if (rating == 0) return ContentTagStatus::BLOCKED;
         }
     }
 
-    return true;
+    auto stateToStatus = [](ContentToggleState state, bool enabled) {
+        if (!enabled) return ContentTagStatus::BLOCKED;
+        if (state == ContentToggleState::WARN) return ContentTagStatus::WARN;
+        return ContentTagStatus::ALLOWED;
+    };
+
+    // Explicit Core Content 3-State Toggles
+    if (norm == "non_con" || norm == "noncon" || norm == "rape") return stateToStatus(settings.nonConState, settings.nonConEnabled);
+    if (norm == "extreme" || norm == "sadism" || norm == "sadistic" || norm == "gore" || norm == "snuff") return stateToStatus(settings.extremeContentState, settings.extremeContentEnabled);
+    if (norm == "public_sex" || norm == "publicsex" || norm == "exhibitionism") return stateToStatus(settings.publicSexState, settings.publicSexEnabled);
+    if (norm == "pregnancy" || norm == "impregnation" || norm == "insemination") return stateToStatus(settings.pregnancyState, settings.pregnancyEnabled);
+    if (norm == "lactation" || norm == "milk" || norm == "nursing") return stateToStatus(settings.lactationState, settings.lactationEnabled);
+    if (norm == "watersports" || norm == "urination" || norm == "piss") return stateToStatus(settings.watersportsState, settings.watersportsEnabled);
+    if (norm == "spitting" || norm == "oral_degradation") return stateToStatus(settings.spittingState, settings.spittingEnabled);
+    if (norm == "forced_tf" || norm == "forcedtf" || norm == "involuntary_tf") return stateToStatus(settings.forcedTfState, settings.forcedTfEnabled);
+    if (norm == "tentacles" || norm == "monsters" || norm == "tentacle") return stateToStatus(settings.tentaclesState, settings.tentaclesEnabled);
+    if (norm == "bdsm" || norm == "bondage" || norm == "restraints") return stateToStatus(settings.bdsmState, settings.bdsmEnabled);
+    if (norm == "incest") return stateToStatus(settings.incestState, settings.incestEnabled);
+    if (norm == "size_diff" || norm == "size_difference" || norm == "macro" || norm == "micro") return stateToStatus(settings.sizeDifferenceState, settings.sizeDifferenceEnabled);
+    if (norm == "prolapse" || norm == "stretching") return stateToStatus(settings.prolapseState, settings.prolapseEnabled);
+    if (norm == "aphrodisiacs" || norm == "drugs") return stateToStatus(settings.aphrodisiacsState, settings.aphrodisiacsEnabled);
+
+    return ContentTagStatus::ALLOWED;
+}
+
+ContentTagStatus ContentFilterManager::evaluateScene(const ContentSettings& settings, const questScene& scene)
+{
+    if (scene.contentTags.empty()) return ContentTagStatus::ALLOWED;
+    bool hasWarn = false;
+    for (const auto& t : scene.contentTags)
+    {
+        ContentTagStatus st = evaluateTag(settings, t);
+        if (st == ContentTagStatus::BLOCKED) return ContentTagStatus::BLOCKED;
+        if (st == ContentTagStatus::WARN) hasWarn = true;
+    }
+    return hasWarn ? ContentTagStatus::WARN : ContentTagStatus::ALLOWED;
+}
+
+ContentTagStatus ContentFilterManager::evaluateChoice(const ContentSettings& settings, const dialogueChoice& choice)
+{
+    if (choice.contentTags.empty()) return ContentTagStatus::ALLOWED;
+    bool hasWarn = false;
+    for (const auto& t : choice.contentTags)
+    {
+        ContentTagStatus st = evaluateTag(settings, t);
+        if (st == ContentTagStatus::BLOCKED) return ContentTagStatus::BLOCKED;
+        if (st == ContentTagStatus::WARN) hasWarn = true;
+    }
+    return hasWarn ? ContentTagStatus::WARN : ContentTagStatus::ALLOWED;
+}
+
+bool ContentFilterManager::isTagAllowed(const ContentSettings& settings, const std::string& tag)
+{
+    return evaluateTag(settings, tag) != ContentTagStatus::BLOCKED;
 }
 
 std::vector<std::string> ContentFilterManager::getDisallowedTags(const ContentSettings& settings, const std::vector<std::string>& tags)
@@ -93,7 +130,7 @@ std::vector<std::string> ContentFilterManager::getDisallowedTags(const ContentSe
     std::vector<std::string> disallowed;
     for (const auto& t : tags)
     {
-        if (!isTagAllowed(settings, t))
+        if (evaluateTag(settings, t) == ContentTagStatus::BLOCKED)
         {
             disallowed.push_back(t);
         }
@@ -101,24 +138,27 @@ std::vector<std::string> ContentFilterManager::getDisallowedTags(const ContentSe
     return disallowed;
 }
 
+std::vector<std::string> ContentFilterManager::getWarningTags(const ContentSettings& settings, const std::vector<std::string>& tags)
+{
+    std::vector<std::string> warnings;
+    for (const auto& t : tags)
+    {
+        if (evaluateTag(settings, t) == ContentTagStatus::WARN)
+        {
+            warnings.push_back(t);
+        }
+    }
+    return warnings;
+}
+
 bool ContentFilterManager::isSceneAllowed(const ContentSettings& settings, const questScene& scene)
 {
-    if (scene.contentTags.empty()) return true;
-    for (const auto& t : scene.contentTags)
-    {
-        if (!isTagAllowed(settings, t)) return false;
-    }
-    return true;
+    return evaluateScene(settings, scene) != ContentTagStatus::BLOCKED;
 }
 
 bool ContentFilterManager::isChoiceAllowed(const ContentSettings& settings, const dialogueChoice& choice)
 {
-    if (choice.contentTags.empty()) return true;
-    for (const auto& t : choice.contentTags)
-    {
-        if (!isTagAllowed(settings, t)) return false;
-    }
-    return true;
+    return evaluateChoice(settings, choice) != ContentTagStatus::BLOCKED;
 }
 
 std::vector<NarrativeSegment> ContentFilterManager::parseNarrativeSegments(const ContentSettings& settings, const std::string& rawText)
@@ -188,35 +228,32 @@ std::vector<NarrativeSegment> ContentFilterManager::parseNarrativeSegments(const
         curPos = closeTag + 10;
         blockIdx++;
 
-        bool allowed = isTagAllowed(settings, tag);
-        if (allowed)
+        ContentTagStatus status = evaluateTag(settings, tag);
+        if (status == ContentTagStatus::ALLOWED)
         {
             NarrativeSegment seg;
             seg.isDropdown = false;
             seg.text = contentText;
             segments.push_back(seg);
         }
-        else
+        else if (settings.contentFilterMode == ContentFilterMode::BLOCK_AND_SKIP)
         {
-            if (settings.contentFilterMode == ContentFilterMode::BLOCK_AND_SKIP)
-            {
-                // Redact completely
-                NarrativeSegment seg;
-                seg.isDropdown = false;
-                seg.text = " [Content omitted: " + title + "] ";
-                segments.push_back(seg);
-            }
-            else
-            {
-                // DROPDOWN or WARN_CONFIRM: render as collapsible dropdown segment
-                NarrativeSegment seg;
-                seg.isDropdown = true;
-                seg.dropdown.id = "dropdown_" + std::to_string(blockIdx) + "_" + normalizeTag(tag);
-                seg.dropdown.tag = tag;
-                seg.dropdown.title = title;
-                seg.dropdown.content = contentText;
-                segments.push_back(seg);
-            }
+            // Redact completely
+            NarrativeSegment seg;
+            seg.isDropdown = false;
+            seg.text = " [Content omitted: " + title + "] ";
+            segments.push_back(seg);
+        }
+        else // DROPDOWN or WARN_CONFIRM
+        {
+            // Collapsible dropdown with content warning
+            NarrativeSegment seg;
+            seg.isDropdown = true;
+            seg.dropdown.id = "dropdown_" + std::to_string(blockIdx) + "_" + normalizeTag(tag);
+            seg.dropdown.tag = tag;
+            seg.dropdown.title = title;
+            seg.dropdown.content = contentText;
+            segments.push_back(seg);
         }
     }
 

@@ -1,9 +1,12 @@
 {
     "content": {
         "aphrodisiacsEnabled": true,
+        "aphrodisiacsState": 2,
         "bdsmEnabled": true,
+        "bdsmState": 2,
         "contentFilterMode": 0,
         "extremeContentEnabled": false,
+        "extremeContentState": 0,
         "fetishPreferences": {
             "Anal": 3,
             "BDSM / Sadism": 3,
@@ -36,17 +39,28 @@
         },
         "fluidMultiplier": 1.0,
         "forcedTfEnabled": false,
+        "forcedTfState": 0,
         "incestEnabled": false,
+        "incestState": 0,
         "lactationEnabled": true,
+        "lactationState": 2,
         "nonConEnabled": false,
+        "nonConState": 0,
         "pregnancyEnabled": true,
+        "pregnancyState": 2,
         "prolapseEnabled": false,
+        "prolapseState": 0,
         "publicSexEnabled": true,
+        "publicSexState": 2,
         "sizeDifferenceEnabled": true,
+        "sizeDifferenceState": 2,
         "spittingEnabled": true,
+        "spittingState": 2,
         "tentaclesEnabled": true,
+        "tentaclesState": 2,
         "transformationSpeedMultiplier": 1.0,
-        "watersportsEnabled": false
+        "watersportsEnabled": false,
+        "watersportsState": 0
     },
     "demographics": {
         "percentAdult": 35.0,

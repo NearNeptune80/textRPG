@@ -43,6 +43,12 @@ public:
     int birthDay = 29;
     int birthMonth = 8;
     int birthYear = 1;
+    int age = 24;
+    std::unordered_map<std::string, int> fetishDesires;
+
+    int getFetishDesire(const std::string& fetishKey) const;
+    void setFetishDesire(const std::string& fetishKey, int level);
+    bool hasFetish(const std::string& fetishKey) const;
 
     entity(std::string entityId, std::string entityName);
 

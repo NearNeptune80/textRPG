@@ -8,6 +8,7 @@
 #include "core/contentFilterManager.h"
 #include "core/game.h"
 #include "entities/namedCharacter.h"
+#include "entities/npcGenerator.h"
 #include "entities/perkDatabase.h"
 #include "map/encounterResolver.h"
 #include "save/saveManager.h"
@@ -245,6 +246,41 @@ void ActionGridManager::refresh(game* gameContext)
             addBtn(gameContext, "Fetish preferences", [opt, gameContext]() { opt->contentCategory = ContentOptionsCategory::FETISH_PREFS; gameContext->refreshActionGrid(); }, true, opt->contentCategory == ContentOptionsCategory::FETISH_PREFS);
 
             addBtn(gameContext, "Reset All", [opt, gameContext]() { opt->resetAllDefaults(gameContext); });
+
+            addBtn(gameContext, "Test Scene", [gameContext]() {
+                gameContext->loadScene("debug_content_test_scene");
+            }, true, false, "Load debug content test scene to test inline tags, warnings, and choices.");
+
+            addBtn(gameContext, "Roll Test NPC", [gameContext]() {
+                auto npc = npcGenerator::generateRandomNPC(&gameContext->settings);
+                if (npc)
+                {
+                    std::string info = std::format("[TEST NPC] Rolled: {} | Age: {} | Orientation: {} | Arch: {}",
+                        npc->name, npc->age, sexualOrientationToString(npc->orientation), genderArchetypeToString(npc->genderArchetype));
+                    gameContext->addLogEntry("[TEST NPC]", info, { 220, 200, 100, 255 });
+
+                    std::string fetList;
+                    for (const auto& [fet, desire] : npc->fetishDesires)
+                    {
+                        if (desire > 0)
+                        {
+                            if (!fetList.empty()) fetList += ", ";
+                            fetList += fet + " (" + (desire >= 4 ? "Love" : "Like") + ")";
+                        }
+                    }
+                    if (fetList.empty()) fetList = "None";
+                    gameContext->addLogEntry("[TEST NPC]", "Rolled Fetishes: " + fetList, { 180, 220, 180, 255 });
+
+                    auto breasts = npc->anatomy.getPart(bodySlot::BREASTS);
+                    if (breasts && !breasts->tags.empty())
+                    {
+                        bool isLactating = false;
+                        for (const auto& t : breasts->tags) if (t == "lactating") isLactating = true;
+                        if (isLactating) gameContext->addLogEntry("[TEST NPC]", "Anatomy: Lactating Breasts active (" + std::to_string(static_cast<int>(breasts->currentFluidMl)) + "ml)", { 120, 200, 255, 255 });
+                    }
+                }
+            }, true, false, "Generate a random NPC with current Content Settings and log rolled attributes and fetishes.");
+
             addBackBtn(gameContext, "Back", [gameContext, opt]() { opt->goBack(gameContext); });
             return;
         }
@@ -976,10 +1012,14 @@ void ActionGridManager::refresh(game* gameContext)
             bool meetsReqs = gameContext->checkConditions(choice.requirements);
             std::string tooltipText = choice.tooltip;
 
+            ContentTagStatus choiceStatus = ContentFilterManager::evaluateChoice(gameContext->settings.content, choice);
             auto disallowed = ContentFilterManager::getDisallowedTags(gameContext->settings.content, choice.contentTags);
-            bool hasContentWarning = !disallowed.empty();
+            auto warnings = ContentFilterManager::getWarningTags(gameContext->settings.content, choice.contentTags);
 
-            if (hasContentWarning && gameContext->settings.content.contentFilterMode == ContentFilterMode::BLOCK_AND_SKIP)
+            bool isBlocked = (choiceStatus == ContentTagStatus::BLOCKED || !disallowed.empty());
+            bool isWarned = (choiceStatus == ContentTagStatus::WARN || !warnings.empty());
+
+            if (isBlocked && gameContext->settings.content.contentFilterMode == ContentFilterMode::BLOCK_AND_SKIP)
             {
                 std::string tagStr;
                 for (size_t i = 0; i < disallowed.size(); ++i)
@@ -992,7 +1032,7 @@ void ActionGridManager::refresh(game* gameContext)
             }
 
             std::string btnLabel = choice.label;
-            if (hasContentWarning && gameContext->settings.content.contentFilterMode == ContentFilterMode::WARN_CONFIRM)
+            if (isWarned || (isBlocked && gameContext->settings.content.contentFilterMode == ContentFilterMode::WARN_CONFIRM))
             {
                 btnLabel = "[!] " + btnLabel;
             }

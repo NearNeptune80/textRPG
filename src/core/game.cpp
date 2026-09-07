@@ -972,47 +972,51 @@ void game::processChoice(const dialogueChoice& choice)
     // Choice-level content warning gating
     if (!bypassWarning)
     {
+        ContentTagStatus choiceStatus = ContentFilterManager::evaluateChoice(settings.content, choice);
         auto disallowedChoiceTags = ContentFilterManager::getDisallowedTags(settings.content, choice.contentTags);
-        if (!disallowedChoiceTags.empty())
+        auto warningChoiceTags = ContentFilterManager::getWarningTags(settings.content, choice.contentTags);
+
+        bool hasBlock = (choiceStatus == ContentTagStatus::BLOCKED || !disallowedChoiceTags.empty());
+        bool hasWarn = (choiceStatus == ContentTagStatus::WARN || !warningChoiceTags.empty());
+
+        if (hasBlock && settings.content.contentFilterMode == ContentFilterMode::BLOCK_AND_SKIP)
         {
-            if (settings.content.contentFilterMode == ContentFilterMode::BLOCK_AND_SKIP)
+            addLogEntry("[CONTENT]", "Action blocked per Content Settings.", { 180, 180, 180, 255 });
+            return;
+        }
+        else if ((hasBlock && settings.content.contentFilterMode == ContentFilterMode::WARN_CONFIRM) || hasWarn)
+        {
+            auto tagsToDisplay = !disallowedChoiceTags.empty() ? disallowedChoiceTags : warningChoiceTags;
+            std::string tagListStr;
+            for (size_t i = 0; i < tagsToDisplay.size(); ++i)
             {
-                addLogEntry("[CONTENT]", "Action blocked per Content Settings.", { 180, 180, 180, 255 });
-                return;
+                if (i > 0) tagListStr += ", ";
+                tagListStr += ContentFilterManager::getTagDisplayName(tagsToDisplay[i]);
             }
-            else if (settings.content.contentFilterMode == ContentFilterMode::WARN_CONFIRM)
-            {
-                std::string tagListStr;
-                for (size_t i = 0; i < disallowedChoiceTags.size(); ++i)
-                {
-                    if (i > 0) tagListStr += ", ";
-                    tagListStr += ContentFilterManager::getTagDisplayName(disallowedChoiceTags[i]);
-                }
 
-                currentScene.id = "warning_choice_" + choice.nextSceneId;
-                currentScene.speakerName = "CONTENT WARNING";
-                currentScene.bodyText = std::format("Warning: The option '{}' leads to content you have disabled in your Content Settings: [{}]\n\nDo you wish to proceed or return?", choice.label, tagListStr);
-                currentScene.contentTags.clear();
-                currentScene.choices.clear();
+            currentScene.id = "warning_choice_" + choice.nextSceneId;
+            currentScene.speakerName = "CONTENT WARNING";
+            currentScene.bodyText = std::format("Warning: The option '{}' leads to sensitive content: [{}]\n\nDo you wish to proceed or return?", choice.label, tagListStr);
+            currentScene.contentTags.clear();
+            currentScene.choices.clear();
 
-                dialogueChoice proceedChoice;
-                proceedChoice.label = "Proceed";
-                proceedChoice.tooltip = "Proceed with this choice.";
-                proceedChoice.nextSceneId = choice.nextSceneId;
-                proceedChoice.results = choice.results;
-                proceedChoice.results.push_back({ "BYPASS_WARNING", choice.nextSceneId, 0, 0, 0, 0.0f, "", {}, {} });
-                currentScene.choices.push_back(proceedChoice);
+            dialogueChoice proceedChoice;
+            proceedChoice.label = "Proceed";
+            proceedChoice.tooltip = "Proceed with this choice.";
+            proceedChoice.nextSceneId = choice.nextSceneId;
+            proceedChoice.results = choice.results;
+            proceedChoice.results.push_back({ "BYPASS_WARNING", choice.nextSceneId, 0, 0, 0, 0.0f, "", {}, {} });
+            currentScene.choices.push_back(proceedChoice);
 
-                dialogueChoice returnChoice;
-                returnChoice.label = "Cancel";
-                returnChoice.tooltip = "Return to previous options.";
-                returnChoice.nextSceneId = "POP_SCENE";
-                currentScene.choices.push_back(returnChoice);
+            dialogueChoice returnChoice;
+            returnChoice.label = "Cancel";
+            returnChoice.tooltip = "Return to previous options.";
+            returnChoice.nextSceneId = "POP_SCENE";
+            currentScene.choices.push_back(returnChoice);
 
-                changeState(std::make_unique<eventState>());
-                refreshActionGrid();
-                return;
-            }
+            changeState(std::make_unique<eventState>());
+            refreshActionGrid();
+            return;
         }
     }
 
@@ -1353,49 +1357,53 @@ void game::loadScene(const std::string& sceneId, bool bypassWarning)
     // Content Warning / Skipping Check
     if (!bypassWarning)
     {
+        ContentTagStatus sceneStatus = ContentFilterManager::evaluateScene(settings.content, scene);
         auto disallowed = ContentFilterManager::getDisallowedTags(settings.content, scene.contentTags);
-        if (!disallowed.empty())
+        auto warnings = ContentFilterManager::getWarningTags(settings.content, scene.contentTags);
+
+        bool hasBlock = (sceneStatus == ContentTagStatus::BLOCKED || !disallowed.empty());
+        bool hasWarn = (sceneStatus == ContentTagStatus::WARN || !warnings.empty());
+
+        if (hasBlock && settings.content.contentFilterMode == ContentFilterMode::BLOCK_AND_SKIP)
         {
-            if (settings.content.contentFilterMode == ContentFilterMode::BLOCK_AND_SKIP)
+            addLogEntry("[CONTENT]", "Scene skipped per Content Settings.", { 180, 180, 180, 255 });
+            activeTargetNPC = nullptr;
+            activeTargetMode = TargetMode::NONE;
+            changeState(std::make_unique<explorationState>());
+            return;
+        }
+        else if ((hasBlock && settings.content.contentFilterMode == ContentFilterMode::WARN_CONFIRM) || hasWarn)
+        {
+            auto tagsToDisplay = !disallowed.empty() ? disallowed : warnings;
+            std::string tagListStr;
+            for (size_t i = 0; i < tagsToDisplay.size(); ++i)
             {
-                addLogEntry("[CONTENT]", "Scene skipped per Content Settings.", { 180, 180, 180, 255 });
-                activeTargetNPC = nullptr;
-                activeTargetMode = TargetMode::NONE;
-                changeState(std::make_unique<explorationState>());
-                return;
+                if (i > 0) tagListStr += ", ";
+                tagListStr += ContentFilterManager::getTagDisplayName(tagsToDisplay[i]);
             }
-            else if (settings.content.contentFilterMode == ContentFilterMode::WARN_CONFIRM)
-            {
-                std::string tagListStr;
-                for (size_t i = 0; i < disallowed.size(); ++i)
-                {
-                    if (i > 0) tagListStr += ", ";
-                    tagListStr += ContentFilterManager::getTagDisplayName(disallowed[i]);
-                }
 
-                currentScene.id = "warning_" + sceneId;
-                currentScene.speakerName = "CONTENT WARNING";
-                currentScene.bodyText = std::format("Warning: The following scene contains content you have disabled in your Content Settings: [{}]\n\nDo you wish to proceed with this scene or skip it?", tagListStr);
-                currentScene.contentTags.clear();
-                currentScene.choices.clear();
+            currentScene.id = "warning_" + sceneId;
+            currentScene.speakerName = "CONTENT WARNING";
+            currentScene.bodyText = std::format("Warning: The following scene contains sensitive content: [{}]\n\nDo you wish to proceed with this scene or skip it?", tagListStr);
+            currentScene.contentTags.clear();
+            currentScene.choices.clear();
 
-                dialogueChoice proceedChoice;
-                proceedChoice.label = "Proceed to Scene";
-                proceedChoice.tooltip = "Acknowledge warning and view scene.";
-                proceedChoice.nextSceneId = sceneId;
-                proceedChoice.results.push_back({ "BYPASS_WARNING", sceneId, 0, 0, 0, 0.0f, "", {}, {} });
-                currentScene.choices.push_back(proceedChoice);
+            dialogueChoice proceedChoice;
+            proceedChoice.label = "Proceed to Scene";
+            proceedChoice.tooltip = "Acknowledge warning and view scene.";
+            proceedChoice.nextSceneId = sceneId;
+            proceedChoice.results.push_back({ "BYPASS_WARNING", sceneId, 0, 0, 0, 0.0f, "", {}, {} });
+            currentScene.choices.push_back(proceedChoice);
 
-                dialogueChoice skipChoice;
-                skipChoice.label = "Skip Scene";
-                skipChoice.tooltip = "Cancel and return without viewing.";
-                skipChoice.nextSceneId = "EXIT";
-                currentScene.choices.push_back(skipChoice);
+            dialogueChoice skipChoice;
+            skipChoice.label = "Skip Scene";
+            skipChoice.tooltip = "Cancel and return without viewing.";
+            skipChoice.nextSceneId = "EXIT";
+            currentScene.choices.push_back(skipChoice);
 
-                changeState(std::make_unique<eventState>());
-                refreshActionGrid();
-                return;
-            }
+            changeState(std::make_unique<eventState>());
+            refreshActionGrid();
+            return;
         }
     }
 

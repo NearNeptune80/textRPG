@@ -153,6 +153,8 @@ json entity::toJson() const
     j["birthDay"] = birthDay;
     j["birthMonth"] = birthMonth;
     j["birthYear"] = birthYear;
+    j["age"] = age;
+    j["fetishDesires"] = fetishDesires;
 
     json statsJson;
     statsJson["level"] = stats.level;
@@ -282,6 +284,11 @@ void entity::fromJson(const json& j)
     birthDay = j.value("birthDay", 29);
     birthMonth = j.value("birthMonth", 8);
     birthYear = j.value("birthYear", 1);
+    age = j.value("age", 24);
+    if (j.contains("fetishDesires") && j["fetishDesires"].is_object())
+    {
+        fetishDesires = j["fetishDesires"].get<std::unordered_map<std::string, int>>();
+    }
     if (j.contains("unlockedPerks") && j["unlockedPerks"].is_array())
     {
         unlockedPerks = j["unlockedPerks"].get<std::vector<std::string>>();
@@ -554,4 +561,21 @@ std::vector<std::string> entity::getAllPerkFlags() const
         }
     }
     return result;
+}
+
+int entity::getFetishDesire(const std::string& fetishKey) const
+{
+    auto it = fetishDesires.find(fetishKey);
+    return (it != fetishDesires.end()) ? it->second : 2; // Default 2 = Neutral
+}
+
+void entity::setFetishDesire(const std::string& fetishKey, int level)
+{
+    fetishDesires[fetishKey] = level;
+}
+
+bool entity::hasFetish(const std::string& fetishKey) const
+{
+    auto it = fetishDesires.find(fetishKey);
+    return (it != fetishDesires.end() && it->second >= 3); // 3=Like, 4=Love
 }
