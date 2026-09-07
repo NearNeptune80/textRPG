@@ -17,6 +17,7 @@
 #include "items/itemDatabase.h"
 #include "items/merchantValuation.h"
 #include "ui/views/transformationView.h"
+#include "core/contentFilterManager.h"
 #include <iostream>
 #include <format>
 #include <vector>
@@ -37,9 +38,68 @@ namespace GameplayViews
 
         float padX = rect.x + (12.0f * uiScale);
         float innerW = rect.w - (24.0f * uiScale);
-        float textH = UIWidget::drawTextWrapped(renderer, scene.bodyText, padX, curY, innerW, Theme::colors.textPrimary, uiScale);
-        curY += textH + (16.0f * uiScale);
 
+        auto segments = ContentFilterManager::parseNarrativeSegments(gameContext->settings.content, scene.bodyText);
+        auto rawMouse = gameContext->input.getMousePosition();
+        SDL_FPoint mousePos = { rawMouse.x, rawMouse.y };
+        bool mouseClicked = gameContext->input.isLeftMouseJustClicked();
+
+        for (const auto& seg : segments)
+        {
+            if (!seg.isDropdown)
+            {
+                if (!seg.text.empty())
+                {
+                    float textH = UIWidget::drawTextWrapped(renderer, seg.text, padX, curY, innerW, Theme::colors.textPrimary, uiScale);
+                    curY += textH + (10.0f * uiScale);
+                }
+            }
+            else
+            {
+                bool isExpanded = gameContext->isDropdownExpanded(seg.dropdown.id);
+                float boxH = 28.0f * uiScale;
+                SDL_FRect boxRect = { padX, curY, innerW, boxH };
+
+                bool hovered = (mousePos.x >= boxRect.x && mousePos.x <= boxRect.x + boxRect.w &&
+                                mousePos.y >= boxRect.y && mousePos.y <= boxRect.y + boxRect.h);
+
+                if (hovered && mouseClicked)
+                {
+                    gameContext->toggleDropdown(seg.dropdown.id);
+                    gameContext->input.consumeMouseClick();
+                    isExpanded = !isExpanded;
+                }
+
+                // Render collapsible dropdown header
+                SDL_Color bgCol = hovered ? Theme::colors.bgButtonHover : Theme::colors.bgSlotOccupied;
+                SDL_Color borderCol = hovered ? Theme::colors.enemy : Theme::colors.textAccent;
+                SDL_Color textCol = hovered ? Theme::colors.textGold : Theme::colors.enemy;
+
+                UIWidget::drawPanel(renderer, boxRect, bgCol, borderCol);
+
+                std::string headerLabel = std::format("{} [Content Warning: {}] (Click to {})",
+                    isExpanded ? "▼" : "▶", seg.dropdown.title, isExpanded ? "collapse" : "reveal");
+                UIWidget::drawText(renderer, headerLabel, padX + (10.0f * uiScale), curY + (6.0f * uiScale), textCol, uiScale * 0.85f);
+                curY += boxH + (6.0f * uiScale);
+
+                if (isExpanded)
+                {
+                    float indent = 12.0f * uiScale;
+                    float contentW = innerW - (indent * 2.0f);
+                    float contentH = UIWidget::drawTextWrapped(renderer, seg.dropdown.content, padX + indent, curY + (6.0f * uiScale), contentW, Theme::colors.textSecondary, uiScale);
+
+                    // Draw subtle bounding frame for revealed content
+                    SDL_FRect contentRect = { padX + (4.0f * uiScale), curY, innerW - (8.0f * uiScale), contentH + (12.0f * uiScale) };
+                    UIWidget::drawPanel(renderer, contentRect, Theme::colors.bgDark, Theme::colors.borderNormal);
+                    // Re-render text on top of panel
+                    UIWidget::drawTextWrapped(renderer, seg.dropdown.content, padX + indent, curY + (6.0f * uiScale), contentW, Theme::colors.textSecondary, uiScale);
+
+                    curY += contentH + (16.0f * uiScale);
+                }
+            }
+        }
+
+        curY += (6.0f * uiScale);
         return (curY - startY);
     }
 
@@ -539,16 +599,34 @@ namespace GameplayViews
             curY += fH + (12.0f * uiScale);
 
             static const std::vector<std::pair<std::string, std::string>> fetishList = {
-                { "Exhibitionism", "Sensual thrill of public nudity and being watched." },
-                { "Anal", "Appreciation for rear intimacy and backdoor pleasures." },
-                { "Oral", "Delight in giving and receiving oral stimulation." },
-                { "Lactation", "Affinity for swollen lactating breasts and milk production." },
-                { "Transformations", "Erotic fascination with bodily mutations and morphs." },
+                { "Anal", "Appreciation for rear penetration and backdoor pleasures." },
+                { "Buttslut", "Craving and submitting to receiving anal penetration." },
+                { "Vaginal", "Traditional intercourse and vaginal penetration." },
+                { "Pussy slut", "Craving and delighting in being penetrated vaginally." },
+                { "Oral", "Delight in giving and performing oral stimulation." },
+                { "Oral performer", "Joy in being worshipped and stimulated orally by others." },
+                { "Breasts lover", "Erotic fascination with breasts and fondling chests." },
+                { "Breasts", "Sensual pleasure in having one's own breasts touched and admired." },
+                { "Milk lover", "Desire to drink and nurse on sweet bodily fluids and milk." },
+                { "Lactation", "Affinity for swollen lactating breasts and milk expression." },
+                { "Foot worship", "Adoration and worship of bare feet and soles." },
+                { "Feet", "Pleasure in having one's own feet worshipped and kissed." },
                 { "Dominance", "Desire to command, control, and take the lead in intimate scenes." },
                 { "Submission", "Surrendering authority and deriving pleasure from obedience." },
-                { "Furry", "Attraction to beastkin ears, tails, and animalistic traits." },
-                { "BDSM", "Sensory bondage, discipline, and physical restraints." },
-                { "Foot Worship", "Adoration and worship of bare feet and soles." }
+                { "BDSM / Sadism", "Sensory bondage, discipline, and administering physical pain." },
+                { "Masochism", "Deriving intense arousal from physical pain and rough treatment." },
+                { "Bondage", "Sensory thrill of rope, leather restraints, and immobilization." },
+                { "Exhibitionism", "Sensual thrill of public nudity and being watched." },
+                { "Voyeurism", "Erotic pleasure from secretly watching others engage in intimacy." },
+                { "Insemination", "The primal drive to impregnate and leave potent seed." },
+                { "Pregnancy", "The erotic urge to be impregnated and carry developing progeny." },
+                { "Transformations", "Erotic fascination with bodily mutations and morphs." },
+                { "Watersports", "Arousal connected to urination and bladder relief." },
+                { "Spitting", "Sensory degradation through saliva exchange and spitting." },
+                { "Tentacles", "Fascination with inhuman appendages, monsters, and creatures." },
+                { "Size Difference", "Erotic tension from dramatic height and scale disparities." },
+                { "Crossdressing", "Sensory delight in donning clothing of the opposite sex." },
+                { "Denial & Edging", "Frustrating and prolonged delay of orgasmic climax." }
             };
 
             static const std::vector<std::pair<std::string, FetishDesireLevel>> desirePills = {

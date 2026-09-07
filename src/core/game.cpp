@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include "common/randomEngine.h"
+#include "core/contentFilterManager.h"
 #include "core/eventBus.h"
 #include "core/textParser.h"
 #include "entities/namedCharacter.h"
@@ -957,6 +958,70 @@ void game::popScene()
 
 void game::processChoice(const dialogueChoice& choice)
 {
+    // Check if choice bypasses content warning
+    bool bypassWarning = false;
+    for (const auto& eff : choice.results)
+    {
+        if (eff.action == "BYPASS_WARNING")
+        {
+            bypassWarning = true;
+            break;
+        }
+    }
+
+    // Choice-level content warning gating
+    if (!bypassWarning)
+    {
+        auto disallowedChoiceTags = ContentFilterManager::getDisallowedTags(settings.content, choice.contentTags);
+        if (!disallowedChoiceTags.empty())
+        {
+            if (settings.content.contentFilterMode == ContentFilterMode::BLOCK_AND_SKIP)
+            {
+                addLogEntry("[CONTENT]", "Action blocked per Content Settings.", { 180, 180, 180, 255 });
+                return;
+            }
+            else if (settings.content.contentFilterMode == ContentFilterMode::WARN_CONFIRM)
+            {
+                std::string tagListStr;
+                for (size_t i = 0; i < disallowedChoiceTags.size(); ++i)
+                {
+                    if (i > 0) tagListStr += ", ";
+                    tagListStr += ContentFilterManager::getTagDisplayName(disallowedChoiceTags[i]);
+                }
+
+                currentScene.id = "warning_choice_" + choice.nextSceneId;
+                currentScene.speakerName = "CONTENT WARNING";
+                currentScene.bodyText = std::format("Warning: The option '{}' leads to content you have disabled in your Content Settings: [{}]\n\nDo you wish to proceed or return?", choice.label, tagListStr);
+                currentScene.contentTags.clear();
+                currentScene.choices.clear();
+
+                dialogueChoice proceedChoice;
+                proceedChoice.label = "Proceed";
+                proceedChoice.tooltip = "Proceed with this choice.";
+                proceedChoice.nextSceneId = choice.nextSceneId;
+                proceedChoice.results = choice.results;
+                proceedChoice.results.push_back({ "BYPASS_WARNING", choice.nextSceneId, 0, 0, 0, 0.0f, "", {}, {} });
+                currentScene.choices.push_back(proceedChoice);
+
+                dialogueChoice returnChoice;
+                returnChoice.label = "Cancel";
+                returnChoice.tooltip = "Return to previous options.";
+                returnChoice.nextSceneId = "POP_SCENE";
+                currentScene.choices.push_back(returnChoice);
+
+                changeState(std::make_unique<eventState>());
+                refreshActionGrid();
+                return;
+            }
+        }
+    }
+
+    if (bypassWarning)
+    {
+        loadScene(choice.nextSceneId, true);
+        return;
+    }
+
     if (choice.nextSceneId == "ENCOUNTER_FIGHT")
     {
         std::vector<std::shared_ptr<entity>> playerParty;
@@ -1281,28 +1346,73 @@ void game::processEffect(const gameEffect& eff)
     }
 }
 
-void game::loadScene(const std::string& sceneId)
+void game::loadScene(const std::string& sceneId, bool bypassWarning)
 {
+    questScene scene = questDatabase::getScene(sceneId);
+
+    // Content Warning / Skipping Check
+    if (!bypassWarning)
+    {
+        auto disallowed = ContentFilterManager::getDisallowedTags(settings.content, scene.contentTags);
+        if (!disallowed.empty())
+        {
+            if (settings.content.contentFilterMode == ContentFilterMode::BLOCK_AND_SKIP)
+            {
+                addLogEntry("[CONTENT]", "Scene skipped per Content Settings.", { 180, 180, 180, 255 });
+                activeTargetNPC = nullptr;
+                activeTargetMode = TargetMode::NONE;
+                changeState(std::make_unique<explorationState>());
+                return;
+            }
+            else if (settings.content.contentFilterMode == ContentFilterMode::WARN_CONFIRM)
+            {
+                std::string tagListStr;
+                for (size_t i = 0; i < disallowed.size(); ++i)
+                {
+                    if (i > 0) tagListStr += ", ";
+                    tagListStr += ContentFilterManager::getTagDisplayName(disallowed[i]);
+                }
+
+                currentScene.id = "warning_" + sceneId;
+                currentScene.speakerName = "CONTENT WARNING";
+                currentScene.bodyText = std::format("Warning: The following scene contains content you have disabled in your Content Settings: [{}]\n\nDo you wish to proceed with this scene or skip it?", tagListStr);
+                currentScene.contentTags.clear();
+                currentScene.choices.clear();
+
+                dialogueChoice proceedChoice;
+                proceedChoice.label = "Proceed to Scene";
+                proceedChoice.tooltip = "Acknowledge warning and view scene.";
+                proceedChoice.nextSceneId = sceneId;
+                proceedChoice.results.push_back({ "BYPASS_WARNING", sceneId, 0, 0, 0, 0.0f, "", {}, {} });
+                currentScene.choices.push_back(proceedChoice);
+
+                dialogueChoice skipChoice;
+                skipChoice.label = "Skip Scene";
+                skipChoice.tooltip = "Cancel and return without viewing.";
+                skipChoice.nextSceneId = "EXIT";
+                currentScene.choices.push_back(skipChoice);
+
+                changeState(std::make_unique<eventState>());
+                refreshActionGrid();
+                return;
+            }
+        }
+    }
+
     changeState(std::make_unique<eventState>());
-    currentScene = questDatabase::getScene(sceneId);
+    currentScene = scene;
+    clearDropdowns();
 
     currentScene.bodyText = textParser::interpolate(currentScene.bodyText, Player, activeTargetNPC.get());
     currentScene.speakerName = textParser::interpolate(currentScene.speakerName, Player, activeTargetNPC.get());
 
-    activeButtons.clear();
     for (size_t i = 0; i < currentScene.choices.size(); i++)
     {
         currentScene.choices[i].label = textParser::interpolate(currentScene.choices[i].label, Player, activeTargetNPC.get());
-
-        if (checkConditions(currentScene.choices[i].requirements))
-        {
-            actionButton btn;
-            btn.label = currentScene.choices[i].label;
-            dialogueChoice choice = currentScene.choices[i];
-            btn.onClick = [this, choice]() { processChoice(choice); };
-            activeButtons.push_back(btn);
-        }
+        currentScene.choices[i].tooltip = textParser::interpolate(currentScene.choices[i].tooltip, Player, activeTargetNPC.get());
     }
+
+    refreshActionGrid();
 }
 
 std::shared_ptr<entity> game::generateEncounterNPC()

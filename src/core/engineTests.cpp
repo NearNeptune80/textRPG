@@ -37,6 +37,7 @@
 #include "state/encounterResolutionState.h"
 #include "state/sexState.h"
 #include "ui/layoutEngine.h"
+#include "core/contentFilterManager.h"
 
 namespace EngineTests
 {
@@ -2731,6 +2732,249 @@ namespace EngineTests
         return allPassed;
     }
 
+    bool testExpandedContentOptionsAndSceneGating()
+    {
+        std::cout << "\n--- Running Test 26: Expanded Content Options, Lilith's Throne Fetishes & Scene Gating ---\n";
+        bool allPassed = true;
+
+        // 1. Lilith's Throne 28 Fetishes Default Initialization & JSON Roundtrip
+        ContentSettings cs;
+        bool countMatches = (cs.fetishPreferences.size() == 28);
+        static const std::vector<std::string> expectedFetishes = {
+            "Anal", "Buttslut", "Vaginal", "Pussy slut", "Oral", "Oral performer",
+            "Breasts lover", "Breasts", "Milk lover", "Lactation", "Foot worship", "Feet",
+            "Dominance", "Submission", "BDSM / Sadism", "Masochism", "Bondage",
+            "Exhibitionism", "Voyeurism", "Insemination", "Pregnancy", "Transformations",
+            "Watersports", "Spitting", "Tentacles", "Size Difference", "Crossdressing", "Denial & Edging"
+        };
+        bool allKeysPresent = true;
+        for (const auto& key : expectedFetishes)
+        {
+            if (cs.fetishPreferences.find(key) == cs.fetishPreferences.end())
+            {
+                allKeysPresent = false;
+                break;
+            }
+        }
+        bool fetishInitOk = countMatches && allKeysPresent;
+        logResult("ContentSettings initializes complete Lilith's Throne 28-fetish roster", fetishInitOk);
+        allPassed &= fetishInitOk;
+
+        // Verify JSON roundtrip for new fetishes and custom ratings
+        cs.fetishPreferences["Watersports"] = 5; // Love
+        cs.fetishPreferences["Tentacles"] = 0;   // Disabled
+        GameSettings gs;
+        gs.content = cs;
+        nlohmann::json serialized = gs.toJson();
+        GameSettings deserialized;
+        deserialized.fromJson(serialized);
+        bool jsonFetishOk = (deserialized.content.fetishPreferences["Watersports"] == 5 &&
+                             deserialized.content.fetishPreferences["Tentacles"] == 0 &&
+                             deserialized.content.fetishPreferences.size() == 28);
+        logResult("Lilith's Throne 28-fetish preferences serialize and deserialize accurately", jsonFetishOk);
+        allPassed &= jsonFetishOk;
+
+        // 2. All 14 Content Toggles & Filter Mode Persistence
+        bool modeConversionOk = (contentFilterModeToString(ContentFilterMode::DROPDOWN) == "Dropdown" &&
+                                 contentFilterModeToString(ContentFilterMode::WARN_CONFIRM) == "Warn & Confirm" &&
+                                 contentFilterModeToString(ContentFilterMode::BLOCK_AND_SKIP) == "Block & Skip" &&
+                                 stringToContentFilterMode("Dropdown") == ContentFilterMode::DROPDOWN &&
+                                 stringToContentFilterMode("Warn & Confirm") == ContentFilterMode::WARN_CONFIRM &&
+                                 stringToContentFilterMode("Block & Skip") == ContentFilterMode::BLOCK_AND_SKIP);
+        logResult("ContentFilterMode enum string conversions (Dropdown, Warn & Confirm, Block & Skip)", modeConversionOk);
+        allPassed &= modeConversionOk;
+
+        gs.content.watersportsEnabled = true;
+        gs.content.spittingEnabled = false;
+        gs.content.forcedTfEnabled = true;
+        gs.content.tentaclesEnabled = false;
+        gs.content.bdsmEnabled = true;
+        gs.content.incestEnabled = false;
+        gs.content.sizeDifferenceEnabled = true;
+        gs.content.prolapseEnabled = false;
+        gs.content.aphrodisiacsEnabled = true;
+        gs.content.contentFilterMode = ContentFilterMode::WARN_CONFIRM;
+        nlohmann::json togglesJson = gs.toJson();
+        GameSettings loadedSettings;
+        loadedSettings.fromJson(togglesJson);
+
+        bool togglesPersisted = (loadedSettings.content.watersportsEnabled == true &&
+                                 loadedSettings.content.spittingEnabled == false &&
+                                 loadedSettings.content.forcedTfEnabled == true &&
+                                 loadedSettings.content.tentaclesEnabled == false &&
+                                 loadedSettings.content.bdsmEnabled == true &&
+                                 loadedSettings.content.incestEnabled == false &&
+                                 loadedSettings.content.sizeDifferenceEnabled == true &&
+                                 loadedSettings.content.prolapseEnabled == false &&
+                                 loadedSettings.content.aphrodisiacsEnabled == true &&
+                                 loadedSettings.content.contentFilterMode == ContentFilterMode::WARN_CONFIRM);
+        logResult("All 14 content option toggles and content filter mode persist cleanly in JSON", togglesPersisted);
+        allPassed &= togglesPersisted;
+
+        // 3. ContentFilterManager Tag Normalization and Allowance Gating
+        bool normOk = (ContentFilterManager::normalizeTag("Size Difference") == "size_difference" &&
+                       ContentFilterManager::normalizeTag("BDSM / Sadism") == "bdsm_sadism" &&
+                       ContentFilterManager::normalizeTag("  Watersports  ") == "watersports");
+        logResult("ContentFilterManager normalizes content tags correctly", normOk);
+        allPassed &= normOk;
+
+        ContentSettings testSettings;
+        testSettings.watersportsEnabled = false;
+        testSettings.tentaclesEnabled = true;
+        testSettings.fetishPreferences["Watersports"] = 3;
+        testSettings.fetishPreferences["Tentacles"] = 0; // Disabled rating overrides tag
+
+        bool tagBlocked = !ContentFilterManager::isTagAllowed(testSettings, "watersports");
+        bool fetishRatingBlocked = !ContentFilterManager::isTagAllowed(testSettings, "tentacles");
+        bool tagAllowed = ContentFilterManager::isTagAllowed(testSettings, "bdsm"); // default true
+        auto disallowedList = ContentFilterManager::getDisallowedTags(testSettings, { "watersports", "bdsm", "tentacles" });
+        bool disallowedOk = (disallowedList.size() == 2);
+        bool allowanceOk = tagBlocked && fetishRatingBlocked && tagAllowed && disallowedOk;
+        logResult("ContentFilterManager respects toggles and 0-rating fetish disabled preferences", allowanceOk);
+        allPassed &= allowanceOk;
+
+        // 4. Narrative Segment Parsing & Interactive Dropdown Toggle
+        std::string testNarrative = "Introductory text. [content:watersports:Spring Bath]The waters rush over you.[/content] Outro text.";
+
+        // Mode A: Tag allowed -> plain text
+        testSettings.watersportsEnabled = true;
+        testSettings.contentFilterMode = ContentFilterMode::DROPDOWN;
+        auto allowedSegments = ContentFilterManager::parseNarrativeSegments(testSettings, testNarrative);
+        bool segsAllowed = (allowedSegments.size() == 3 &&
+                            !allowedSegments[0].isDropdown &&
+                            !allowedSegments[1].isDropdown &&
+                            allowedSegments[1].text == "The waters rush over you." &&
+                            !allowedSegments[2].isDropdown);
+        logResult("parseNarrativeSegments renders allowed content inline as standard text", segsAllowed);
+        allPassed &= segsAllowed;
+
+        // Mode B: Tag disabled + DROPDOWN -> ContentDropdownBlock
+        testSettings.watersportsEnabled = false;
+        testSettings.contentFilterMode = ContentFilterMode::DROPDOWN;
+        auto dropdownSegments = ContentFilterManager::parseNarrativeSegments(testSettings, testNarrative);
+        bool segsDropdown = (dropdownSegments.size() == 3 &&
+                             !dropdownSegments[0].isDropdown &&
+                             dropdownSegments[1].isDropdown &&
+                             dropdownSegments[1].dropdown.title == "Spring Bath" &&
+                             dropdownSegments[1].dropdown.content == "The waters rush over you." &&
+                             !dropdownSegments[2].isDropdown);
+        logResult("parseNarrativeSegments wraps disallowed content in interactive dropdown block", segsDropdown);
+        allPassed &= segsDropdown;
+
+        // Mode C: Dropdown interactive expand/collapse on game instance
+        game g;
+        std::string dropId = dropdownSegments[1].dropdown.id;
+        bool initialNotExpanded = !g.isDropdownExpanded(dropId);
+        g.toggleDropdown(dropId);
+        bool nowExpanded = g.isDropdownExpanded(dropId);
+        g.toggleDropdown(dropId);
+        bool nowCollapsed = !g.isDropdownExpanded(dropId);
+        g.toggleDropdown(dropId);
+        g.clearDropdowns();
+        bool clearedOk = !g.isDropdownExpanded(dropId);
+        bool dropdownToggleOk = initialNotExpanded && nowExpanded && nowCollapsed && clearedOk;
+        logResult("game::toggleDropdown, isDropdownExpanded, and clearDropdowns manage dropdown state", dropdownToggleOk);
+        allPassed &= dropdownToggleOk;
+
+        // Mode D: Tag disabled + BLOCK_AND_SKIP -> Redacted inline text
+        testSettings.contentFilterMode = ContentFilterMode::BLOCK_AND_SKIP;
+        auto blockedSegments = ContentFilterManager::parseNarrativeSegments(testSettings, testNarrative);
+        bool segsBlocked = (blockedSegments.size() == 3 &&
+                            !blockedSegments[1].isDropdown &&
+                            blockedSegments[1].text.find("Content omitted") != std::string::npos);
+        logResult("parseNarrativeSegments in BLOCK_AND_SKIP mode replaces text with omitted notice", segsBlocked);
+        allPassed &= segsBlocked;
+
+        // 5. Scene-Level Content Gating (WARN_CONFIRM & BLOCK_AND_SKIP)
+        questScene sensitiveScene;
+        sensitiveScene.id = "test_gated_watersports_scene";
+        sensitiveScene.speakerName = "Siren";
+        sensitiveScene.bodyText = "The siren summons a high tide.";
+        sensitiveScene.contentTags = { "watersports" };
+        dialogueChoice sensitiveChoice;
+        sensitiveChoice.label = "Approach";
+        sensitiveChoice.nextSceneId = "EXIT";
+        sensitiveScene.choices.push_back(sensitiveChoice);
+        questDatabase::registry[sensitiveScene.id] = sensitiveScene;
+
+        // 5a. BLOCK_AND_SKIP scene gating
+        g.settings.content.watersportsEnabled = false;
+        g.settings.content.contentFilterMode = ContentFilterMode::BLOCK_AND_SKIP;
+        g.loadScene(sensitiveScene.id);
+        bool skippedToExploration = (dynamic_cast<explorationState*>(g.getActiveState()) != nullptr);
+        bool logRecorded = false;
+        for (const auto& entry : g.getEventLog())
+        {
+            if (entry.text.find("Scene skipped per Content Settings") != std::string::npos)
+            {
+                logRecorded = true;
+                break;
+            }
+        }
+        bool blockAndSkipSceneOk = skippedToExploration && logRecorded;
+        logResult("loadScene under BLOCK_AND_SKIP bypasses sensitive scene and returns to exploration", blockAndSkipSceneOk);
+        allPassed &= blockAndSkipSceneOk;
+
+        // 5b. WARN_CONFIRM scene gating with bypass option
+        g.settings.content.contentFilterMode = ContentFilterMode::WARN_CONFIRM;
+        g.loadScene(sensitiveScene.id, false); // without bypass
+        bool inWarningPrompt = (dynamic_cast<eventState*>(g.getActiveState()) != nullptr) &&
+                               (g.getCurrentScene().id == "warning_" + sensitiveScene.id) &&
+                               (g.getCurrentScene().speakerName == "CONTENT WARNING") &&
+                               (g.getCurrentScene().choices.size() == 2) &&
+                               (g.getCurrentScene().choices[0].label == "Proceed to Scene") &&
+                               (g.getCurrentScene().choices[1].label == "Skip Scene");
+        logResult("loadScene under WARN_CONFIRM presents interstitial warning confirmation prompt", inWarningPrompt);
+        allPassed &= inWarningPrompt;
+
+        // Proceed via bypass
+        if (!g.getCurrentScene().choices.empty())
+        {
+            g.processChoice(g.getCurrentScene().choices[0]);
+        }
+        bool sceneProceeded = (g.getCurrentScene().id == sensitiveScene.id &&
+                               g.getCurrentScene().speakerName == "Siren");
+        logResult("Selecting Proceed to Scene bypasses warning and loads target scene", sceneProceeded);
+        allPassed &= sceneProceeded;
+
+        // 6. Choice-Level Content Gating in actionGridManager
+        questScene choiceTestScene;
+        choiceTestScene.id = "test_choice_gating_scene";
+        choiceTestScene.speakerName = "Narrator";
+        choiceTestScene.bodyText = "Choose your path.";
+        dialogueChoice gatedChoice;
+        gatedChoice.label = "Transform Involuntarily";
+        gatedChoice.nextSceneId = "EXIT";
+        gatedChoice.contentTags = { "forced_tf" };
+        choiceTestScene.choices.push_back(gatedChoice);
+        questDatabase::registry[choiceTestScene.id] = choiceTestScene;
+
+        // 6a. Choice with disabled tag under BLOCK_AND_SKIP: locked & disabled button
+        g.settings.content.forcedTfEnabled = false;
+        g.settings.content.contentFilterMode = ContentFilterMode::BLOCK_AND_SKIP;
+        g.loadScene(choiceTestScene.id);
+        bool choiceLocked = (!g.activeButtons.empty() &&
+                             g.activeButtons[0].label.find("[Locked: Forced Transformation]") != std::string::npos &&
+                             !g.activeButtons[0].isEnabled);
+        logResult("Choice with disabled content tag under BLOCK_AND_SKIP is locked and disabled", choiceLocked);
+        allPassed &= choiceLocked;
+
+        // 6b. Choice with disabled tag under WARN_CONFIRM: [!] label prefix & warning scene
+        g.settings.content.contentFilterMode = ContentFilterMode::WARN_CONFIRM;
+        g.loadScene(choiceTestScene.id);
+        bool choiceWarningPrefix = (!g.activeButtons.empty() &&
+                                    g.activeButtons[0].label == "[!] Transform Involuntarily" &&
+                                    g.activeButtons[0].isEnabled);
+        logResult("Choice with disabled content tag under WARN_CONFIRM displays [!] warning prefix", choiceWarningPrefix);
+        allPassed &= choiceWarningPrefix;
+
+        // Clean up test registry entries
+        questDatabase::registry.erase(sensitiveScene.id);
+        questDatabase::registry.erase(choiceTestScene.id);
+
+        return allPassed;
+    }
+
     bool runAllTests()
     {
         g_passCount = 0;
@@ -2764,6 +3008,7 @@ namespace EngineTests
         bool t23 = testLayoutIntegrityAndContainment();
         bool t24 = testUnified3PanelLayoutFogOfWarAndPerkTree();
         bool t25 = testDataDrivenPerksAndContentOptions();
+        bool t26 = testExpandedContentOptionsAndSceneGating();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";

@@ -91,6 +91,14 @@ bool questDatabase::loadDatabase(const std::string& pathStr)
                     scene.speakerName = sJson.value("speakerName", "Unknown");
                     scene.bodyText = sJson.value("bodyText", "");
 
+                    if (sJson.contains("contentTags") && sJson["contentTags"].is_array())
+                    {
+                        for (const auto& tagVal : sJson["contentTags"])
+                        {
+                            scene.contentTags.push_back(tagVal.get<std::string>());
+                        }
+                    }
+
                     if (sJson.contains("choices"))
                     {
                         for (const auto& cJson : sJson.at("choices"))
@@ -99,6 +107,14 @@ bool questDatabase::loadDatabase(const std::string& pathStr)
                             choice.label = cJson.value("label", "Continue");
                             choice.tooltip = cJson.value("tooltip", "");
                             choice.nextSceneId = cJson.value("nextSceneId", "EXIT");
+
+                            if (cJson.contains("contentTags") && cJson["contentTags"].is_array())
+                            {
+                                for (const auto& tagVal : cJson["contentTags"])
+                                {
+                                    choice.contentTags.push_back(tagVal.get<std::string>());
+                                }
+                            }
 
                             if (cJson.contains("requirements"))
                             {

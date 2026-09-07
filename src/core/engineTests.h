@@ -25,4 +25,5 @@ namespace EngineTests
     bool testLayoutIntegrityAndContainment();
     bool testUnified3PanelLayoutFogOfWarAndPerkTree();
     bool testDataDrivenPerksAndContentOptions();
+    bool testExpandedContentOptionsAndSceneGating();
 }

@@ -69,6 +69,31 @@ struct DemographicSettings
     }
 };
 
+enum class ContentFilterMode
+{
+    DROPDOWN = 0,     // Inline collapsible dropdown box with warning header
+    WARN_CONFIRM = 1, // Interstitial confirmation warning prompt
+    BLOCK_AND_SKIP = 2 // Completely hide, block, or bypass
+};
+
+inline std::string contentFilterModeToString(ContentFilterMode mode)
+{
+    switch (mode)
+    {
+        case ContentFilterMode::DROPDOWN: return "Dropdown";
+        case ContentFilterMode::WARN_CONFIRM: return "Warn & Confirm";
+        case ContentFilterMode::BLOCK_AND_SKIP: return "Block & Skip";
+    }
+    return "Dropdown";
+}
+
+inline ContentFilterMode stringToContentFilterMode(const std::string& str)
+{
+    if (str == "Warn & Confirm" || str == "WARN_CONFIRM") return ContentFilterMode::WARN_CONFIRM;
+    if (str == "Block & Skip" || str == "BLOCK_AND_SKIP") return ContentFilterMode::BLOCK_AND_SKIP;
+    return ContentFilterMode::DROPDOWN;
+}
+
 struct ContentSettings
 {
     bool pregnancyEnabled = true;
@@ -76,14 +101,29 @@ struct ContentSettings
     bool nonConEnabled = false;
     bool publicSexEnabled = true;
     bool extremeContentEnabled = false;
+    bool watersportsEnabled = false;
+    bool spittingEnabled = true;
+    bool forcedTfEnabled = false;
+    bool tentaclesEnabled = true;
+    bool bdsmEnabled = true;
+    bool incestEnabled = false;
+    bool sizeDifferenceEnabled = true;
+    bool prolapseEnabled = false;
+    bool aphrodisiacsEnabled = true;
+
     float fluidMultiplier = 1.0f;
     float transformationSpeedMultiplier = 1.0f;
+    ContentFilterMode contentFilterMode = ContentFilterMode::DROPDOWN;
 
-    // 10 Fetishes: 0=Disabled, 1=Hate, 2=Dislike, 3=Neutral, 4=Like, 5=Love, 6=Always
+    // 28 Lilith's Throne Fetishes: 0=Disabled, 1=Hate, 2=Dislike, 3=Neutral, 4=Like, 5=Love, 6=Always
     std::unordered_map<std::string, int> fetishPreferences = {
         { "Anal", 3 }, { "Buttslut", 3 }, { "Vaginal", 3 }, { "Pussy slut", 3 },
         { "Oral", 3 }, { "Oral performer", 3 }, { "Breasts lover", 3 }, { "Breasts", 3 },
-        { "Milk lover", 3 }, { "Lactation", 3 }
+        { "Milk lover", 3 }, { "Lactation", 3 }, { "Foot worship", 3 }, { "Feet", 3 },
+        { "Dominance", 3 }, { "Submission", 3 }, { "BDSM / Sadism", 3 }, { "Masochism", 3 },
+        { "Bondage", 3 }, { "Exhibitionism", 3 }, { "Voyeurism", 3 }, { "Insemination", 3 },
+        { "Pregnancy", 3 }, { "Transformations", 3 }, { "Watersports", 3 }, { "Spitting", 3 },
+        { "Tentacles", 3 }, { "Size Difference", 3 }, { "Crossdressing", 3 }, { "Denial & Edging", 3 }
     };
 };
 
@@ -154,6 +194,16 @@ struct GameSettings
                 {"nonConEnabled", content.nonConEnabled},
                 {"publicSexEnabled", content.publicSexEnabled},
                 {"extremeContentEnabled", content.extremeContentEnabled},
+                {"watersportsEnabled", content.watersportsEnabled},
+                {"spittingEnabled", content.spittingEnabled},
+                {"forcedTfEnabled", content.forcedTfEnabled},
+                {"tentaclesEnabled", content.tentaclesEnabled},
+                {"bdsmEnabled", content.bdsmEnabled},
+                {"incestEnabled", content.incestEnabled},
+                {"sizeDifferenceEnabled", content.sizeDifferenceEnabled},
+                {"prolapseEnabled", content.prolapseEnabled},
+                {"aphrodisiacsEnabled", content.aphrodisiacsEnabled},
+                {"contentFilterMode", static_cast<int>(content.contentFilterMode)},
                 {"fluidMultiplier", content.fluidMultiplier},
                 {"transformationSpeedMultiplier", content.transformationSpeedMultiplier},
                 {"fetishPreferences", content.fetishPreferences}
@@ -221,9 +271,26 @@ struct GameSettings
             if (c.contains("nonConEnabled")) content.nonConEnabled = c["nonConEnabled"].get<bool>();
             if (c.contains("publicSexEnabled")) content.publicSexEnabled = c["publicSexEnabled"].get<bool>();
             if (c.contains("extremeContentEnabled")) content.extremeContentEnabled = c["extremeContentEnabled"].get<bool>();
+            if (c.contains("watersportsEnabled")) content.watersportsEnabled = c["watersportsEnabled"].get<bool>();
+            if (c.contains("spittingEnabled")) content.spittingEnabled = c["spittingEnabled"].get<bool>();
+            if (c.contains("forcedTfEnabled")) content.forcedTfEnabled = c["forcedTfEnabled"].get<bool>();
+            if (c.contains("tentaclesEnabled")) content.tentaclesEnabled = c["tentaclesEnabled"].get<bool>();
+            if (c.contains("bdsmEnabled")) content.bdsmEnabled = c["bdsmEnabled"].get<bool>();
+            if (c.contains("incestEnabled")) content.incestEnabled = c["incestEnabled"].get<bool>();
+            if (c.contains("sizeDifferenceEnabled")) content.sizeDifferenceEnabled = c["sizeDifferenceEnabled"].get<bool>();
+            if (c.contains("prolapseEnabled")) content.prolapseEnabled = c["prolapseEnabled"].get<bool>();
+            if (c.contains("aphrodisiacsEnabled")) content.aphrodisiacsEnabled = c["aphrodisiacsEnabled"].get<bool>();
+            if (c.contains("contentFilterMode")) content.contentFilterMode = static_cast<ContentFilterMode>(c["contentFilterMode"].get<int>());
             if (c.contains("fluidMultiplier")) content.fluidMultiplier = c["fluidMultiplier"].get<float>();
             if (c.contains("transformationSpeedMultiplier")) content.transformationSpeedMultiplier = c["transformationSpeedMultiplier"].get<float>();
-            if (c.contains("fetishPreferences")) content.fetishPreferences = c["fetishPreferences"].get<std::unordered_map<std::string, int>>();
+            if (c.contains("fetishPreferences"))
+            {
+                auto loadedFetishes = c["fetishPreferences"].get<std::unordered_map<std::string, int>>();
+                for (const auto& [k, v] : loadedFetishes)
+                {
+                    content.fetishPreferences[k] = v;
+                }
+            }
         }
 
         if (j.contains("gameplay"))

@@ -5,6 +5,7 @@
 #include <memory>
 #include <unordered_set>
 
+#include "core/contentFilterManager.h"
 #include "core/game.h"
 #include "entities/namedCharacter.h"
 #include "entities/perkDatabase.h"
@@ -975,6 +976,27 @@ void ActionGridManager::refresh(game* gameContext)
             bool meetsReqs = gameContext->checkConditions(choice.requirements);
             std::string tooltipText = choice.tooltip;
 
+            auto disallowed = ContentFilterManager::getDisallowedTags(gameContext->settings.content, choice.contentTags);
+            bool hasContentWarning = !disallowed.empty();
+
+            if (hasContentWarning && gameContext->settings.content.contentFilterMode == ContentFilterMode::BLOCK_AND_SKIP)
+            {
+                std::string tagStr;
+                for (size_t i = 0; i < disallowed.size(); ++i)
+                {
+                    if (i > 0) tagStr += ", ";
+                    tagStr += ContentFilterManager::getTagDisplayName(disallowed[i]);
+                }
+                addBtn(gameContext, "[Locked: " + tagStr + "]", nullptr, false, false, "Disabled in Content Settings: " + tagStr);
+                continue;
+            }
+
+            std::string btnLabel = choice.label;
+            if (hasContentWarning && gameContext->settings.content.contentFilterMode == ContentFilterMode::WARN_CONFIRM)
+            {
+                btnLabel = "[!] " + btnLabel;
+            }
+
             if (!meetsReqs)
             {
                 if (tooltipText.empty())
@@ -985,7 +1007,7 @@ void ActionGridManager::refresh(game* gameContext)
                 {
                     tooltipText = "[Locked] " + tooltipText;
                 }
-                addBtn(gameContext, choice.label, nullptr, false, false, tooltipText);
+                addBtn(gameContext, btnLabel, nullptr, false, false, tooltipText);
             }
             else
             {
@@ -993,7 +1015,7 @@ void ActionGridManager::refresh(game* gameContext)
                 {
                     tooltipText = std::format("Select: {}", choice.label);
                 }
-                addBtn(gameContext, choice.label, [gameContext, choice]() { gameContext->processChoice(choice); }, true, false, tooltipText);
+                addBtn(gameContext, btnLabel, [gameContext, choice]() { gameContext->processChoice(choice); }, true, false, tooltipText);
             }
         }
         return;

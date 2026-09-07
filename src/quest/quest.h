@@ -36,6 +36,7 @@ struct dialogueChoice {
     std::string label;
     std::string tooltip;
     std::string nextSceneId;
+    std::vector<std::string> contentTags;
     std::vector<conditionNode> requirements;
     std::vector<gameEffect> results;
 };
@@ -44,6 +45,7 @@ struct questScene {
     std::string id;
     std::string speakerName;
     std::string bodyText;
+    std::vector<std::string> contentTags;
     std::vector<dialogueChoice> choices;
 };
 

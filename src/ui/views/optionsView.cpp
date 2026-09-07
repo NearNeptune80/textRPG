@@ -551,10 +551,28 @@ namespace OptionsView
             }
             else if (opt->contentCategory == ContentOptionsCategory::SEX_AND_FETISHES)
             {
+                int filterIdx = static_cast<int>(gameContext->settings.content.contentFilterMode);
+                renderOptionCard("Content Filter Handling", Theme::colors.textGold, "Governs how disabled content is handled in narrative scenes and dialogue choices.",
+                                 { "Dropdown", "Warn & Confirm", "Block & Skip" },
+                                 filterIdx,
+                                 [&](int idx) {
+                                     gameContext->settings.content.contentFilterMode = static_cast<ContentFilterMode>(idx);
+                                     settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                                 });
+
                 renderToggles({
-                    { "Non-consent", Theme::colors.enemy, "This enables the 'resist' pace in sex scenes, which contains more extreme non-consensual descriptions.", &gameContext->settings.content.nonConEnabled },
-                    { "Sadistic sex / Extreme", Theme::colors.enemy, "This unlocks 'sadistic' sex actions such as rough treatment and heavy restraints.", &gameContext->settings.content.extremeContentEnabled },
-                    { "Public Sex Exposure", Theme::colors.lust, "Allows public exhibitionism and onlookers during intimate encounters in open zones.", &gameContext->settings.content.publicSexEnabled }
+                    { "Non-consent", Theme::colors.enemy, "Enables non-consensual encounters, struggles, and rough sexual dialogue.", &gameContext->settings.content.nonConEnabled },
+                    { "Sadistic sex / Extreme", Theme::colors.enemy, "Unlocks extreme sadistic sex actions, severe violence, and heavy pain.", &gameContext->settings.content.extremeContentEnabled },
+                    { "Public Sex Exposure", Theme::colors.lust, "Allows public exhibitionism and onlookers during intimate encounters in open zones.", &gameContext->settings.content.publicSexEnabled },
+                    { "Watersports", Theme::colors.currency, "Enables urination, golden showers, and related bladder interactions.", &gameContext->settings.content.watersportsEnabled },
+                    { "Spitting", Theme::colors.friendly, "Enables spitting, oral degradation, and saliva exchange scenes.", &gameContext->settings.content.spittingEnabled },
+                    { "Forced Transformation", Theme::colors.arcane, "Allows involuntary anatomical mutations and forced corruption by enemies.", &gameContext->settings.content.forcedTfEnabled },
+                    { "Tentacles & Monsters", Theme::colors.arcane, "Enables monster, creature, and tentacle encounters.", &gameContext->settings.content.tentaclesEnabled },
+                    { "BDSM & Restraints", Theme::colors.enemy, "Enables bondage, leather bindings, gags, and heavy restraint mechanics.", &gameContext->settings.content.bdsmEnabled },
+                    { "Incest", Theme::colors.enemy, "Allows romantic or intimate encounters involving blood relatives.", &gameContext->settings.content.incestEnabled },
+                    { "Size Difference", Theme::colors.companion, "Enables extreme height and anatomical scale discrepancies.", &gameContext->settings.content.sizeDifferenceEnabled },
+                    { "Prolapse", Theme::colors.enemy, "Enables heavy anal or vaginal stretching and prolapse descriptions.", &gameContext->settings.content.prolapseEnabled },
+                    { "Aphrodisiacs & Drugs", Theme::colors.lust, "Enables involuntary administration of heat-inducing potions and alchemical drugs.", &gameContext->settings.content.aphrodisiacsEnabled }
                 });
 
                 int fluidIdx = (gameContext->settings.content.fluidMultiplier <= 0.3f) ? 0 :
@@ -636,16 +654,20 @@ namespace OptionsView
             {
                 renderInfoDropdown();
 
-                static const char* fetishes[10] = {
+                static const char* fetishes[] = {
                     "Anal", "Buttslut", "Vaginal", "Pussy slut", "Oral",
-                    "Oral performer", "Breasts lover", "Breasts", "Milk lover", "Lactation"
+                    "Oral performer", "Breasts lover", "Breasts", "Milk lover", "Lactation",
+                    "Foot worship", "Feet", "Dominance", "Submission", "BDSM / Sadism",
+                    "Masochism", "Bondage", "Exhibitionism", "Voyeurism", "Insemination",
+                    "Pregnancy", "Transformations", "Watersports", "Spitting", "Tentacles",
+                    "Size Difference", "Crossdressing", "Denial & Edging"
                 };
 
                 static constexpr std::string_view fetPills[] = {
                     "Disabled", "Hate", "Dislike", "Neutral", "Like", "Love", "Always"
                 };
 
-                for (int i = 0; i < 10; ++i)
+                for (size_t i = 0; i < std::size(fetishes); ++i)
                 {
                     float cardWidth = availableW;
                     float rowMinH = 34.0f * uiScale;

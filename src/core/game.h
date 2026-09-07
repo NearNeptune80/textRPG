@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "core/eventBus.h"
@@ -133,10 +134,24 @@ public:
     void handleResetAllDisplacementsAction();
     bool checkSingleCondition(const gameCondition &cond) const;
 
-    void loadScene(const std::string& sceneId);
+    void loadScene(const std::string& sceneId, bool bypassWarning = false);
     void processChoice(const dialogueChoice& choice);
     void processEffect(const gameEffect &eff);
     bool checkConditions(const std::vector<conditionNode> &conditions);
+
+    // Collapsible Scene Dropdowns Tracking
+    std::unordered_set<std::string> expandedDropdowns;
+    void toggleDropdown(const std::string& dropdownId) {
+        if (expandedDropdowns.contains(dropdownId)) {
+            expandedDropdowns.erase(dropdownId);
+        } else {
+            expandedDropdowns.insert(dropdownId);
+        }
+    }
+    bool isDropdownExpanded(const std::string& dropdownId) const {
+        return expandedDropdowns.contains(dropdownId);
+    }
+    void clearDropdowns() { expandedDropdowns.clear(); }
 
     std::shared_ptr<entity> generateEncounterNPC();
     void triggerEncounter(std::shared_ptr<entity> npc);

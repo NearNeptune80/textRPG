@@ -10,8 +10,13 @@ phoneAppsState::phoneAppsState(PhoneAppMode mode)
 {
     loadData(m_mode);
     static const std::vector<std::string> defaultFetishes = {
-        "Exhibitionism", "Anal", "Oral", "Lactation", "Transformations",
-        "Dominance", "Submission", "Furry", "BDSM", "Foot Worship"
+        "Anal", "Buttslut", "Vaginal", "Pussy slut",
+        "Oral", "Oral performer", "Breasts lover", "Breasts",
+        "Milk lover", "Lactation", "Foot worship", "Feet",
+        "Dominance", "Submission", "BDSM / Sadism", "Masochism",
+        "Bondage", "Exhibitionism", "Voyeurism", "Insemination",
+        "Pregnancy", "Transformations", "Watersports", "Spitting",
+        "Tentacles", "Size Difference", "Crossdressing", "Denial & Edging"
     };
     for (const auto& fKey : defaultFetishes)
     {
