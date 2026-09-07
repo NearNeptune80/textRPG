@@ -49,6 +49,8 @@ public:
 	bool isPlayerVictory() const;
 	int getCurrentRound() const { return m_currentRound; }
 
+	void executeAction(const QueuedAction& qa, game* g);
+
 private:
 	std::vector<CombatParticipant> m_playerParty;
 	std::vector<CombatParticipant> m_enemyParty;
@@ -57,5 +59,4 @@ private:
 	int m_currentRound = 0;
 
 	void generateNpcQueues();
-	void executeAction(const QueuedAction& qa, game* g);
 };

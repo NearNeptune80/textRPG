@@ -47,9 +47,23 @@ struct questScene {
     std::vector<dialogueChoice> choices;
 };
 
+struct QuestNPCRelocation {
+    std::string questId;
+    std::string npcId;
+    int minStage{ 0 };
+    int maxStage{ 999 };
+    std::string mapId;
+    int x{ 0 };
+    int y{ 0 };
+    std::string activity;
+    std::string overrideSceneId;
+    std::vector<conditionNode> conditions;
+};
+
 struct MapTrigger {
     std::string id;
     std::string mapId;
+    std::string npcId;
     std::string label;
     std::string tooltip;
     std::string description;

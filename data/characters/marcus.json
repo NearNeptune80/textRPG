@@ -1,0 +1,67 @@
+{
+  "id": "marcus",
+  "name": "Marcus",
+  "title": "Curio Merchant",
+  "gender": "Male",
+  "race": "Human",
+  "level": 14,
+  "currency": 1500,
+  "isMerchant": true,
+  "buyMarkup": 1.20,
+  "sellMarkdown": 0.55,
+  "description": "A seasoned merchant trading in rare alchemical reagents, raw crystals, exploration rations, and imported curiosities.",
+  "dialogueSceneId": "scene_marcus_dialogue",
+  "unlockedPerks": [
+    "silver_tongue",
+    "master_trader"
+  ],
+  "baseStats": {
+    "health": 280.0,
+    "max_health": 280.0,
+    "mana": 90.0,
+    "max_mana": 90.0,
+    "physique": 24.0,
+    "agility": 14.0,
+    "toughness": 26.0,
+    "arcane": 22.0,
+    "willpower": 24.0,
+    "corruption": 0.0
+  },
+  "inventory": [
+    { "id": "item_linen_shirt", "count": 2 },
+    { "id": "item_cloth_gloves", "count": 2 },
+    { "id": "item_leather_trousers", "count": 2 },
+    { "id": "item_travelers_boots", "count": 1 },
+    { "id": "item_silk_bra", "count": 1 },
+    { "id": "item_silk_panties", "count": 1 },
+    { "id": "item_leather_collar", "count": 1 },
+    { "id": "item_canis_root", "count": 5 },
+    { "id": "item_arcane_crystal", "count": 1 }
+  ],
+  "schedules": [
+    {
+      "startHour": 8,
+      "endHour": 18,
+      "mapId": "overworld",
+      "x": 2,
+      "y": 3,
+      "activity": "tending his market curio stall"
+    },
+    {
+      "startHour": 18,
+      "endHour": 22,
+      "mapId": "overworld",
+      "x": 4,
+      "y": 1,
+      "activity": "relaxing near the town plaza fountain"
+    },
+    {
+      "startHour": 22,
+      "endHour": 8,
+      "mapId": "house_01",
+      "x": 2,
+      "y": 2,
+      "activity": "resting quietly for the night"
+    }
+  ]
+}

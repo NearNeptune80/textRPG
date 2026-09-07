@@ -15,6 +15,7 @@
 #include "state/inventoryState.h"
 #include "state/phoneAppsState.h"
 #include "state/mainMenuState.h"
+#include "state/explorationState.h"
 #include "ui/theme.h"
 #include "ui/uiWidget.h"
 #include "ui/tooltipManager.h"
@@ -32,14 +33,15 @@ namespace RadarWidgets
         float availableW = SidebarGeometry::getAvailableW(dummyRect, uiScale);
 
         const timeManager& tm = gameContext->getTime();
-        bool inPrologue = (dynamic_cast<characterCreationState*>(gameContext->getActiveState()) != nullptr);
+        auto* cc = dynamic_cast<characterCreationState*>(gameContext->getActiveState());
+        bool inPrologue = (cc != nullptr);
 
         static constexpr std::string_view months[13] = {
             "", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
             "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
         };
         std::string_view mName = (tm.month >= 1 && tm.month <= 12) ? months[tm.month] : "Month";
-        std::string dateStr = inPrologue ? "Day 29, Aug" : std::format("Day {}, {}", tm.day, mName);
+        std::string dateStr = inPrologue ? std::format("Day 29, {}", cc->startMonth.substr(0, 3)) : std::format("Day {}, {}", tm.day, mName);
         std::string timeStr = inPrologue ? "20:37 (Night)" : std::format("{} ({})", tm.getFormattedTime(), tm.getPhaseString());
 
         // 0 = Sunday, 1 = Monday, 2 = Tuesday, 3 = Wednesday, 4 = Thursday, 5 = Friday, 6 = Saturday
@@ -142,14 +144,20 @@ namespace RadarWidgets
                     tileSize,
                     tileSize
                 };
+                bool isPlayer = (dx == 0 && dy == 0);
+                bool isAdjacent = (std::abs(dx) + std::abs(dy) == 1);
+                bool isExploration = (dynamic_cast<explorationState*>(gameContext->getActiveState()) != nullptr);
+                bool inBounds = (map && targetX >= 0 && targetX < map->getWidth() && targetY >= 0 && targetY < map->getHeight());
+
+                // Completely suppress rendering for coordinates outside the map or void tiles
+                if (!inBounds) continue;
+                Tile t = map->getTile(targetX, targetY);
+                if (t.type == TILE_VOID) continue;
 
                 SDL_Color tileColor = Theme::colors.bgDark;
                 SDL_Color borderColor = Theme::colors.slotEmptyBorder;
                 SDL_Color textCol = Theme::colors.textMuted;
                 std::string label = "";
-
-                bool isPlayer = (dx == 0 && dy == 0);
-                bool inBounds = (map && targetX >= 0 && targetX < map->getWidth() && targetY >= 0 && targetY < map->getHeight());
 
                 if (isPlayer)
                 {
@@ -159,59 +167,64 @@ namespace RadarWidgets
                     textCol = Theme::colors.textGold;
                     TooltipManager::setHoverTooltip(tileRect, mousePos, "Player Location", "Your current grid position on this map.", std::format("Grid ({}, {})", pX, pY));
                 }
-                else if (inBounds)
+                else
                 {
-                    Tile t = map->getTile(targetX, targetY);
                     bool walkable = map->isWalkable(targetX, targetY);
+                    MapWarp warp;
+                    bool isWarp = walkable && map->checkWarp(targetX, targetY, warp);
 
-                    if (t.type == TILE_WALL)
+                    if (t.type == TILE_WALL) label = "#";
+                    else if (t.type == TILE_DOOR) label = "+";
+                    else if (isWarp) label = "W";
+                    else if (walkable) label = "·";
+
+                    // 3-Tier Discovery System:
+                    // 1. Undiscovered: Player has never stood on it and never stood next to it (Dark, but visible)
+                    // 2. Partially Discovered: Player has stood on an adjacent tile, but not on this tile (Lighter)
+                    // 3. Fully Discovered / Visited: Player has physically walked on this tile (Brightest)
+                    if (t.visited || t.discovery == STATE_REVEALED)
                     {
-                        tileColor = Theme::colors.bgSlot;
-                        borderColor = Theme::colors.borderNormal;
-                        label = "#";
-                        textCol = Theme::colors.textDisabled;
-                        TooltipManager::setHoverTooltip(tileRect, mousePos, "Impassable Wall", "Solid boundary wall or barrier.", std::format("Grid ({}, {})", targetX, targetY));
+                        // Visited / Fully shown
+                        tileColor = { 38, 44, 62, 255 };
+                        borderColor = Theme::colors.borderSelected;
+                        textCol = (label == "W") ? Theme::colors.companion : (label == "+" ? Theme::colors.textGold : Theme::colors.textGold);
+
+                        std::string desc = isAdjacent ? (isExploration ? "Click to navigate to this adjacent tile." : "Explored tile. Movement locked during encounter/event.") : "Explored terrain. Must be adjacent to move here.";
+                        std::string title = (label == "#") ? "Explored Wall" : (label == "+" ? "Explored Door" : (isWarp ? "Zone Transition" : "Explored Floor"));
+                        TooltipManager::setHoverTooltip(tileRect, mousePos, title, desc, std::format("Grid ({}, {})", targetX, targetY));
                     }
-                    else if (t.type == TILE_DOOR)
+                    else if (t.discovery == STATE_PARTIAL)
                     {
-                        tileColor = Theme::colors.bgSlotOccupied;
+                        // Partially discovered (stood adjacent to)
+                        tileColor = { 26, 30, 42, 255 };
+                        borderColor = Theme::colors.borderMuted;
+                        textCol = (label == "W") ? Theme::colors.companion : (label == "+" ? Theme::colors.textGold : Theme::colors.textSecondary);
+
+                        std::string desc = isAdjacent ? (isExploration ? "Click to navigate to this adjacent tile." : "Surveyed tile. Movement locked during encounter/event.") : "Surveyed terrain tile. Must be adjacent to move here.";
+                        std::string title = (label == "#") ? "Surveyed Wall" : (label == "+" ? "Surveyed Door" : (isWarp ? "Surveyed Passage" : "Surveyed Floor"));
+                        TooltipManager::setHoverTooltip(tileRect, mousePos, title, desc, std::format("Grid ({}, {})", targetX, targetY));
+                    }
+                    else
+                    {
+                        // Undiscovered (STATE_HIDDEN): Dark, but still visible
+                        tileColor = { 16, 17, 23, 255 };
+                        borderColor = { 32, 34, 46, 255 };
+                        textCol = { 75, 80, 95, 255 };
+
+                        TooltipManager::setHoverTooltip(tileRect, mousePos, "Undiscovered Area", "Terrain tile not yet approached. Move closer to inspect.", std::format("Grid ({}, {})", targetX, targetY));
+                    }
+
+                    // Handle adjacent navigation clicking
+                    bool tileHovered = (mousePos.x >= tileRect.x && mousePos.x <= tileRect.x + tileRect.w &&
+                                        mousePos.y >= tileRect.y && mousePos.y <= tileRect.y + tileRect.h);
+                    if (tileHovered && isAdjacent && isExploration && walkable)
+                    {
                         borderColor = Theme::colors.textGold;
-                        label = "+";
-                        textCol = Theme::colors.textGold;
-                        TooltipManager::setHoverTooltip(tileRect, mousePos, "Door / Portal", "Click to move toward or open this doorway.", std::format("Grid ({}, {})", targetX, targetY));
-                    }
-                    else if (walkable)
-                    {
-                        MapWarp warp;
-                        if (map->checkWarp(targetX, targetY, warp))
+                        if (clicked)
                         {
-                            tileColor = Theme::colors.bgSlotOccupied;
-                            borderColor = Theme::colors.companion;
-                            label = "W";
-                            textCol = Theme::colors.companion;
-                            TooltipManager::setHoverTooltip(tileRect, mousePos, "Zone Transition", "Passage connecting to another sector or room.", std::format("Grid ({}, {})", targetX, targetY));
+                            gameContext->movePlayer(targetX, targetY);
+                            gameContext->input.consumeMouseClick();
                         }
-                        else
-                        {
-                            tileColor = Theme::colors.bgInput;
-                            borderColor = Theme::colors.borderMuted;
-                            label = "·";
-                            textCol = Theme::colors.textMuted;
-                            TooltipManager::setHoverTooltip(tileRect, mousePos, "Open Floor", "Walkable terrain tile. Click to navigate.", std::format("Grid ({}, {})", targetX, targetY));
-                        }
-                    }
-                }
-
-                bool tileHovered = (mousePos.x >= tileRect.x && mousePos.x <= tileRect.x + tileRect.w &&
-                                    mousePos.y >= tileRect.y && mousePos.y <= tileRect.y + tileRect.h);
-
-                if (tileHovered && !isPlayer && inBounds && map->isWalkable(targetX, targetY))
-                {
-                    borderColor = Theme::colors.textGold;
-                    if (clicked)
-                    {
-                        gameContext->movePlayer(targetX, targetY);
-                        gameContext->input.consumeMouseClick();
                     }
                 }
 

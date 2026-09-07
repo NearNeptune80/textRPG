@@ -23,6 +23,7 @@ public:
 
     void render(SDL_Renderer* renderer, game* gameContext);
     layoutEngine& getLayoutEngine() { return m_layoutEngine; }
+    void setPanelScrollY(const std::string& panelId, float scrollY) { m_panelScrollY[panelId] = scrollY; }
 
 private:
     layoutEngine m_layoutEngine;

@@ -142,9 +142,9 @@ namespace EditorCardWidgets
         }
 
         bool hasMultiTier = (stepMed > 0);
-        float btnW = (hasMultiTier ? 28.0f : 34.0f) * uiScale;
+        float btnW = (hasMultiTier ? 24.0f : 28.0f) * uiScale;
         float btnGap = 2.0f * uiScale;
-        float valW = (hasMultiTier ? 120.0f : 140.0f) * uiScale;
+        float valW = (hasMultiTier ? 92.0f : 100.0f) * uiScale;
         float h = 26.0f * uiScale;
 
         int btnCountPerSide = (stepLarge > 0) ? 3 : ((stepMed > 0) ? 2 : 1);

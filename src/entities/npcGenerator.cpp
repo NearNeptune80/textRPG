@@ -1,5 +1,6 @@
 #include "entities/npcGenerator.h"
 
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 
@@ -10,50 +11,116 @@
 #include "items/itemDatabase.h"
 
 using json = nlohmann::json;
+namespace fs = std::filesystem;
 
 std::unordered_map<std::string, NPCTemplate> npcGenerator::registry;
 
-bool npcGenerator::loadTemplates(const std::string& filePath)
+bool npcGenerator::loadTemplates(const std::string& path)
 {
-    std::ifstream file(filePath);
-    if (!file.is_open()) return false;
-
-    try
+    registry.clear();
+    fs::path p(path);
+    if (!fs::exists(p))
     {
-        json data;
-        file >> data;
-        registry.clear();
-
-        for (const auto& tJson : data.at("templates"))
-        {
-            NPCTemplate tpl;
-            tpl.id = tJson.at("id").get<std::string>();
-            tpl.name = tJson.value("name", "Unknown NPC");
-            tpl.levelMin = tJson.value("levelMin", 1);
-            tpl.levelMax = tJson.value("levelMax", 1);
-
-            if (tJson.contains("baseStats"))
-            {
-                for (auto& [key, val] : tJson["baseStats"].items())
-                {
-                    tpl.baseStats[key] = val.get<float>();
-                }
-            }
-
-            tpl.tags = tJson.value("tags", std::vector<std::string>{});
-            tpl.possibleRaces = tJson.value("possibleRaces", std::vector<std::string>{"Human"});
-            tpl.guaranteedItems = tJson.value("guaranteedItems", std::vector<std::string>{});
-            tpl.randomItems = tJson.value("randomItems", std::vector<std::string>{});
-
-            registry[tpl.id] = tpl;
-        }
-        return true;
-    }
-    catch (const json::exception& e)
-    {
-        std::cerr << "NPC Template JSON Error (" << filePath << "): " << e.what() << "\n";
+        std::cerr << "[npcGenerator] Path does not exist: " << path << "\n";
         return false;
     }
+
+    auto parseSingleTemplate = [](const json& tJson) {
+        NPCTemplate tpl;
+        tpl.id = tJson.at("id").get<std::string>();
+        tpl.name = tJson.value("name", "Unknown NPC");
+        tpl.levelMin = tJson.value("levelMin", 1);
+        tpl.levelMax = tJson.value("levelMax", 1);
+
+        if (tJson.contains("baseStats"))
+        {
+            for (auto& [key, val] : tJson["baseStats"].items())
+            {
+                tpl.baseStats[key] = val.get<float>();
+            }
+        }
+
+        tpl.tags = tJson.value("tags", std::vector<std::string>{});
+        tpl.possibleRaces = tJson.value("possibleRaces", std::vector<std::string>{"Human"});
+        tpl.guaranteedItems = tJson.value("guaranteedItems", std::vector<std::string>{});
+        tpl.randomItems = tJson.value("randomItems", std::vector<std::string>{});
+        if (tJson.contains("perks") && tJson["perks"].is_array())
+        {
+            tpl.perks = tJson["perks"].get<std::vector<std::string>>();
+        }
+        else if (tJson.contains("unlockedPerks") && tJson["unlockedPerks"].is_array())
+        {
+            tpl.perks = tJson["unlockedPerks"].get<std::vector<std::string>>();
+        }
+
+        registry[tpl.id] = tpl;
+    };
+
+    auto loadSingleFile = [&](const fs::path& filePath) {
+        std::ifstream file(filePath);
+        if (!file.is_open()) return;
+
+        try
+        {
+            json data;
+            file >> data;
+
+            if (data.is_object() && data.contains("templates") && data["templates"].is_array())
+            {
+                for (const auto& tJson : data["templates"])
+                {
+                    parseSingleTemplate(tJson);
+                }
+            }
+            else if (data.is_array())
+            {
+                for (const auto& tJson : data)
+                {
+                    parseSingleTemplate(tJson);
+                }
+            }
+            else if (data.is_object() && data.contains("id"))
+            {
+                parseSingleTemplate(data);
+            }
+        }
+        catch (const json::exception& e)
+        {
+            std::cerr << "NPC Template JSON Error (" << filePath.string() << "): " << e.what() << "\n";
+        }
+    };
+
+    if (fs::is_directory(p))
+    {
+        for (const auto& entry : fs::recursive_directory_iterator(p))
+        {
+            if (entry.is_regular_file() && entry.path().extension() == ".json")
+            {
+                loadSingleFile(entry.path());
+            }
+        }
+    }
+    else if (fs::is_regular_file(p))
+    {
+        loadSingleFile(p);
+    }
+
+    return !registry.empty();
+}
+
+const NPCTemplate* npcGenerator::getTemplate(const std::string& templateId)
+{
+    auto it = registry.find(templateId);
+    if (it != registry.end())
+    {
+        return &it->second;
+    }
+    return nullptr;
+}
+
+bool npcGenerator::hasTemplate(const std::string& templateId)
+{
+    return registry.contains(templateId);
 }
 
 void npcGenerator::applyDemographicConfiguration(entity* npc, const GameSettings* settings)
@@ -194,6 +261,11 @@ std::shared_ptr<entity> npcGenerator::generateFromTemplate(const std::string& te
             auto itemPtr = itemDatabase::getItem(itemId);
             if (itemPtr) npc->inventory.addItem(itemPtr);
         }
+    }
+
+    for (const auto& perkId : tpl.perks)
+    {
+        npc->unlockPerk(perkId);
     }
 
     return npc;

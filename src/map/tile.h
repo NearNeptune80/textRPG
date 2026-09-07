@@ -53,9 +53,22 @@ struct DroppedItemEntry
 	int minutesRemaining{ 120 }; // Minutes until despawn on unsafe tile (default 2 hours)
 };
 
+struct PersistentAmbushState
+{
+	std::shared_ptr<entity> npc{ nullptr };
+	std::string templateId;
+	std::vector<std::string> templatePool;
+	bool isPermanentlyRemoved{ false };
+	bool isDefeated{ false };
+	int restockMinutesRemaining{ 0 }; // 1440 minutes = 24 in-game hours
+	int ambushChance{ 50 };           // Base % chance to ambush on tile entry
+};
+
 struct TileRuntimeData
 {
-	std::shared_ptr<entity> persistentNPC{ nullptr };
+	std::shared_ptr<entity> persistentNPC{ nullptr }; // Legacy/general compatibility alias
+	std::vector<std::shared_ptr<entity>> namedNPCs;
+	PersistentAmbushState ambushState;
 	std::vector<DroppedItemEntry> droppedItems;
 	std::string iconId = "";
 	int baseDangerLevel{ 0 };

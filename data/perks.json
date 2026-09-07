@@ -1,53 +1,671 @@
 {
-  "version": "1.0",
-  "perks": [
-    {
-      "id": "arcane_attunement",
-      "name": "Arcane Attunement",
-      "category": "Arcane",
-      "cost": 1,
-      "description": "Increases maximum Mana by +25 and boosts spell power by 10%.",
-      "unlocked": true
-    },
-    {
-      "id": "iron_constitution",
-      "name": "Iron Constitution",
-      "category": "Physical",
-      "cost": 1,
-      "description": "Increases maximum Health by +20 and raises physical resistance.",
-      "unlocked": false
-    },
-    {
-      "id": "silver_tongue",
-      "name": "Silver Tongue",
-      "category": "Social",
-      "cost": 1,
-      "description": "Improves negotiation skill with merchants (-10% buy prices, +10% sell prices) and enhances charm dialogue choices.",
-      "unlocked": true
-    },
+  "version": "3.0",
+  "categories": [
+    "Physical",
+    "Arcane",
+    "Social",
+    "Sexual",
+    "Demonic",
+    "Combo"
+  ],
+  "tree": {
+    "name": "Unified Perks & Talents Tree",
+    "description": "Integrated progression matrix linking martial fortitude, arcane mysteries, social authority, sensual arts, and demonic corruption with cross-discipline combo talents.",
+    "nodes": [
+      {
+        "id": "iron_constitution",
+        "name": "Iron Constitution",
+        "category": "Physical",
+        "tier": 0,
+        "column": 0.0,
+        "cost": 1,
+        "parents": [],
+        "requireAllParents": false,
+        "description": "Increases maximum Health by +20 and raises physical defense by +5.",
+        "statModifiers": {
+          "max_health": 20.0,
+          "defense": 5.0
+        },
+        "defenseModifiers": {
+          "byAttackType": {
+            "physical": 0.1
+          }
+        }
+      },
+      {
+        "id": "arcane_attunement",
+        "name": "Arcane Attunement",
+        "category": "Arcane",
+        "tier": 0,
+        "column": 1.0,
+        "cost": 1,
+        "parents": [],
+        "requireAllParents": false,
+        "description": "Increases maximum Mana by +25 and tunes sensory mana flow (+5 Arcane Power).",
+        "statModifiers": {
+          "max_mana": 25.0,
+          "arcane_power": 5.0
+        },
+        "damageModifiers": {
+          "byAttackType": {
+            "arcane": 0.1
+          }
+        }
+      },
+      {
+        "id": "silver_tongue",
+        "name": "Silver Tongue",
+        "category": "Social",
+        "tier": 0,
+        "column": 2.0,
+        "cost": 1,
+        "parents": [],
+        "requireAllParents": false,
+        "description": "Improves bargaining skill (-10% buy, +10% sell) and grants +5 Charm.",
+        "statModifiers": {
+          "tradePerkModifier": 0.1,
+          "charm": 5.0
+        },
+        "tradeDiscount": 0.1,
+        "tradeBonus": 0.1,
+        "flags": [
+          "trade_negotiation"
+        ]
+      },
+      {
+        "id": "libido_surge",
+        "name": "Libido Surge",
+        "category": "Sexual",
+        "tier": 0,
+        "column": 3.0,
+        "cost": 1,
+        "parents": [],
+        "requireAllParents": false,
+        "description": "Increases fluid production capacity, libido by +15, and sexual stamina by +20.",
+        "statModifiers": {
+          "libido": 15.0,
+          "sexual_stamina": 20.0
+        },
+        "flags": [
+          "high_fertility"
+        ]
+      },
+      {
+        "id": "corruption_affinity",
+        "name": "Corruption Affinity",
+        "category": "Demonic",
+        "tier": 0,
+        "column": 4.0,
+        "cost": 1,
+        "parents": [],
+        "requireAllParents": false,
+        "description": "Increases demonic corruption resistance by +10 and prepares bodily vessels for infernal mutation.",
+        "statModifiers": {
+          "corruption_resist": 10.0
+        },
+        "defenseModifiers": {
+          "byRace": {
+            "Demon": 0.15
+          }
+        },
+        "flags": [
+          "demonic_pact"
+        ]
+      },
+      {
+        "id": "brawny_strike",
+        "name": "Brawny Strike",
+        "category": "Physical",
+        "tier": 1,
+        "column": 0.0,
+        "cost": 2,
+        "parents": [
+          "iron_constitution"
+        ],
+        "requireAllParents": false,
+        "description": "Increases Strength by +5 and boosts physical attack damage by +10.",
+        "statModifiers": {
+          "strength": 5.0,
+          "physical_damage": 10.0
+        },
+        "damageModifiers": {
+          "byAttackType": {
+            "physical": 0.15
+          }
+        }
+      },
+      {
+        "id": "spell_weaver",
+        "name": "Spell Weaver",
+        "category": "Arcane",
+        "tier": 1,
+        "column": 1.0,
+        "cost": 2,
+        "parents": [
+          "arcane_attunement"
+        ],
+        "requireAllParents": false,
+        "description": "Increases Intelligence by +5 and boosts spell damage by +15.",
+        "statModifiers": {
+          "intelligence": 5.0,
+          "spell_power": 15.0
+        },
+        "damageModifiers": {
+          "byAttackType": {
+            "arcane": 0.15
+          }
+        }
+      },
+      {
+        "id": "charismatic_allure",
+        "name": "Charismatic Allure",
+        "category": "Social",
+        "tier": 1,
+        "column": 2.0,
+        "cost": 2,
+        "parents": [
+          "silver_tongue"
+        ],
+        "requireAllParents": false,
+        "description": "Increases Charm by +10 and draws deeply receptive reactions from conversational partners.",
+        "statModifiers": {
+          "charm": 10.0
+        },
+        "flags": [
+          "alluring_glance"
+        ]
+      },
+      {
+        "id": "seductive_aura",
+        "name": "Seductive Aura",
+        "category": "Sexual",
+        "tier": 1,
+        "column": 3.0,
+        "cost": 2,
+        "parents": [
+          "libido_surge"
+        ],
+        "requireAllParents": false,
+        "description": "Exudes an intoxicating sensual aura that accelerates partner arousal and grants +5 Charm.",
+        "statModifiers": {
+          "charm": 5.0
+        },
+        "flags": [
+          "seduction_mastery"
+        ]
+      },
+      {
+        "id": "hellfire_blood",
+        "name": "Hellfire Blood",
+        "category": "Demonic",
+        "tier": 1,
+        "column": 4.0,
+        "cost": 2,
+        "parents": [
+          "corruption_affinity"
+        ],
+        "requireAllParents": false,
+        "description": "Circulates burning brimstone essence (+20 Max HP, +15 Max MP, +10 Corruption Resist).",
+        "statModifiers": {
+          "max_health": 20.0,
+          "max_mana": 15.0,
+          "corruption_resist": 10.0
+        },
+        "defenseModifiers": {
+          "byAttackType": {
+            "fire": 0.25
+          }
+        },
+        "flags": [
+          "hellfire_veins"
+        ]
+      },
+      {
+        "id": "juggernaut",
+        "name": "Juggernaut",
+        "category": "Physical",
+        "tier": 2,
+        "column": 0.0,
+        "cost": 3,
+        "parents": [
+          "brawny_strike"
+        ],
+        "requireAllParents": false,
+        "description": "Unstoppable momentum boosts defensive resilience (+15 Max HP, +10 Defense).",
+        "statModifiers": {
+          "max_health": 15.0,
+          "defense": 10.0
+        },
+        "defenseModifiers": {
+          "byAttackType": {
+            "physical": 0.15
+          }
+        }
+      },
+      {
+        "id": "arcane_amplification",
+        "name": "Arcane Amp",
+        "category": "Arcane",
+        "tier": 2,
+        "column": 1.0,
+        "cost": 3,
+        "parents": [
+          "spell_weaver"
+        ],
+        "requireAllParents": false,
+        "description": "Amplifies spell output by channeling raw aether (+20 Spell Power, +5 Intelligence).",
+        "statModifiers": {
+          "spell_power": 20.0,
+          "intelligence": 5.0
+        },
+        "damageModifiers": {
+          "byAttackType": {
+            "arcane": 0.2
+          }
+        },
+        "defenseModifiers": {
+          "byAttackType": {
+            "arcane": 0.15
+          }
+        }
+      },
+      {
+        "id": "monopolist",
+        "name": "Monopolist",
+        "category": "Social",
+        "tier": 2,
+        "column": 2.0,
+        "cost": 3,
+        "parents": [
+          "charismatic_allure"
+        ],
+        "requireAllParents": false,
+        "description": "Deep commercial empire ties (-10% buy, +10% sell, +5 Charm).",
+        "statModifiers": {
+          "tradePerkModifier": 0.1,
+          "charm": 5.0
+        },
+        "tradeDiscount": 0.1,
+        "tradeBonus": 0.1,
+        "flags": [
+          "trade_monopoly"
+        ]
+      },
+      {
+        "id": "sensory_overdrive",
+        "name": "Sensory Overdrive",
+        "category": "Sexual",
+        "tier": 2,
+        "column": 3.0,
+        "cost": 3,
+        "parents": [
+          "seductive_aura"
+        ],
+        "requireAllParents": false,
+        "description": "Sensitizes intimate nerve endings (+20 Libido, +25 Arousal capacity).",
+        "statModifiers": {
+          "libido": 20.0,
+          "arousal_capacity": 25.0
+        },
+        "flags": [
+          "sensory_climax"
+        ]
+      },
+      {
+        "id": "demonic_dominion",
+        "name": "Demonic Dominion",
+        "category": "Demonic",
+        "tier": 2,
+        "column": 4.0,
+        "cost": 3,
+        "parents": [
+          "hellfire_blood"
+        ],
+        "requireAllParents": false,
+        "description": "Subjugates lower demons and beasts (+15 Strength, +10 Defense).",
+        "statModifiers": {
+          "strength": 15.0,
+          "defense": 10.0
+        },
+        "damageModifiers": {
+          "byRace": {
+            "Demon": 0.2,
+            "Human": 0.15
+          }
+        },
+        "flags": [
+          "demonic_command"
+        ]
+      },
+      {
+        "id": "spellblade",
+        "name": "Spellblade",
+        "category": "Combo",
+        "tier": 3,
+        "column": 0.5,
+        "cost": 3,
+        "parents": [
+          "brawny_strike",
+          "spell_weaver"
+        ],
+        "requireAllParents": true,
+        "description": "Combo: Physical + Arcane. Requires Brawny Strike and Spell Weaver. Weaves volatile sorcery into martial strikes (+15 Physical Damage, +15 Spell Power).",
+        "statModifiers": {
+          "physical_damage": 15.0,
+          "spell_power": 15.0
+        },
+        "damageModifiers": {
+          "byAttackType": {
+            "physical": 0.1,
+            "arcane": 0.15
+          }
+        },
+        "flags": [
+          "spellblade_flurry"
+        ]
+      },
+      {
+        "id": "seductive_glamour",
+        "name": "Arcane Glamour",
+        "category": "Combo",
+        "tier": 3,
+        "column": 1.5,
+        "cost": 3,
+        "parents": [
+          "spell_weaver",
+          "charismatic_allure"
+        ],
+        "requireAllParents": true,
+        "description": "Combo: Arcane + Social. Requires Spell Weaver and Charismatic Allure. Enchants conversational presence with subtle mind-influencing sorcery (+25 Max Mana, +10 Charm).",
+        "statModifiers": {
+          "max_mana": 25.0,
+          "charm": 10.0
+        },
+        "flags": [
+          "mind_charm"
+        ]
+      },
+      {
+        "id": "seductive_poise",
+        "name": "Seductive Poise",
+        "category": "Combo",
+        "tier": 3,
+        "column": 2.5,
+        "cost": 3,
+        "parents": [
+          "charismatic_allure",
+          "seductive_aura"
+        ],
+        "requireAllParents": true,
+        "description": "Combo: Social + Sexual. Requires Charismatic Allure and Seductive Aura. Exudes intoxicating erotic charm and magnetic poise (+10 Charm, +15 Libido).",
+        "statModifiers": {
+          "charm": 10.0,
+          "libido": 15.0
+        },
+        "flags": [
+          "captivating_poise"
+        ]
+      },
+      {
+        "id": "succubus_allure",
+        "name": "Succubus Allure",
+        "category": "Combo",
+        "tier": 3,
+        "column": 3.5,
+        "cost": 3,
+        "parents": [
+          "seductive_aura",
+          "hellfire_blood"
+        ],
+        "requireAllParents": true,
+        "description": "Combo: Sexual + Demonic. Requires Seductive Aura and Hellfire Blood. Awakens fiendish passion and demonic resilience (+15 Libido, +15 Corruption Resist).",
+        "statModifiers": {
+          "libido": 15.0,
+          "corruption_resist": 15.0
+        },
+        "damageModifiers": {
+          "byRace": {
+            "Human": 0.2
+          }
+        },
+        "defenseModifiers": {
+          "byAttackType": {
+            "dark": 0.2
+          }
+        },
+        "flags": [
+          "succubus_drain"
+        ]
+      },
+      {
+        "id": "titan_form",
+        "name": "Titan's Might",
+        "category": "Physical",
+        "tier": 4,
+        "column": 0.0,
+        "cost": 4,
+        "parents": [
+          "juggernaut"
+        ],
+        "requireAllParents": false,
+        "description": "Peak physical ascendancy grants colossal vitality, immense fortitude, and crushing strength (+30 Max Health, +10 Strength, +10 Defense).",
+        "statModifiers": {
+          "max_health": 30.0,
+          "strength": 10.0,
+          "defense": 10.0
+        },
+        "damageModifiers": {
+          "byAttackType": {
+            "physical": 0.25
+          }
+        },
+        "defenseModifiers": {
+          "byAttackType": {
+            "physical": 0.2
+          }
+        },
+        "flags": [
+          "titan_endurance"
+        ]
+      },
+      {
+        "id": "archmage_ascendancy",
+        "name": "Archmage Form",
+        "category": "Arcane",
+        "tier": 4,
+        "column": 1.0,
+        "cost": 4,
+        "parents": [
+          "arcane_amplification"
+        ],
+        "requireAllParents": false,
+        "description": "Grandmaster of arcane sorcery. +40 Max Mana, +25 Spell Power, +15 Arcane Power.",
+        "statModifiers": {
+          "max_mana": 40.0,
+          "spell_power": 25.0,
+          "arcane_power": 15.0
+        },
+        "damageModifiers": {
+          "byAttackType": {
+            "arcane": 0.3
+          }
+        },
+        "defenseModifiers": {
+          "byAttackType": {
+            "arcane": 0.25
+          }
+        },
+        "flags": [
+          "archmage_sanctum",
+          "aether_channeling"
+        ]
+      },
+      {
+        "id": "sovereign_presence",
+        "name": "Sovereign Form",
+        "category": "Social",
+        "tier": 4,
+        "column": 2.0,
+        "cost": 4,
+        "parents": [
+          "monopolist"
+        ],
+        "requireAllParents": false,
+        "description": "A commanding presence that effortlessly bends conversations and courts to your will (+25 Charm).",
+        "statModifiers": {
+          "charm": 25.0
+        },
+        "flags": [
+          "royal_decree",
+          "unquestioned_authority"
+        ]
+      },
+      {
+        "id": "aphrodisiac_mastery",
+        "name": "Aphrodisiac Master",
+        "category": "Sexual",
+        "tier": 4,
+        "column": 3.0,
+        "cost": 4,
+        "parents": [
+          "sensory_overdrive"
+        ],
+        "requireAllParents": false,
+        "description": "Ultimate erotic virtuoso. +30 Sexual Stamina, +30 Libido, +20 Charm.",
+        "statModifiers": {
+          "sexual_stamina": 30.0,
+          "libido": 30.0,
+          "charm": 20.0
+        },
+        "flags": [
+          "aphrodisiac_alchemist"
+        ]
+      },
+      {
+        "id": "archdemon_apotheosis",
+        "name": "Archdemon Form",
+        "category": "Demonic",
+        "tier": 4,
+        "column": 4.0,
+        "cost": 4,
+        "parents": [
+          "demonic_dominion"
+        ],
+        "requireAllParents": false,
+        "description": "Transcends mortal flesh into pure demonic sovereignty (+35 Max Health, +25 Max Mana, +15 Strength).",
+        "statModifiers": {
+          "max_health": 35.0,
+          "max_mana": 25.0,
+          "strength": 15.0
+        },
+        "damageModifiers": {
+          "byRace": {
+            "Human": 0.25,
+            "Demon": 0.15
+          }
+        },
+        "defenseModifiers": {
+          "byAttackType": {
+            "fire": 0.5,
+            "dark": 0.3
+          }
+        },
+        "flags": [
+          "archdemon_sovereignty",
+          "infernal_transformation"
+        ]
+      },
+      {
+        "id": "demon_berserker",
+        "name": "Demon Berserker",
+        "category": "Combo",
+        "tier": 5,
+        "column": 1.0,
+        "cost": 4,
+        "parents": [
+          "juggernaut",
+          "demonic_dominion"
+        ],
+        "requireAllParents": true,
+        "description": "Combo: Physical + Demonic. Requires Juggernaut and Demonic Dominion. Churns hellish wrath into unstoppable bodily carnage (+10 Strength, +15 Physical Damage, +10 Defense).",
+        "statModifiers": {
+          "strength": 10.0,
+          "physical_damage": 15.0,
+          "defense": 10.0
+        },
+        "damageModifiers": {
+          "byAttackType": {
+            "physical": 0.2
+          },
+          "byRace": {
+            "Human": 0.2
+          }
+        },
+        "defenseModifiers": {
+          "byAttackType": {
+            "fire": 0.2
+          }
+        },
+        "flags": [
+          "berserker_rage"
+        ]
+      },
+      {
+        "id": "ascended_paragon",
+        "name": "Grand Paragon",
+        "category": "Combo",
+        "tier": 5,
+        "column": 3.0,
+        "cost": 4,
+        "parents": [
+          "spellblade",
+          "seductive_glamour"
+        ],
+        "requireAllParents": true,
+        "description": "Apex Combo: Physical + Arcane + Social. Requires Spellblade and Arcane Glamour. Flawless harmonic fusion of martial might, arcane mastery, and commanding presence (+30 Max Health, +30 Max Mana, +15 Physical Damage, +15 Spell Power).",
+        "statModifiers": {
+          "max_health": 30.0,
+          "max_mana": 30.0,
+          "physical_damage": 15.0,
+          "spell_power": 15.0
+        },
+        "damageModifiers": {
+          "byAttackType": {
+            "physical": 0.15,
+            "arcane": 0.15
+          }
+        },
+        "defenseModifiers": {
+          "byAttackType": {
+            "physical": 0.15,
+            "arcane": 0.15
+          }
+        },
+        "flags": [
+          "paragon_blessing",
+          "supreme_harmony"
+        ]
+      }
+    ]
+  },
+  "extraPerks": [
     {
       "id": "master_trader",
       "name": "Master Trader",
       "category": "Social",
-      "cost": 2,
-      "description": "Mastery of merchant appraisal and haggling (-15% buy prices, +15% sell prices). Stacks with Silver Tongue.",
-      "unlocked": false
-    },
-    {
-      "id": "libido_surge",
-      "name": "Libido Surge",
-      "category": "Sexual",
-      "cost": 1,
-      "description": "Increases fluid production capacity and unlocks deeper solo edging control.",
-      "unlocked": false
-    },
-    {
-      "id": "demon_vitality",
-      "name": "Demonic Vitality",
-      "category": "Demonic",
-      "cost": 2,
-      "description": "Regenerates 5 HP and 5 MP every 15 minutes of world time.",
-      "unlocked": false
+      "tier": 2,
+      "cost": 3,
+      "parents": [
+        "silver_tongue"
+      ],
+      "description": "High-tier commercial network (-15% buy, +15% sell).",
+      "tradeDiscount": 0.15,
+      "tradeBonus": 0.15,
+      "statModifiers": {},
+      "flags": [
+        "expert_appraisal",
+        "trade_monopoly"
+      ]
     }
   ]
 }

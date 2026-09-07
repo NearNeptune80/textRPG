@@ -6,6 +6,40 @@
 
 #include "core/eventBus.h"
 
+bool timeManager::isLeapYear(int year)
+{
+    return (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0));
+}
+
+int timeManager::getDaysInMonth(int month, int year)
+{
+    switch (month)
+    {
+        case 1:  return 31; // January
+        case 2:  return isLeapYear(year) ? 29 : 28; // February
+        case 3:  return 31; // March
+        case 4:  return 30; // April
+        case 5:  return 31; // May
+        case 6:  return 30; // June
+        case 7:  return 31; // July
+        case 8:  return 31; // August
+        case 9:  return 30; // September
+        case 10: return 31; // October
+        case 11: return 30; // November
+        case 12: return 31; // December
+        default: return 30;
+    }
+}
+
+const std::vector<std::string>& timeManager::getMonthNames()
+{
+    static const std::vector<std::string> names = {
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    };
+    return names;
+}
+
 void timeManager::advanceTime(int mins)
 {
     if (mins <= 0) return;
@@ -25,9 +59,14 @@ void timeManager::advanceTime(int mins)
             dayOfWeek = (dayOfWeek + daysToAdd) % 7;
             day += daysToAdd;
 
-            while (day > 30) // Standard 30 days per month in simulation calendar
+            while (true)
             {
-                day -= 30;
+                int maxDays = getDaysInMonth(month, year);
+                if (day <= maxDays)
+                {
+                    break;
+                }
+                day -= maxDays;
                 month++;
                 if (month > 12)
                 {

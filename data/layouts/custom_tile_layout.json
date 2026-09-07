@@ -90,6 +90,60 @@
     ]
   },
   "stateOverrides": {
+    "EXPLORATION": {
+      "enabled": true,
+      "rootNode": {
+        "id": "exp_root_row",
+        "type": "CONTAINER",
+        "direction": "ROW",
+        "sizes": [16.0, 68.0, 16.0],
+        "children": [
+          {
+            "id": "exp_left_column",
+            "type": "LEAF",
+            "name": "Navigation & Status Sidebar",
+            "widgets": [
+              "widget_lt_character_card",
+              "widget_lt_dpad_radar"
+            ]
+          },
+          {
+            "id": "exp_center_column",
+            "type": "CONTAINER",
+            "direction": "COLUMN",
+            "sizes": [78.0, 22.0],
+            "children": [
+              {
+                "id": "exp_center_narrative",
+                "type": "LEAF",
+                "name": "Story Narrative & Scene",
+                "widgets": [
+                  "widget_narrative_story"
+                ]
+              },
+              {
+                "id": "exp_bottom_actions",
+                "type": "LEAF",
+                "name": "Action Commands Grid",
+                "widgets": [
+                  "widget_action_commands"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "exp_right_column",
+            "type": "LEAF",
+            "name": "Entities & Activity Sidebar",
+            "widgets": [
+              "widget_lt_characters_present",
+              "widget_lt_items_present",
+              "widget_lt_event_log"
+            ]
+          }
+        ]
+      }
+    },
     "COMBAT": {
       "enabled": true,
       "rootNode": {
@@ -151,55 +205,54 @@
     "INVENTORY": {
       "enabled": true,
       "rootNode": {
-        "id": "inv_root_column",
+        "id": "inv_root_row",
         "type": "CONTAINER",
-        "direction": "COLUMN",
-        "sizes": [6.0, 72.0, 22.0],
+        "direction": "ROW",
+        "sizes": [16.0, 68.0, 16.0],
         "children": [
           {
-            "id": "inv_top_bar",
+            "id": "inv_left_column",
             "type": "LEAF",
-            "name": "Top Status Bar",
-            "widgets": ["widget_top_bar_full"]
+            "name": "Player Status & Paperdoll",
+            "widgets": [
+              "widget_lt_character_card",
+              "widget_paperdoll_equipment"
+            ]
           },
           {
-            "id": "inv_middle_row",
+            "id": "inv_center_column",
             "type": "CONTAINER",
-            "direction": "ROW",
-            "sizes": [32.0, 36.0, 32.0],
+            "direction": "COLUMN",
+            "sizes": [78.0, 22.0],
             "children": [
               {
-                "id": "inv_backpack_pane",
+                "id": "inv_center_pane",
                 "type": "LEAF",
-                "name": "Backpack & Storage",
+                "name": "Inventory & Item Details",
                 "widgets": [
-                  "widget_inventory_filters",
-                  "widget_inventory_dual"
-                ]
-              },
-              {
-                "id": "inv_paperdoll_pane",
-                "type": "LEAF",
-                "name": "Equipment Paperdoll",
-                "widgets": [
-                  "widget_paperdoll_equipment"
-                ]
-              },
-              {
-                "id": "inv_inspector_pane",
-                "type": "LEAF",
-                "name": "Item Details & Lore",
-                "widgets": [
+                  "widget_inventory_dual",
                   "widget_item_details_inspector"
+                ]
+              },
+              {
+                "id": "inv_bottom_actions",
+                "type": "LEAF",
+                "name": "Action Commands Grid",
+                "widgets": [
+                  "widget_action_commands"
                 ]
               }
             ]
           },
           {
-            "id": "inv_bottom_actions",
+            "id": "inv_right_column",
             "type": "LEAF",
-            "name": "Inventory Actions",
-            "widgets": ["widget_action_commands"]
+            "name": "Looting & Entities Sidebar",
+            "widgets": [
+              "widget_lt_characters_present",
+              "widget_lt_items_present",
+              "widget_lt_event_log"
+            ]
           }
         ]
       }
@@ -207,56 +260,52 @@
     "SEX": {
       "enabled": true,
       "rootNode": {
-        "id": "sex_root_column",
+        "id": "sex_root_row",
         "type": "CONTAINER",
-        "direction": "COLUMN",
-        "sizes": [6.0, 72.0, 22.0],
+        "direction": "ROW",
+        "sizes": [16.0, 68.0, 16.0],
         "children": [
           {
-            "id": "sex_top_bar",
+            "id": "sex_left_column",
             "type": "LEAF",
-            "name": "Top Status Bar",
-            "widgets": ["widget_top_bar_full"]
+            "name": "Player Status & Paperdoll",
+            "widgets": [
+              "widget_lt_character_card",
+              "widget_paperdoll_equipment"
+            ]
           },
           {
-            "id": "sex_middle_row",
+            "id": "sex_center_column",
             "type": "CONTAINER",
-            "direction": "ROW",
-            "sizes": [24.0, 52.0, 24.0],
+            "direction": "COLUMN",
+            "sizes": [78.0, 22.0],
             "children": [
               {
-                "id": "sex_left_sheet",
+                "id": "sex_encounter_box",
                 "type": "LEAF",
-                "name": "Player Anatomy & Fluids",
-                "widgets": [
-                  "widget_char_overview",
-                  "widget_vitals_gauges",
-                  "widget_anatomy_fluids"
-                ]
-              },
-              {
-                "id": "sex_center_encounter",
-                "type": "LEAF",
-                "name": "Erotic Encounter Log",
+                "name": "Intimate Scene Narrative",
                 "widgets": [
                   "widget_erotic_encounter"
                 ]
               },
               {
-                "id": "sex_right_target",
+                "id": "sex_bottom_actions",
                 "type": "LEAF",
-                "name": "Partner Inspector",
+                "name": "Action Commands Grid",
                 "widgets": [
-                  "widget_target_inspector"
+                  "widget_action_commands"
                 ]
               }
             ]
           },
           {
-            "id": "sex_bottom_actions",
+            "id": "sex_right_column",
             "type": "LEAF",
-            "name": "Sex Actions",
-            "widgets": ["widget_action_commands"]
+            "name": "Partner Status & Paperdoll",
+            "widgets": [
+              "widget_target_inspector",
+              "widget_partner_paperdoll"
+            ]
           }
         ]
       }
@@ -318,30 +367,53 @@
     "TRANSFORMATION": {
       "enabled": true,
       "rootNode": {
-        "id": "tf_root_column",
+        "id": "tf_root_row",
         "type": "CONTAINER",
-        "direction": "COLUMN",
-        "sizes": [6.0, 72.0, 22.0],
+        "direction": "ROW",
+        "sizes": [16.0, 68.0, 16.0],
         "children": [
           {
-            "id": "tf_top_bar",
+            "id": "tf_left_column",
             "type": "LEAF",
-            "name": "Top Status Bar",
-            "widgets": ["widget_top_bar_full"]
-          },
-          {
-            "id": "tf_center_pane",
-            "type": "LEAF",
-            "name": "Body Transformations Suite",
+            "name": "Player Status & Paperdoll",
             "widgets": [
-              "widget_body_mutations_tree"
+              "widget_lt_character_card",
+              "widget_paperdoll_equipment"
             ]
           },
           {
-            "id": "tf_bottom_actions",
+            "id": "tf_center_column",
+            "type": "CONTAINER",
+            "direction": "COLUMN",
+            "sizes": [78.0, 22.0],
+            "children": [
+              {
+                "id": "tf_center_pane",
+                "type": "LEAF",
+                "name": "Body Transformations Suite",
+                "widgets": [
+                  "widget_body_mutations_tree"
+                ]
+              },
+              {
+                "id": "tf_bottom_actions",
+                "type": "LEAF",
+                "name": "Actions",
+                "widgets": [
+                  "widget_action_commands"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "tf_right_column",
             "type": "LEAF",
-            "name": "Actions",
-            "widgets": ["widget_action_commands"]
+            "name": "Entities & Activity Sidebar",
+            "widgets": [
+              "widget_lt_characters_present",
+              "widget_lt_items_present",
+              "widget_lt_event_log"
+            ]
           }
         ]
       }
@@ -349,24 +421,49 @@
     "SETTINGS": {
       "enabled": true,
       "rootNode": {
-        "id": "opt_root_column",
+        "id": "opt_root_row",
         "type": "CONTAINER",
-        "direction": "COLUMN",
-        "sizes": [78.0, 22.0],
+        "direction": "ROW",
+        "sizes": [16.0, 68.0, 16.0],
         "children": [
           {
-            "id": "opt_center_pane",
+            "id": "opt_left_sidebar",
             "type": "LEAF",
-            "name": "Settings Page Content",
+            "name": "Player Status & Paperdoll",
             "widgets": [
-              "widget_options_content"
+              "widget_lt_character_card",
+              "widget_paperdoll_equipment"
             ]
           },
           {
-            "id": "opt_bottom_actions",
+            "id": "opt_center_column",
+            "type": "CONTAINER",
+            "direction": "COLUMN",
+            "sizes": [78.0, 22.0],
+            "children": [
+              {
+                "id": "opt_center_pane",
+                "type": "LEAF",
+                "name": "Settings Page Content",
+                "widgets": [
+                  "widget_options_content"
+                ]
+              },
+              {
+                "id": "opt_bottom_actions",
+                "type": "LEAF",
+                "name": "Settings Actions",
+                "widgets": ["widget_action_commands"]
+              }
+            ]
+          },
+          {
+            "id": "opt_right_sidebar",
             "type": "LEAF",
-            "name": "Settings Actions",
-            "widgets": ["widget_action_commands"]
+            "name": "Entities & Activity Sidebar",
+            "widgets": [
+              "widget_lt_event_log"
+            ]
           }
         ]
       }
@@ -374,24 +471,49 @@
     "LOAD_GAME": {
       "enabled": true,
       "rootNode": {
-        "id": "load_root_column",
+        "id": "load_root_row",
         "type": "CONTAINER",
-        "direction": "COLUMN",
-        "sizes": [78.0, 22.0],
+        "direction": "ROW",
+        "sizes": [16.0, 68.0, 16.0],
         "children": [
           {
-            "id": "load_center_pane",
+            "id": "load_left_sidebar",
             "type": "LEAF",
-            "name": "Load Game Profiles",
+            "name": "Player Status & Paperdoll",
             "widgets": [
-              "widget_load_game"
+              "widget_lt_character_card",
+              "widget_paperdoll_equipment"
             ]
           },
           {
-            "id": "load_bottom_actions",
+            "id": "load_center_column",
+            "type": "CONTAINER",
+            "direction": "COLUMN",
+            "sizes": [78.0, 22.0],
+            "children": [
+              {
+                "id": "load_center_pane",
+                "type": "LEAF",
+                "name": "Load Game Profiles",
+                "widgets": [
+                  "widget_load_game"
+                ]
+              },
+              {
+                "id": "load_bottom_actions",
+                "type": "LEAF",
+                "name": "Load Actions",
+                "widgets": ["widget_action_commands"]
+              }
+            ]
+          },
+          {
+            "id": "load_right_sidebar",
             "type": "LEAF",
-            "name": "Load Actions",
-            "widgets": ["widget_action_commands"]
+            "name": "Entities & Activity Sidebar",
+            "widgets": [
+              "widget_lt_event_log"
+            ]
           }
         ]
       }
@@ -417,6 +539,112 @@
             "type": "LEAF",
             "name": "Menu Actions",
             "widgets": ["widget_action_commands"]
+          }
+        ]
+      }
+    },
+    "CHARACTER_CREATION": {
+      "enabled": true,
+      "rootNode": {
+        "id": "cc_root_row",
+        "type": "CONTAINER",
+        "direction": "ROW",
+        "sizes": [16.0, 68.0, 16.0],
+        "children": [
+          {
+            "id": "cc_left_sidebar",
+            "type": "LEAF",
+            "name": "Player Status & Paperdoll",
+            "widgets": [
+              "widget_lt_character_card",
+              "widget_paperdoll_equipment"
+            ]
+          },
+          {
+            "id": "cc_center_column",
+            "type": "CONTAINER",
+            "direction": "COLUMN",
+            "sizes": [78.0, 22.0],
+            "children": [
+              {
+                "id": "cc_center_pane",
+                "type": "LEAF",
+                "name": "Character Customization Options",
+                "widgets": [
+                  "widget_character_creation"
+                ]
+              },
+              {
+                "id": "cc_bottom_actions",
+                "type": "LEAF",
+                "name": "Step Navigation & Creation Actions",
+                "widgets": [
+                  "widget_action_commands"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "cc_right_sidebar",
+            "type": "LEAF",
+            "name": "Entities & Activity Sidebar",
+            "widgets": [
+              "widget_lt_event_log"
+            ]
+          }
+        ]
+      }
+    },
+    "PHONE_APP": {
+      "enabled": true,
+      "rootNode": {
+        "id": "phone_root_row",
+        "type": "CONTAINER",
+        "direction": "ROW",
+        "sizes": [16.0, 68.0, 16.0],
+        "children": [
+          {
+            "id": "phone_left_column",
+            "type": "LEAF",
+            "name": "Navigation & Status Sidebar",
+            "widgets": [
+              "widget_lt_character_card",
+              "widget_lt_dpad_radar"
+            ]
+          },
+          {
+            "id": "phone_center_column",
+            "type": "CONTAINER",
+            "direction": "COLUMN",
+            "sizes": [78.0, 22.0],
+            "children": [
+              {
+                "id": "phone_center_pane",
+                "type": "LEAF",
+                "name": "Mobile Phone & Diagnostic Apps",
+                "widgets": [
+                  "widget_phone_menu"
+                ]
+              },
+              {
+                "id": "phone_bottom_actions",
+                "type": "LEAF",
+                "name": "Phone Navigation Actions",
+                "widgets": [
+                  "widget_action_commands"
+                ]
+              }
+            ]
+          },
+          {
+            "id": "phone_right_column",
+            "type": "LEAF",
+            "name": "Entities & Activity Sidebar",
+            "widgets": [
+              "widget_lt_characters_present",
+              "widget_lt_items_present",
+              "widget_lt_event_log"
+            ]
           }
         ]
       }

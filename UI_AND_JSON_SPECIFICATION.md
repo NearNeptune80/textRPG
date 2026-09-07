@@ -322,7 +322,8 @@ Conditions support nested logic via `"op"`: `"AND"`, `"OR"`, `"NOT"`, `"LEAF"`:
 * `SPAWN_NPC`: Spawns persistent NPC on map (`target` = templateId, `x`, `y`).
 * `DESPAWN_NPC`: Removes persistent NPC from current tile (`target` = npcId).
 
-### 5.3. NPC Templates (`data/npc_templates.json`)
+### 5.3. Enemy Templates (`data/enemies/*.json`)
+Modular enemy and encounter templates are organized into modular files by faction, category, or tier within `data/enemies/` (e.g. `bandits.json`, `mages.json`).
 ```json
 {
   "templates": [
@@ -348,7 +349,90 @@ Conditions support nested logic via `"op"`: `"AND"`, `"OR"`, `"NOT"`, `"LEAF"`:
 }
 ```
 
-### 5.4. World Maps (`data/maps/*.json`)
+### 5.4. Named Characters (`data/characters/*.json`)
+Named characters are standalone JSON files residing in `data/characters/` (e.g. `marcus.json`). They define their baseline appearance, inventory, shop parameters, and hourly daily schedule.
+```json
+{
+  "id": "marcus",
+  "name": "Marcus",
+  "archetype": "Merchant",
+  "isMerchant": true,
+  "buyMarkup": 1.15,
+  "sellMarkdown": 0.65,
+  "defaultSceneId": "scene_marcus_greeting",
+  "schedule": [
+    {
+      "startHour": 8,
+      "endHour": 18,
+      "mapId": "overworld",
+      "x": 2,
+      "y": 3,
+      "activity": "Tending his market stall"
+    },
+    {
+      "startHour": 18,
+      "endHour": 22,
+      "mapId": "overworld",
+      "x": 4,
+      "y": 1,
+      "activity": "Drinking at the tavern plaza"
+    },
+    {
+      "startHour": 22,
+      "endHour": 8,
+      "mapId": "house_01",
+      "x": 2,
+      "y": 2,
+      "activity": "Sleeping in his cottage"
+    }
+  ]
+}
+```
+
+### 5.5. Quests & NPC Relocations (`data/quests/*.json`)
+Quests control narrative flow, stages, objectives, rewards, and dynamic NPC overrides. NPCs can be relocated dynamically to specific maps and coordinates based on quest stages without altering character JSON files.
+```json
+{
+  "quests": [
+    {
+      "id": "root_delivery",
+      "title": "A Bitter Herb",
+      "category": "SIDE",
+      "stages": [
+        { "stage": 0, "journalEntry": "Find Canis Root." },
+        { "stage": 1, "journalEntry": "Bring the Canis Root to Marcus." },
+        { "stage": 2, "journalEntry": "Delivery complete." }
+      ],
+      "npcRelocations": [
+        {
+          "npcId": "marcus",
+          "stageMin": 1,
+          "stageMax": 1,
+          "mapId": "overworld",
+          "x": 1,
+          "y": 1,
+          "activity": "Waiting by the crossroads for delivery",
+          "sceneId": "scene_marcus_delivery"
+        }
+      ],
+      "triggers": [
+        {
+          "id": "trig_marcus_delivery_talk",
+          "npcId": "marcus",
+          "label": "Deliver Canis Root to Marcus",
+          "sceneId": "scene_marcus_delivery",
+          "conditions": [
+            { "type": "QUEST_STAGE", "target": "root_delivery", "requiredValue": 1 },
+            { "type": "HAS_ITEM", "target": "item_canis_root", "requiredValue": 1 }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+### 5.6. World Maps & Encounter Pools (`data/maps/*.json`)
 ```json
 {
   "id": "overworld",
@@ -369,6 +453,14 @@ Conditions support nested logic via `"op"`: `"AND"`, `"OR"`, `"NOT"`, `"LEAF"`:
     [0, 0, 1, 0, 0],
     [0, 0, 0, 0, 0]
   ],
+  "tileEncounters": [
+    {
+      "x": 1,
+      "y": 2,
+      "pool": ["tpl_alley_bandit", "tpl_cutpurse"],
+      "ambushChance": 60
+    }
+  ],
   "warps": [
     { "x": 2, "y": 2, "targetMap": "house_01", "targetX": 1, "targetY": 1 }
   ],
@@ -376,8 +468,9 @@ Conditions support nested logic via `"op"`: `"AND"`, `"OR"`, `"NOT"`, `"LEAF"`:
 }
 ```
 * **Tile Types**: `0` = Void, `1` = Floor, `2` = Wall, `3` = Door.
+* **Encounter Pools**: `pool` specifies template IDs randomly selected when spawning or restocking. When an enemy is permanently removed, the specific NPC is cleared (`nullptr`) and a new random adversary rolls from the pool after the 24-hour restock period.
 
-### 5.5. Game Settings (`data/settings.json`)
+### 5.7. Game Settings (`data/settings.json`)
 ```json
 {
   "demographics": {

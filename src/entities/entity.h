@@ -40,6 +40,9 @@ public:
     std::unordered_map<std::string, std::string> bodyHair;
     std::vector<std::string> personalityTraits;
     std::string startingOccupation = "Student";
+    int birthDay = 29;
+    int birthMonth = 8;
+    int birthYear = 1;
 
     entity(std::string entityId, std::string entityName);
 
@@ -57,6 +60,11 @@ public:
     bool hasPerk(const std::string& perkId) const;
     void resetPerks();
     void recalculatePerkModifiers();
+
+    float getPerkDamageMultiplier(const std::string& targetRace, const std::string& attackType) const;
+    float getPerkDefenseMultiplier(const std::string& attackerRace, const std::string& attackType) const;
+    bool hasPerkFlag(const std::string& flag) const;
+    std::vector<std::string> getAllPerkFlags() const;
 
     void addStatusEffect(const StatusEffect& effect);
     void removeStatusEffect(const std::string& effectId);

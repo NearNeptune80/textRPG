@@ -22,30 +22,36 @@
       ],
       "randomItems": [
         "item_canis_root"
+      ],
+      "perks": [
+        "brawny_strike",
+        "iron_constitution"
       ]
     },
     {
-      "id": "tpl_rogue_mage",
-      "name": "Rogue Mage",
-      "levelMin": 2,
-      "levelMax": 5,
+      "id": "tpl_cutpurse",
+      "name": "Nimble Cutpurse",
+      "levelMin": 1,
+      "levelMax": 2,
       "baseStats": {
-        "health": 40.0,
-        "mana": 90.0,
+        "health": 45.0,
+        "mana": 20.0,
         "lust": 100.0,
-        "physique": 8.0,
-        "arcane": 18.0,
-        "corruption": 25.0
+        "physique": 10.0,
+        "arcane": 6.0,
+        "corruption": 5.0
       },
-      "tags": ["feminine", "hostile"],
-      "possibleRaces": ["Human", "Elf"],
+      "tags": ["hostile"],
+      "possibleRaces": ["Human"],
       "guaranteedItems": [
         "item_linen_shirt",
-        "item_leather_trousers"
+        "item_leather_boots"
       ],
       "randomItems": [
-        "item_ancient_tome",
-        "item_golden_pendant"
+        "item_canis_root"
+      ],
+      "perks": [
+        "iron_constitution"
       ]
     }
   ]

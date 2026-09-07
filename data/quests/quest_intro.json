@@ -6,6 +6,18 @@
   "location": "Town District",
   "rewards": "50¤ and stranger's favor",
   "description": "Deliver the Canis Root to the stranger in the town district.",
+  "npcRelocations": [
+    {
+      "npcId": "marcus",
+      "minStage": 1,
+      "maxStage": 1,
+      "mapId": "overworld",
+      "x": 1,
+      "y": 1,
+      "activity": "waiting near the north gate for a courier delivery",
+      "overrideSceneId": "quest_intro_01"
+    }
+  ],
   "triggers": [
     {
       "id": "trig_stranger_start",
@@ -20,6 +32,20 @@
           "type": "QUEST_STAGE",
           "target": "root_delivery",
           "requiredValue": 0
+        }
+      ]
+    },
+    {
+      "id": "trig_marcus_delivery_talk",
+      "npcId": "marcus",
+      "label": "Talk to Marcus about Roots",
+      "tooltip": "Speak with Marcus waiting by the archway.",
+      "sceneId": "quest_intro_01",
+      "conditions": [
+        {
+          "type": "QUEST_STAGE",
+          "target": "root_delivery",
+          "requiredValue": 1
         }
       ]
     }

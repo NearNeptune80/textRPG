@@ -102,6 +102,7 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
 
     static iGameState* s_lastState = nullptr;
     static int s_lastCcStep = -1;
+    static TransformationTab s_lastTfTab = TransformationTab::CORE;
     if (curState != s_lastState)
     {
         s_lastState = curState;
@@ -113,6 +114,14 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
         {
             s_lastCcStep = cc->step;
             m_panelScrollY["cc_center_pane"] = 0.0f;
+        }
+    }
+    if (auto* tf = dynamic_cast<transformationState*>(curState))
+    {
+        if (tf->currentTab != s_lastTfTab)
+        {
+            s_lastTfTab = tf->currentTab;
+            m_panelScrollY["tf_center_pane"] = 0.0f;
         }
     }
 
@@ -140,24 +149,7 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
         return std::ranges::find(widgets, target) != widgets.end();
     };
 
-    // Handle Mouse Wheel Scrolling on Hovered Panel
     const auto mousePos = gameContext->input.getMousePosition();
-    const float wheelY = gameContext->input.getMouseWheelY();
-    if (wheelY != 0.0f)
-    {
-        for (const auto& p : panels)
-        {
-            if (mousePos.x >= p.rect.x && mousePos.x <= p.rect.x + p.rect.w &&
-                mousePos.y >= p.rect.y && mousePos.y <= p.rect.y + p.rect.h)
-            {
-                float maxScroll = m_panelMaxScrollY.contains(p.id) ? m_panelMaxScrollY[p.id] : 0.0f;
-                m_panelScrollY[p.id] -= wheelY * (32.0f * uiScale);
-                m_panelScrollY[p.id] = std::clamp(m_panelScrollY[p.id], 0.0f, maxScroll);
-                break;
-            }
-        }
-        gameContext->input.consumeMouseWheel();
-    }
 
     // Dispatch panel renderers matching calculated layout bounds
     for (const auto& p : panels)
@@ -269,6 +261,27 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
 
         SDL_SetRenderClipRect(renderer, nullptr);
     }
+ 
+    // Handle Mouse Wheel Scrolling on Hovered Panel (if not consumed by inner widgets during render)
+    const float remainingWheelY = gameContext->input.getMouseWheelY();
+    if (remainingWheelY != 0.0f)
+    {
+        for (const auto& p : panels)
+        {
+            if (mousePos.x >= p.rect.x && mousePos.x <= p.rect.x + p.rect.w &&
+                mousePos.y >= p.rect.y && mousePos.y <= p.rect.y + p.rect.h)
+            {
+                float maxScroll = m_panelMaxScrollY.contains(p.id) ? m_panelMaxScrollY[p.id] : 0.0f;
+                if (maxScroll > 0.0f)
+                {
+                    m_panelScrollY[p.id] -= remainingWheelY * (32.0f * uiScale);
+                    m_panelScrollY[p.id] = std::clamp(m_panelScrollY[p.id], 0.0f, maxScroll);
+                }
+                break;
+            }
+        }
+        gameContext->input.consumeMouseWheel();
+    }
 
     // Render universal topmost tooltip overlay before presenting
     TooltipManager::render(renderer, uiScale, static_cast<float>(winW), static_cast<float>(winH), mousePos);
@@ -328,7 +341,7 @@ void uiRenderer::renderTopBar(SDL_Renderer* renderer, game* gameContext, const S
                         mousePos.y >= menuBtnRect.y && mousePos.y <= menuBtnRect.y + menuBtnRect.h);
 
     bool inMenu = dynamic_cast<optionsState*>(gameContext->getActiveState()) || dynamic_cast<mainMenuState*>(gameContext->getActiveState());
-    UIWidget::drawButton(renderer, menuBtnRect, inMenu ? "Close (ESC)" : "⚙ MENU", menuHovered, true, inMenu, uiScale * 0.85f);
+    UIWidget::drawButton(renderer, menuBtnRect, inMenu ? "Close (ESC)" : "MENU", menuHovered, true, inMenu, uiScale * 0.85f);
     TooltipManager::setHoverTooltip(menuBtnRect, mousePos, inMenu ? "Close Options Menu" : "Game Settings & Options",
                                     "Access options, content filters, graphics, audio, and keybinding configuration.",
                                     "System Menu", "[ ESC ]");

@@ -15,6 +15,7 @@ bool statsComponent::addXp(float amount)
 	{
 		currentXp -= getRequiredXp();
 		level++;
+		modifyBaseStat("perk_points", 1.0f);
 		leveledUp = true;
 	}
 	statsVersion++;

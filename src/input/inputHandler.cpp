@@ -124,7 +124,7 @@ void inputHandler::update(game* g)
                             case SDLK_RIGHT: nextX++; break;
                             default: isMove = false; break;
                         }
-                        if (isMove)
+                        if (isMove && dynamic_cast<explorationState*>(g->getActiveState()))
                         {
                             g->handleCommand(UICommand::movePlayer(nextX, nextY));
                         }

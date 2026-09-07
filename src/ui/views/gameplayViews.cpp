@@ -5,6 +5,7 @@
 #include "core/game.h"
 #include "core/characterDescription.h"
 #include "entities/entity.h"
+#include "entities/namedCharacter.h"
 #include "map/gameMap.h"
 #include "state/sexState.h"
 #include "state/combatState.h"
@@ -122,8 +123,8 @@ namespace GameplayViews
         auto mousePos = gameContext->input.getMousePosition();
         bool clicked = gameContext->input.isLeftMouseJustClicked();
 
-        // Feedback notification banner
-        if (!app->getFeedbackText().empty())
+        // Feedback notification banner (suppressed in PERKS to keep text pane clean; logged to event log instead)
+        if (!app->getFeedbackText().empty() && app->getAppMode() != PhoneAppMode::PERKS)
         {
             float fbH = 28.0f * uiScale;
             SDL_FRect fbRect = { padX, curY, innerW, fbH };
@@ -1131,95 +1132,294 @@ namespace GameplayViews
             entity* p = gameContext->getPlayer();
             float perkPts = p ? p->getStat("perk_points") : 0.0f;
 
-            // Status bar with reset button
-            float statRowH = 34.0f * uiScale;
+            // Load unified tree nodes from data["tree"]["nodes"] or data["perks"]
+            const nlohmann::json* treeNodesPtr = nullptr;
+            if (data.contains("tree") && data["tree"].contains("nodes") && data["tree"]["nodes"].is_array())
+            {
+                treeNodesPtr = &data["tree"]["nodes"];
+            }
+            else if (data.contains("perks") && data["perks"].is_array())
+            {
+                treeNodesPtr = &data["perks"];
+            }
+
+            int masteredCount = 0;
+            int totalNodes = (treeNodesPtr) ? static_cast<int>(treeNodesPtr->size()) : 0;
+            if (treeNodesPtr && p)
+            {
+                for (const auto& nd : *treeNodesPtr)
+                {
+                    if (p->hasPerk(nd.value("id", ""))) masteredCount++;
+                }
+            }
+
+            // 1. Sleek Status Bar: Points on left, Mastered Count on right
+            float statRowH = 30.0f * uiScale;
             SDL_FRect statRowRect = { padX, curY, innerW, statRowH };
             UIWidget::drawPanel(renderer, statRowRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
-            UIWidget::drawText(renderer, std::format("Available Talent Points: {:.0f}", perkPts), padX + (10.0f * uiScale), curY + (8.0f * uiScale), Theme::colors.currency, uiScale * 0.85f);
 
-            SDL_FRect resetBtnRect = { padX + innerW - (120.0f * uiScale), curY + (4.0f * uiScale), 110.0f * uiScale, 26.0f * uiScale };
-            bool resetHov = (mousePos.x >= resetBtnRect.x && mousePos.x <= resetBtnRect.x + resetBtnRect.w &&
-                             mousePos.y >= resetBtnRect.y && mousePos.y <= resetBtnRect.y + resetBtnRect.h);
-            if (resetHov && clicked && p)
+            std::string ptsStr = std::format("Available Talent Points: {:.0f}", perkPts);
+            UIWidget::drawText(renderer, ptsStr, padX + (14.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.currency, uiScale * 0.86f);
+
+            std::string countStr = std::format("Mastered: {} / {} Talents", masteredCount, totalNodes);
+            float countW = UIWidget::getTextWidth(countStr, uiScale * 0.82f);
+            UIWidget::drawText(renderer, countStr, padX + innerW - countW - (14.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textGold, uiScale * 0.82f);
+
+            curY += statRowH + (6.0f * uiScale);
+
+            // 2. Column Pillar Discipline Headers across the 5 tracks
+            float trackW = innerW / 5.0f;
+            float pillarH = 18.0f * uiScale;
+            static const std::vector<std::pair<std::string, SDL_Color>> pillars = {
+                { "PHYSICAL",   { 218, 92, 92, 255 } },
+                { "ARCANE",     { 82, 168, 236, 255 } },
+                { "SOCIAL",     { 224, 180, 80, 255 } },
+                { "SEXUAL",     { 220, 110, 170, 255 } },
+                { "DEMONIC",    { 175, 100, 220, 255 } }
+            };
+            for (size_t i = 0; i < pillars.size(); ++i)
             {
-                p->stats.setBaseStat("perk_points", perkPts + 3.0f);
-                app->setFeedbackText("All spent perk points refunded (+3 Points).");
-                gameContext->input.consumeMouseClick();
-                gameContext->refreshActionGrid();
+                float px = padX + i * trackW;
+                std::string pName = "[" + pillars[i].first + "]";
+                float pw = UIWidget::getTextWidth(pName, uiScale * 0.72f);
+                UIWidget::drawText(renderer, pName, px + ((trackW - pw) / 2.0f), curY + (2.0f * uiScale), pillars[i].second, uiScale * 0.72f);
             }
-            UIWidget::drawButton(renderer, resetBtnRect, "Reset Perks", resetHov, true, false, uiScale * 0.75f);
-            curY += statRowH + (12.0f * uiScale);
+            curY += pillarH + (4.0f * uiScale);
 
-            // Category Filter Tabs: All, Physical, Arcane, Social, Sexual, Demonic
-            static const std::vector<std::string> categories = { "All", "Physical", "Arcane", "Social", "Sexual", "Demonic" };
-            int activeCat = std::clamp(app->getPerksCategory(), 0, static_cast<int>(categories.size()) - 1);
-
-            float pBoxW = std::min(innerW, 640.0f * uiScale);
-            float pBoxX = rect.x + (rect.w - pBoxW) / 2.0f;
-            float pBoxH = 34.0f * uiScale;
-            SDL_FRect pBoxRect = { pBoxX, curY, pBoxW, pBoxH };
-            UIWidget::drawPanel(renderer, pBoxRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
-
-            float pPad = 4.0f * uiScale;
-            float pGap = 4.0f * uiScale;
-            float pBtnH = pBoxH - (pPad * 2.0f);
-            float pBtnW = (pBoxW - (pPad * 2.0f) - (pGap * (categories.size() - 1))) / static_cast<float>(categories.size());
-
-            for (size_t i = 0; i < categories.size(); ++i)
+            // 3. Unified Visual Tree Canvas
+            if (treeNodesPtr && !treeNodesPtr->empty())
             {
-                SDL_FRect pR = { pBoxX + pPad + i * (pBtnW + pGap), pBoxRect.y + pPad, pBtnW, pBtnH };
-                bool hov = (mousePos.x >= pR.x && mousePos.x <= pR.x + pR.w &&
-                            mousePos.y >= pR.y && mousePos.y <= pR.y + pR.h);
-                if (hov && clicked)
+                const auto& treeNodes = *treeNodesPtr;
+
+                float nodeW = 120.0f * uiScale;
+                float nodeH = 38.0f * uiScale;
+                float rowGapY = 28.0f * uiScale;
+
+                // 6 tier rows (0, 1, 2, 3, 4, 5)
+                float canvasH = (6 * nodeH) + (5 * rowGapY) + (24.0f * uiScale);
+                SDL_FRect canvasRect = { padX, curY, innerW, canvasH };
+                UIWidget::drawPanel(renderer, canvasRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+
+                // Compute geometries for all nodes in the tree
+                std::unordered_map<std::string, SDL_FRect> nodeRects;
+                std::unordered_map<std::string, const nlohmann::json*> nodeJsonMap;
+
+                for (const auto& node : treeNodes)
                 {
-                    app->setPerksCategory(static_cast<int>(i));
-                    gameContext->refreshActionGrid();
-                    gameContext->input.consumeMouseClick();
+                    std::string nId = node.value("id", "");
+                    int tier = node.value("tier", 0);
+                    float col = node.value("column", 0.0f);
+
+                    float centerX = canvasRect.x + (col + 0.5f) * trackW;
+                    float nx = std::clamp(centerX - (nodeW / 2.0f), canvasRect.x + (4.0f * uiScale), canvasRect.x + canvasRect.w - nodeW - (4.0f * uiScale));
+                    float ny = canvasRect.y + (12.0f * uiScale) + tier * (nodeH + rowGapY);
+
+                    nodeRects[nId] = SDL_FRect{ nx, ny, nodeW, nodeH };
+                    nodeJsonMap[nId] = &node;
                 }
-                UIWidget::drawButton(renderer, pR, categories[i], hov, true, (activeCat == static_cast<int>(i)), uiScale * 0.78f);
-            }
-            curY += pBoxH + (14.0f * uiScale);
 
-            // Perks List
-            if (data.contains("perks") && data["perks"].is_array())
-            {
-                for (const auto& pk : data["perks"])
+                // Step A: Draw Connecting Branch Lines between parent and child nodes
+                // Render inactive (gray) lines first, then active (gold) lines on top so active paths meet cleanly
+                for (int pass = 0; pass < 2; ++pass)
                 {
-                    std::string pName = pk.value("name", "Perk");
-                    std::string category = pk.value("category", "General");
-                    int cost = pk.value("cost", 1);
-                    std::string desc = pk.value("description", "");
-                    bool unlocked = pk.value("unlocked", false);
+                    bool renderActivePass = (pass == 1);
 
-                    if (activeCat > 0 && category != categories[activeCat]) continue;
+                    for (const auto& node : treeNodes)
+                    {
+                        std::string cId = node.value("id", "");
+                        if (!nodeRects.contains(cId)) continue;
+                        const auto& cRect = nodeRects[cId];
+                        float cX = cRect.x + cRect.w / 2.0f;
+                        float cY = cRect.y;
 
-                    float cardH = 48.0f * uiScale;
-                    SDL_FRect cardRect = { padX, curY, innerW, cardH };
-                    UIWidget::drawPanel(renderer, cardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+                        bool cUnlocked = p ? p->hasPerk(cId) : false;
+                        bool requireAll = node.value("requireAllParents", false);
 
-                    UIWidget::drawText(renderer, pName, padX + (10.0f * uiScale), curY + (6.0f * uiScale), unlocked ? Theme::colors.textGold : Theme::colors.textSecondary, uiScale * 0.88f);
-                    float nW = UIWidget::getTextWidth(pName, uiScale * 0.88f);
-                    UIWidget::drawText(renderer, std::format("[{}]", category), padX + (16.0f * uiScale) + nW, curY + (7.0f * uiScale), Theme::colors.textAccent, uiScale * 0.75f);
+                        if (!node.contains("parents") || !node["parents"].is_array() || node["parents"].empty())
+                        {
+                            continue;
+                        }
 
-                    UIWidget::drawTextWrapped(renderer, desc, padX + (10.0f * uiScale), curY + (24.0f * uiScale), innerW - (140.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.78f);
+                        const auto& parentsList = node["parents"];
+                        int pCount = static_cast<int>(parentsList.size());
 
-                    // Learn button
-                    SDL_FRect lBtnRect = { padX + innerW - (115.0f * uiScale), curY + (10.0f * uiScale), 105.0f * uiScale, 28.0f * uiScale };
-                    bool canLearn = (!unlocked && p && perkPts >= cost);
-                    bool lHov = (mousePos.x >= lBtnRect.x && mousePos.x <= lBtnRect.x + lBtnRect.w &&
-                                 mousePos.y >= lBtnRect.y && mousePos.y <= lBtnRect.y + lBtnRect.h);
-                    if (lHov && clicked && canLearn)
+                        bool allParentsUnlocked = (pCount > 0);
+                        bool anyParentUnlocked = false;
+                        for (const auto& pVal : parentsList)
+                        {
+                            std::string pId = pVal.get<std::string>();
+                            bool pUnlocked = (p && p->hasPerk(pId));
+                            if (pUnlocked) anyParentUnlocked = true;
+                            else allParentsUnlocked = false;
+                        }
+
+                        float midY = cY - (rowGapY / 2.0f);
+
+                        // 1. Draw branch from each parent to the middle junction (cX, midY)
+                        // When one parent is unlocked, its yellow line goes to the middle
+                        for (const auto& pVal : parentsList)
+                        {
+                            std::string pId = pVal.get<std::string>();
+                            if (nodeRects.contains(pId))
+                            {
+                                const auto& pRect = nodeRects[pId];
+                                float pX = pRect.x + pRect.w / 2.0f;
+                                float pY = pRect.y + pRect.h;
+
+                                bool parentUnlocked = (p && p->hasPerk(pId));
+                                bool branchActive = (cUnlocked || parentUnlocked);
+
+                                if (branchActive == renderActivePass)
+                                {
+                                    SDL_Color lineCol = branchActive ? Theme::colors.borderSelected : Theme::colors.borderMuted;
+                                    SDL_SetRenderDrawColor(renderer, lineCol.r, lineCol.g, lineCol.b, lineCol.a);
+
+                                    SDL_RenderLine(renderer, pX, pY, pX, midY);
+                                    SDL_RenderLine(renderer, pX, midY, cX, midY);
+                                }
+                            }
+                        }
+
+                        // 2. Draw stem from middle junction (cX, midY) down into the child (cX, cY)
+                        // For multi-parent combo nodes requiring all parents, the stem only illuminates once all parents are unlocked
+                        bool stemActive = false;
+                        if (requireAll && pCount > 1)
+                        {
+                            stemActive = (cUnlocked || allParentsUnlocked);
+                        }
+                        else
+                        {
+                            stemActive = (cUnlocked || anyParentUnlocked);
+                        }
+
+                        if (stemActive == renderActivePass)
+                        {
+                            SDL_Color stemCol = stemActive ? Theme::colors.borderSelected : Theme::colors.borderMuted;
+                            SDL_SetRenderDrawColor(renderer, stemCol.r, stemCol.g, stemCol.b, stemCol.a);
+
+                            SDL_RenderLine(renderer, cX, midY, cX, cY);
+                        }
+                    }
+                }
+
+                // Step B: Draw Node Cards & Handle Interactions
+                for (const auto& node : treeNodes)
+                {
+                    std::string nId = node.value("id", "");
+                    std::string nName = node.value("name", "Talent");
+                    std::string cat = node.value("category", "General");
+                    int cost = node.value("cost", 1);
+                    int tier = node.value("tier", 0);
+                    bool requireAll = node.value("requireAllParents", false);
+                    std::string desc = node.value("description", "");
+                    const auto& nRect = nodeRects[nId];
+
+                    bool unlocked = p ? p->hasPerk(nId) : false;
+
+                    // Evaluate Connection Gating:
+                    bool connected = false;
+                    int parentsCount = 0;
+                    int unlockedParentsCount = 0;
+                    std::string missingReqs = "";
+                    std::string allReqs = "";
+
+                    if (!node.contains("parents") || node["parents"].empty())
+                    {
+                        connected = true;
+                    }
+                    else
+                    {
+                        for (const auto& pVal : node["parents"])
+                        {
+                            std::string pId = pVal.get<std::string>();
+                            parentsCount++;
+                            bool pUnlocked = (p && p->hasPerk(pId));
+                            if (pUnlocked) unlockedParentsCount++;
+                            else
+                            {
+                                std::string pName = nodeJsonMap.contains(pId) ? (*nodeJsonMap[pId]).value("name", pId) : pId;
+                                if (!missingReqs.empty()) missingReqs += ", ";
+                                missingReqs += pName;
+                            }
+                            std::string pName = nodeJsonMap.contains(pId) ? (*nodeJsonMap[pId]).value("name", pId) : pId;
+                            if (!allReqs.empty()) allReqs += ", ";
+                            allReqs += pName + (pUnlocked ? " [OK]" : " [Missing]");
+                        }
+
+                        if (requireAll)
+                        {
+                            connected = (unlockedParentsCount == parentsCount);
+                        }
+                        else
+                        {
+                            connected = (unlockedParentsCount > 0);
+                        }
+                    }
+
+                    bool canLearn = (!unlocked && connected && p && perkPts >= cost);
+                    bool hovered = (mousePos.x >= nRect.x && mousePos.x <= nRect.x + nRect.w &&
+                                    mousePos.y >= nRect.y && mousePos.y <= nRect.y + nRect.h);
+
+                    SDL_Color catAccent = Theme::colors.textGold;
+                    if (cat == "Physical") catAccent = { 218, 92, 92, 255 };
+                    else if (cat == "Arcane") catAccent = { 82, 168, 236, 255 };
+                    else if (cat == "Social") catAccent = { 224, 180, 80, 255 };
+                    else if (cat == "Sexual") catAccent = { 220, 110, 170, 255 };
+                    else if (cat == "Demonic") catAccent = { 175, 100, 220, 255 };
+                    else if (cat == "Combo") catAccent = { 110, 205, 135, 255 };
+
+                    SDL_Color nBg = unlocked ? Theme::colors.bgSlotOccupied : (hovered ? Theme::colors.bgButtonHover : Theme::colors.bgDark);
+                    SDL_Color nBorder = unlocked ? Theme::colors.borderSelected : (canLearn ? catAccent : (connected ? Theme::colors.companion : Theme::colors.slotEmptyBorder));
+                    SDL_Color nameCol = unlocked ? Theme::colors.textGold : (canLearn ? Theme::colors.textPrimary : (connected ? Theme::colors.textSecondary : Theme::colors.textDisabled));
+
+                    UIWidget::drawPanel(renderer, nRect, nBg, nBorder);
+
+                    // Title line
+                    std::string prefix = unlocked ? "* " : (canLearn ? "> " : "- ");
+                    std::string titleText = prefix + nName;
+                    float tW = UIWidget::getTextWidth(titleText, uiScale * 0.72f);
+                    UIWidget::drawText(renderer, titleText, nRect.x + ((nRect.w - tW) / 2.0f), nRect.y + (4.0f * uiScale), nameCol, uiScale * 0.72f);
+
+                    // Subtitle line
+                    std::string subText = unlocked ? "[ Mastered ]" : (canLearn ? std::format("Learn (-{} Pt)", cost) : (connected ? std::format("Need {} Pt{}", cost, cost > 1 ? "s" : "") : "[ Locked ]"));
+                    SDL_Color subCol = unlocked ? Theme::colors.textGold : (canLearn ? Theme::colors.currency : (connected ? Theme::colors.textSecondary : Theme::colors.textDisabled));
+                    float sW = UIWidget::getTextWidth(subText, uiScale * 0.68f);
+                    UIWidget::drawText(renderer, subText, nRect.x + ((nRect.w - sW) / 2.0f), nRect.y + (21.0f * uiScale), subCol, uiScale * 0.68f);
+
+                    // Hover Tooltip
+                    std::string ttTitle = std::format("{} [{} Talent]", nName, cat);
+                    std::string ttSub = std::format("Cost: {} Talent Pt{}", cost, cost > 1 ? "s" : "");
+                    std::string ttDesc = desc;
+                    if (unlocked)
+                    {
+                        ttDesc += "\n\n[Status: Mastered]";
+                    }
+                    else if (!connected)
+                    {
+                        ttDesc += std::string("\n\n[Prerequisites Required: ") + (requireAll ? "Must unlock ALL: " : "Must unlock at least one: ") + allReqs + "]";
+                    }
+                    else if (perkPts < cost)
+                    {
+                        ttDesc += std::format("\n\n[Available to Learn - Need {} more talent points]", cost - static_cast<int>(perkPts));
+                    }
+                    else
+                    {
+                        ttDesc += "\n\n[Ready to Learn - Click to Master Talent]";
+                    }
+                    TooltipManager::setHoverTooltip(nRect, mousePos, ttTitle, ttDesc, ttSub);
+
+                    // Click to unlock connected talent
+                    if (hovered && clicked && canLearn)
                     {
                         p->stats.setBaseStat("perk_points", perkPts - cost);
-                        app->setFeedbackText(std::format("Unlocked talent: {}! (-{} Pts)", pName, cost));
+                        p->unlockPerk(nId);
+                        gameContext->addLogEntry("[TALENT]", std::format("Unlocked {} (-{} Pt{})", nName, cost, cost > 1 ? "s" : ""), { 220, 180, 80, 255 });
                         gameContext->input.consumeMouseClick();
                         gameContext->refreshActionGrid();
                     }
-                    std::string lLabel = unlocked ? "[ Learned ]" : std::format("Learn (-{} Pt)", cost);
-                    UIWidget::drawButton(renderer, lBtnRect, lLabel, lHov, canLearn, unlocked, uiScale * 0.75f);
-
-                    curY += cardH + (8.0f * uiScale);
                 }
+
+                curY += canvasH + (8.0f * uiScale);
             }
         }
         else if (app->getAppMode() == PhoneAppMode::CONTACTS)
@@ -2253,7 +2453,23 @@ namespace GameplayViews
             }
 
             auto& tileData = const_cast<gameMap*>(m)->getRuntimeData(pX, pY);
-            if (tileData.persistentNPC)
+            if (!tileData.namedNPCs.empty())
+            {
+                for (const auto& namedCharEnt : tileData.namedNPCs)
+                {
+                    if (!namedCharEnt) continue;
+                    auto nc = NamedCharacterManager::getCharacter(namedCharEnt->id);
+                    if (nc && !nc->currentActivity.empty())
+                    {
+                        contextParagraphs.push_back(std::format("{} is here, {}.", namedCharEnt->name, nc->currentActivity));
+                    }
+                    else
+                    {
+                        contextParagraphs.push_back(std::format("{} is standing here.", namedCharEnt->name));
+                    }
+                }
+            }
+            else if (tileData.persistentNPC && tileData.persistentNPC != tileData.ambushState.npc)
             {
                 contextParagraphs.push_back(std::format("{} is standing here.", tileData.persistentNPC->name));
             }

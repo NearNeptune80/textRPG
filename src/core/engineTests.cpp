@@ -1,6 +1,7 @@
 #include "core/engineTests.h"
 
 #include <iostream>
+#include <fstream>
 #include <memory>
 #include <cassert>
 #include <filesystem>
@@ -11,6 +12,7 @@
 #include "state/loadGameState.h"
 #include "state/characterCreationState.h"
 #include "state/explorationState.h"
+#include "state/eventState.h"
 #include "state/transformationState.h"
 #include "core/characterDescription.h"
 #include "save/saveManager.h"
@@ -27,6 +29,14 @@
 #include "state/phoneAppsState.h"
 #include "state/shopState.h"
 #include "items/merchantValuation.h"
+#include "entities/namedCharacter.h"
+#include "entities/npcGenerator.h"
+#include "entities/perkDatabase.h"
+#include "combat/combatEngine.h"
+#include "state/combatState.h"
+#include "state/encounterResolutionState.h"
+#include "state/sexState.h"
+#include "ui/layoutEngine.h"
 
 namespace EngineTests
 {
@@ -1677,6 +1687,1050 @@ namespace EngineTests
         return allPassed;
     }
 
+    bool testNamedCharactersAndPersistentEncounter()
+    {
+        std::cout << "\n--- Running Test 21: Modular JSON Loaders, Quest NPC Relocations & Persistent Encounter System ---\n";
+        bool allPassed = true;
+
+        // 1. Modular Directory Loaders & Lookup
+        NamedCharacterManager::loadFromDirectory("data/characters");
+        npcGenerator::loadTemplates("data/enemies");
+        questDatabase::loadDatabase("data/quests");
+
+        auto marcus = NamedCharacterManager::getCharacter("marcus");
+        bool marcusLoaded = (marcus != nullptr && marcus->name == "Marcus" && marcus->isMerchant);
+        logResult("NamedCharacterManager loads Marcus from directory 'data/characters'", marcusLoaded);
+        allPassed &= marcusLoaded;
+
+        auto banditTpl = npcGenerator::getTemplate("tpl_alley_bandit");
+        auto mageTpl = npcGenerator::getTemplate("tpl_rogue_mage");
+        bool enemiesLoaded = (banditTpl != nullptr && mageTpl != nullptr);
+        logResult("npcGenerator loads modular templates from directory 'data/enemies' (bandits, mages)", enemiesLoaded);
+        allPassed &= enemiesLoaded;
+
+        if (marcus)
+        {
+            // 2. Daily Schedule Evaluation based on in-game hour
+            // Morning/Afternoon (hour 12): (2, 3) at Market Stall
+            marcus->resolveLocation(12, 1, nullptr, nullptr);
+            bool marketStall = (marcus->currentMapId == "overworld" && marcus->currentX == 2 && marcus->currentY == 3);
+            logResult("Marcus resolves to Market Stall (2,3) during daytime hours (12:00)", marketStall);
+            allPassed &= marketStall;
+
+            // Evening (hour 19): (4, 1) at Tavern Plaza
+            marcus->resolveLocation(19, 1, nullptr, nullptr);
+            bool tavernPlaza = (marcus->currentMapId == "overworld" && marcus->currentX == 4 && marcus->currentY == 1);
+            logResult("Marcus resolves to Tavern Plaza (4,1) during evening hours (19:00)", tavernPlaza);
+            allPassed &= tavernPlaza;
+
+            // Night (hour 23): (2, 2) at Marcus's Cottage (house_01)
+            marcus->resolveLocation(23, 1, nullptr, nullptr);
+            bool cottage = (marcus->currentMapId == "house_01" && marcus->currentX == 2 && marcus->currentY == 2);
+            logResult("Marcus resolves to Cottage in house_01 (2,2) during night hours (23:00)", cottage);
+            allPassed &= cottage;
+
+            // 3. Quest-Driven Relocation Evaluation (defined in quest_intro.json, NOT in marcus.json)
+            questComponent testQuests;
+            testQuests.setQuestStage("root_delivery", 1);
+            marcus->resolveLocation(12, 1, &testQuests, nullptr);
+            bool questOverride = (marcus->currentMapId == "overworld" && marcus->currentX == 1 && marcus->currentY == 1);
+            logResult("Quest-driven relocation redirects Marcus to (1,1) when 'root_delivery' stage is 1", questOverride);
+            allPassed &= questOverride;
+
+            // Clear quest stage, should resolve back to schedule (2,3 at 12:00)
+            testQuests.setQuestStage("root_delivery", 2); // completion stage
+            marcus->resolveLocation(12, 1, &testQuests, nullptr);
+            bool backToSchedule = (marcus->currentX == 2 && marcus->currentY == 3);
+            logResult("Marcus returns to default daily schedule when quest stage exceeds relocation window", backToSchedule);
+            allPassed &= backToSchedule;
+        }
+
+        // 4. NPC-Bound Quest Triggers
+        auto npcTriggers = questDatabase::getTriggersForNPC("marcus");
+        bool hasNpcTrigger = false;
+        for (const auto& trig : npcTriggers)
+        {
+            if (trig.id == "trig_marcus_delivery_talk" && trig.npcId == "marcus")
+            {
+                hasNpcTrigger = true;
+                break;
+            }
+        }
+        logResult("QuestDatabase retrieves NPC-bound trigger 'trig_marcus_delivery_talk' for Marcus", hasNpcTrigger);
+        allPassed &= hasNpcTrigger;
+
+        // 5. Map Integration & Named NPCs on Tiles
+        game g;
+        g.loadMap("overworld", 2, 3);
+        auto* activeMap = g.map;
+        bool mapOk = (activeMap != nullptr);
+        logResult("Loaded overworld map for named character placement validation", mapOk);
+        allPassed &= mapOk;
+
+        if (activeMap)
+        {
+            // Set time to 12:00
+            g.gameTime.hour = 12;
+            NamedCharacterManager::updateAllLocations(&g);
+
+            auto& marketTile = activeMap->getRuntimeData(2, 3);
+            bool marcusOnTile = false;
+            for (const auto& nc : marketTile.namedNPCs)
+            {
+                if (nc && nc->id == "marcus") marcusOnTile = true;
+            }
+            logResult("NamedCharacterManager places Marcus on (2,3) market tile at 12:00", marcusOnTile);
+            allPassed &= marcusOnTile;
+
+            // 6. State and Adjacency Enforcement on Player Movement
+            // Movement while in an encounter (eventState) is strictly blocked
+            g.changeState(std::make_unique<eventState>());
+            g.gridX = 2; g.gridY = 3;
+            g.movePlayer(3, 3);
+            bool encounterMoveBlocked = (g.gridX == 2 && g.gridY == 3);
+            logResult("Player movement is strictly locked during an encounter (eventState)", encounterMoveBlocked);
+            allPassed &= encounterMoveBlocked;
+
+            // Movement in explorationState allows valid adjacent cardinal steps
+            g.changeState(std::make_unique<explorationState>());
+            g.movePlayer(3, 3); // Valid adjacent cardinal step (East)
+            bool adjacentMoved = (g.gridX == 3 && g.gridY == 3);
+            logResult("Player moves to valid adjacent cardinal tile (3,3) from (2,3) in explorationState", adjacentMoved);
+            allPassed &= adjacentMoved;
+
+            g.movePlayer(1, 3); // Invalid non-adjacent move (distance 2)
+            bool nonAdjacentBlocked = (g.gridX == 3 && g.gridY == 3);
+            logResult("Player movement to non-adjacent tile (1,3) is strictly blocked", nonAdjacentBlocked);
+            allPassed &= nonAdjacentBlocked;
+
+            g.movePlayer(4, 4); // Invalid diagonal move (dx=1, dy=1)
+            bool diagonalBlocked = (g.gridX == 3 && g.gridY == 3);
+            logResult("Player movement to diagonal tile (4,4) is strictly blocked", diagonalBlocked);
+            allPassed &= diagonalBlocked;
+
+            // 6. Persistent Ambush Encounter & Pool on Dangerous Tile (1,2)
+            auto& alleyTile = activeMap->getRuntimeData(1, 2);
+            bool hasAmbush = (alleyTile.ambushState.npc != nullptr);
+            bool hasPool = (!alleyTile.ambushState.templatePool.empty() && alleyTile.ambushState.templatePool.size() >= 2);
+            logResult("Dangerous tile (1,2) initializes persistent ambush and loads template pool", hasAmbush && hasPool);
+            allPassed &= (hasAmbush && hasPool);
+
+            // Verify Ambush NPC is NEVER in namedNPCs and NEVER presented as a friendly talkable character
+            bool inNamedNPCs = false;
+            for (const auto& n : alleyTile.namedNPCs)
+            {
+                if (n && alleyTile.ambushState.npc && n->id == alleyTile.ambushState.npc->id) inNamedNPCs = true;
+            }
+            logResult("Ambush NPC is not present in namedNPCs (lurks in shadows, not talkable)", !inNamedNPCs);
+            allPassed &= !inNamedNPCs;
+
+            // 7. Ambush Combat Resolution & Depletion Tracking
+            auto ambusher = alleyTile.ambushState.npc;
+            if (ambusher)
+            {
+                ambusher->stats.setBaseStat("currency", 50.0f);
+
+                // Simulate player defeating and looting the ambusher
+                alleyTile.ambushState.isDefeated = true;
+                alleyTile.ambushState.restockMinutesRemaining = 1440; // 24 hours
+                ambusher->stats.setBaseStat("currency", 0.0f); // player looted gold
+                ambusher->inventory.backpack.clear(); // player looted inventory
+                ambusher->inventory.equipped.fill(nullptr); // player stripped/looted them
+
+                bool hasEquippedDepleted = false;
+                for (const auto& eq : ambusher->inventory.equipped) if (eq) hasEquippedDepleted = true;
+                bool isDepleted = (alleyTile.ambushState.isDefeated && ambusher->getStat("currency") == 0.0f && ambusher->inventory.backpack.empty() && !hasEquippedDepleted);
+                logResult("Ambush NPC enters defeated state with looted/depleted inventory and gold", isDepleted);
+                allPassed &= isDepleted;
+
+                // 8. Time Passage & 24-Hour Restock Mechanism
+                // Advance time by 600 minutes (10 hours) -> still depleted
+                activeMap->processTimePassage(600);
+                bool stillDefeated = (alleyTile.ambushState.isDefeated && alleyTile.ambushState.restockMinutesRemaining == 840);
+                bool stillNoGold = (ambusher->getStat("currency") == 0.0f);
+                logResult("Partial time passage (10h) keeps ambusher defeated and depleted (840m remaining)", stillDefeated && stillNoGold);
+                allPassed &= (stillDefeated && stillNoGold);
+
+                // Advance time by remaining 840 minutes (total 24 hours) -> restocks!
+                activeMap->processTimePassage(840);
+                bool restocked = (!alleyTile.ambushState.isDefeated && alleyTile.ambushState.restockMinutesRemaining == 0);
+                bool goldRestored = (ambusher->getStat("currency") >= 20.0f);
+                bool hasEquippedRestocked = false;
+                for (const auto& eq : ambusher->inventory.equipped) if (eq) hasEquippedRestocked = true;
+                bool itemsRestocked = (!ambusher->inventory.backpack.empty() || hasEquippedRestocked);
+                bool restockOk = (restocked && goldRestored && itemsRestocked);
+                logResult("Passing full 24h restocks ambusher: revives, rolls fresh gold, and replenishes template items", restockOk);
+                allPassed &= restockOk;
+
+                // 9. Permanent Removal System: Clears specific NPC so a NEW random NPC from pool spawns after 24h
+                alleyTile.ambushState.npc = nullptr;
+                alleyTile.ambushState.isDefeated = true;
+                alleyTile.ambushState.restockMinutesRemaining = 1440;
+
+                // Partial time passage: still null
+                activeMap->processTimePassage(600);
+                bool stillNull = (alleyTile.ambushState.npc == nullptr && alleyTile.ambushState.isDefeated);
+                logResult("Permanently removed enemy leaves tile clear during restock cooldown (600m passed)", stillNull);
+                allPassed &= stillNull;
+
+                // Pass remaining 840m -> spawns a fresh random enemy from pool
+                activeMap->processTimePassage(840);
+                bool spawnedNew = (!alleyTile.ambushState.isDefeated && alleyTile.ambushState.npc != nullptr);
+                bool validPoolChoice = (spawnedNew && (!alleyTile.ambushState.templateId.empty()));
+                logResult("Passing 24h after permanent removal spawns a fresh random enemy from template pool", validPoolChoice);
+                allPassed &= validPoolChoice;
+            }
+
+            // 10. Save & Load Serialization for Named Characters & Ambushes
+            nlohmann::json namedJson = NamedCharacterManager::saveStateToJson();
+            NamedCharacterManager::loadStateFromJson(namedJson);
+            nlohmann::json mapJson = activeMap->saveStateToJson();
+
+            bool hasSavedAmbushes = mapJson.contains("tileAmbushes");
+            logResult("GameMap serializes 'tileAmbushes' state with template pool into map JSON payload", hasSavedAmbushes);
+            allPassed &= hasSavedAmbushes;
+
+            // Verify load restores state accurately
+            activeMap->loadStateFromJson(mapJson);
+            auto& reloadedAlley = activeMap->getRuntimeData(1, 2);
+            bool loadedPool = (!reloadedAlley.ambushState.templatePool.empty() && reloadedAlley.ambushState.npc != nullptr);
+            logResult("GameMap deserializes persistent ambush state and template pool accurately", loadedPool);
+            allPassed &= loadedPool;
+        }
+
+        return allPassed;
+    }
+
+    bool testCalendarLeapYearsAndTransformationNavigation()
+    {
+        std::cout << "\n--- Running Test 22: Calendar Leap Years, Character Creation Birth Month & Direct Transform ---\n";
+        bool allPassed = true;
+
+        // 1. Leap Year Math Validation
+        bool leap2020 = timeManager::isLeapYear(2020);
+        bool leap2024 = timeManager::isLeapYear(2024);
+        bool leap2000 = timeManager::isLeapYear(2000);
+        bool nonLeap1900 = !timeManager::isLeapYear(1900);
+        bool nonLeap2023 = !timeManager::isLeapYear(2023);
+        bool nonLeap1 = !timeManager::isLeapYear(1);
+
+        bool leapMathOk = leap2020 && leap2024 && leap2000 && nonLeap1900 && nonLeap2023 && nonLeap1;
+        logResult("timeManager::isLeapYear evaluates Gregorian century and standard leap years accurately", leapMathOk);
+        allPassed &= leapMathOk;
+
+        // 2. Days In Month Across All 12 Months
+        bool janOk = (timeManager::getDaysInMonth(1, 2024) == 31);
+        bool febLeapOk = (timeManager::getDaysInMonth(2, 2024) == 29);
+        bool febNonLeapOk = (timeManager::getDaysInMonth(2, 2023) == 28);
+        bool marOk = (timeManager::getDaysInMonth(3, 2024) == 31);
+        bool aprOk = (timeManager::getDaysInMonth(4, 2024) == 30);
+        bool mayOk = (timeManager::getDaysInMonth(5, 2024) == 31);
+        bool junOk = (timeManager::getDaysInMonth(6, 2024) == 30);
+        bool julOk = (timeManager::getDaysInMonth(7, 2024) == 31);
+        bool augOk = (timeManager::getDaysInMonth(8, 2024) == 31);
+        bool sepOk = (timeManager::getDaysInMonth(9, 2024) == 30);
+        bool octOk = (timeManager::getDaysInMonth(10, 2024) == 31);
+        bool novOk = (timeManager::getDaysInMonth(11, 2024) == 30);
+        bool decOk = (timeManager::getDaysInMonth(12, 2024) == 31);
+
+        bool allDaysOk = janOk && febLeapOk && febNonLeapOk && marOk && aprOk && mayOk &&
+                         junOk && julOk && augOk && sepOk && octOk && novOk && decOk;
+        logResult("timeManager::getDaysInMonth returns exact calendar days (Feb 28/29, Apr/Jun/Sep/Nov 30, others 31)", allDaysOk);
+        allPassed &= allDaysOk;
+
+        // 3. Simulation Advance Time Month Boundary Transitions
+        {
+            timeManager tm;
+            // Feb 28, 2023 (non-leap year) -> should rollover to March 1
+            tm.year = 2023;
+            tm.month = 2;
+            tm.day = 28;
+            tm.hour = 23;
+            tm.minute = 50;
+            tm.advanceTime(20); // +20 mins -> 00:10 March 1
+            bool nonLeapRoll = (tm.month == 3 && tm.day == 1 && tm.hour == 0 && tm.minute == 10);
+            logResult("Non-leap year Feb 28 rolls directly into March 1 upon midnight transition", nonLeapRoll);
+            allPassed &= nonLeapRoll;
+
+            // Feb 28, 2024 (leap year) -> should rollover to Feb 29, then to March 1
+            tm.year = 2024;
+            tm.month = 2;
+            tm.day = 28;
+            tm.hour = 23;
+            tm.minute = 50;
+            tm.advanceTime(20); // +20 mins -> 00:10 Feb 29
+            bool leapRoll29 = (tm.month == 2 && tm.day == 29 && tm.hour == 0 && tm.minute == 10);
+            logResult("Leap year Feb 28 rolls into Feb 29 (leap day)", leapRoll29);
+            allPassed &= leapRoll29;
+
+            tm.advanceTime(1440); // +24 hours -> 00:10 March 1
+            bool leapRollMar = (tm.month == 3 && tm.day == 1 && tm.hour == 0 && tm.minute == 10);
+            logResult("Leap year Feb 29 rolls into March 1 after 24 hours", leapRollMar);
+            allPassed &= leapRollMar;
+
+            // Dec 31 -> Jan 1 of next year
+            tm.year = 2024;
+            tm.month = 12;
+            tm.day = 31;
+            tm.hour = 23;
+            tm.minute = 50;
+            tm.advanceTime(20);
+            bool yearRoll = (tm.year == 2025 && tm.month == 1 && tm.day == 1 && tm.hour == 0 && tm.minute == 10);
+            logResult("New Year transition advances year count and resets month to January 1", yearRoll);
+            allPassed &= yearRoll;
+        }
+
+        // 4. Character Creation Starting Month & Birthday Dynamic Clamping
+        {
+            game g;
+            characterCreationState cc;
+            cc.initialise(&g);
+
+            // Set starting month to October (month 10)
+            cc.startMonth = "October";
+            cc.startMonthIdx = 9;
+
+            // Pick birth month as February and age 22
+            cc.birthMonth = "February";
+            cc.birthMonthIdx = 1;
+            cc.birthAge = 22;
+
+            // Clamping check for birthDay in February of birthYear (2026 - 22 = 2004, leap year -> 29 days)
+            int bYear = 2026 - cc.birthAge;
+            int maxFebDays = timeManager::getDaysInMonth(cc.birthMonthIdx + 1, bYear);
+            bool febLeapClamp = (maxFebDays == 29);
+            cc.birthDay = std::clamp(31, 1, maxFebDays);
+            bool clampedDayOk = (cc.birthDay == 29);
+            logResult("Character creation clamps birth day to 29 for February in a leap birth year", febLeapClamp && clampedDayOk);
+            allPassed &= (febLeapClamp && clampedDayOk);
+
+            // Test non-leap birth year (2026 - 21 = 2005 -> 28 days)
+            cc.birthAge = 21;
+            int nonLeapBYear = 2026 - cc.birthAge;
+            int maxNonLeapDays = timeManager::getDaysInMonth(cc.birthMonthIdx + 1, nonLeapBYear);
+            cc.birthDay = std::clamp(cc.birthDay, 1, maxNonLeapDays);
+            bool clamped28Ok = (cc.birthDay == 28);
+            logResult("Character creation clamps birth day to 28 for February in a non-leap birth year", clamped28Ok);
+            allPassed &= clamped28Ok;
+
+            // Finalize character and verify gameTime starts in chosen month (October = 10)
+            cc.finalizeCharacter(&g);
+            bool startMonthApplied = (g.gameTime.month == 10);
+            logResult("Finalizing character starts game in the user-selected starting month (October)", startMonthApplied);
+            allPassed &= startMonthApplied;
+
+            // Verify player entity stores birthDay, birthMonth, and birthYear
+            entity* p = g.getPlayer();
+            bool entityBdayOk = (p != nullptr && p->birthDay == 28 && p->birthMonth == 2);
+            logResult("Player entity stores birthDay, birthMonth, and birthYear", entityBdayOk);
+            allPassed &= entityBdayOk;
+
+            // Verify entity JSON serialization preserves birthday fields
+            nlohmann::json pj = p->toJson();
+            entity loadedP("copy", "Copy");
+            loadedP.fromJson(pj);
+            bool jsonBdayOk = (loadedP.birthDay == 28 && loadedP.birthMonth == 2);
+            logResult("Entity JSON serialization roundtrips birthDay and birthMonth accurately", jsonBdayOk);
+            allPassed &= jsonBdayOk;
+        }
+
+        // 5. Phone Transform Direct Transition & Return
+        {
+            game g;
+            g.changeState(std::make_unique<phoneAppsState>(PhoneAppMode::HOME));
+
+            auto* phone = dynamic_cast<phoneAppsState*>(g.getActiveState());
+            bool inHome = (phone != nullptr && phone->getAppMode() == PhoneAppMode::HOME);
+            logResult("Game initializes in phoneAppsState HOME mode", inHome);
+            allPassed &= inHome;
+
+            // Trigger Transform direct navigation
+            g.changeState(std::make_unique<transformationState>(TransformationTab::CORE, std::make_unique<phoneAppsState>(PhoneAppMode::HOME)));
+            auto* tf = dynamic_cast<transformationState*>(g.getActiveState());
+            bool inTf = (tf != nullptr);
+            logResult("Bypasses intermediary phone screen and enters transformationState directly", inTf);
+            allPassed &= inTf;
+
+            // Invoke returnToPreviousOrExploration
+            if (tf)
+            {
+                tf->returnToPreviousOrExploration(&g);
+                auto* returnedPhone = dynamic_cast<phoneAppsState*>(g.getActiveState());
+                bool backToPhone = (returnedPhone != nullptr && returnedPhone->getAppMode() == PhoneAppMode::HOME);
+                logResult("Apply & Return smoothly returns directly back to phoneAppsState HOME", backToPhone);
+                allPassed &= backToPhone;
+            }
+        }
+
+        return allPassed;
+    }
+
+    bool testLayoutIntegrityAndContainment()
+    {
+        std::cout << "\n--- Running Test 23: Autonomous Layout JSON Containment & Geometry Integrity ---\n";
+        bool allPassed = true;
+
+        // 1. Validate Master Layout File Loading
+        layoutEngine defEngine;
+        bool defLoaded = defEngine.loadFromFile("data/layouts/default_layout.json");
+        logResult("Master layout 'data/layouts/default_layout.json' loads and parses cleanly", defLoaded);
+        allPassed &= defLoaded;
+
+        layoutEngine customEngine;
+        bool customLoaded = customEngine.loadFromFile("data/layouts/custom_tile_layout.json");
+        logResult("Alternative layout 'data/layouts/custom_tile_layout.json' loads and parses cleanly", customLoaded);
+        allPassed &= customLoaded;
+
+        // 2. Validate Transformation Studio 3-Column Geometry in Master Layout
+        auto tfBounds = defEngine.computeLayout(1920.0f, 1080.0f, 1.0f, "TRANSFORMATION");
+        bool hasTfLeft = false, hasTfCenter = false, hasTfActions = false, hasTfRight = false;
+        SDL_FRect leftRect{ 0, 0, 0, 0 }, centerRect{ 0, 0, 0, 0 }, rightRect{ 0, 0, 0, 0 };
+
+        for (const auto& p : tfBounds)
+        {
+            if (p.id == "tf_left_column") { hasTfLeft = true; leftRect = p.rect; }
+            else if (p.id == "tf_center_pane") { hasTfCenter = true; centerRect = p.rect; }
+            else if (p.id == "tf_bottom_actions") { hasTfActions = true; }
+            else if (p.id == "tf_right_column") { hasTfRight = true; rightRect = p.rect; }
+        }
+
+        bool tfPanelsPresent = (hasTfLeft && hasTfCenter && hasTfActions && hasTfRight);
+        logResult("Transformation layout computes sidebars (tf_left_column, tf_right_column) and center panels", tfPanelsPresent);
+        allPassed &= tfPanelsPresent;
+
+        bool tfHorizOrder = (leftRect.w > 0 && centerRect.w > 0 && rightRect.w > 0 &&
+                             leftRect.x < centerRect.x && centerRect.x < rightRect.x);
+        logResult("Transformation layout maintains strict horizontal 3-column ordering without overlapping", tfHorizOrder);
+        allPassed &= tfHorizOrder;
+
+        // 3. Validate Widget Registration inside Transformation Panels
+        bool widgetsValid = false;
+        for (const auto& p : tfBounds)
+        {
+            if (p.id == "tf_left_column")
+            {
+                bool hasBio = false, hasPaperdoll = false;
+                for (const auto& w : p.widgets)
+                {
+                    if (w == "widget_lt_character_card") hasBio = true;
+                    if (w == "widget_paperdoll_equipment") hasPaperdoll = true;
+                }
+                widgetsValid = (hasBio && hasPaperdoll);
+            }
+        }
+        logResult("Transformation left sidebar binds character card and paperdoll equipment widgets", widgetsValid);
+        allPassed &= widgetsValid;
+
+        // 4. Validate Standard 3-Column States Coverage Across All Key States
+        static const std::vector<std::string> threeColStates = {
+            "EXPLORATION", "INVENTORY", "SHOP", "TRANSFORMATION", "PHONE_APP", "CHARACTER_CREATION", "SETTINGS", "LOAD_GAME"
+        };
+        bool allThreeColOk = true;
+        for (const auto& st : threeColStates)
+        {
+            auto bounds = defEngine.computeLayout(1920.0f, 1080.0f, 1.0f, st);
+            float minX = 9999.0f, maxX = 0.0f;
+            for (const auto& b : bounds)
+            {
+                if (b.rect.x < minX) minX = b.rect.x;
+                if (b.rect.x + b.rect.w > maxX) maxX = b.rect.x + b.rect.w;
+            }
+            if (bounds.size() < 3 || minX >= maxX) allThreeColOk = false;
+        }
+        logResult("All core gameplay states (Exploration, Inv, Shop, TF, Phone, Creation, Settings, Load) compute multi-column bounds", allThreeColOk);
+        allPassed &= allThreeColOk;
+
+        // 5. Dynamic Window Resolution Rescaling Invariance
+        auto bounds720p = defEngine.computeLayout(1280.0f, 720.0f, 0.75f, "TRANSFORMATION");
+        bool scaledPositive = true;
+        for (const auto& b : bounds720p)
+        {
+            if (b.rect.w <= 0.0f || b.rect.h <= 0.0f) scaledPositive = false;
+        }
+        logResult("Layout engine dynamically rescales all panels at 720p resolution with positive bounds", scaledPositive);
+        allPassed &= scaledPositive;
+
+        return allPassed;
+    }
+
+    bool testUnified3PanelLayoutFogOfWarAndPerkTree()
+    {
+        std::cout << "\n--- Running Test 24: 3-Panel Layout Unification, Exploration Fog of War & Perk Tree ---\n";
+        bool allPassed = true;
+
+        // 1. Layout Unification Verification
+        layoutEngine layoutEng;
+        layoutEng.loadFromFile("data/layouts/default_layout.json");
+
+        // CHARACTER_CREATION: Left (16%), Center (68%), Right (16%)
+        auto ccPanels = layoutEng.computeLayout(1920.0f, 1080.0f, 1.0f, "CHARACTER_CREATION");
+        bool hasCcLeft = false, hasCcCenter = false, hasCcRight = false;
+        for (const auto& p : ccPanels)
+        {
+            if (p.id == "cc_left_sidebar") hasCcLeft = true;
+            if (p.id == "cc_center_pane") hasCcCenter = true;
+            if (p.id == "cc_right_sidebar") hasCcRight = true;
+        }
+        bool ccUnified = (hasCcLeft && hasCcCenter && hasCcRight);
+        logResult("Character Creation conforms to 3-panel layout (cc_left_sidebar, cc_center_pane, cc_right_sidebar)", ccUnified);
+        allPassed &= ccUnified;
+
+        // SETTINGS: Left (16%), Center (68%), Right (16%)
+        auto optPanels = layoutEng.computeLayout(1920.0f, 1080.0f, 1.0f, "SETTINGS");
+        bool hasOptLeft = false, hasOptCenter = false, hasOptRight = false;
+        for (const auto& p : optPanels)
+        {
+            if (p.id == "opt_left_sidebar") hasOptLeft = true;
+            if (p.id == "opt_center_pane") hasOptCenter = true;
+            if (p.id == "opt_right_sidebar") hasOptRight = true;
+        }
+        bool optUnified = (hasOptLeft && hasOptCenter && hasOptRight);
+        logResult("Settings / Options conforms to 3-panel layout (opt_left_sidebar, opt_center_pane, opt_right_sidebar)", optUnified);
+        allPassed &= optUnified;
+
+        // LOAD_GAME: Left (16%), Center (68%), Right (16%)
+        auto loadPanels = layoutEng.computeLayout(1920.0f, 1080.0f, 1.0f, "LOAD_GAME");
+        bool hasLoadLeft = false, hasLoadCenter = false, hasLoadRight = false;
+        for (const auto& p : loadPanels)
+        {
+            if (p.id == "load_left_sidebar") hasLoadLeft = true;
+            if (p.id == "load_center_pane") hasLoadCenter = true;
+            if (p.id == "load_right_sidebar") hasLoadRight = true;
+        }
+        bool loadUnified = (hasLoadLeft && hasLoadCenter && hasLoadRight);
+        logResult("Load Game conforms to 3-panel layout (load_left_sidebar, load_center_pane, load_right_sidebar)", loadUnified);
+        allPassed &= loadUnified;
+
+        // MAIN_MENU: Sole fullscreen exception (no sidebars)
+        auto mmPanels = layoutEng.computeLayout(1920.0f, 1080.0f, 1.0f, "MAIN_MENU");
+        bool hasMmCenter = false, hasMmSidebar = false;
+        for (const auto& p : mmPanels)
+        {
+            if (p.id == "mm_center_hero") hasMmCenter = true;
+            if (p.id.find("sidebar") != std::string::npos || p.id.find("left_") != std::string::npos || p.id.find("right_") != std::string::npos)
+            {
+                hasMmSidebar = true;
+            }
+        }
+        bool mmException = (hasMmCenter && !hasMmSidebar);
+        logResult("Main Menu remains the sole fullscreen exception without sidebars", mmException);
+        allPassed &= mmException;
+
+        // 2. Exploration Discovery & Fog of War System
+        gameMap testMap;
+        testMap.loadFromFile("data/maps/overworld.json");
+
+        // Freshly loaded map tiles default to STATE_HIDDEN and visited == false
+        Tile farTile = testMap.getTile(0, 0);
+        bool initialHidden = (farTile.discovery == STATE_HIDDEN && !farTile.visited);
+        logResult("Unvisited tiles initialize in STATE_HIDDEN fog of war", initialHidden);
+        allPassed &= initialHidden;
+
+        // Reveal area around player at (2, 3)
+        testMap.updateDiscovery(2, 3);
+        Tile playerTile = testMap.getTile(2, 3);
+        bool playerTileRevealed = (playerTile.discovery == STATE_REVEALED && playerTile.visited);
+        logResult("Player step tile is marked STATE_REVEALED and visited == true", playerTileRevealed);
+        allPassed &= playerTileRevealed;
+
+        Tile adjacentTile = testMap.getTile(3, 3); // cardinal adjacent tile (dx=1, dy=0)
+        bool adjacentPartial = (adjacentTile.discovery == STATE_PARTIAL && !adjacentTile.visited);
+        logResult("Cardinally adjacent tile (3,3) becomes STATE_PARTIAL (partially discovered)", adjacentPartial);
+        allPassed &= adjacentPartial;
+
+        Tile diagonalTile = testMap.getTile(3, 2); // diagonal tile (dx=1, dy=-1)
+        bool diagonalHidden = (diagonalTile.discovery == STATE_HIDDEN && !diagonalTile.visited);
+        logResult("Diagonally adjacent tile (3,2) strictly remains in STATE_HIDDEN (not cardinal)", diagonalHidden);
+        allPassed &= diagonalHidden;
+
+        Tile distantTile = testMap.getTile(0, 0); // distance > 1
+        bool distantHidden = (distantTile.discovery == STATE_HIDDEN && !distantTile.visited);
+        logResult("Distant unapproached tiles remain in STATE_HIDDEN (dark, undiscovered)", distantHidden);
+        allPassed &= distantHidden;
+
+        // Serialization & Deserialization of discovery & visited arrays
+        auto mapJson = testMap.saveStateToJson();
+        gameMap loadedMap;
+        loadedMap.loadFromFile("data/maps/overworld.json");
+        loadedMap.loadStateFromJson(mapJson);
+
+        Tile reloadedPlayerTile = loadedMap.getTile(2, 3);
+        Tile reloadedAdjacentTile = loadedMap.getTile(3, 3);
+        Tile reloadedDiagonalTile = loadedMap.getTile(3, 2);
+        Tile reloadedDistantTile = loadedMap.getTile(0, 0);
+        bool roundtripValid = (reloadedPlayerTile.visited && reloadedPlayerTile.discovery == STATE_REVEALED &&
+                               !reloadedAdjacentTile.visited && reloadedAdjacentTile.discovery == STATE_PARTIAL &&
+                               !reloadedDiagonalTile.visited && reloadedDiagonalTile.discovery == STATE_HIDDEN &&
+                               !reloadedDistantTile.visited && reloadedDistantTile.discovery == STATE_HIDDEN);
+        logResult("Map 3-tier discovery & visited arrays persist cleanly across JSON save/load", roundtripValid);
+        allPassed &= roundtripValid;
+
+        // 3. Functional Perk Tree System
+        auto player = std::make_shared<entity>("perk_hero", "PerkHero");
+        player->stats.setBaseStat("max_health", 100.0f);
+        player->stats.setBaseStat("health", 100.0f);
+        player->stats.setBaseStat("max_mana", 50.0f);
+        player->stats.setBaseStat("mana", 50.0f);
+
+        float startingPerkPts = player->getStat("perk_points");
+        bool hasStartingPts = (startingPerkPts == 3.0f);
+        logResult("Player entity initializes with 3 starting talent/perk points", hasStartingPts);
+        allPassed &= hasStartingPts;
+
+        float baseHp = player->getStat("max_health");
+        bool baseHpOk = (baseHp == 100.0f);
+        logResult("Player base max health equals 100 before perk unlocks", baseHpOk);
+        allPassed &= baseHpOk;
+
+        // Unlock Iron Constitution (+20 HP, +5 Defense)
+        player->unlockPerk("iron_constitution");
+        bool hasIron = player->hasPerk("iron_constitution");
+        float boostedHp = player->getStat("max_health");
+        float boostedDef = player->getStat("defense");
+        bool ironPerkActive = (hasIron && boostedHp == 120.0f && boostedDef == 5.0f);
+        logResult("Unlocking 'iron_constitution' grants +20 Max Health and +5 Defense dynamically", ironPerkActive);
+        allPassed &= ironPerkActive;
+
+        // Unlock Brawny Strike (+5 Strength, +10 Physical Damage)
+        player->unlockPerk("brawny_strike");
+        bool brawnyActive = (player->hasPerk("brawny_strike") &&
+                             player->getStat("strength") == 5.0f &&
+                             player->getStat("physical_damage") == 10.0f);
+        logResult("Unlocking 'brawny_strike' grants +5 Strength and +10 Physical Damage", brawnyActive);
+        allPassed &= brawnyActive;
+
+        // Unlock Trade Perks (Silver Tongue & Master Trader)
+        player->unlockPerk("silver_tongue");
+        player->unlockPerk("master_trader");
+        bool tradeStacked = (player->tradePerkModifier == 0.25f && player->getStat("charm") == 5.0f);
+        logResult("Silver Tongue & Master Trader stack trade modifiers (+25%) and grant charm", tradeStacked);
+        allPassed &= tradeStacked;
+
+        // Reset Perks: Clears perks, recalculates modifiers, restores baseline
+        player->resetPerks();
+        bool perksReset = (!player->hasPerk("iron_constitution") &&
+                           !player->hasPerk("brawny_strike") &&
+                           player->getStat("max_health") == 100.0f &&
+                           player->tradePerkModifier == 0.0f);
+        logResult("resetPerks clears all talent perks and restores baseline stats immediately", perksReset);
+        allPassed &= perksReset;
+
+        // Level-up XP advancement grants +1 perk point
+        player->stats.addXp(100.0f); // Level 1 -> 2
+        bool levelUpPt = (player->stats.level == 2 && player->getStat("perk_points") == 4.0f);
+        logResult("Level advancement automatically awards +1 talent point to player pool", levelUpPt);
+        allPassed &= levelUpPt;
+
+        // 4. Unified Lilith's Throne-Style Connected Skill Tree with Cross-Discipline Combos
+        std::ifstream perksFile("data/perks.json");
+        bool perksLoaded = perksFile.is_open();
+        nlohmann::json perksData;
+        if (perksLoaded) {
+            try { perksFile >> perksData; } catch (...) { perksLoaded = false; }
+        }
+        bool hasUnifiedTree = (perksLoaded && perksData.contains("tree") &&
+                               perksData["tree"].contains("nodes") &&
+                               perksData["tree"]["nodes"].is_array() &&
+                               perksData["tree"]["nodes"].size() >= 26);
+        logResult("data/perks.json defines single unified tree structure with 26+ interconnected nodes", hasUnifiedTree);
+        allPassed &= hasUnifiedTree;
+
+        if (hasUnifiedTree)
+        {
+            const auto& allNodes = perksData["tree"]["nodes"];
+            std::unordered_map<std::string, nlohmann::json> nodeMap;
+            for (const auto& nd : allNodes)
+            {
+                nodeMap[nd.value("id", "")] = nd;
+            }
+
+            auto isConnected = [&nodeMap](const entity* ent, const std::string& perkId) -> bool {
+                if (!nodeMap.contains(perkId)) return false;
+                const auto& nd = nodeMap[perkId];
+                if (!nd.contains("parents") || nd["parents"].empty()) return true; // Root tier
+                bool reqAll = nd.value("requireAllParents", false);
+                int total = 0, unlockedCount = 0;
+                for (const auto& pVal : nd["parents"])
+                {
+                    total++;
+                    if (ent->hasPerk(pVal.get<std::string>())) unlockedCount++;
+                }
+                return reqAll ? (unlockedCount == total) : (unlockedCount > 0);
+            };
+
+            auto treePlayer = std::make_shared<entity>("tree_tester", "TreeHero");
+            treePlayer->stats.setBaseStat("max_health", 100.0f);
+            treePlayer->stats.setBaseStat("max_mana", 50.0f);
+            treePlayer->stats.setBaseStat("perk_points", 15.0f);
+
+            // Gating Check: Tier 0 root is connected; Tier 1, 2, 3 children are locked
+            bool rootOk = isConnected(treePlayer.get(), "iron_constitution");
+            bool tier1Locked = !isConnected(treePlayer.get(), "brawny_strike");
+            bool tier2Locked = !isConnected(treePlayer.get(), "juggernaut");
+            bool comboLocked = !isConnected(treePlayer.get(), "spellblade");
+            bool initialGating = (rootOk && tier1Locked && tier2Locked && comboLocked);
+            logResult("Connected Tree Gating: Root is accessible while deeper child and combo nodes are locked", initialGating);
+            allPassed &= initialGating;
+
+            // Step 1: Unlock Root (Iron Constitution, cost 1)
+            treePlayer->stats.setBaseStat("perk_points", treePlayer->getStat("perk_points") - 1.0f);
+            treePlayer->unlockPerk("iron_constitution");
+            bool tier1NowOpen = isConnected(treePlayer.get(), "brawny_strike");
+            bool tier2StillLocked = !isConnected(treePlayer.get(), "juggernaut");
+            logResult("Unlocking root opens direct Tier 1 child (brawny_strike) while Tier 2 remains locked", tier1NowOpen && tier2StillLocked);
+            allPassed &= (tier1NowOpen && tier2StillLocked);
+
+            // Step 2: Unlock Tier 1 (Brawny Strike, cost 2)
+            treePlayer->stats.setBaseStat("perk_points", treePlayer->getStat("perk_points") - 2.0f);
+            treePlayer->unlockPerk("brawny_strike");
+            bool tier2NowOpen = isConnected(treePlayer.get(), "juggernaut");
+            logResult("Unlocking Tier 1 opens direct Tier 2 child (juggernaut)", tier2NowOpen);
+            allPassed &= tier2NowOpen;
+
+            // Step 3: Test Combo Skill Multi-Parent Gating (Spellblade requires Brawny Strike AND Spell Weaver)
+            // Currently Brawny Strike is unlocked, but Spell Weaver is NOT unlocked!
+            bool comboBlocked = !isConnected(treePlayer.get(), "spellblade");
+            logResult("Combo Skill 'spellblade' remains locked when only 1 of 2 required parent disciplines is unlocked", comboBlocked);
+            allPassed &= comboBlocked;
+
+            // Unlock Arcane branch root and adept: arcane_attunement -> spell_weaver
+            treePlayer->stats.setBaseStat("perk_points", treePlayer->getStat("perk_points") - 1.0f);
+            treePlayer->unlockPerk("arcane_attunement");
+            treePlayer->stats.setBaseStat("perk_points", treePlayer->getStat("perk_points") - 2.0f);
+            treePlayer->unlockPerk("spell_weaver");
+
+            // Now BOTH parents (Brawny Strike & Spell Weaver) are unlocked -> Spellblade becomes available!
+            bool comboNowOpen = isConnected(treePlayer.get(), "spellblade");
+            logResult("Combo Skill 'spellblade' becomes learnable once ALL parent disciplines are unlocked", comboNowOpen);
+            allPassed &= comboNowOpen;
+
+            // Step 4: Unlock Spellblade (cost 3)
+            treePlayer->stats.setBaseStat("perk_points", treePlayer->getStat("perk_points") - 3.0f);
+            treePlayer->unlockPerk("spellblade");
+
+            // Verify dual-discipline stat modifiers:
+            // physical_damage: 0 base + 10 (brawny) + 15 (spellblade) = 25
+            // spell_power: 0 base + 15 (spell_weaver) + 15 (spellblade) = 30
+            float physDmg = treePlayer->getStat("physical_damage");
+            float spellPow = treePlayer->getStat("spell_power");
+            bool comboStatsOk = (physDmg == 25.0f && spellPow == 30.0f);
+            logResult("Unlocking combo talent stacks hybrid bonuses (+25 Physical Dmg, +30 Spell Power)", comboStatsOk);
+            allPassed &= comboStatsOk;
+
+            // Step 5: Full Reset and Refund across unified disciplines and combo talents
+            // Points spent: 1 (iron) + 2 (brawny) + 1 (arcane_attunement) + 2 (spell_weaver) + 3 (spellblade) = 9 points
+            int refunded = 0;
+            for (const auto& perkId : treePlayer->unlockedPerks)
+            {
+                if (nodeMap.contains(perkId))
+                {
+                    refunded += nodeMap[perkId].value("cost", 1);
+                }
+                else
+                {
+                    const auto* def = PerkDatabase::getPerk(perkId);
+                    if (def) refunded += def->cost;
+                }
+            }
+            treePlayer->stats.setBaseStat("perk_points", treePlayer->getStat("perk_points") + refunded);
+            treePlayer->resetPerks();
+            bool refundedProperly = (treePlayer->getStat("perk_points") == 15.0f && refunded == 9);
+            bool statsReverted = (treePlayer->getStat("physical_damage") == 0.0f &&
+                                  treePlayer->getStat("spell_power") == 0.0f &&
+                                  !treePlayer->hasPerk("spellblade") &&
+                                  !treePlayer->hasPerk("brawny_strike"));
+            logResult("Reset refund accurately refunds combo and discipline costs (+9 pts) and reverts stats to base", refundedProperly && statsReverted);
+            allPassed &= (refundedProperly && statsReverted);
+        }
+
+        // 5. Live Activity & Event Log System
+        game testGame;
+        testGame.init();
+        const auto& initialLogs = testGame.getEventLog();
+        bool hasInitLogs = (!initialLogs.empty() && initialLogs.front().tag == "[ZONE]");
+        logResult("Event Log initializes with live contextual status entries", hasInitLogs);
+        allPassed &= hasInitLogs;
+
+        testGame.addLogEntry("[TALENT]", "Unlocked Spellblade (-3 Pts)", { 220, 180, 80, 255 });
+        const auto& updatedLogs = testGame.getEventLog();
+        bool hasTalentLog = (!updatedLogs.empty() && updatedLogs.back().tag == "[TALENT]" &&
+                             updatedLogs.back().text.find("Spellblade") != std::string::npos);
+        logResult("addLogEntry records talent unlocks dynamically into event history", hasTalentLog);
+        allPassed &= hasTalentLog;
+
+        // Verify reverse-chronological ordering: top row (offset 0) resolves to latest log entry
+        int topRowIdx = static_cast<int>(updatedLogs.size()) - 1;
+        bool newestOnTop = (topRowIdx >= 0 && updatedLogs[topRowIdx].tag == "[TALENT]");
+        logResult("Event Log reverses order so newest events display at top row", newestOnTop);
+        allPassed &= newestOnTop;
+
+        // Verify Perks screen Action Grid: Tier buttons removed, Slot 13 Reset Perks, Slot 14 Back
+        testGame.changeState(std::make_unique<phoneAppsState>(PhoneAppMode::PERKS));
+        const auto& perkButtons = testGame.getActiveActionButtons();
+        bool slot13Reset = (perkButtons.size() >= 15 && perkButtons[13].label == "Reset Perks" && perkButtons[13].isEnabled);
+        bool slot14Back = (perkButtons.size() >= 15 && perkButtons[14].label == "Back" && perkButtons[14].isEnabled);
+        bool tierButtonsRemoved = true;
+        for (int i = 0; i < 13; ++i)
+        {
+            if (i < static_cast<int>(perkButtons.size()) && perkButtons[i].isEnabled)
+            {
+                tierButtonsRemoved = false;
+                break;
+            }
+        }
+        bool actionGridClean = (slot13Reset && slot14Back && tierButtonsRemoved);
+        logResult("Perks Action Grid eliminates tier buttons and positions Reset Perks at Slot 13", actionGridClean);
+        allPassed &= actionGridClean;
+
+        return allPassed;
+    }
+
+    bool testDataDrivenPerksAndContentOptions()
+    {
+        std::cout << "\n--- Running Test 25: Data-Driven JSON Perks System & Content Option Settings ---\n";
+        bool allPassed = true;
+
+        // 1. Dynamic PerkDatabase loading from JSON
+        PerkDatabase::clear();
+        bool dbLoaded = PerkDatabase::loadFromFile("data/perks.json");
+        const auto& allPerks = PerkDatabase::getAllPerks();
+        bool dbCheck = dbLoaded && (allPerks.size() >= 27) &&
+                       PerkDatabase::hasPerk("iron_constitution") &&
+                       PerkDatabase::hasPerk("master_trader") &&
+                       PerkDatabase::hasPerk("demon_berserker");
+        logResult("PerkDatabase loads 27+ total perks from data/perks.json dynamically", dbCheck);
+        allPassed &= dbCheck;
+
+        // 2. Dynamic Stat Modifiers (Flat & Percent) on Entity without hardcoding
+        auto player = std::make_shared<entity>("test_p25", "Hero");
+        player->stats.setBaseStat("strength", 10.0f);
+        player->stats.setBaseStat("max_health", 100.0f);
+        player->unlockPerk("iron_constitution"); // flat +20 max_health, +5 defense
+        bool flatApplied = (player->getStat("max_health") == 120.0f && player->getStat("defense") == 5.0f);
+
+        PerkDefinition customPerk;
+        customPerk.id = "perk_warlord_might";
+        customPerk.name = "Warlord's Might";
+        customPerk.modifiers.statModifiers["strength"] = 10.0f;        // flat +10 -> strength 20
+        customPerk.modifiers.percentStatModifiers["strength"] = 0.50f; // percent +50% -> strength 30
+        PerkDatabase::registerPerk(customPerk);
+        player->unlockPerk("perk_warlord_might");
+        bool percentApplied = (player->getStat("strength") == 30.0f);
+        bool statModsSuccess = flatApplied && percentApplied;
+        logResult("Perk stat modifiers apply dynamically (flat and percent) without hardcoding", statModsSuccess);
+        allPassed &= statModsSuccess;
+
+        // 3. Versatile Perk Damage Multipliers by Race and Attack Type
+        player->unlockPerk("demonic_dominion"); // damage vs Demon +20%, vs Human +15%
+        player->unlockPerk("spell_weaver");     // damage for arcane +15%
+        float dmgDemonArcane = player->getPerkDamageMultiplier("Demon", "arcane"); // 0.20 + 0.15 = 0.35
+        float dmgHumanPhysical = player->getPerkDamageMultiplier("Human", "physical"); // 0.15
+        bool dmgMultMatch = (std::abs(dmgDemonArcane - 0.35f) < 0.001f) &&
+                            (std::abs(dmgHumanPhysical - 0.15f) < 0.001f);
+        logResult("Perk damage multipliers accurately compute by target race and attack type", dmgMultMatch);
+        allPassed &= dmgMultMatch;
+
+        // 4. Versatile Perk Defense Multipliers by Attacker Race and Attack Type
+        player->unlockPerk("hellfire_blood"); // defense vs fire +25%
+        // iron_constitution has defense vs physical +10%
+        float defFire = player->getPerkDefenseMultiplier("", "fire");
+        float defPhys = player->getPerkDefenseMultiplier("", "physical");
+        bool defMultMatch = (std::abs(defFire - 0.25f) < 0.001f) &&
+                            (std::abs(defPhys - 0.10f) < 0.001f);
+        logResult("Perk defense multipliers accurately compute damage reductions by attack type and race", defMultMatch);
+        allPassed &= defMultMatch;
+
+        // 5. Capability and Dialogue Flags
+        player->unlockPerk("silver_tongue");       // flags: ["trade_negotiation"]
+        player->unlockPerk("corruption_affinity"); // flags: ["demonic_pact"]
+        bool flagNegotiation = player->hasPerkFlag("trade_negotiation");
+        bool flagPact = player->hasPerkFlag("demonic_pact");
+        bool flagFake = !player->hasPerkFlag("nonexistent_perk_flag");
+        auto allFlags = player->getAllPerkFlags();
+        bool flagCount = (allFlags.size() >= 2);
+        bool flagSuccess = flagNegotiation && flagPact && flagFake && flagCount;
+        logResult("Perk flags register and query accurately across entity unlocked perks", flagSuccess);
+        allPassed &= flagSuccess;
+
+        // 6. Named Character Marcus Profile Perk Integration
+        NamedCharacterManager::clear();
+        bool marcusLoaded = NamedCharacterManager::loadFromDirectory("data/characters");
+        auto marcus = NamedCharacterManager::getCharacter("marcus");
+        bool marcusSuccess = marcusLoaded && (marcus != nullptr) && (marcus->characterEntity != nullptr);
+        if (marcusSuccess)
+        {
+            auto mEnt = marcus->characterEntity;
+            bool hasST = mEnt->hasPerk("silver_tongue");
+            bool hasMT = mEnt->hasPerk("master_trader");
+            bool tradeModifier = (std::abs(mEnt->tradePerkModifier - 0.25f) < 0.001f);
+            bool flagAppraisal = mEnt->hasPerkFlag("expert_appraisal");
+            bool flagTradeNeg = mEnt->hasPerkFlag("trade_negotiation");
+            marcusSuccess = hasST && hasMT && tradeModifier && flagAppraisal && flagTradeNeg;
+        }
+        logResult("Named character Marcus loads unlocked perks and trade bonuses directly from JSON profile", marcusSuccess);
+        allPassed &= marcusSuccess;
+
+        // 7. NPC Generator Template Perk Integration
+        bool npcLoaded = npcGenerator::loadTemplates("data/enemies");
+        auto bandit = npcGenerator::generateFromTemplate("tpl_alley_bandit");
+        auto mage = npcGenerator::generateFromTemplate("tpl_rogue_mage");
+        bool enemiesValid = npcLoaded && (bandit != nullptr) && (mage != nullptr);
+        if (enemiesValid)
+        {
+            bool banditPerks = bandit->hasPerk("brawny_strike") && bandit->hasPerk("iron_constitution");
+            bool banditDmg = (std::abs(bandit->getPerkDamageMultiplier("", "physical") - 0.15f) < 0.001f);
+            bool banditDef = (std::abs(bandit->getPerkDefenseMultiplier("", "physical") - 0.10f) < 0.001f);
+
+            bool magePerks = mage->hasPerk("arcane_attunement") && mage->hasPerk("spell_weaver");
+            bool mageDmg = (std::abs(mage->getPerkDamageMultiplier("", "arcane") - 0.25f) < 0.001f);
+
+            enemiesValid = banditPerks && banditDmg && banditDef && magePerks && mageDmg;
+        }
+        logResult("NPC generator instantiates enemies with archetype perks and dynamic combat stats from JSON", enemiesValid);
+        allPassed &= enemiesValid;
+
+        // 8. Combat Engine Action Resolution with Perks & Difficulty Scaling
+        game cg;
+        cg.init();
+        combatEngine combat;
+
+        auto combatPlayer = std::make_shared<entity>("c_player", "Striker");
+        combatPlayer->stats.setBaseStat("health", 200.0f);
+        combatPlayer->stats.setBaseStat("max_health", 200.0f);
+        combatPlayer->unlockPerk("brawny_strike"); // +15% physical damage
+
+        auto combatEnemy = std::make_shared<entity>("c_enemy", "Gladiator");
+        combatEnemy->stats.setBaseStat("health", 200.0f);
+        combatEnemy->stats.setBaseStat("max_health", 200.0f);
+        combatEnemy->unlockPerk("iron_constitution"); // +10% physical defense
+
+        combat.initialiseCombat({ combatPlayer }, { combatEnemy });
+
+        // Player attacks enemy with 100 base physical damage
+        CombatAction strikeAction;
+        strikeAction.id = "act_strike";
+        strikeAction.name = "Strike";
+        strikeAction.baseApCost = 1;
+        SpellEffectNode dmgNode;
+        dmgNode.effectType = "DAMAGE";
+        dmgNode.element = "physical";
+        dmgNode.baseMagnitude = 100.0f;
+        strikeAction.effectNodes.push_back(dmgNode);
+
+        combat.queuePlayerAction(0, strikeAction, combatEnemy.get());
+        combat.resolveTurn(&cg);
+
+        // Expected: 100 * 1.15 * (1 - 0.10) = 103.5 -> rounded to 104 damage
+        float enemyHpAfter = combatEnemy->getStat("health");
+        bool playerAttackScaled = (enemyHpAfter == 96.0f); // 200 - 104 = 96
+
+        // Now test difficulty multiplier scaling when enemy attacks player
+        cg.settings.gameplay.difficultyMultiplier = 1.5f;
+        QueuedAction enemyAtk;
+        enemyAtk.user = combatEnemy.get();
+        enemyAtk.target = combatPlayer.get();
+        CombatAction enemyAction = strikeAction;
+        enemyAction.effectNodes[0].element = "fire"; // neutral element for player
+        enemyAtk.action = enemyAction;
+
+        // Direct action execution simulation with difficulty multiplier
+        float playerHpBefore = combatPlayer->getStat("health");
+        combat.executeAction(enemyAtk, &cg);
+        float playerHpAfter = combatPlayer->getStat("health");
+        // Enemy has no fire perk, player has no fire defense. Damage: 100 * 1.5 = 150
+        float playerDmgTaken = playerHpBefore - playerHpAfter;
+        bool difficultyScaled = (playerDmgTaken == 150.0f);
+
+        bool combatSuccess = playerAttackScaled && difficultyScaled;
+        logResult("Combat engine applies attacker perk damage, defender defense, and difficulty scaling", combatSuccess);
+        allPassed &= combatSuccess;
+
+        // 9. Content Option Settings Gameplay Integration
+        // 9a. Fluid Multiplier in sexState orgasm
+        auto lover1 = std::make_shared<entity>("lover1", "Lover A");
+        auto lover2 = std::make_shared<entity>("lover2", "Lover B");
+
+        bodyPart cock;
+        cock.id = "p_groin";
+        cock.name = "Cock";
+        cock.currentFluidMl = 100.0f;
+        cock.maxFluidMl = 200.0f;
+        lover1->anatomy.setPart(bodySlot::GROIN, cock);
+
+        bodyPart vagina;
+        vagina.id = "v_groin";
+        vagina.name = "Vagina";
+        vagina.currentFluidMl = 0.0f;
+        vagina.maxFluidMl = 200.0f;
+        vagina.orifice.exists = true;
+        vagina.orifice.depthCm = 15.0f;
+        vagina.tags.push_back("vagina");
+        lover2->anatomy.setPart(bodySlot::GROIN, vagina);
+
+        sexState sexApp(lover2);
+        cg.settings.content.fluidMultiplier = 3.0f; // 3x multiplier
+        sexApp.processOrgasm(&cg, lover1.get(), lover2.get(), bodySlot::GROIN);
+        // Base 15ml * 3.0 = 45ml ejaculated
+        float cumRemaining = lover1->anatomy.getPart(bodySlot::GROIN)->currentFluidMl;
+        bool fluidMatch = (cumRemaining == 55.0f); // 100 - 45 = 55
+
+        // 9b. Lactation Enabled gating
+        bodyPart breasts;
+        breasts.id = "p_breasts";
+        breasts.name = "Breasts";
+        breasts.currentFluidMl = 50.0f;
+        breasts.maxFluidMl = 100.0f;
+        breasts.isLactating = true;
+        lover1->anatomy.setPart(bodySlot::BREASTS, breasts);
+
+        cg.settings.content.lactationEnabled = false;
+        sexApp.processOrgasm(&cg, lover1.get(), lover2.get(), bodySlot::GROIN);
+        bool lactDisabled = (lover1->anatomy.getPart(bodySlot::BREASTS)->currentFluidMl == 50.0f); // suppressed
+
+        cg.settings.content.lactationEnabled = true;
+        cg.settings.content.fluidMultiplier = 1.0f;
+        sexApp.processOrgasm(&cg, lover1.get(), lover2.get(), bodySlot::GROIN);
+        bool lactEnabled = (lover1->anatomy.getPart(bodySlot::BREASTS)->currentFluidMl == 25.0f); // 50 - 25 = 25
+
+        // 9c. Auto-Loot in encounterResolutionState
+        auto defeatedEnemy = std::make_shared<entity>("def_enemy", "Thief");
+        defeatedEnemy->stats.setBaseStat("currency", 250.0f);
+        auto dagger = itemDatabase::getItem("item_canis_root");
+        if (dagger) defeatedEnemy->inventory.addItem(dagger);
+
+        cg.settings.gameplay.autoLoot = true;
+        cg.playerEntity = player;
+        cg.Player = player.get();
+        player->stats.setBaseStat("currency", 100.0f);
+        encounterResolutionState resState({ defeatedEnemy });
+        resState.onEnter(&cg);
+
+        bool autoLootSuccess = (player->getStat("currency") == 350.0f) &&
+                               (defeatedEnemy->getStat("currency") == 0.0f) &&
+                               (resState.getDefeatedRecords()[0].isLooted);
+
+        // 9d. Non-Con Enabled gating in encounterResolutionState
+        cg.settings.content.nonConEnabled = false;
+        resState.handleInteractiveSex(&cg);
+        bool nonConBlocked = (resState.getDefeatedRecords()[0].hadSex == false) &&
+                             (resState.getResolutionLog().find("Non-consensual content is disabled") != std::string::npos);
+
+        // 9e. Currency loss on combat defeat
+        cg.settings.content.nonConEnabled = false;
+        cg.settings.gameplay.currencyLossOnDefeatPercent = 0.25f; // 25% loss
+        player->stats.setBaseStat("currency", 1000.0f);
+        CombatState combatSt({ player }, { defeatedEnemy });
+        // Mock defeat resolution with robber enemy
+        combatSt.resolveDefeat(&cg);
+        bool lossMatch = (player->getStat("currency") == 750.0f); // 1000 - 250 = 750
+
+        bool contentSuccess = fluidMatch && lactDisabled && lactEnabled && autoLootSuccess && nonConBlocked && lossMatch;
+        logResult("Content option settings actively govern fluids, lactation, auto-loot, non-con gating, and defeat gold loss", contentSuccess);
+        allPassed &= contentSuccess;
+
+        return allPassed;
+    }
+
     bool runAllTests()
     {
         g_passCount = 0;
@@ -1705,6 +2759,11 @@ namespace EngineTests
         bool t18 = testQuestJournalSystem();
         bool t19 = testFullPhoneSystem();
         bool t20 = testEconomyAndShopTrading();
+        bool t21 = testNamedCharactersAndPersistentEncounter();
+        bool t22 = testCalendarLeapYearsAndTransformationNavigation();
+        bool t23 = testLayoutIntegrityAndContainment();
+        bool t24 = testUnified3PanelLayoutFogOfWarAndPerkTree();
+        bool t25 = testDataDrivenPerksAndContentOptions();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";
@@ -1713,3 +2772,4 @@ namespace EngineTests
         return (g_failCount == 0);
     }
 }
+

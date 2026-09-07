@@ -134,7 +134,7 @@ int main(int argc, char* argv[])
             auto cc = std::make_unique<characterCreationState>(EditorConfig::fullTransformationPreset(), tStep);
             engine.changeState(std::move(cc));
         }
-        else if (screenshotState == "character_creation" || screenshotState == "cc" || screenshotState == "cc_wardrobe" || screenshotState.starts_with("cc_step") || screenshotState.starts_with("character_creation_step"))
+        else if (screenshotState == "character_creation" || screenshotState == "cc" || screenshotState == "cc_wardrobe" || screenshotState.starts_with("cc_step") || screenshotState.starts_with("character_creation_step") || screenshotState == "character_creation_birthday")
         {
             auto cc = std::make_unique<characterCreationState>(0);
             if (screenshotState == "cc_step1" || screenshotState == "character_creation_step1") cc->step = 1;
@@ -151,6 +151,12 @@ int main(int argc, char* argv[])
             {
                 auto p = std::make_shared<entity>("hero_tf", "Rudy");
                 p->genderArchetype = GenderArchetype::MALE;
+                p->stats.setBaseStat("health", 100.0f);
+                p->stats.setBaseStat("max_health", 100.0f);
+                p->stats.setBaseStat("mana", 100.0f);
+                p->stats.setBaseStat("max_mana", 100.0f);
+                p->stats.setBaseStat("currency", 5000.0f);
+                p->stats.setBaseStat("arcaneEssence", 20.0f);
                 engine.playerEntity = p;
             }
 
@@ -421,6 +427,34 @@ int main(int argc, char* argv[])
             PhoneAppMode mode = PhoneAppMode::HOME;
             if (screenshotState == "phone_quests") mode = PhoneAppMode::QUESTS;
             else if (screenshotState == "phone_perks") mode = PhoneAppMode::PERKS;
+            else if (screenshotState == "phone_perks_learned")
+            {
+                mode = PhoneAppMode::PERKS;
+                if (engine.getPlayer())
+                {
+                    engine.getPlayer()->stats.setBaseStat("perk_points", 0.0f);
+                    engine.getPlayer()->unlockPerk("iron_constitution");
+                    engine.getPlayer()->unlockPerk("brawny_strike");
+                    engine.addLogEntry("[TALENT]", "Unlocked Iron Constitution (-1 Pt)", { 220, 180, 80, 255 });
+                    engine.addLogEntry("[TALENT]", "Unlocked Brawny Strike (-2 Pts)", { 220, 180, 80, 255 });
+                }
+            }
+            else if (screenshotState == "phone_perks_combo")
+            {
+                mode = PhoneAppMode::PERKS;
+                if (engine.getPlayer())
+                {
+                    engine.getPlayer()->stats.setBaseStat("perk_points", 3.0f);
+                    engine.getPlayer()->unlockPerk("iron_constitution");
+                    engine.getPlayer()->unlockPerk("brawny_strike");
+                    engine.getPlayer()->unlockPerk("arcane_attunement");
+                    engine.getPlayer()->unlockPerk("spell_weaver");
+                    engine.addLogEntry("[TALENT]", "Unlocked Iron Constitution (-1 Pt)", { 220, 180, 80, 255 });
+                    engine.addLogEntry("[TALENT]", "Unlocked Brawny Strike (-2 Pts)", { 220, 180, 80, 255 });
+                    engine.addLogEntry("[TALENT]", "Unlocked Arcane Attunement (-1 Pt)", { 220, 180, 80, 255 });
+                    engine.addLogEntry("[TALENT]", "Unlocked Spell Weaver (-2 Pts)", { 220, 180, 80, 255 });
+                }
+            }
             else if (screenshotState == "phone_spells") mode = PhoneAppMode::SPELLS;
             else if (screenshotState == "phone_fetishes") mode = PhoneAppMode::FETISHES;
             else if (screenshotState == "phone_stats") mode = PhoneAppMode::STATS;
@@ -467,6 +501,10 @@ int main(int argc, char* argv[])
             else if (screenshotState == "tooltip_inventory_empty")
             {
                 engine.input.setMousePosition(380.0f, 210.0f); // Hover over empty backpack slot
+            }
+            else if (screenshotState == "character_creation_birthday")
+            {
+                view.setPanelScrollY("cc_center_pane", 220.0f);
             }
             else if (screenshotState == "tooltip_equipment")
             {

@@ -59,14 +59,22 @@ namespace EntityListWidgets
         // CARD 2: Characters Present Card
         // ==========================================
         bool hasNpc = false;
+        std::shared_ptr<entity> npcShared = nullptr;
         entity* npc = nullptr;
         if (gameContext->map)
         {
             auto& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
-            if (tileData.persistentNPC)
+            if (!tileData.namedNPCs.empty())
             {
                 hasNpc = true;
-                npc = tileData.persistentNPC.get();
+                npcShared = tileData.namedNPCs.front();
+                npc = npcShared.get();
+            }
+            else if (tileData.persistentNPC && tileData.persistentNPC != tileData.ambushState.npc)
+            {
+                hasNpc = true;
+                npcShared = tileData.persistentNPC;
+                npc = npcShared.get();
             }
         }
 
@@ -94,8 +102,7 @@ namespace EntityListWidgets
 
             if (tHov && clicked)
             {
-                auto& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
-                gameContext->activeTargetNPC = tileData.persistentNPC;
+                gameContext->activeTargetNPC = npcShared;
                 gameContext->activeTargetMode = TargetMode::DIALOGUE;
                 gameContext->input.consumeMouseClick();
             }
@@ -108,8 +115,7 @@ namespace EntityListWidgets
 
             if (iHov && clicked)
             {
-                auto& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
-                gameContext->activeTargetNPC = tileData.persistentNPC;
+                gameContext->activeTargetNPC = npcShared;
                 gameContext->activeTargetMode = TargetMode::DIALOGUE;
                 gameContext->input.consumeMouseClick();
             }
@@ -201,6 +207,9 @@ namespace EntityListWidgets
         float availableW = innerW - (10.0f * uiScale);
         float innerPad = 5.0f * uiScale;
         float innerX = padX + innerPad;
+        float cW = availableW - (innerPad * 2.0f);
+        auto mousePos = gameContext->input.getMousePosition();
+        bool clicked = gameContext->input.isLeftMouseJustClicked();
 
         // ==========================================
         // CARD 4: Activity & Event Log Card
@@ -209,32 +218,179 @@ namespace EntityListWidgets
         SDL_FRect logBox = { padX, curY, availableW, card4H };
         UIWidget::drawPanel(renderer, logBox, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
+        const auto& allLogs = gameContext->getEventLog();
+        int totalLogs = static_cast<int>(allLogs.size());
+        int maxVisible = 6;
+        int maxOffset = std::max(0, totalLogs - maxVisible);
+
+        static int s_eventLogScrollOffset = 0;
+        static size_t s_lastLogCount = 0;
+        if (allLogs.size() > s_lastLogCount)
+        {
+            s_eventLogScrollOffset = 0; // Automatically snap to newest entries on top
+            s_lastLogCount = allLogs.size();
+        }
+        s_eventLogScrollOffset = std::clamp(s_eventLogScrollOffset, 0, maxOffset);
+
+        bool logBoxHovered = (mousePos.x >= logBox.x && mousePos.x <= logBox.x + logBox.w &&
+                              mousePos.y >= logBox.y && mousePos.y <= logBox.y + logBox.h);
+
+        // Mouse wheel scrolling
+        if (logBoxHovered && maxOffset > 0)
+        {
+            float wheelY = gameContext->input.getMouseWheelY();
+            if (wheelY != 0.0f)
+            {
+                int step = static_cast<int>(std::round(wheelY));
+                if (step == 0) step = (wheelY > 0.0f) ? 1 : -1;
+                s_eventLogScrollOffset = std::clamp(s_eventLogScrollOffset - step, 0, maxOffset);
+                gameContext->input.consumeMouseWheel();
+            }
+        }
+
+        // Header with title and scroll arrow buttons
         UIWidget::drawText(renderer, "ACTIVITY & EVENT LOG", innerX, curY + (5.0f * uiScale), Theme::colors.textGold, uiScale * 0.74f);
 
-        float logCurY = curY + (22.0f * uiScale);
-
-        struct LogEntry {
-            std::string tag;
-            std::string text;
-            SDL_Color tagColor;
-        };
-
-        static const std::vector<LogEntry> logEntries = {
-            { "[ZONE]", "Sanctuary Manor F1", Theme::colors.companion },
-            { "[TASK]", "Sanctuary Research", Theme::colors.textGold },
-            { "[LORE]", "Demon Morph", Theme::colors.arcane },
-            { "[ITEM]", "Equipped Demonstone", Theme::colors.health },
-            { "[GOLD]", "+5,000 ¤", Theme::colors.currency },
-            { "[INFO]", "Systems active", Theme::colors.textSecondary }
-        };
-
-        for (const auto& entry : logEntries)
+        if (totalLogs > maxVisible)
         {
-            UIWidget::drawText(renderer, entry.tag, innerX, logCurY, entry.tagColor, uiScale * 0.65f);
-            float tagW = UIWidget::getTextWidth(entry.tag, uiScale * 0.65f);
+            float btnW = 16.0f * uiScale;
+            float btnH = 14.0f * uiScale;
+            float btnGap = 2.0f * uiScale;
+            float btnY = curY + (4.0f * uiScale);
+            float btnDownX = padX + availableW - innerPad - btnW;
+            float btnUpX = btnDownX - btnW - btnGap;
 
-            UIWidget::drawText(renderer, entry.text, innerX + tagW + (4.0f * uiScale), logCurY, Theme::colors.textPrimary, uiScale * 0.65f);
-            logCurY += (18.0f * uiScale);
+            SDL_FRect upRect = { btnUpX, btnY, btnW, btnH };
+            bool upHov = (mousePos.x >= upRect.x && mousePos.x <= upRect.x + upRect.w &&
+                          mousePos.y >= upRect.y && mousePos.y <= upRect.y + upRect.h);
+            bool canUp = (s_eventLogScrollOffset > 0);
+            if (upHov && clicked && canUp)
+            {
+                s_eventLogScrollOffset = std::max(0, s_eventLogScrollOffset - 1);
+                gameContext->input.consumeMouseClick();
+            }
+            UIWidget::drawButton(renderer, upRect, "^", upHov, canUp, false, uiScale * 0.60f);
+
+            SDL_FRect downRect = { btnDownX, btnY, btnW, btnH };
+            bool downHov = (mousePos.x >= downRect.x && mousePos.x <= downRect.x + downRect.w &&
+                            mousePos.y >= downRect.y && mousePos.y <= downRect.y + downRect.h);
+            bool canDown = (s_eventLogScrollOffset < maxOffset);
+            if (downHov && clicked && canDown)
+            {
+                s_eventLogScrollOffset = std::min(maxOffset, s_eventLogScrollOffset + 1);
+                gameContext->input.consumeMouseClick();
+            }
+            UIWidget::drawButton(renderer, downRect, "v", downHov, canDown, false, uiScale * 0.60f);
+        }
+
+        float logCurY = curY + (22.0f * uiScale);
+        float scrollbarW = (totalLogs > maxVisible) ? (12.0f * uiScale) : 0.0f;
+        cW = availableW - (innerPad * 2.0f) - scrollbarW;
+
+        if (allLogs.empty())
+        {
+            UIWidget::drawText(renderer, "No recent events recorded.", innerX, logCurY, Theme::colors.textMuted, uiScale * 0.65f);
+        }
+        else
+        {
+            // Render entries with MOST RECENT ON TOP (reverse chronological order)
+            // When s_eventLogScrollOffset == 0, row 0 is allLogs[N - 1] (newest)
+            for (int r = 0; r < maxVisible; ++r)
+            {
+                int entryIdx = (totalLogs - 1) - (s_eventLogScrollOffset + r);
+                if (entryIdx < 0 || entryIdx >= totalLogs) break;
+
+                const auto& entry = allLogs[entryIdx];
+                SDL_Color tagColor = { entry.color.r, entry.color.g, entry.color.b, entry.color.a };
+                UIWidget::drawText(renderer, entry.tag, innerX, logCurY, tagColor, uiScale * 0.65f);
+                float tagW = UIWidget::getTextWidth(entry.tag, uiScale * 0.65f);
+
+                float maxTextW = cW - tagW - (6.0f * uiScale);
+                std::string displayText = entry.text;
+                while (!displayText.empty() && UIWidget::getTextWidth(displayText, uiScale * 0.65f) > maxTextW)
+                {
+                    displayText.pop_back();
+                }
+                if (displayText.size() < entry.text.size() && displayText.size() > 3)
+                {
+                    displayText.replace(displayText.size() - 2, 2, "..");
+                }
+
+                UIWidget::drawText(renderer, displayText, innerX + tagW + (4.0f * uiScale), logCurY, Theme::colors.textPrimary, uiScale * 0.65f);
+
+                SDL_FRect rowRect = { innerX, logCurY, cW, 16.0f * uiScale };
+                TooltipManager::setHoverTooltip(rowRect, mousePos, entry.tag + (!entry.timeStr.empty() ? (" (" + entry.timeStr + ")") : ""), entry.text, "Event Log");
+
+                logCurY += (18.0f * uiScale);
+            }
+
+            // Draw scrollbar track and thumb with full mouse click jumping and drag support
+            if (totalLogs > maxVisible)
+            {
+                float barW = 5.0f * uiScale;
+                float trackX = padX + availableW - innerPad - barW;
+                float trackY = curY + (22.0f * uiScale);
+                float trackH = card4H - (26.0f * uiScale);
+
+                float thumbH = std::max(16.0f * uiScale, trackH * (static_cast<float>(maxVisible) / static_cast<float>(totalLogs)));
+                float travelH = trackH - thumbH;
+                float ratio = (maxOffset > 0 && travelH > 0.0f) ? (static_cast<float>(s_eventLogScrollOffset) / static_cast<float>(maxOffset)) : 0.0f;
+                float thumbY = trackY + ratio * travelH;
+
+                static bool s_isDraggingLogScroll = false;
+                static float s_dragStartMouseY = 0.0f;
+                static int s_dragStartOffset = 0;
+
+                SDL_FRect trackHitRect = { trackX - (4.0f * uiScale), trackY, barW + (8.0f * uiScale), trackH };
+                bool trackHovered = (mousePos.x >= trackHitRect.x && mousePos.x <= trackHitRect.x + trackHitRect.w &&
+                                     mousePos.y >= trackHitRect.y && mousePos.y <= trackHitRect.y + trackHitRect.h);
+
+                bool isMouseDown = gameContext->input.isLeftMouseDown();
+                if (clicked && trackHovered)
+                {
+                    s_isDraggingLogScroll = true;
+                    s_dragStartMouseY = mousePos.y;
+                    s_dragStartOffset = s_eventLogScrollOffset;
+
+                    // If clicked directly on track outside thumb, jump immediately
+                    bool onThumb = (mousePos.y >= thumbY && mousePos.y <= thumbY + thumbH);
+                    if (!onThumb && travelH > 0.0f)
+                    {
+                        float clickRatio = std::clamp((mousePos.y - trackY - (thumbH / 2.0f)) / travelH, 0.0f, 1.0f);
+                        s_eventLogScrollOffset = std::clamp(static_cast<int>(std::round(clickRatio * maxOffset)), 0, maxOffset);
+                        s_dragStartOffset = s_eventLogScrollOffset;
+                        ratio = (maxOffset > 0) ? (static_cast<float>(s_eventLogScrollOffset) / static_cast<float>(maxOffset)) : 0.0f;
+                        thumbY = trackY + ratio * travelH;
+                    }
+                    gameContext->input.consumeMouseClick();
+                }
+
+                if (s_isDraggingLogScroll)
+                {
+                    if (isMouseDown)
+                    {
+                        float deltaY = mousePos.y - s_dragStartMouseY;
+                        if (travelH > 0.0f)
+                        {
+                            float offsetDelta = (deltaY / travelH) * maxOffset;
+                            s_eventLogScrollOffset = std::clamp(s_dragStartOffset + static_cast<int>(std::round(offsetDelta)), 0, maxOffset);
+                            ratio = (maxOffset > 0) ? (static_cast<float>(s_eventLogScrollOffset) / static_cast<float>(maxOffset)) : 0.0f;
+                            thumbY = trackY + ratio * travelH;
+                        }
+                    }
+                    else
+                    {
+                        s_isDraggingLogScroll = false;
+                    }
+                }
+
+                SDL_FRect trackRect = { trackX, trackY, barW, trackH };
+                UIWidget::drawPanel(renderer, trackRect, Theme::colors.bgDark, Theme::colors.borderNormal);
+
+                SDL_FRect thumbRect = { trackX, thumbY, barW, thumbH };
+                SDL_Color thumbCol = (s_isDraggingLogScroll || trackHovered) ? Theme::colors.textGold : Theme::colors.borderSelected;
+                UIWidget::drawPanel(renderer, thumbRect, thumbCol, thumbCol);
+            }
         }
 
         curY += card4H + (8.0f * uiScale);

@@ -349,11 +349,12 @@ void sexState::processOrgasm(game* gameContext, entity* orgasmingEntity, entity*
 
     appendNarrative(std::format("A intense shudder violently wracks {}'s body as they surrender to a powerful orgasm!", oName));
 
+    float fluidMult = (gameContext && gameContext->settings.content.fluidMultiplier > 0.0f) ? gameContext->settings.content.fluidMultiplier : 1.0f;
     bodyPart* groin = orgasmingEntity->anatomy.getPart(bodySlot::GROIN);
     if (groin && groin->currentFluidMl > 0.0f)
     {
-        float cumAmount = std::min(groin->currentFluidMl, 15.0f);
-        groin->currentFluidMl -= cumAmount;
+        float cumAmount = std::min(groin->currentFluidMl, 15.0f * fluidMult);
+        groin->currentFluidMl = std::max(0.0f, groin->currentFluidMl - cumAmount);
 
         if (receivingEntity->anatomy.hasOrifice(receivingSlot))
         {
@@ -361,7 +362,7 @@ void sexState::processOrgasm(game* gameContext, entity* orgasmingEntity, entity*
             appendNarrative(std::format("{} ejaculates {:.0f}ml of warm cum directly into {}'s orifice!", oName, cumAmount, rName));
 
             // Gestation Check
-            if (receivingSlot == bodySlot::GROIN && receivingEntity->anatomy.hasVagina() && gameContext->settings.content.pregnancyEnabled)
+            if (receivingSlot == bodySlot::GROIN && receivingEntity->anatomy.hasVagina() && gameContext && gameContext->settings.content.pregnancyEnabled)
             {
                 bool success = receivingEntity->gestation.impregnate(
                     orgasmingEntity->id, orgasmingEntity->name,
@@ -378,6 +379,15 @@ void sexState::processOrgasm(game* gameContext, entity* orgasmingEntity, entity*
         {
             appendNarrative(std::format("{} ejaculates {:.0f}ml of warm cum across {}'s body surface!", oName, cumAmount, rName));
         }
+    }
+
+    // Lactation Check during orgasm
+    bodyPart* breasts = orgasmingEntity->anatomy.getPart(bodySlot::BREASTS);
+    if (breasts && breasts->isLactating && gameContext && gameContext->settings.content.lactationEnabled && breasts->currentFluidMl > 0.0f)
+    {
+        float milkAmount = std::min(breasts->currentFluidMl, 25.0f * fluidMult);
+        breasts->currentFluidMl = std::max(0.0f, breasts->currentFluidMl - milkAmount);
+        appendNarrative(std::format("{}'s engorged breasts leak {:.0f}ml of sweet milk in response to their intense orgasm!", oName, milkAmount));
     }
 
     if (orgasmingEntity == gameContext->getPlayer())

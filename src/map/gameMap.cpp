@@ -6,7 +6,9 @@
 
 #include <nlohmann/json.hpp>
 
+#include "common/randomEngine.h"
 #include "entities/entity.h"
+#include "entities/npcGenerator.h"
 #include "items/itemDatabase.h"
 
 using json = nlohmann::json;
@@ -105,6 +107,65 @@ bool gameMap::loadFromFile(const std::string& filePath)
                     }
                 }
                 triggers.push_back(trig);
+            }
+        }
+
+        // Tile-specific or Zone Persistent Encounters
+        if (data.contains("tileEncounters") && data["tileEncounters"].is_object())
+        {
+            for (const auto& [coordStr, encJson] : data["tileEncounters"].items())
+            {
+                size_t comma = coordStr.find(',');
+                if (comma != std::string::npos)
+                {
+                    int x = std::stoi(coordStr.substr(0, comma));
+                    int y = std::stoi(coordStr.substr(comma + 1));
+                    auto& tData = getRuntimeData(x, y);
+                    tData.ambushState.templatePool.clear();
+                    if (encJson.contains("pool") && encJson["pool"].is_array())
+                    {
+                        for (const auto& pVal : encJson["pool"])
+                        {
+                            if (pVal.is_string()) tData.ambushState.templatePool.push_back(pVal.get<std::string>());
+                        }
+                    }
+                    if (encJson.contains("template"))
+                    {
+                        tData.ambushState.templateId = encJson.value("template", "tpl_alley_bandit");
+                        if (tData.ambushState.templatePool.empty())
+                        {
+                            tData.ambushState.templatePool.push_back(tData.ambushState.templateId);
+                        }
+                    }
+                    else if (!tData.ambushState.templatePool.empty())
+                    {
+                        tData.ambushState.templateId = tData.ambushState.templatePool.front();
+                    }
+                    else
+                    {
+                        tData.ambushState.templateId = "tpl_alley_bandit";
+                        tData.ambushState.templatePool.push_back("tpl_alley_bandit");
+                    }
+                    tData.ambushState.ambushChance = encJson.value("ambushChance", 50);
+                    restockAmbushNPC(tData.ambushState);
+                }
+            }
+        }
+
+        // For any dangerous tile without explicit encounter template, assign default template
+        for (int y = 0; y < height; ++y)
+        {
+            for (int x = 0; x < width; ++x)
+            {
+                auto& tData = getRuntimeData(x, y);
+                if (tData.baseDangerLevel > 0 && tData.ambushState.templateId.empty())
+                {
+                    std::string defTpl = (tData.baseDangerLevel >= 2) ? "tpl_rogue_mage" : "tpl_alley_bandit";
+                    tData.ambushState.templateId = defTpl;
+                    tData.ambushState.templatePool = { defTpl };
+                    tData.ambushState.ambushChance = std::clamp(tData.baseDangerLevel * 25, 20, 75);
+                    restockAmbushNPC(tData.ambushState);
+                }
             }
         }
 
@@ -251,11 +312,70 @@ void gameMap::updateDiscovery(int playerX, int playerY, int visionRadius)
 {
     if (playerX < 0 || playerX >= width || playerY < 0 || playerY >= height) return;
 
-    // The tile the player has physically walked on is marked as visited & revealed
+    // 1. The tile the player has physically walked on is marked as visited & fully revealed
     if (grid[playerY][playerX].type != TILE_VOID)
     {
         grid[playerY][playerX].visited = true;
         grid[playerY][playerX].discovery = STATE_REVEALED;
+    }
+
+    // 2. Tiles the player has stood next to (cardinal adjacency: up, down, left, right) become partially discovered
+    static const int cardinals[4][2] = { {0, -1}, {0, 1}, {-1, 0}, {1, 0} };
+    for (const auto& [dx, dy] : cardinals)
+    {
+        int tx = playerX + dx;
+        int ty = playerY + dy;
+        if (tx >= 0 && tx < width && ty >= 0 && ty < height)
+        {
+            if (grid[ty][tx].type != TILE_VOID && !grid[ty][tx].visited)
+            {
+                grid[ty][tx].discovery = STATE_PARTIAL;
+            }
+        }
+    }
+}
+
+void gameMap::restockAmbushNPC(PersistentAmbushState& ambush)
+{
+    ambush.isDefeated = false;
+    ambush.restockMinutesRemaining = 0;
+
+    if (!ambush.npc)
+    {
+        if (!ambush.templatePool.empty())
+        {
+            int rIdx = dice::rollInt(0, static_cast<int>(ambush.templatePool.size()) - 1);
+            ambush.templateId = ambush.templatePool[rIdx];
+        }
+        if (!ambush.templateId.empty())
+        {
+            ambush.npc = npcGenerator::generateFromTemplate(ambush.templateId);
+        }
+    }
+
+    if (ambush.npc)
+    {
+        float maxHp = ambush.npc->getStat("max_health");
+        if (maxHp <= 0.0f) maxHp = 50.0f;
+        float maxMana = ambush.npc->getStat("max_mana");
+        if (maxMana <= 0.0f) maxMana = 30.0f;
+
+        ambush.npc->stats.setBaseStat("health", maxHp);
+        ambush.npc->stats.setBaseStat("mana", maxMana);
+
+        // Restore / top up random currency (e.g. 20-50 gold)
+        float freshGold = static_cast<float>(dice::rollInt(20, 50));
+        ambush.npc->stats.setBaseStat("currency", freshGold);
+
+        // Restock items from template
+        if (!ambush.templateId.empty())
+        {
+            auto fresh = npcGenerator::generateFromTemplate(ambush.templateId);
+            if (fresh)
+            {
+                ambush.npc->inventory = fresh->inventory;
+            }
+        }
     }
 }
 
@@ -266,6 +386,16 @@ void gameMap::processTimePassage(int minutesPassed)
     for (auto& [key, runtime] : runtimeData)
     {
         runtime.processItemDecay(minutesPassed);
+
+        // 24-hour restock countdown for defeated persistent ambushers
+        if (runtime.ambushState.isDefeated)
+        {
+            runtime.ambushState.restockMinutesRemaining -= minutesPassed;
+            if (runtime.ambushState.restockMinutesRemaining <= 0)
+            {
+                restockAmbushNPC(runtime.ambushState);
+            }
+        }
     }
 }
 
@@ -307,19 +437,25 @@ nlohmann::json gameMap::saveStateToJson() const
     j["mapId"] = mapId;
 
     json discoveryGrid = json::array();
+    json visitedGrid = json::array();
     for (int y = 0; y < height; ++y)
     {
         json row = json::array();
+        json vRow = json::array();
         for (int x = 0; x < width; ++x)
         {
             row.push_back(static_cast<int>(grid[y][x].discovery));
+            vRow.push_back(grid[y][x].visited);
         }
         discoveryGrid.push_back(row);
+        visitedGrid.push_back(vRow);
     }
     j["discovery"] = discoveryGrid;
+    j["visited"] = visitedGrid;
 
     json tileItemsMap = json::object();
     json tileNPCsMap = json::object();
+    json tileAmbushesMap = json::object();
 
     for (const auto& [key, runtime] : runtimeData)
     {
@@ -344,10 +480,27 @@ nlohmann::json gameMap::saveStateToJson() const
         {
             tileNPCsMap[std::to_string(key)] = runtime.persistentNPC->toJson();
         }
+
+        if (!runtime.ambushState.templateId.empty())
+        {
+            json aJson;
+            aJson["templateId"] = runtime.ambushState.templateId;
+            aJson["templatePool"] = runtime.ambushState.templatePool;
+            aJson["isPermanentlyRemoved"] = runtime.ambushState.isPermanentlyRemoved;
+            aJson["isDefeated"] = runtime.ambushState.isDefeated;
+            aJson["restockMinutesRemaining"] = runtime.ambushState.restockMinutesRemaining;
+            aJson["ambushChance"] = runtime.ambushState.ambushChance;
+            if (runtime.ambushState.npc)
+            {
+                aJson["npc"] = runtime.ambushState.npc->toJson();
+            }
+            tileAmbushesMap[std::to_string(key)] = aJson;
+        }
     }
 
     j["tileItems"] = tileItemsMap;
     j["tileNPCs"] = tileNPCsMap;
+    j["tileAmbushes"] = tileAmbushesMap;
 
     return j;
 }
@@ -363,6 +516,19 @@ void gameMap::loadStateFromJson(const json& j)
             for (size_t x = 0; x < static_cast<size_t>(width) && x < row.size(); ++x)
             {
                 grid[y][x].discovery = static_cast<DiscoveryState>(row[x].get<int>());
+            }
+        }
+    }
+
+    if (j.contains("visited"))
+    {
+        const auto& vGrid = j["visited"];
+        for (size_t y = 0; y < static_cast<size_t>(height) && y < vGrid.size(); ++y)
+        {
+            const auto& row = vGrid[y];
+            for (size_t x = 0; x < static_cast<size_t>(width) && x < row.size(); ++x)
+            {
+                grid[y][x].visited = row[x].get<bool>();
             }
         }
     }
@@ -397,6 +563,30 @@ void gameMap::loadStateFromJson(const json& j)
             auto npc = std::make_shared<entity>("npc_temp", "Unknown");
             npc->fromJson(npcJson);
             runtimeData[key].persistentNPC = npc;
+        }
+    }
+
+    if (j.contains("tileAmbushes"))
+    {
+        for (auto& [keyStr, aJson] : j["tileAmbushes"].items())
+        {
+            uint64_t key = std::stoull(keyStr);
+            auto& aState = runtimeData[key].ambushState;
+            aState.templateId = aJson.value("templateId", "");
+            if (aJson.contains("templatePool") && aJson["templatePool"].is_array())
+            {
+                aState.templatePool = aJson["templatePool"].get<std::vector<std::string>>();
+            }
+            aState.isPermanentlyRemoved = aJson.value("isPermanentlyRemoved", false);
+            aState.isDefeated = aJson.value("isDefeated", false);
+            aState.restockMinutesRemaining = aJson.value("restockMinutesRemaining", 0);
+            aState.ambushChance = aJson.value("ambushChance", 50);
+            if (aJson.contains("npc"))
+            {
+                auto npc = std::make_shared<entity>("npc_ambush", "Ambush Enemy");
+                npc->fromJson(aJson["npc"]);
+                aState.npc = npc;
+            }
         }
     }
 }

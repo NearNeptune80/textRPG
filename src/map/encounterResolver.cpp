@@ -67,6 +67,11 @@ questScene encounterResolver::buildEncounterScene(game* g, std::shared_ptr<entit
     payChoice.nextSceneId = "ENCOUNTER_BRIBE";
     scene.choices.push_back(payChoice);
 
+    dialogueChoice fleeChoice;
+    fleeChoice.label = "Evade / Flee";
+    fleeChoice.nextSceneId = "ENCOUNTER_FLEE";
+    scene.choices.push_back(fleeChoice);
+
     dialogueChoice surrenderChoice;
     surrenderChoice.label = "Surrender";
     surrenderChoice.nextSceneId = "ENCOUNTER_SURRENDER";
@@ -99,9 +104,14 @@ questScene encounterResolver::buildVictoryScene(game* g, entity* targetNPC, cons
     scene.bodyText = selectFlavorText(mapId, targetNPC);
 
     dialogueChoice leaveChoice;
-    leaveChoice.label = "Leave";
+    leaveChoice.label = "Leave / Spare";
     leaveChoice.nextSceneId = "EXIT";
     scene.choices.push_back(leaveChoice);
+
+    dialogueChoice removeChoice;
+    removeChoice.label = "Permanently Remove";
+    removeChoice.nextSceneId = "ENCOUNTER_PERMANENT_REMOVE";
+    scene.choices.push_back(removeChoice);
 
     dialogueChoice lootChoice;
     lootChoice.label = "Loot";

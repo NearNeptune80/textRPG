@@ -36,6 +36,12 @@
       "targetY": 3
     }
   ],
+  "tileEncounters": {
+    "1,2": { "pool": ["tpl_alley_bandit", "tpl_cutpurse"], "ambushChance": 60 },
+    "1,5": { "pool": ["tpl_rogue_mage"], "ambushChance": 65 },
+    "2,5": { "pool": ["tpl_alley_bandit", "tpl_cutpurse"], "ambushChance": 55 },
+    "3,5": { "pool": ["tpl_alley_bandit", "tpl_cutpurse"], "ambushChance": 50 }
+  },
   "triggers": [
     {
       "id": "trig_stranger_start",

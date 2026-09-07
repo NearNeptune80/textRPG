@@ -30,11 +30,44 @@ void encounterResolutionState::onEnter(game* gameContext)
 {
     if (gameContext)
     {
+        if (gameContext->settings.gameplay.autoLoot)
+        {
+            for (size_t i = 0; i < m_records.size(); ++i)
+            {
+                m_selectedIndex = i;
+                handleLootEnemy(gameContext);
+            }
+        }
         gameContext->refreshActionGrid();
     }
 }
 
-void encounterResolutionState::onExit(game* gameContext) {}
+void encounterResolutionState::onExit(game* gameContext)
+{
+    if (gameContext && gameContext->map)
+    {
+        auto& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
+        for (const auto& rec : m_records)
+        {
+            if (rec.npc && tileData.ambushState.npc == rec.npc)
+            {
+                if (rec.isPermanentlyRemoved)
+                {
+                    tileData.ambushState.isPermanentlyRemoved = false;
+                    tileData.ambushState.npc = nullptr;
+                    tileData.ambushState.isDefeated = true;
+                    tileData.ambushState.restockMinutesRemaining = 1440; // 24 hours
+                }
+                else
+                {
+                    tileData.ambushState.isDefeated = true;
+                    tileData.ambushState.restockMinutesRemaining = 1440; // 24 hours
+                }
+                tileData.persistentNPC = nullptr;
+            }
+        }
+    }
+}
 
 void encounterResolutionState::update(game* gameContext, float deltaTime) {}
 
@@ -67,6 +100,10 @@ void encounterResolutionState::handleCommand(game* gameContext, const UICommand&
 
         case CommandType::RELEASE_ENEMY:
             handleReleaseEnemy(gameContext);
+            break;
+
+        case CommandType::PERMANENTLY_REMOVE_ENEMY:
+            handlePermanentlyRemoveEnemy(gameContext);
             break;
 
         case CommandType::CLOSE_MENU:
@@ -143,6 +180,13 @@ void encounterResolutionState::handleInteractiveSex(game* gameContext)
     auto& rec = m_records[m_selectedIndex];
     if (!rec.npc) return;
 
+    if (!gameContext->settings.content.nonConEnabled)
+    {
+        m_resolutionLog = "Interactive encounter blocked: Non-consensual content is disabled in Content Settings.";
+        gameContext->refreshActionGrid();
+        return;
+    }
+
     rec.hadSex = true;
     m_resolutionLog = std::format("Entered interactive sex encounter with {}.", rec.npc->name);
 
@@ -169,5 +213,28 @@ void encounterResolutionState::handleReleaseEnemy(game* gameContext)
 
     rec.isReleased = true;
     m_resolutionLog = std::format("You released {}. They scramble away into the distance.", rec.npc->name);
+    gameContext->refreshActionGrid();
+}
+
+void encounterResolutionState::handlePermanentlyRemoveEnemy(game* gameContext)
+{
+    if (!gameContext || m_selectedIndex >= m_records.size()) return;
+    auto& rec = m_records[m_selectedIndex];
+    if (!rec.npc || rec.isPermanentlyRemoved) return;
+
+    rec.isPermanentlyRemoved = true;
+    if (gameContext->map)
+    {
+        auto& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
+        if (tileData.ambushState.npc == rec.npc)
+        {
+            tileData.ambushState.isPermanentlyRemoved = false;
+            tileData.ambushState.npc = nullptr;
+            tileData.ambushState.isDefeated = true;
+            tileData.ambushState.restockMinutesRemaining = 1440;
+            tileData.persistentNPC = nullptr;
+        }
+    }
+    m_resolutionLog = std::format("{} has been permanently removed from this area.", rec.npc->name);
     gameContext->refreshActionGrid();
 }

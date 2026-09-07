@@ -55,39 +55,55 @@ namespace TransformationView
 
         float startY = curY;
 
-        // Centered Content Column (proportional width instead of overly wide stretching)
-        float contentMaxW = std::min(rect.w - (48.0f * uiScale), 940.0f * uiScale);
-        float padX = rect.x + (rect.w - contentMaxW) / 2.0f;
-        float availableW = contentMaxW;
+        // Content spans layout pane width with crisp inner padding matching the rest of the game
+        float padX = rect.x + (10.0f * uiScale);
+        float availableW = rect.w - (20.0f * uiScale);
 
         // 1. Full-Width Header Banner
         float headerH = 28.0f * uiScale;
         SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
-        UIWidget::drawHeader(renderer, headerRect, std::format("FULL TRANSFORMATION & BODY MODIFICATION [{}]", transformationTabToString(state->currentTab)), Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
-        curY += headerH + (12.0f * uiScale);
+        UIWidget::drawHeader(renderer, headerRect, std::format("BIOLOGICAL TRANSFORMATION STUDIO [{}]", transformationTabToString(state->currentTab)), Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
+        curY += headerH + (10.0f * uiScale);
 
-        // 2. Overview Status Card
-        SDL_FRect statusCardRect = { padX, curY, availableW, 42.0f * uiScale };
+        auto mousePos = gameContext->input.getMousePosition();
+        bool clicked = gameContext->input.isLeftMouseJustClicked();
+        bool inPanel = (mousePos.y >= rect.y && mousePos.y <= rect.y + rect.h);
+
+        // 3. Overview Status Card
+        float statusCardH = 46.0f * uiScale;
+        SDL_FRect statusCardRect = { padX, curY, availableW, statusCardH };
         UIWidget::drawPanel(renderer, statusCardRect, Theme::colors.bgDark, Theme::colors.borderButton);
 
         std::string genderStr = genderArchetypeToString(player->anatomy.getGenderArchetype());
-        std::string racialTitle = player->anatomy.getRacialTitle();
-        UIWidget::drawText(renderer, std::format("Subject: {} | Form: {} ({}) | Height: {:.0f}cm", player->name, racialTitle, genderStr, player->anatomy.heightMeters * 100.0f), padX + (12.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textGold, uiScale * 0.85f);
+        std::string racialTitle = player->anatomy.getRacialTitle().empty() ? "Human" : player->anatomy.getRacialTitle();
+        std::string curBodySize = player->anatomy.bodySize.empty() ? "Average" : player->anatomy.bodySize;
+        std::string curMuscleTone = player->anatomy.muscleTone.empty() ? "Toned" : player->anatomy.muscleTone;
 
-        std::string line2 = "Features: ";
-        if (const bodyPart* b = player->anatomy.getPart(bodySlot::BREASTS)) line2 += std::format("Breasts: {} ", bodyPart::getCupSizeName(b->cupSize));
-        if (player->anatomy.hasPenis()) line2 += "• Penis ";
-        if (player->anatomy.hasVagina()) line2 += "• Vagina ";
-        if (player->anatomy.hasPart(bodySlot::HORNS)) line2 += "• Horns ";
-        if (player->anatomy.hasPart(bodySlot::WINGS)) line2 += "• Wings ";
-        if (player->anatomy.hasPart(bodySlot::TAIL)) line2 += "• Tail ";
-        UIWidget::drawText(renderer, line2, padX + (12.0f * uiScale), curY + (22.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.78f);
-        curY += statusCardRect.h + (12.0f * uiScale);
+        std::string line1 = std::format("Subject: {}  |  Form: {} ({})  |  Height: {:.0f}cm  |  Build: {}, {}",
+            player->name, racialTitle, genderStr, player->anatomy.heightMeters * 100.0f, curBodySize, curMuscleTone);
+        UIWidget::drawText(renderer, line1, padX + (12.0f * uiScale), curY + (7.0f * uiScale), Theme::colors.textGold, uiScale * 0.85f);
+
+        std::string line2 = "Active Features: ";
+        if (const bodyPart* b = player->anatomy.getPart(bodySlot::BREASTS)) line2 += std::format("Breasts: {}  ", bodyPart::getCupSizeName(b->cupSize));
+        if (player->anatomy.hasPenis())
+        {
+            const bodyPart* gr = player->anatomy.getPart(bodySlot::GROIN);
+            line2 += std::format("• Penis ({:.0f}cm)  ", gr ? gr->length : 16.0f);
+        }
+        if (player->anatomy.hasVagina()) line2 += "• Vagina  ";
+        if (const bodyPart* h = player->anatomy.getPart(bodySlot::HORNS)) line2 += std::format("• Horns ({})  ", h->race);
+        if (const bodyPart* w = player->anatomy.getPart(bodySlot::WINGS)) line2 += std::format("• Wings ({})  ", w->race);
+        if (const bodyPart* t = player->anatomy.getPart(bodySlot::TAIL)) line2 += std::format("• Tail ({})  ", t->race);
+        UIWidget::drawText(renderer, line2, padX + (12.0f * uiScale), curY + (24.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.78f);
+        curY += statusCardH + (12.0f * uiScale);
 
         if (!state->statusMessage.empty())
         {
-            UIWidget::drawText(renderer, state->statusMessage, padX, curY, Theme::colors.lust, uiScale * 0.85f);
-            curY += (18.0f * uiScale);
+            float msgH = 28.0f * uiScale;
+            SDL_FRect msgRect = { padX, curY, availableW, msgH };
+            UIWidget::drawPanel(renderer, msgRect, Theme::colors.bgHeader, Theme::colors.borderSelected);
+            UIWidget::drawText(renderer, "• " + state->statusMessage, padX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textGold, uiScale * 0.82f);
+            curY += msgH + (10.0f * uiScale);
         }
 
         // 3. Tab Specific Renderers with encapsulated Widget Cards
@@ -121,7 +137,7 @@ namespace TransformationView
                     if (!player->anatomy.hasPart(bodySlot::HEAD)) {
                         bodyPart p; p.id = "head"; p.name = "Head"; p.race = r; player->anatomy.setPart(bodySlot::HEAD, p);
                     } else player->anatomy.getPart(bodySlot::HEAD)->race = r;
-                }, uiScale, 6);
+                }, uiScale, 4);
 
                 bodyPart* torso = player->anatomy.getPart(bodySlot::TORSO);
                 std::string torsoColor = torso ? torso->primaryColor : "Pale";
@@ -148,7 +164,7 @@ namespace TransformationView
                     if (!player->anatomy.hasPart(bodySlot::LEGS)) {
                         bodyPart lp; lp.id = "legs"; lp.name = "Legs"; lp.race = "Human"; lp.style = l; player->anatomy.setPart(bodySlot::LEGS, lp);
                     } else player->anatomy.getPart(bodySlot::LEGS)->style = l;
-                }, uiScale, 6);
+                }, uiScale, 3);
 
                 bodyPart* groin = player->anatomy.getPart(bodySlot::GROIN);
                 std::string curPlace = (groin && !groin->style.empty()) ? groin->style : "Normal";
@@ -166,7 +182,7 @@ namespace TransformationView
                     if (!player->anatomy.hasPart(bodySlot::EYES)) {
                         bodyPart ep; ep.id = "eyes_" + r; ep.name = "Eyes"; ep.race = r; ep.primaryColor = "Azure Blue"; player->anatomy.setPart(bodySlot::EYES, ep);
                     } else player->anatomy.getPart(bodySlot::EYES)->race = r;
-                }, uiScale, 6);
+                }, uiScale, 4);
 
                 std::string curEyeShape = (eyes && !eyes->style.empty()) ? eyes->style : "Round";
                 curY += drawPillCard(renderer, gameContext, rect, padX, curY, availableW, "Iris & Pupil Shapes", "Change iris and pupil structural geometry.", eyeShapes, curEyeShape, [&](const std::string& es) {
@@ -205,7 +221,7 @@ namespace TransformationView
                     if (!player->anatomy.hasPart(bodySlot::HAIR)) {
                         bodyPart hp; hp.id = "hair"; hp.name = "Hair"; hp.style = s; player->anatomy.setPart(bodySlot::HAIR, hp);
                     } else player->anatomy.getPart(bodySlot::HAIR)->style = s;
-                }, uiScale, 6);
+                }, uiScale, 4);
 
                 std::string hairColor = hair ? hair->primaryColor : "Chestnut Brown";
                 curY += drawColorSwatchCard(renderer, gameContext, rect, padX, curY, availableW, "Hair Color Swatches", "Select head hair pigment.", tfColors, hairColor, [&](const std::string& col) {
@@ -229,7 +245,7 @@ namespace TransformationView
                 curY += drawPillCard(renderer, gameContext, rect, padX, curY, availableW, "Ears & Facial Structure", "Change ear morphology and race.", racialTypes, player->anatomy.hasPart(bodySlot::EARS) ? player->anatomy.getPart(bodySlot::EARS)->race : "Human", [&](const std::string& r) {
                     bodyPart ear; ear.id = "ears_" + r; ear.name = "Ears"; ear.race = r;
                     player->anatomy.setPart(bodySlot::EARS, ear);
-                }, uiScale, 6);
+                }, uiScale, 4);
 
                 curY += drawPillCard(renderer, gameContext, rect, padX, curY, availableW, "Horns & Crests", "Grow, shape, or remove horns.", hornTypes, player->anatomy.hasPart(bodySlot::HORNS) ? player->anatomy.getPart(bodySlot::HORNS)->race : "None", [&](const std::string& r) {
                     if (r == "None") player->anatomy.removePart(bodySlot::HORNS);
@@ -342,7 +358,7 @@ namespace TransformationView
                 std::string curBreastShape = breasts->style.empty() ? "Round" : breasts->style;
                 curY += drawPillCard(renderer, gameContext, rect, padX, curY, availableW, "Breast Shape", "Projection and fullness contour.", breastShapes, curBreastShape, [&](const std::string& s) {
                     breasts->style = s;
-                }, uiScale, 6);
+                }, uiScale, 3);
 
                 curY += drawToggleCard(renderer, gameContext, rect, padX, curY, availableW, "Lactation Active", "Enable or disable continuous milk production.", breasts->isLactating, [&](bool l) {
                     breasts->isLactating = l;
@@ -359,7 +375,7 @@ namespace TransformationView
                     std::string curMilkFlav = breasts->secondaryColor.empty() ? "Milk" : breasts->secondaryColor;
                     curY += drawPillCard(renderer, gameContext, rect, padX, curY, availableW, "Milk Flavours", "Taste profile of expressed milk.", fluidFlavours, curMilkFlav, [&](const std::string& f) {
                         breasts->secondaryColor = f;
-                    }, uiScale, 6);
+                    }, uiScale, 4);
 
                     curY += drawTogglePillCard(renderer, gameContext, rect, padX, curY, availableW, "Milk Modifiers", "Psychoactive and physical milk traits.", fluidModifiers, breasts->tags, [&](const std::string& m, bool act) {
                         if (act) breasts->tags.push_back(m);
@@ -468,7 +484,7 @@ namespace TransformationView
                             for (const auto& fl : fluidFlavours) std::erase(g->tags, "flav_" + fl);
                             g->tags.push_back("flav_" + f);
                         }
-                    }, uiScale, 6);
+                    }, uiScale, 4);
 
                     curY += drawTogglePillCard(renderer, gameContext, rect, padX, curY, availableW, "Girlcum Modifiers", "Qualities and effects of vaginal fluid.", fluidModifiers, curTags, [&](const std::string& mod, bool act) {
                         if (g) {
@@ -555,7 +571,7 @@ namespace TransformationView
                             for (const auto& fl : fluidFlavours) std::erase(g->tags, "cum_flav_" + fl);
                             g->tags.push_back("cum_flav_" + f);
                         }
-                    }, uiScale, 6);
+                    }, uiScale, 4);
 
                     curY += drawTogglePillCard(renderer, gameContext, rect, padX, curY, availableW, "Cum Modifiers", "Psychoactive and physical cum traits.", fluidModifiers, curTags, [&](const std::string& mod, bool act) {
                         if (g) {
@@ -608,7 +624,7 @@ namespace TransformationView
                         bodyPart w; w.id = "wings_" + r; w.name = "Wings"; w.race = r; w.count = 2; w.style = "Average";
                         player->anatomy.setPart(bodySlot::WINGS, w);
                     }
-                }, uiScale, 6);
+                }, uiScale, 4);
 
                 bodyPart* wings = player->anatomy.getPart(bodySlot::WINGS);
                 std::string curWingSize = (wings && !wings->style.empty()) ? wings->style : "Average";
@@ -622,7 +638,7 @@ namespace TransformationView
                         bodyPart t; t.id = "tail_" + r; t.name = "Tail"; t.race = r; t.count = 1; t.length = 75.0f;
                         player->anatomy.setPart(bodySlot::TAIL, t);
                     }
-                }, uiScale, 6);
+                }, uiScale, 4);
 
                 if (bodyPart* tail = player->anatomy.getPart(bodySlot::TAIL))
                 {
@@ -644,68 +660,71 @@ namespace TransformationView
 
             case TransformationTab::INSPECT_PRESETS:
             {
-                // Live Prose Card
+                // 1. Live Anatomical Prose Description Card (Pre-calculate text height before drawing panel)
                 std::string fullDesc = characterDescription::generateFullDescription(player);
-                SDL_FRect descCard = { padX, curY, availableW, 140.0f * uiScale };
+                float proseAvailableW = availableW - (24.0f * uiScale);
+                float proseH = UIWidget::getTextWrappedHeight(fullDesc, proseAvailableW, uiScale * 0.82f);
+                float descCardH = proseH + (42.0f * uiScale);
+
+                SDL_FRect descCard = { padX, curY, availableW, descCardH };
                 UIWidget::drawPanel(renderer, descCard, Theme::colors.bgSlot, Theme::colors.borderNormal);
                 UIWidget::drawText(renderer, "Live Anatomical Prose Description", padX + (12.0f * uiScale), curY + (8.0f * uiScale), Theme::colors.textGold, uiScale * 0.88f);
-                float proseH = UIWidget::drawTextWrapped(renderer, fullDesc, padX + (12.0f * uiScale), curY + (28.0f * uiScale), availableW - (24.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.82f);
-                descCard.h = std::max(60.0f * uiScale, proseH + (40.0f * uiScale));
-                curY += descCard.h + (14.0f * uiScale);
+                UIWidget::drawTextWrapped(renderer, fullDesc, padX + (12.0f * uiScale), curY + (28.0f * uiScale), proseAvailableW, Theme::colors.textPrimary, uiScale * 0.82f);
+                curY += descCardH + (16.0f * uiScale);
 
-                // Presets Card
-                SDL_FRect presetsCard = { padX, curY, availableW, 60.0f * uiScale };
-                UIWidget::drawPanel(renderer, presetsCard, Theme::colors.bgSlot, Theme::colors.borderNormal);
-                UIWidget::drawText(renderer, "Transformation Presets", padX + (12.0f * uiScale), curY + (8.0f * uiScale), Theme::colors.textGold, uiScale * 0.88f);
-                UIWidget::drawText(renderer, "Save, restore, or reset full-body baseline configurations.", padX + (12.0f * uiScale), curY + (26.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.74f);
+                // 2. Morphology Presets Management Card
+                float toolCardH = 78.0f * uiScale;
+                SDL_FRect toolCard = { padX, curY, availableW, toolCardH };
+                UIWidget::drawPanel(renderer, toolCard, Theme::colors.bgSlot, Theme::colors.borderNormal);
+                UIWidget::drawText(renderer, "Morphology Presets", padX + (12.0f * uiScale), curY + (9.0f * uiScale), Theme::colors.textGold, uiScale * 0.88f);
+                UIWidget::drawText(renderer, "Save your active bodily morphology as a custom preset, or restore an existing build below.", padX + (12.0f * uiScale), curY + (27.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.76f);
 
-                // Save current preset button
-                float btnY = curY + (22.0f * uiScale);
-                float btnW = 140.0f * uiScale;
-                SDL_FRect saveBtnRect = { padX + availableW - (btnW * 2.0f) - (20.0f * uiScale), btnY, btnW, 26.0f * uiScale };
-                auto mousePos = gameContext->input.getMousePosition();
-                bool clicked = gameContext->input.isLeftMouseJustClicked();
-                bool inPanel = (mousePos.y >= rect.y && mousePos.y <= rect.y + rect.h);
-
-                bool sHov = inPanel && (btnY + 26.0f * uiScale >= rect.y && btnY <= rect.y + rect.h) &&
-                             (mousePos.x >= saveBtnRect.x && mousePos.x <= saveBtnRect.x + saveBtnRect.w &&
-                              mousePos.y >= saveBtnRect.y && mousePos.y <= saveBtnRect.y + saveBtnRect.h);
-
-                UIWidget::drawButton(renderer, saveBtnRect, "Save New Preset", sHov, true, false, uiScale * 0.8f);
+                float saveBtnW = 220.0f * uiScale;
+                float saveBtnH = 26.0f * uiScale;
+                SDL_FRect saveBtnRect = { padX + (12.0f * uiScale), curY + (44.0f * uiScale), saveBtnW, saveBtnH };
+                bool sHov = inPanel && (mousePos.x >= saveBtnRect.x && mousePos.x <= saveBtnRect.x + saveBtnRect.w &&
+                                        mousePos.y >= saveBtnRect.y && mousePos.y <= saveBtnRect.y + saveBtnRect.h);
+                UIWidget::drawButton(renderer, saveBtnRect, "Save Current Form as Preset", sHov, true, false, uiScale * 0.78f);
                 if (sHov && clicked)
                 {
                     state->savePreset(gameContext, "Preset_" + player->anatomy.getRacialTitle());
                     gameContext->input.consumeMouseClick();
                 }
+                curY += toolCardH + (16.0f * uiScale);
 
-                SDL_FRect rBtnRect = { padX + availableW - btnW - (10.0f * uiScale), btnY, btnW, 26.0f * uiScale };
-                bool rHov = inPanel && (btnY + 26.0f * uiScale >= rect.y && btnY <= rect.y + rect.h) &&
-                             (mousePos.x >= rBtnRect.x && mousePos.x <= rBtnRect.x + rBtnRect.w &&
-                              mousePos.y >= rBtnRect.y && mousePos.y <= rBtnRect.y + rBtnRect.h);
-                UIWidget::drawButton(renderer, rBtnRect, "Reset Human", rHov, true, false, uiScale * 0.8f);
-                if (rHov && clicked)
-                {
-                    state->resetToHuman(gameContext);
-                    gameContext->input.consumeMouseClick();
-                }
-                curY += presetsCard.h + (14.0f * uiScale);
+                // 3. Saved Preset Library Header
+                UIWidget::drawText(renderer, "SAVED PRESETS LIBRARY", padX, curY, Theme::colors.textGold, uiScale * 0.88f);
+                curY += (20.0f * uiScale);
 
-                // List saved presets (cached to prevent 60fps disk reads)
                 const auto& presets = state->getPresetNames();
-                if (!presets.empty())
+                if (presets.empty())
+                {
+                    float emptyH = 38.0f * uiScale;
+                    SDL_FRect emptyRect = { padX, curY, availableW, emptyH };
+                    UIWidget::drawPanel(renderer, emptyRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+                    UIWidget::drawText(renderer, "No custom presets saved on disk yet. Click 'Save Current Form as Preset' above to preserve your build.", padX + (12.0f * uiScale), curY + (10.0f * uiScale), Theme::colors.textDisabled, uiScale * 0.78f);
+                    curY += emptyH + (12.0f * uiScale);
+                }
+                else
                 {
                     for (const auto& pName : presets)
                     {
-                        SDL_FRect pRect = { padX, curY, availableW - (100.0f * uiScale), 26.0f * uiScale };
+                        float rowH = 34.0f * uiScale;
+                        float btnW1 = 75.0f * uiScale;
+                        float btnW2 = 55.0f * uiScale;
+                        float cardW = availableW - btnW1 - btnW2 - (18.0f * uiScale);
+
+                        SDL_FRect pRect = { padX, curY, cardW, rowH };
                         UIWidget::drawPanel(renderer, pRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
-                        UIWidget::drawText(renderer, pName, pRect.x + (10.0f * uiScale), curY + (5.0f * uiScale), Theme::colors.textGold, uiScale * 0.82f);
+                        UIWidget::drawText(renderer, "• " + pName, pRect.x + (12.0f * uiScale), curY + (8.0f * uiScale), Theme::colors.textGold, uiScale * 0.82f);
 
                         // Load button
-                        SDL_FRect loadRect = { padX + availableW - (95.0f * uiScale), curY, 45.0f * uiScale, 26.0f * uiScale };
-                        bool lHov = inPanel && (curY + 26.0f * uiScale >= rect.y && curY <= rect.y + rect.h) &&
-                                     (mousePos.x >= loadRect.x && mousePos.x <= loadRect.x + loadRect.w &&
-                                      mousePos.y >= loadRect.y && mousePos.y <= loadRect.y + loadRect.h);
-                        UIWidget::drawButton(renderer, loadRect, "Load", lHov, true, false, uiScale * 0.74f);
+                        float btnH = 26.0f * uiScale;
+                        float btnY = curY + (4.0f * uiScale);
+                        SDL_FRect loadRect = { padX + cardW + (8.0f * uiScale), btnY, btnW1, btnH };
+                        bool lHov = inPanel && (mousePos.x >= loadRect.x && mousePos.x <= loadRect.x + loadRect.w &&
+                                                mousePos.y >= loadRect.y && mousePos.y <= loadRect.y + loadRect.h);
+                        UIWidget::drawButton(renderer, loadRect, "Load", lHov, true, false, uiScale * 0.76f);
                         if (lHov && clicked)
                         {
                             state->loadPreset(gameContext, pName);
@@ -713,17 +732,16 @@ namespace TransformationView
                         }
 
                         // Del button
-                        SDL_FRect delRect = { padX + availableW - (45.0f * uiScale), curY, 40.0f * uiScale, 26.0f * uiScale };
-                        bool dHov = inPanel && (curY + 26.0f * uiScale >= rect.y && curY <= rect.y + rect.h) &&
-                                     (mousePos.x >= delRect.x && mousePos.x <= delRect.x + delRect.w &&
-                                      mousePos.y >= delRect.y && mousePos.y <= delRect.y + delRect.h);
-                        UIWidget::drawButton(renderer, delRect, "Del", dHov, true, false, uiScale * 0.74f);
+                        SDL_FRect delRect = { loadRect.x + btnW1 + (6.0f * uiScale), btnY, btnW2, btnH };
+                        bool dHov = inPanel && (mousePos.x >= delRect.x && mousePos.x <= delRect.x + delRect.w &&
+                                                mousePos.y >= delRect.y && mousePos.y <= delRect.y + delRect.h);
+                        UIWidget::drawButton(renderer, delRect, "Del", dHov, true, false, uiScale * 0.76f);
                         if (dHov && clicked)
                         {
                             state->deletePreset(pName);
                             gameContext->input.consumeMouseClick();
                         }
-                        curY += (32.0f * uiScale);
+                        curY += rowH + (8.0f * uiScale);
                     }
                 }
                 break;

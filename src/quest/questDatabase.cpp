@@ -12,6 +12,7 @@ namespace fs = std::filesystem;
 std::unordered_map<std::string, questScene> questDatabase::registry;
 std::vector<MapTrigger> questDatabase::globalTriggers;
 std::unordered_map<std::string, QuestDefinition> questDatabase::quests;
+std::vector<QuestNPCRelocation> questDatabase::globalRelocations;
 
 static conditionNode parseConditionNode(const json& j)
 {
@@ -68,6 +69,7 @@ bool questDatabase::loadDatabase(const std::string& pathStr)
     registry.clear();
     globalTriggers.clear();
     quests.clear();
+    globalRelocations.clear();
     fs::path p(pathStr);
 
     auto loadSingleFile = [](const fs::path& filePath)
@@ -127,11 +129,12 @@ bool questDatabase::loadDatabase(const std::string& pathStr)
                     MapTrigger trig;
                     trig.id = tJson.value("id", "");
                     trig.mapId = tJson.value("mapId", "");
-                    trig.x = tJson.at("x").get<int>();
-                    trig.y = tJson.at("y").get<int>();
+                    trig.npcId = tJson.value("npcId", "");
+                    trig.x = tJson.value("x", 0);
+                    trig.y = tJson.value("y", 0);
                     trig.label = tJson.value("label", "Interact");
                     trig.tooltip = tJson.value("tooltip", "");
-                    trig.sceneId = tJson.at("sceneId").get<std::string>();
+                    trig.sceneId = tJson.value("sceneId", "");
 
                     if (tJson.contains("conditions"))
                     {
@@ -141,6 +144,32 @@ bool questDatabase::loadDatabase(const std::string& pathStr)
                         }
                     }
                     questDatabase::globalTriggers.push_back(trig);
+                }
+            }
+
+            if (data.contains("npcRelocations") && data["npcRelocations"].is_array())
+            {
+                std::string qId = data.value("id", "");
+                for (const auto& rJson : data["npcRelocations"])
+                {
+                    QuestNPCRelocation reloc;
+                    reloc.questId = rJson.value("questId", qId);
+                    reloc.npcId = rJson.value("npcId", "");
+                    reloc.minStage = rJson.value("minStage", 0);
+                    reloc.maxStage = rJson.value("maxStage", 999);
+                    reloc.mapId = rJson.value("mapId", "");
+                    reloc.x = rJson.value("x", 0);
+                    reloc.y = rJson.value("y", 0);
+                    reloc.activity = rJson.value("activity", "");
+                    reloc.overrideSceneId = rJson.value("overrideSceneId", "");
+                    if (rJson.contains("conditions"))
+                    {
+                        for (const auto& cJson : rJson["conditions"])
+                        {
+                            reloc.conditions.push_back(parseConditionNode(cJson));
+                        }
+                    }
+                    questDatabase::globalRelocations.push_back(reloc);
                 }
             }
 
@@ -224,6 +253,28 @@ std::vector<MapTrigger> questDatabase::getTriggersForLocation(const std::string&
     for (const auto& trig : globalTriggers)
     {
         if (trig.mapId == mapId && trig.x == x && trig.y == y) matches.push_back(trig);
+    }
+    return matches;
+}
+
+std::vector<MapTrigger> questDatabase::getTriggersForNPC(const std::string& npcId)
+{
+    std::vector<MapTrigger> matches;
+    if (npcId.empty()) return matches;
+    for (const auto& trig : globalTriggers)
+    {
+        if (trig.npcId == npcId) matches.push_back(trig);
+    }
+    return matches;
+}
+
+std::vector<QuestNPCRelocation> questDatabase::getRelocationsForNPC(const std::string& npcId)
+{
+    std::vector<QuestNPCRelocation> matches;
+    if (npcId.empty()) return matches;
+    for (const auto& reloc : globalRelocations)
+    {
+        if (reloc.npcId == npcId) matches.push_back(reloc);
     }
     return matches;
 }

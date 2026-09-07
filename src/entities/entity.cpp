@@ -3,11 +3,15 @@
 #include <algorithm>
 #include <iostream>
 
+#include "entities/perkDatabase.h"
 #include "items/itemDatabase.h"
 
 using json = nlohmann::json;
 
-entity::entity(std::string entityId, std::string entityName) : id(entityId), name(entityName) {}
+entity::entity(std::string entityId, std::string entityName) : id(entityId), name(entityName)
+{
+    stats.setBaseStat("perk_points", 3.0f);
+}
 
 /**
  * Applies or refreshes duration of a status effect.
@@ -106,7 +110,28 @@ float entity::getStat(const std::string& statName) const
         }
     }
 
-    float result = std::max(0.0f, (val + flatEquipment) * (1.0f + percentEquipment));
+    // Sum bonuses from unlocked perks
+    float flatPerks = 0.0f;
+    float percentPerks = 0.0f;
+    for (const auto& perkId : unlockedPerks)
+    {
+        const auto* perk = PerkDatabase::getPerk(perkId);
+        if (perk)
+        {
+            auto itFlat = perk->modifiers.statModifiers.find(statName);
+            if (itFlat != perk->modifiers.statModifiers.end())
+            {
+                flatPerks += itFlat->second;
+            }
+            auto itPct = perk->modifiers.percentStatModifiers.find(statName);
+            if (itPct != perk->modifiers.percentStatModifiers.end())
+            {
+                percentPerks += itPct->second;
+            }
+        }
+    }
+
+    float result = std::max(0.0f, (val + flatEquipment + flatPerks) * (1.0f + percentEquipment + percentPerks));
     m_statCache[statName] = result;
     return result;
 }
@@ -125,6 +150,9 @@ json entity::toJson() const
     j["sellMarkdown"] = sellMarkdown;
     j["tradePerkModifier"] = tradePerkModifier;
     j["unlockedPerks"] = unlockedPerks;
+    j["birthDay"] = birthDay;
+    j["birthMonth"] = birthMonth;
+    j["birthYear"] = birthYear;
 
     json statsJson;
     statsJson["level"] = stats.level;
@@ -251,6 +279,9 @@ void entity::fromJson(const json& j)
     buyMarkup = j.value("buyMarkup", 1.25f);
     sellMarkdown = j.value("sellMarkdown", 0.50f);
     tradePerkModifier = j.value("tradePerkModifier", 0.0f);
+    birthDay = j.value("birthDay", 29);
+    birthMonth = j.value("birthMonth", 8);
+    birthYear = j.value("birthYear", 1);
     if (j.contains("unlockedPerks") && j["unlockedPerks"].is_array())
     {
         unlockedPerks = j["unlockedPerks"].get<std::vector<std::string>>();
@@ -428,12 +459,99 @@ void entity::resetPerks()
 void entity::recalculatePerkModifiers()
 {
     tradePerkModifier = 0.0f;
-    if (hasPerk("silver_tongue"))
+    for (const auto& perkId : unlockedPerks)
     {
-        tradePerkModifier += 0.10f;
+        const auto* perk = PerkDatabase::getPerk(perkId);
+        if (perk)
+        {
+            tradePerkModifier += perk->modifiers.tradeDiscount;
+        }
+        else if (perkId == "silver_tongue")
+        {
+            tradePerkModifier += 0.10f;
+        }
+        else if (perkId == "master_trader")
+        {
+            tradePerkModifier += 0.15f;
+        }
     }
-    if (hasPerk("master_trader"))
+    invalidateStatCache();
+}
+
+float entity::getPerkDamageMultiplier(const std::string& targetRace, const std::string& attackType) const
+{
+    float mult = 0.0f;
+    for (const auto& perkId : unlockedPerks)
     {
-        tradePerkModifier += 0.15f;
+        const auto* perk = PerkDatabase::getPerk(perkId);
+        if (!perk) continue;
+
+        if (!targetRace.empty())
+        {
+            auto itR = perk->modifiers.damageBoostByRace.find(targetRace);
+            if (itR != perk->modifiers.damageBoostByRace.end()) mult += itR->second;
+        }
+        if (!attackType.empty())
+        {
+            auto itA = perk->modifiers.damageBoostByAttackType.find(attackType);
+            if (itA != perk->modifiers.damageBoostByAttackType.end()) mult += itA->second;
+        }
     }
+    return mult;
+}
+
+float entity::getPerkDefenseMultiplier(const std::string& attackerRace, const std::string& attackType) const
+{
+    float mult = 0.0f;
+    for (const auto& perkId : unlockedPerks)
+    {
+        const auto* perk = PerkDatabase::getPerk(perkId);
+        if (!perk) continue;
+
+        if (!attackerRace.empty())
+        {
+            auto itR = perk->modifiers.defenseBoostByRace.find(attackerRace);
+            if (itR != perk->modifiers.defenseBoostByRace.end()) mult += itR->second;
+        }
+        if (!attackType.empty())
+        {
+            auto itA = perk->modifiers.defenseBoostByAttackType.find(attackType);
+            if (itA != perk->modifiers.defenseBoostByAttackType.end()) mult += itA->second;
+        }
+    }
+    return mult;
+}
+
+bool entity::hasPerkFlag(const std::string& flag) const
+{
+    for (const auto& perkId : unlockedPerks)
+    {
+        const auto* perk = PerkDatabase::getPerk(perkId);
+        if (!perk) continue;
+
+        for (const auto& f : perk->modifiers.flags)
+        {
+            if (f == flag) return true;
+        }
+    }
+    return false;
+}
+
+std::vector<std::string> entity::getAllPerkFlags() const
+{
+    std::vector<std::string> result;
+    for (const auto& perkId : unlockedPerks)
+    {
+        const auto* perk = PerkDatabase::getPerk(perkId);
+        if (!perk) continue;
+
+        for (const auto& f : perk->modifiers.flags)
+        {
+            if (std::find(result.begin(), result.end(), f) == result.end())
+            {
+                result.push_back(f);
+            }
+        }
+    }
+    return result;
 }

@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "core/eventBus.h"
 #include "core/timeManager.h"
 #include "entities/entity.h"
 #include "input/inputHandler.h"
@@ -27,6 +28,22 @@ struct InventorySlotInfo
     std::shared_ptr<item> itemPtr = nullptr;
     int count = 0;
     bool isValid = false;
+};
+
+struct LogColor
+{
+    uint8_t r = 255;
+    uint8_t g = 255;
+    uint8_t b = 255;
+    uint8_t a = 255;
+};
+
+struct EventLogEntry
+{
+    std::string tag;
+    std::string text;
+    LogColor color{ 220, 220, 220, 255 };
+    std::string timeStr;
 };
 
 /**
@@ -127,6 +144,13 @@ public:
     InventorySlotInfo getInventorySlotItem(int side, int absoluteIndex);
     std::string formatEquipSlotName(equipSlot slot);
 
+    // Activity & Event Log System
+    const std::vector<EventLogEntry>& getEventLog() const { return eventLog; }
+    void addLogEntry(const std::string& tag, const std::string& text, LogColor color = { 220, 220, 220, 255 });
+    void clearEventLog() { eventLog.clear(); }
+
 private:
     std::unique_ptr<iGameState> activeGameState;
+    std::vector<std::pair<gameEvent, callbackID>> eventSubscriptions;
+    std::vector<EventLogEntry> eventLog;
 };

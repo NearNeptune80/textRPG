@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "core/game.h"
+#include "core/timeManager.h"
 #include "items/itemDatabase.h"
 #include "state/characterCreationState.h"
 #include "ui/theme.h"
@@ -111,13 +112,37 @@ namespace CharacterCreationView
                 }, uiScale, 6);
             }
 
-            // 5. Birthday (Day & Age Steppers)
+            // 5. Birthday (Month, Day & Age Steppers)
+            if (cc->config.isOptionEnabled("birth_month"))
+            {
+                static const std::vector<std::string> fullMonths = { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" };
+                curY += drawPillCard(renderer, gameContext, rect, padX, curY, availableW, "Birth Month", "Calendar month of birth.", fullMonths, cc->birthMonth, [&](const std::string& m) {
+                    cc->birthMonth = m;
+                    for (size_t i = 0; i < fullMonths.size(); ++i)
+                    {
+                        if (fullMonths[i] == m)
+                        {
+                            cc->birthMonthIdx = static_cast<int>(i);
+                            break;
+                        }
+                    }
+                    int bYear = (gameContext ? gameContext->gameTime.year : 1) - cc->birthAge;
+                    int maxDays = timeManager::getDaysInMonth(cc->birthMonthIdx + 1, bYear);
+                    cc->birthDay = std::clamp(cc->birthDay, 1, maxDays);
+                }, uiScale, 6);
+            }
+
+            int birthYear = (gameContext ? gameContext->gameTime.year : 1) - cc->birthAge;
+            int maxBirthDays = timeManager::getDaysInMonth(cc->birthMonthIdx + 1, birthYear);
             curY += drawStepperCard<int>(renderer, gameContext, rect, padX, curY, availableW, "Birth Day", "Day of birth within the month.", std::format("Day {:02d}", cc->birthDay), [&](int delta) {
-                cc->birthDay = std::clamp(cc->birthDay + delta, 1, 31);
+                cc->birthDay = std::clamp(cc->birthDay + delta, 1, maxBirthDays);
             }, uiScale, 1, 5, 0);
 
             curY += drawStepperCard<int>(renderer, gameContext, rect, padX, curY, availableW, "Age", "Normal human starting age (18 to 65).", std::format("{} yrs", cc->birthAge), [&](int delta) {
                 cc->birthAge = std::clamp(cc->birthAge + delta, 18, 65);
+                int bYear = (gameContext ? gameContext->gameTime.year : 1) - cc->birthAge;
+                int maxD = timeManager::getDaysInMonth(cc->birthMonthIdx + 1, bYear);
+                cc->birthDay = std::clamp(cc->birthDay, 1, maxD);
             }, uiScale, 1, 5, 10);
 
             // 6. Personality Traits

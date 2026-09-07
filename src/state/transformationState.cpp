@@ -30,8 +30,8 @@ static std::string getPresetsDirectory()
     return dir;
 }
 
-transformationState::transformationState(TransformationTab initialTab)
-    : currentTab(initialTab)
+transformationState::transformationState(TransformationTab initialTab, std::unique_ptr<iGameState> previousState)
+    : currentTab(initialTab), m_previousState(std::move(previousState))
 {
 }
 
@@ -66,13 +66,26 @@ void transformationState::setTab(TransformationTab tab, game* gameContext)
     }
 }
 
+void transformationState::returnToPreviousOrExploration(game* gameContext)
+{
+    if (!gameContext) return;
+    if (m_previousState)
+    {
+        gameContext->changeState(std::move(m_previousState));
+    }
+    else
+    {
+        gameContext->changeState(std::make_unique<explorationState>());
+    }
+}
+
 void transformationState::handleCommand(game* gameContext, const UICommand& cmd)
 {
     if (!gameContext) return;
 
     if (cmd.type == CommandType::CLOSE_MENU)
     {
-        gameContext->changeState(std::make_unique<explorationState>());
+        returnToPreviousOrExploration(gameContext);
     }
 }
 

@@ -6,7 +6,9 @@
 #include "common/randomEngine.h"
 #include "core/eventBus.h"
 #include "core/textParser.h"
+#include "entities/namedCharacter.h"
 #include "entities/npcGenerator.h"
+#include "entities/perkDatabase.h"
 #include "events/gameEvents.h"
 #include "items/itemDatabase.h"
 #include "items/merchantValuation.h"
@@ -32,6 +34,11 @@ game::game() : isRunning(false), map(nullptr), playerEntity(nullptr), Player(nul
 
 game::~game()
 {
+    for (const auto& sub : eventSubscriptions)
+    {
+        eventBus::getInstance().unsubscribe(sub.first, sub.second);
+    }
+    eventSubscriptions.clear();
     map = nullptr;
     playerEntity = nullptr;
     Player = nullptr;
@@ -82,15 +89,33 @@ void game::nextActionPage()
     }
 }
 
+void game::addLogEntry(const std::string& tag, const std::string& text, LogColor color)
+{
+    std::string timeStr = std::format("D{:02d} {:02d}:{:02d}", gameTime.day, gameTime.hour, gameTime.minute);
+    eventLog.push_back(EventLogEntry{ tag, text, color, timeStr });
+    if (eventLog.size() > 100)
+    {
+        eventLog.erase(eventLog.begin(), eventLog.begin() + (eventLog.size() - 100));
+    }
+}
+
 void game::init()
 {
     settingsManager::loadFromFile(settings, "data/settings.json");
     Theme::applyTheme(settings.display.activeTheme);
 
+    clearEventLog();
+    addLogEntry("[ZONE]", "Sanctuary Manor F1", { 80, 160, 220, 255 });
+    addLogEntry("[QUEST]", "Sanctuary Research", { 210, 175, 80, 255 });
+    addLogEntry("[INFO]", "Systems active", { 180, 180, 190, 255 });
+
+    PerkDatabase::loadFromFile("data/perks.json");
+
     if (itemDatabase::loadDatabase("data/items.json"))
     {
-        npcGenerator::loadTemplates("data/npc_templates.json");
+        npcGenerator::loadTemplates("data/enemies");
         questDatabase::loadDatabase("data/quests");
+        NamedCharacterManager::loadFromDirectory("data/characters");
     }
 
     playerEntity = nullptr;
@@ -100,7 +125,7 @@ void game::init()
     changeState(std::make_unique<mainMenuState>());
 
     // Milestone 9: Time Advancement Biological Pipeline & Scheduled Maintenance
-    eventBus::getInstance().subscribe(gameEvent::timeAdvanced, [this](const eventData& data) {
+    auto subTime = eventBus::getInstance().subscribe(gameEvent::timeAdvanced, [this](const eventData& data) {
         int mins = data.numericValue;
         if (mins <= 0) return;
 
@@ -110,11 +135,19 @@ void game::init()
             this->map->processTimePassage(mins);
         }
 
+        // 2. Named Character Schedules & Tile Locations
+        NamedCharacterManager::updateAllLocations(this);
+
         // 2. Player Biological Pipeline
         if (this->Player)
         {
-            // Advance active mutations
-            this->Player->anatomy.processMutations(mins);
+            // Advance active mutations scaled by transformationSpeedMultiplier
+            float tfSpeed = this->settings.content.transformationSpeedMultiplier;
+            int mutationMins = (tfSpeed > 0.0f) ? std::max(1, static_cast<int>(mins * tfSpeed)) : 0;
+            if (mutationMins > 0)
+            {
+                this->Player->anatomy.processMutations(mutationMins);
+            }
 
             // Regenerate bodily fluids (milk, cum, girlcum) & recover orifice stretch
             this->Player->anatomy.processBiologicalRecovery(mins);
@@ -185,8 +218,14 @@ void game::init()
             }
         }
     });
+    eventSubscriptions.push_back({gameEvent::timeAdvanced, subTime});
 
-    eventBus::getInstance().subscribe(gameEvent::combatEnded, [this](const eventData& data) {
+    auto subQuest = eventBus::getInstance().subscribe(gameEvent::questStageChanged, [this](const eventData& data) {
+        NamedCharacterManager::updateAllLocations(this);
+    });
+    eventSubscriptions.push_back({gameEvent::questStageChanged, subQuest});
+
+    auto subCombat = eventBus::getInstance().subscribe(gameEvent::combatEnded, [this](const eventData& data) {
         switch (static_cast<CombatOutcome>(data.numericValue))
         {
             case CombatOutcome::VICTORY:
@@ -203,6 +242,7 @@ void game::init()
                 break;
         }
     });
+    eventSubscriptions.push_back({gameEvent::combatEnded, subCombat});
 
     isRunning = true;
 }
@@ -281,8 +321,25 @@ bool game::loadMap(const std::string& mapId, int startX, int startY)
     gridX = startX;
     gridY = startY;
 
+    NamedCharacterManager::syncMapCharacters(map);
+
+    auto& entryTile = map->getRuntimeData(gridX, gridY);
+    if (!entryTile.namedNPCs.empty())
+    {
+        activeTargetNPC = entryTile.namedNPCs.front();
+        activeTargetMode = TargetMode::DIALOGUE;
+    }
+    else
+    {
+        activeTargetNPC = nullptr;
+        activeTargetMode = TargetMode::NONE;
+    }
+
     map->updateDiscovery(gridX, gridY, 3);
     refreshActionGrid();
+
+    std::string zoneTitle = map->getName().empty() ? mapId : map->getName();
+    addLogEntry("[ZONE]", "Entered " + zoneTitle, { 80, 160, 220, 255 });
 
     eventBus::getInstance().publishEvent({ gameEvent::mapEntered, 0, mapId, nullptr });
 
@@ -297,7 +354,14 @@ bool game::loadMap(const std::string& mapId, int startX, int startY)
 
 void game::movePlayer(int nextX, int nextY)
 {
+    // Player can only walk during exploration state (not during encounters, combat, dialogue, or cutscenes)
+    if (!dynamic_cast<explorationState*>(activeGameState.get())) return;
     if (!map || !map->isWalkable(nextX, nextY)) return;
+
+    // Enforce adjacency: player can only step to an orthogonally adjacent tile (North, South, East, West)
+    int dx = std::abs(nextX - gridX);
+    int dy = std::abs(nextY - gridY);
+    if (dx + dy != 1) return;
 
     map->clearUnsafeItems(gridX, gridY);
 
@@ -310,25 +374,57 @@ void game::movePlayer(int nextX, int nextY)
     // Note: Map & Quest Triggers are presented as interactive buttons in the Action Grid
     // rather than abruptly hijacking player movement on step.
 
-    // 3. Check Dynamic Encounters
+    // 3. Check Dynamic Encounters & Persistent Ambushes
     TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
     int bonusDanger = (gameTime.getPhase() == TimePhase::NIGHT) ? 1 : 0;
     int dangerLevel = tileData.getEffectiveDangerLevel() + bonusDanger;
-
     float playerStealth = Player ? Player->getStat("agility") : 0.0f;
 
-    if (dangerLevel > 0 && encounterResolver::shouldTriggerEncounter(dangerLevel, gameTime.getPhase(), playerStealth))
+    if (dangerLevel > 0)
     {
-        if (!tileData.persistentNPC)
+        bool isRestocking = tileData.ambushState.isDefeated && tileData.ambushState.restockMinutesRemaining > 0;
+        if (!isRestocking)
         {
-            tileData.persistentNPC = encounterResolver::createEncounterNPC(dangerLevel, settings);
+            int chance = tileData.ambushState.ambushChance > 0 ? tileData.ambushState.ambushChance : (dangerLevel * 25);
+            if (gameTime.getPhase() == TimePhase::NIGHT) chance += 15;
+            else if (gameTime.getPhase() == TimePhase::DUSK) chance += 5;
+            chance -= static_cast<int>(playerStealth * 0.5f);
+            chance = std::clamp(chance, 5, 85);
+
+            if (dice::rollPercent(static_cast<float>(chance)))
+            {
+                if (!tileData.ambushState.npc)
+                {
+                    std::string tId = tileData.ambushState.templateId;
+                    if (!tileData.ambushState.templatePool.empty())
+                    {
+                        int rIdx = dice::rollInt(0, static_cast<int>(tileData.ambushState.templatePool.size()) - 1);
+                        tId = tileData.ambushState.templatePool[rIdx];
+                        tileData.ambushState.templateId = tId;
+                    }
+                    if (tId.empty()) tId = "tpl_alley_bandit";
+                    tileData.ambushState.npc = npcGenerator::generateFromTemplate(tId, &settings);
+                    if (!tileData.ambushState.npc)
+                    {
+                        tileData.ambushState.npc = encounterResolver::createEncounterNPC(dangerLevel, settings);
+                    }
+                }
+                triggerEncounter(tileData.ambushState.npc);
+                return;
+            }
         }
-        triggerEncounter(tileData.persistentNPC);
-        return;
     }
 
-    activeTargetNPC = nullptr;
-    activeTargetMode = TargetMode::NONE;
+    if (!tileData.namedNPCs.empty())
+    {
+        activeTargetNPC = tileData.namedNPCs.front();
+        activeTargetMode = TargetMode::DIALOGUE;
+    }
+    else
+    {
+        activeTargetNPC = nullptr;
+        activeTargetMode = TargetMode::NONE;
+    }
     refreshActionGrid();
 }
 
@@ -394,6 +490,7 @@ void game::handleDropAction(int stackedIndex, int quantity)
         }
     }
 
+    addLogEntry("[ITEM]", "Dropped " + slotData.itemPtr->name, { 180, 180, 190, 255 });
     Player->inventory.removeItem(targetItemId, actualDropCount);
     selectedInventoryIndex = -1;
     refreshActionGrid();
@@ -473,6 +570,7 @@ void game::handlePickupAction(int groundIndex, int quantity)
         auto playerCopy = std::make_shared<item>(*groundItem);
         playerCopy->count = actualTakeCount;
         Player->inventory.addItem(playerCopy);
+        addLogEntry("[ITEM]", "Looted " + playerCopy->name, { 100, 200, 120, 255 });
 
         if (groundItem->isStackable && totalGroundCount > actualTakeCount)
         {
@@ -510,6 +608,7 @@ void game::handleEquipAction(int backpackIndex, equipSlot targetSlotOverride)
     std::vector<std::string> bodyTags = Player->anatomy.getAllTags();
     if (Player->inventory.equipItem(static_cast<size_t>(actualIdx), slot, bodyTags))
     {
+        addLogEntry("[ITEM]", "Equipped " + targetItem->name, { 120, 180, 240, 255 });
         selectedInventoryIndex = -1;
         selectedEquipmentSlot = slot;
         refreshActionGrid();
@@ -536,6 +635,7 @@ void game::handleUnequipAction(equipSlot slot)
 
     if (Player->inventory.unequipItem(slot))
     {
+        addLogEntry("[ITEM]", "Unequipped item", { 180, 180, 190, 255 });
         characterCreationState* cc = dynamic_cast<characterCreationState*>(getActiveState());
         if (!cc)
         {
@@ -865,7 +965,11 @@ void game::processChoice(const dialogueChoice& choice)
         std::vector<std::shared_ptr<entity>> enemyParty;
         TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
 
-        if (tileData.persistentNPC)
+        if (tileData.ambushState.npc)
+        {
+            enemyParty.push_back(tileData.ambushState.npc);
+        }
+        else if (tileData.persistentNPC)
         {
             enemyParty.push_back(tileData.persistentNPC);
         }
@@ -884,6 +988,10 @@ void game::processChoice(const dialogueChoice& choice)
         {
             Player->stats.modifyBaseStat("currency", -25.0f);
             TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
+            if (tileData.ambushState.npc)
+            {
+                tileData.ambushState.npc->stats.modifyBaseStat("currency", 25.0f);
+            }
             tileData.persistentNPC = nullptr;
         }
 
@@ -893,14 +1001,78 @@ void game::processChoice(const dialogueChoice& choice)
         return;
     }
 
+    if (choice.nextSceneId == "ENCOUNTER_FLEE")
+    {
+        float playerStealth = Player ? Player->getStat("agility") : 10.0f;
+        if (dice::rollPercent(std::clamp(50.0f + playerStealth, 15.0f, 90.0f)))
+        {
+            activeTargetNPC = nullptr;
+            activeTargetMode = TargetMode::NONE;
+            changeState(std::make_unique<explorationState>());
+            return;
+        }
+        else
+        {
+            dialogueChoice forcedFightChoice;
+            forcedFightChoice.nextSceneId = "ENCOUNTER_FIGHT";
+            processChoice(forcedFightChoice);
+            return;
+        }
+    }
+
     if (choice.nextSceneId == "ENCOUNTER_SURRENDER")
     {
         if (Player)
         {
             float currentMoney = Player->getStat("currency");
-            Player->stats.modifyBaseStat("currency", -(currentMoney * 0.15f));
+            float loss = currentMoney * 0.15f;
+            Player->stats.modifyBaseStat("currency", -loss);
+            if (map)
+            {
+                TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
+                if (tileData.ambushState.npc)
+                {
+                    tileData.ambushState.npc->stats.modifyBaseStat("currency", loss);
+                }
+                tileData.persistentNPC = nullptr;
+            }
         }
 
+        activeTargetNPC = nullptr;
+        activeTargetMode = TargetMode::NONE;
+        changeState(std::make_unique<explorationState>());
+        return;
+    }
+
+    if (choice.nextSceneId == "ENCOUNTER_PERMANENT_REMOVE")
+    {
+        if (map)
+        {
+            TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
+            tileData.ambushState.isPermanentlyRemoved = false;
+            tileData.ambushState.npc = nullptr;
+            tileData.ambushState.isDefeated = true;
+            tileData.ambushState.restockMinutesRemaining = 1440;
+            tileData.persistentNPC = nullptr;
+        }
+        activeTargetNPC = nullptr;
+        activeTargetMode = TargetMode::NONE;
+        changeState(std::make_unique<explorationState>());
+        return;
+    }
+
+    if (choice.nextSceneId == "EXIT")
+    {
+        if (map)
+        {
+            TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
+            if (tileData.ambushState.npc)
+            {
+                tileData.ambushState.isDefeated = true;
+                tileData.ambushState.restockMinutesRemaining = 1440; // 24 hours
+            }
+            tileData.persistentNPC = nullptr;
+        }
         activeTargetNPC = nullptr;
         activeTargetMode = TargetMode::NONE;
         changeState(std::make_unique<explorationState>());

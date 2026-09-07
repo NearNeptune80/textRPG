@@ -10,6 +10,7 @@
 #include <nlohmann/json.hpp>
 
 #include "core/game.h"
+#include "entities/namedCharacter.h"
 
 namespace fs = std::filesystem;
 using json = nlohmann::json;
@@ -165,7 +166,20 @@ json saveManager::buildPayload(game* g, const std::string& customSaveName)
 
     if (p) j["player"] = p->toJson();
     if (g->map) j["map"] = g->map->saveStateToJson();
+    j["namedCharacters"] = NamedCharacterManager::saveStateToJson();
     j["settings"] = g->settings.toJson();
+
+    json logArray = json::array();
+    for (const auto& entry : g->getEventLog())
+    {
+        logArray.push_back({
+            {"tag", entry.tag},
+            {"text", entry.text},
+            {"color", {entry.color.r, entry.color.g, entry.color.b, entry.color.a}},
+            {"time", entry.timeStr}
+        });
+    }
+    j["eventLog"] = logArray;
 
     return j;
 }
@@ -337,6 +351,15 @@ bool saveManager::loadFromFile(game* g, const std::string& fileName)
             g->map->loadStateFromJson(j["map"]);
         }
 
+        if (j.contains("namedCharacters"))
+        {
+            NamedCharacterManager::loadStateFromJson(j["namedCharacters"]);
+            if (g->map)
+            {
+                NamedCharacterManager::syncMapCharacters(g->map);
+            }
+        }
+
         if (j.contains("settings"))
         {
             g->settings.fromJson(j["settings"]);
@@ -344,6 +367,20 @@ bool saveManager::loadFromFile(game* g, const std::string& fileName)
         else
         {
             g->settings.gameplay.autoSaveOnMapChange = prevAutoSave;
+        }
+
+        if (j.contains("eventLog") && j["eventLog"].is_array())
+        {
+            g->clearEventLog();
+            for (const auto& item : j["eventLog"])
+            {
+                LogColor col{ 200, 200, 200, 255 };
+                if (item.contains("color") && item["color"].is_array() && item["color"].size() >= 4)
+                {
+                    col = { item["color"][0].get<uint8_t>(), item["color"][1].get<uint8_t>(), item["color"][2].get<uint8_t>(), item["color"][3].get<uint8_t>() };
+                }
+                g->addLogEntry(item.value("tag", "[INFO]"), item.value("text", ""), col);
+            }
         }
 
         g->Player = g->playerEntity.get();

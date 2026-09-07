@@ -266,6 +266,7 @@ struct EditorConfig {
         cfg.rules["femininity"] = { .enabled = true };
         cfg.rules["orientation"] = { .enabled = true };
         cfg.rules["start_month"] = { .enabled = true };
+        cfg.rules["birth_month"] = { .enabled = true };
 
         // Body
         cfg.rules["height"] = { .enabled = true, .minRange = 140.0f, .maxRange = 210.0f };

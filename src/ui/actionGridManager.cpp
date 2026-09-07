@@ -1,10 +1,13 @@
 #include "ui/actionGridManager.h"
 
 #include <format>
+#include <fstream>
 #include <memory>
 #include <unordered_set>
 
 #include "core/game.h"
+#include "entities/namedCharacter.h"
+#include "entities/perkDatabase.h"
 #include "map/encounterResolver.h"
 #include "save/saveManager.h"
 #include "settings/settingsManager.h"
@@ -352,34 +355,22 @@ void ActionGridManager::refresh(game* gameContext)
     {
         // Row 1: Core Physical Categories (1..5)
         addBtn(gameContext, "1. Core", [gameContext, tf]() { tf->setTab(TransformationTab::CORE, gameContext); }, true, tf->currentTab == TransformationTab::CORE);
-        addBtn(gameContext, "2. Eyes", [gameContext, tf]() { tf->setTab(TransformationTab::EYES, gameContext); }, true, tf->currentTab == TransformationTab::EYES);
+        addBtn(gameContext, "2. Head & Face", [gameContext, tf]() { tf->setTab(TransformationTab::HEAD_FACE, gameContext); }, true, tf->currentTab == TransformationTab::HEAD_FACE);
         addBtn(gameContext, "3. Hair", [gameContext, tf]() { tf->setTab(TransformationTab::HAIR, gameContext); }, true, tf->currentTab == TransformationTab::HAIR);
-        addBtn(gameContext, "4. Head & Face", [gameContext, tf]() { tf->setTab(TransformationTab::HEAD_FACE, gameContext); }, true, tf->currentTab == TransformationTab::HEAD_FACE);
-        addBtn(gameContext, "5. Ass & Hips", [gameContext, tf]() { tf->setTab(TransformationTab::ASS_HIPS, gameContext); }, true, tf->currentTab == TransformationTab::ASS_HIPS);
+        addBtn(gameContext, "4. Eyes", [gameContext, tf]() { tf->setTab(TransformationTab::EYES, gameContext); }, true, tf->currentTab == TransformationTab::EYES);
+        addBtn(gameContext, "5. Breasts", [gameContext, tf]() { tf->setTab(TransformationTab::BREASTS, gameContext); }, true, tf->currentTab == TransformationTab::BREASTS);
 
         // Row 2: Secondary & Genital Categories (Shift + 1..5)
-        addBtn(gameContext, "6. Breasts", [gameContext, tf]() { tf->setTab(TransformationTab::BREASTS, gameContext); }, true, tf->currentTab == TransformationTab::BREASTS);
+        addBtn(gameContext, "6. Ass & Hips", [gameContext, tf]() { tf->setTab(TransformationTab::ASS_HIPS, gameContext); }, true, tf->currentTab == TransformationTab::ASS_HIPS);
         addBtn(gameContext, "7. Vagina", [gameContext, tf]() { tf->setTab(TransformationTab::VAGINA, gameContext); }, true, tf->currentTab == TransformationTab::VAGINA);
         addBtn(gameContext, "8. Penis", [gameContext, tf]() { tf->setTab(TransformationTab::PENIS, gameContext); }, true, tf->currentTab == TransformationTab::PENIS);
         addBtn(gameContext, "9. Crotch", [gameContext, tf]() { tf->setTab(TransformationTab::CROTCH_BOOBS, gameContext); }, true, tf->currentTab == TransformationTab::CROTCH_BOOBS);
         addBtn(gameContext, "10. Appendages", [gameContext, tf]() { tf->setTab(TransformationTab::APPENDAGES, gameContext); }, true, tf->currentTab == TransformationTab::APPENDAGES);
 
-        // Row 3: Presets, Inspection & Global Tools (Ctrl + 1..5)
-        addBtn(gameContext, "Inspect & Presets", [gameContext, tf]() { tf->setTab(TransformationTab::INSPECT_PRESETS, gameContext); }, true, tf->currentTab == TransformationTab::INSPECT_PRESETS);
-        addBtn(gameContext, "Randomize Form", [gameContext, tf]() {
-            tf->randomizeForm(gameContext);
-            gameContext->refreshActionGrid();
-        });
-        addBtn(gameContext, "Reset Human", [gameContext, tf]() {
-            tf->resetToHuman(gameContext);
-            gameContext->refreshActionGrid();
-        });
-        addBtn(gameContext, "Save Preset", [gameContext, tf]() {
-            if (auto p = gameContext->getPlayer()) tf->savePreset(gameContext, "Preset_" + p->anatomy.getRacialTitle());
-            gameContext->refreshActionGrid();
-        });
-        addBackBtn(gameContext, "Apply & Return", [gameContext]() {
-            gameContext->changeState(std::make_unique<explorationState>());
+        // Row 3: Presets & Return (Ctrl + 1..5)
+        addBtn(gameContext, "11. Presets", [gameContext, tf]() { tf->setTab(TransformationTab::INSPECT_PRESETS, gameContext); }, true, tf->currentTab == TransformationTab::INSPECT_PRESETS);
+        addBackBtn(gameContext, "Apply & Return", [gameContext, tf]() {
+            tf->returnToPreviousOrExploration(gameContext);
         });
         return;
     }
@@ -459,7 +450,9 @@ void ActionGridManager::refresh(game* gameContext)
             addBtn(gameContext, "Selfie", [=]() { setApp(PhoneAppMode::SELFIE); }, true, false, "Take a selfie to inspect appearance, clothing, and modesty.");
             addBtn(gameContext, "Contacts", [=]() { setApp(PhoneAppMode::CONTACTS); }, true, false, "Address book of known characters and companions.");
             addBtn(gameContext, "Encyclopedia", [=]() { setApp(PhoneAppMode::ENCYCLOPEDIA); }, true, false, "Compendium of discovered species, weapons, and items.");
-            addBtn(gameContext, "Transform", [=]() { setApp(PhoneAppMode::TRANSFORM); }, true, false, "Inspect mutations, bodily morphs, and alchemy.");
+            addBtn(gameContext, "Transform", [gameContext]() {
+                gameContext->changeState(std::make_unique<transformationState>(TransformationTab::CORE, std::make_unique<phoneAppsState>(PhoneAppMode::HOME)));
+            }, true, false, "Inspect mutations, bodily morphs, and alchemy.");
             addBtn(gameContext, "Maps", [=]() { setApp(PhoneAppMode::MAPS); }, true, false, "World and local regional maps with coordinates.");
 
             // Row 3: Combat, Intimacy & Rest (Slots 10..14)
@@ -601,8 +594,15 @@ void ActionGridManager::refresh(game* gameContext)
                 entity* p = gameContext->getPlayer();
                 if (p)
                 {
-                    p->stats.setBaseStat("perk_points", p->getStat("perk_points") + 3.0f);
-                    phoneApp->setFeedbackText("All spent perk points refunded.");
+                    int refunded = 0;
+                    for (const auto& perkId : p->unlockedPerks)
+                    {
+                        const auto* pk = PerkDatabase::getPerk(perkId);
+                        refunded += pk ? pk->cost : 1;
+                    }
+                    p->stats.setBaseStat("perk_points", p->getStat("perk_points") + refunded);
+                    p->resetPerks();
+                    gameContext->addLogEntry("[TALENT]", std::format("Reset all perks (+{} Pts refunded)", refunded), { 220, 180, 80, 255 });
                     gameContext->refreshActionGrid();
                 }
             }, true, false, "Refund all allocated talent perks and points.");
@@ -713,6 +713,10 @@ void ActionGridManager::refresh(game* gameContext)
             addBtn(gameContext, rec.isReleased ? "Released" : "Release", [gameContext]() {
                 gameContext->handleCommand({ CommandType::RELEASE_ENEMY, 0, 0, "" });
             }, !rec.isReleased);
+
+            addBtn(gameContext, rec.isPermanentlyRemoved ? "Permanently Removed" : "Permanently Remove", [gameContext]() {
+                gameContext->handleCommand({ CommandType::PERMANENTLY_REMOVE_ENEMY, 0, 0, "" });
+            }, !rec.isPermanentlyRemoved);
         }
 
         addBackBtn(gameContext, "Leave Resolution Hub", [gameContext]() {
@@ -1015,17 +1019,33 @@ void ActionGridManager::refresh(game* gameContext)
                 }
 
                 auto& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
-                if (tileData.persistentNPC)
+                std::vector<std::shared_ptr<entity>> talkableNPCs = tileData.namedNPCs;
+                if (talkableNPCs.empty() && tileData.persistentNPC && tileData.persistentNPC != tileData.ambushState.npc)
                 {
-                    addBtn(gameContext, std::format("Talk to {}", tileData.persistentNPC->name), [gameContext, npc = tileData.persistentNPC]() {
-                        gameContext->triggerEncounter(npc);
-                    }, true, false, "Initiate dialogue with " + tileData.persistentNPC->name + ".");
+                    talkableNPCs.push_back(tileData.persistentNPC);
+                }
 
-                    if (tileData.persistentNPC->name.find("Merchant") != std::string::npos || tileData.persistentNPC->name.find("Shop") != std::string::npos)
+                for (const auto& npc : talkableNPCs)
+                {
+                    if (!npc) continue;
+                    addBtn(gameContext, std::format("Talk to {}", npc->name), [gameContext, npc]() {
+                        auto namedChar = NamedCharacterManager::getCharacter(npc->id);
+                        if (namedChar && !namedChar->activeSceneId.empty())
+                        {
+                            gameContext->loadScene(namedChar->activeSceneId);
+                        }
+                        else
+                        {
+                            gameContext->triggerEncounter(npc);
+                        }
+                    }, true, false, "Initiate dialogue with " + npc->name + ".");
+
+                    if (npc->buyMarkup != 1.0f || npc->sellMarkdown != 0.5f ||
+                        npc->name.find("Merchant") != std::string::npos || npc->name.find("Shop") != std::string::npos)
                     {
-                        addBtn(gameContext, "Visit Shop", [gameContext]() {
-                            gameContext->changeState(std::make_unique<shopState>());
-                        }, true, false, "Browse merchant inventory and trade goods.");
+                        addBtn(gameContext, "Visit Shop", [gameContext, npc]() {
+                            gameContext->changeState(std::make_unique<shopState>(npc));
+                        }, true, false, "Browse " + npc->name + "'s inventory and trade goods.");
                     }
                 }
 
@@ -1053,6 +1073,22 @@ void ActionGridManager::refresh(game* gameContext)
                         addBtn(gameContext, trig.label, [gameContext, scene = trig.sceneId]() {
                             gameContext->loadScene(scene);
                         }, true, false, trig.tooltip.empty() ? ("Trigger " + trig.label) : trig.tooltip);
+                    }
+                }
+
+                for (const auto& npc : talkableNPCs)
+                {
+                    if (!npc) continue;
+                    auto npcTriggers = questDatabase::getTriggersForNPC(npc->id);
+                    for (const auto& trig : npcTriggers)
+                    {
+                        if (gameContext->checkConditions(trig.conditions) && !addedTriggerIds.contains(trig.id))
+                        {
+                            addedTriggerIds.insert(trig.id);
+                            addBtn(gameContext, trig.label, [gameContext, scene = trig.sceneId]() {
+                                gameContext->loadScene(scene);
+                            }, true, false, trig.tooltip.empty() ? ("Trigger " + trig.label) : trig.tooltip);
+                        }
                     }
                 }
 

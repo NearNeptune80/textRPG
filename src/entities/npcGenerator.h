@@ -21,12 +21,15 @@ struct NPCTemplate
 	std::vector<std::string> possibleRaces;
 	std::vector<std::string> guaranteedItems;
 	std::vector<std::string> randomItems;
+	std::vector<std::string> perks;
 };
 
 class npcGenerator
 {
 public:
-	static bool loadTemplates(const std::string& filePath);
+	static bool loadTemplates(const std::string& path = "data/enemies");
+	static const NPCTemplate* getTemplate(const std::string& templateId);
+	static bool hasTemplate(const std::string& templateId);
 	static std::shared_ptr<entity> generateFromTemplate(const std::string& templateId, const GameSettings* settings = nullptr);
 	static std::shared_ptr<entity> generateRandomNPC(const GameSettings* settings = nullptr);
 

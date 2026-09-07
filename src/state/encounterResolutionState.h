@@ -16,6 +16,7 @@ struct DefeatedEnemyRecord
     bool hadSex = false;
     bool isSubjugated = false;
     bool isReleased = false;
+    bool isPermanentlyRemoved = false;
 };
 
 class encounterResolutionState : public iGameState
@@ -38,6 +39,7 @@ public:
     void handleInteractiveSex(game* gameContext);
     void handleSubjugateEnemy(game* gameContext);
     void handleReleaseEnemy(game* gameContext);
+    void handlePermanentlyRemoveEnemy(game* gameContext);
 
     // Snapshot APIs for UI/CLI View Layer
     const std::vector<DefeatedEnemyRecord>& getDefeatedRecords() const { return m_records; }

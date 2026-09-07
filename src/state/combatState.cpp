@@ -331,8 +331,16 @@ void CombatState::resolveDefeat(game* gameContext)
     eventData data;
     data.numericValue = static_cast<int>(CombatOutcome::DEFEAT);
 
-    if (defeatingNPC && sexuallyCompatible && npcLust >= 20.0f)
+    if (defeatingNPC && sexuallyCompatible && npcLust >= 20.0f && gameContext->settings.content.nonConEnabled)
     {
+        float lossPercent = gameContext->settings.gameplay.currencyLossOnDefeatPercent;
+        float currentMoney = player ? player->getStat("currency") : 0.0f;
+        int currencyLost = static_cast<int>(currentMoney * lossPercent);
+        if (player && currencyLost > 0)
+        {
+            player->stats.modifyBaseStat("currency", -static_cast<float>(currencyLost));
+        }
+
         eventBus::getInstance().publishEvent({ gameEvent::combatEnded, data.numericValue, "DEFEAT_SEDUCTION", nullptr });
 
         questScene defeatScene;
@@ -344,8 +352,8 @@ void CombatState::resolveDefeat(game* gameContext)
 
         defeatScene.bodyText = std::format("With your strength exhausted, you collapse to the ground. "
                                           "{} ({}, {}) stands over your helpless body with a hungry, aroused glare. "
-                                          "Rather than finishing you off, they claim their erotic prize before leaving you thoroughly spent.",
-                                          defeatingNPC->name, npcArchetype, npcRace);
+                                          "Rather than finishing you off, they claim their erotic prize (and take {}¤) before leaving you thoroughly spent.",
+                                          defeatingNPC->name, npcArchetype, npcRace, currencyLost);
 
         dialogueChoice continueChoice;
         continueChoice.label = "Recover and Continue";

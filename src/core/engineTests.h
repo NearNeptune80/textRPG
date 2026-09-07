@@ -20,4 +20,9 @@ namespace EngineTests
     bool testPlayerStatsAndItemUsage();
     bool testDecouplingAndCaching();
     bool testQuestJournalSystem();
+    bool testNamedCharactersAndPersistentEncounter();
+    bool testCalendarLeapYearsAndTransformationNavigation();
+    bool testLayoutIntegrityAndContainment();
+    bool testUnified3PanelLayoutFogOfWarAndPerkTree();
+    bool testDataDrivenPerksAndContentOptions();
 }

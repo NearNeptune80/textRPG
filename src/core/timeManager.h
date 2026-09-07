@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 enum class TimePhase
 {
@@ -26,6 +27,10 @@ public:
     int dayOfWeek = 3; // 0 = Sunday, 1 = Monday, 2 = Tuesday, 3 = Wednesday, 4 = Thursday, 5 = Friday, 6 = Saturday
 
     void advanceTime(int mins);
+
+    static bool isLeapYear(int year);
+    static int getDaysInMonth(int month, int year);
+    static const std::vector<std::string>& getMonthNames();
 
     float getSunriseHour() const;
     float getSunsetHour() const;

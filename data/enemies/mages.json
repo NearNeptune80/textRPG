@@ -1,0 +1,32 @@
+{
+  "templates": [
+    {
+      "id": "tpl_rogue_mage",
+      "name": "Rogue Mage",
+      "levelMin": 2,
+      "levelMax": 5,
+      "baseStats": {
+        "health": 40.0,
+        "mana": 90.0,
+        "lust": 100.0,
+        "physique": 8.0,
+        "arcane": 18.0,
+        "corruption": 25.0
+      },
+      "tags": ["feminine", "hostile"],
+      "possibleRaces": ["Human", "Elf"],
+      "guaranteedItems": [
+        "item_linen_shirt",
+        "item_leather_trousers"
+      ],
+      "randomItems": [
+        "item_ancient_tome",
+        "item_golden_pendant"
+      ],
+      "perks": [
+        "arcane_attunement",
+        "spell_weaver"
+      ]
+    }
+  ]
+}

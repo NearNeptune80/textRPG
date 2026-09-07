@@ -39,6 +39,7 @@ public:
     }
 
     void processTimePassage(int minutesPassed);
+    void restockAmbushNPC(PersistentAmbushState& ambush);
 
     TileRuntimeData& getRuntimeData(int x, int y);
     const std::vector<MapTrigger>& getTriggers() const { return triggers; }

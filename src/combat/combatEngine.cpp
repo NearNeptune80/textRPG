@@ -192,11 +192,44 @@ void combatEngine::executeAction(const QueuedAction& qa, game* g)
         if (node.effectType == "DAMAGE")
         {
             float rawDamage = node.baseMagnitude;
-            qa.target->stats.modifyBaseStat("health", -rawDamage);
+            std::string attackType = node.element;
+            if (attackType.empty()) attackType = "physical";
+            std::transform(attackType.begin(), attackType.end(), attackType.begin(), ::tolower);
+
+            // Attacker Perk Damage Multiplier
+            std::string targetRace = qa.target->anatomy.getDominantRace();
+            float perkDmgMult = qa.user->getPerkDamageMultiplier(targetRace, attackType);
+            float modifiedDamage = rawDamage * (1.0f + perkDmgMult);
+
+            // Defender Perk Defense Multiplier (Damage Reduction)
+            std::string attackerRace = qa.user->anatomy.getDominantRace();
+            float perkDefMult = qa.target->getPerkDefenseMultiplier(attackerRace, attackType);
+            modifiedDamage = modifiedDamage * std::max(0.05f, (1.0f - perkDefMult));
+
+            // Gameplay Difficulty Multiplier: scale enemy attack power
+            if (g && g->settings.gameplay.difficultyMultiplier > 0.0f)
+            {
+                bool userIsEnemy = false;
+                for (const auto& ep : m_enemyParty)
+                {
+                    if (ep.character.get() == qa.user)
+                    {
+                        userIsEnemy = true;
+                        break;
+                    }
+                }
+                if (userIsEnemy)
+                {
+                    modifiedDamage *= g->settings.gameplay.difficultyMultiplier;
+                }
+            }
+
+            int finalDamage = std::max(1, static_cast<int>(std::round(modifiedDamage)));
+            qa.target->stats.modifyBaseStat("health", -static_cast<float>(finalDamage));
 
             appendLog(std::format("{} uses {} on {} for {} {} damage!",
                 qa.user->name, qa.action.name, qa.target->name,
-                static_cast<int>(rawDamage), node.element));
+                finalDamage, node.element));
         }
         else if (node.effectType == "HEAL")
         {

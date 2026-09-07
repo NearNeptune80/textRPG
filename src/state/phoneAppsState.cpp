@@ -3,6 +3,7 @@
 #include <fstream>
 #include "core/game.h"
 #include "state/explorationState.h"
+#include "state/transformationState.h"
 
 phoneAppsState::phoneAppsState(PhoneAppMode mode)
     : m_mode(mode)
@@ -23,11 +24,21 @@ phoneAppsState::phoneAppsState(PhoneAppMode mode)
 
 void phoneAppsState::initialise(game* gameContext)
 {
+    if (m_mode == PhoneAppMode::TRANSFORM && gameContext)
+    {
+        gameContext->changeState(std::make_unique<transformationState>(TransformationTab::CORE, std::make_unique<phoneAppsState>(PhoneAppMode::HOME)));
+        return;
+    }
     loadData(m_mode);
 }
 
 void phoneAppsState::onEnter(game* gameContext)
 {
+    if (m_mode == PhoneAppMode::TRANSFORM && gameContext)
+    {
+        gameContext->changeState(std::make_unique<transformationState>(TransformationTab::CORE, std::make_unique<phoneAppsState>(PhoneAppMode::HOME)));
+        return;
+    }
     loadData(m_mode);
     if (gameContext)
     {

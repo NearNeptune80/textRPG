@@ -41,7 +41,7 @@ std::vector<EditorTabId> characterCreationState::getActiveTabs() const
 {
     std::vector<EditorTabId> tabs;
 
-    if (config.hasAnyOptionInList({ "gender", "femininity", "orientation", "start_month" }))
+    if (config.hasAnyOptionInList({ "gender", "femininity", "orientation", "start_month", "birth_month" }))
         tabs.push_back(EditorTabId::IDENTITY);
 
     if (config.hasAnyOptionInList({ "height", "body_size", "muscle", "skin_tone", "skin_covering" }))
@@ -631,6 +631,9 @@ void characterCreationState::applyToEntity(entity* player)
     player->orientation = (orientation == "Androphilic") ? SexualOrientation::HOMOSEXUAL : ((orientation == "Gynephilic") ? SexualOrientation::HETEROSEXUAL : SexualOrientation::BISEXUAL);
 
     player->stats.setBaseStat("appeared_age", static_cast<float>(birthAge));
+    player->birthDay = birthDay;
+    player->birthMonth = birthMonthIdx + 1;
+    player->birthYear = 1 - birthAge;
     player->anatomy.heightMeters = static_cast<float>(heightCm) / 100.0f;
     player->anatomy.bodySize = bodySize;
     player->anatomy.muscleTone = muscleDefinition;
@@ -949,7 +952,9 @@ void characterCreationState::finalizeCharacter(game* gameContext)
     if (gameContext)
     {
         gameContext->loadMap("overworld", 1, 1);
-        gameContext->gameTime.day = 29;
+        gameContext->gameTime.month = startMonthIdx + 1;
+        int maxDays = timeManager::getDaysInMonth(gameContext->gameTime.month, gameContext->gameTime.year);
+        gameContext->gameTime.day = std::clamp(29, 1, maxDays);
         gameContext->gameTime.hour = 21;
         gameContext->gameTime.minute = 47;
     }

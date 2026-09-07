@@ -49,7 +49,7 @@ public:
     std::string presetInputName = "Demon_Form";
     std::string statusMessage = "";
 
-    explicit transformationState(TransformationTab initialTab = TransformationTab::CORE);
+    explicit transformationState(TransformationTab initialTab = TransformationTab::CORE, std::unique_ptr<iGameState> previousState = nullptr);
     ~transformationState() override = default;
 
     void initialise(game* gameContext) override;
@@ -68,7 +68,9 @@ public:
 
     void resetToHuman(game* gameContext);
     void randomizeForm(game* gameContext);
+    void returnToPreviousOrExploration(game* gameContext);
 
 private:
     std::vector<std::string> m_presetNames;
+    std::unique_ptr<iGameState> m_previousState;
 };
