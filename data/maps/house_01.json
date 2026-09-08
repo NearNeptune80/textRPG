@@ -23,7 +23,8 @@
       "y": 3,
       "targetMap": "overworld",
       "targetX": 8,
-      "targetY": 1
+      "targetY": 1,
+      "label": "Exit to Town District"
     }
   ],
   "defaultDescriptions": [
@@ -63,5 +64,15 @@
       "A compact preparation counter holds ceramic jars of tea leaves, honey, and neatly stacked earthenware mugs.",
       "Copper kettles and wooden cooking spoons hang above a spotless stone counter."
     ]
+  },
+  "defaultTileTitle": "Cottage Interior",
+  "tileTitles": {
+    "2,2": "Central Parlor"
+  },
+  "tagTitles": {
+    "bookshelf_corner": "Library Alcove",
+    "hearth": "Cozy Hearth",
+    "window_nook": "Window Nook",
+    "kitchenette": "Kitchenette"
   }
 }

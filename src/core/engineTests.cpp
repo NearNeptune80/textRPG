@@ -38,6 +38,7 @@
 #include "state/sexState.h"
 #include "ui/layoutEngine.h"
 #include "core/contentFilterManager.h"
+#include "ui/widgets/entityListWidgets.h"
 
 namespace EngineTests
 {
@@ -2975,6 +2976,127 @@ namespace EngineTests
         return allPassed;
     }
 
+    bool testDataDrivenMapTitlesAndNPCCards()
+    {
+        bool allPassed = true;
+        std::cout << "\n--- Running Test 27: Data-Driven Map Titles & Dynamic NPC Character Cards ---\n";
+
+        // 1. Data-Driven Map Titles from JSON (overworld)
+        game g;
+        g.loadMap("overworld", 2, 3);
+        auto* activeMap = g.map;
+        bool mapLoaded = (activeMap != nullptr);
+        logResult("Overworld map loaded cleanly for title verification", mapLoaded);
+        allPassed &= mapLoaded;
+
+        if (activeMap)
+        {
+            // Tile (8, 1) has warp with label "Entrance to Cozy Cottage"
+            std::string warpTitle = activeMap->getTileTitle(8, 1);
+            bool warpOk = (warpTitle == "Entrance to Cozy Cottage");
+            logResult("MapWarp label parsed from JSON populates tile title ('Entrance to Cozy Cottage')", warpOk);
+            allPassed &= warpOk;
+
+            // Tile (1, 1) has specific coordinate title in tileTitles: "Northern Gate Archway"
+            std::string coordTitle = activeMap->getTileTitle(1, 1);
+            bool coordOk = (coordTitle == "Northern Gate Archway");
+            logResult("Specific tileTitles coordinate parsed from JSON populates tile title ('Northern Gate Archway')", coordOk);
+            allPassed &= coordOk;
+
+            // Tile (2, 1) has tag "high_street" -> tagTitles gives "High Street"
+            std::string tagTitle1 = activeMap->getTileTitle(2, 1);
+            bool tag1Ok = (tagTitle1 == "High Street");
+            logResult("tagTitles mapping from JSON populates tagged tile title ('High Street')", tag1Ok);
+            allPassed &= tag1Ok;
+
+            // Tile (1, 3) has tag "market_quarter" -> tagTitles gives "Market Quarter"
+            std::string tagTitle2 = activeMap->getTileTitle(1, 3);
+            bool tag2Ok = (tagTitle2 == "Market Quarter");
+            logResult("tagTitles mapping from JSON populates tagged tile title ('Market Quarter')", tag2Ok);
+            allPassed &= tag2Ok;
+
+            // Default tile title fallback
+            std::string defaultTitle = activeMap->getTileTitle(5, 5);
+            bool defaultOk = (defaultTitle == "Town Thoroughfare");
+            logResult("defaultTileTitle from JSON serves as robust fallback ('Town Thoroughfare')", defaultOk);
+            allPassed &= defaultOk;
+        }
+
+        // 2. Data-Driven Map Titles from JSON (house_01)
+        g.loadMap("house_01", 2, 3);
+        auto* houseMap = g.map;
+        if (houseMap)
+        {
+            // Tile (2, 3) has warp label "Exit to Town District"
+            bool houseWarpOk = (houseMap->getTileTitle(2, 3) == "Exit to Town District");
+            logResult("Interior map warp label parsed from JSON ('Exit to Town District')", houseWarpOk);
+            allPassed &= houseWarpOk;
+
+            // Tile (2, 2) has specific tileTitle "Central Parlor"
+            bool parlorOk = (houseMap->getTileTitle(2, 2) == "Central Parlor");
+            logResult("Interior map coordinate title parsed from JSON ('Central Parlor')", parlorOk);
+            allPassed &= parlorOk;
+
+            // Tile (1, 1) has tag "library" -> "Library Alcove"
+            bool libraryOk = (houseMap->getTileTitle(1, 1) == "Library Alcove");
+            logResult("Interior map tag title parsed from JSON ('Library Alcove')", libraryOk);
+            allPassed &= libraryOk;
+
+            // Default interior title "Cottage Interior"
+            bool interiorDefaultOk = (houseMap->getTileTitle(0, 0) == "Cottage Interior");
+            logResult("Interior map default title parsed from JSON ('Cottage Interior')", interiorDefaultOk);
+            allPassed &= interiorDefaultOk;
+        }
+
+        // 3. NPC Interaction State and Dynamic List Helpers
+        g.loadMap("overworld", 2, 3);
+        g.activeTargetNPC = nullptr;
+        bool initialInteracting = EntityListWidgets::isInteractingWithNPC(&g);
+        logResult("EntityListWidgets::isInteractingWithNPC returns false when no active target NPC", !initialInteracting);
+        allPassed &= !initialInteracting;
+
+        // Create a mock NPC
+        auto testNpc1 = std::make_shared<entity>("bandit_01", "Alleyway Bandit");
+        testNpc1->stats.level = 3;
+        testNpc1->stats.setBaseStat("health", 85.0f);
+        testNpc1->stats.setBaseStat("max_health", 100.0f);
+        testNpc1->stats.setBaseStat("mana", 20.0f);
+        testNpc1->stats.setBaseStat("max_mana", 50.0f);
+        testNpc1->stats.setBaseStat("lust", 10.0f);
+        testNpc1->stats.setBaseStat("max_lust", 100.0f);
+
+        // When activeTargetNPC is set
+        g.activeTargetNPC = testNpc1;
+        bool targetInteracting = EntityListWidgets::isInteractingWithNPC(&g);
+        logResult("EntityListWidgets::isInteractingWithNPC returns true when activeTargetNPC is set", targetInteracting);
+        allPassed &= targetInteracting;
+
+        auto interactingNPCs = EntityListWidgets::getInteractingNPCs(&g);
+        bool listHasTarget = (!interactingNPCs.empty() && interactingNPCs[0] == testNpc1);
+        logResult("getInteractingNPCs returns active target NPC as primary card candidate", listHasTarget);
+        allPassed &= listHasTarget;
+
+        // Adding a second NPC on current tile
+        auto testNpc2 = std::make_shared<entity>("guard_01", "Town Guard");
+        testNpc2->stats.level = 5;
+        if (g.map)
+        {
+            g.map->getRuntimeData(g.gridX, g.gridY).namedNPCs.push_back(testNpc2);
+        }
+        auto multiNPCs = EntityListWidgets::getInteractingNPCs(&g);
+        bool multiOk = (multiNPCs.size() == 2 && multiNPCs[0] == testNpc1 && multiNPCs[1] == testNpc2);
+        logResult("getInteractingNPCs aggregates primary target and secondary tile characters for scrollable list", multiOk);
+        allPassed &= multiOk;
+
+        // Clear target
+        g.activeTargetNPC = nullptr;
+        bool clearedInteracting = EntityListWidgets::isInteractingWithNPC(&g);
+        logResult("EntityListWidgets::isInteractingWithNPC reverts to false when target is cleared", !clearedInteracting);
+        allPassed &= !clearedInteracting;
+
+        return allPassed;
+    }
+
     bool runAllTests()
     {
         g_passCount = 0;
@@ -3009,6 +3131,7 @@ namespace EngineTests
         bool t24 = testUnified3PanelLayoutFogOfWarAndPerkTree();
         bool t25 = testDataDrivenPerksAndContentOptions();
         bool t26 = testExpandedContentOptionsAndSceneGating();
+        bool t27 = testDataDrivenMapTitlesAndNPCCards();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";

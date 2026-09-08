@@ -38,6 +38,7 @@ struct MapWarp
 	std::string targetMap;
 	int targetX{ 0 };
 	int targetY{ 0 };
+	std::string label{ "" };
 };
 
 struct TemporarySafetyModifier

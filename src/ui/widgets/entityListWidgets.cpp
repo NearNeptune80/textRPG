@@ -1,6 +1,7 @@
 #include "ui/widgets/entityListWidgets.h"
 
 #include <algorithm>
+#include <cmath>
 #include <format>
 #include <string>
 #include <string_view>
@@ -11,15 +12,412 @@
 #include "entities/entity.h"
 #include "map/gameMap.h"
 #include "state/characterCreationState.h"
+#include "state/combatState.h"
+#include "common/enums.h"
 #include "ui/theme.h"
 #include "ui/uiWidget.h"
 #include "ui/tooltipManager.h"
 
 namespace EntityListWidgets
 {
+    bool isInteractingWithNPC(game* gameContext)
+    {
+        if (!gameContext) return false;
+
+        if (gameContext->getActiveTargetNPC() != nullptr)
+            return true;
+
+        if (auto* cs = dynamic_cast<CombatState*>(gameContext->getActiveState()))
+        {
+            for (const auto& p : cs->getEngine().getEnemyParty())
+            {
+                if (p.character) return true;
+            }
+        }
+
+        return false;
+    }
+
+    std::vector<std::shared_ptr<entity>> getInteractingNPCs(game* gameContext)
+    {
+        std::vector<std::shared_ptr<entity>> npcs;
+        if (!gameContext) return npcs;
+
+        // 1. From CombatState if active
+        if (auto* cs = dynamic_cast<CombatState*>(gameContext->getActiveState()))
+        {
+            for (const auto& p : cs->getEngine().getEnemyParty())
+            {
+                if (p.character) npcs.push_back(p.character);
+            }
+        }
+
+        // 2. Active target NPC if set
+        if (auto active = gameContext->getActiveTargetNPCShared())
+        {
+            auto it = std::find(npcs.begin(), npcs.end(), active);
+            if (it != npcs.end())
+            {
+                std::rotate(npcs.begin(), it, it + 1);
+            }
+            else
+            {
+                npcs.insert(npcs.begin(), active);
+            }
+        }
+
+        // 3. Any other NPCs on current tile
+        if (gameContext->map)
+        {
+            auto& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
+            for (const auto& n : tileData.namedNPCs)
+            {
+                if (n && std::find(npcs.begin(), npcs.end(), n) == npcs.end())
+                    npcs.push_back(n);
+            }
+            if (tileData.persistentNPC && std::find(npcs.begin(), npcs.end(), tileData.persistentNPC) == npcs.end())
+            {
+                npcs.push_back(tileData.persistentNPC);
+            }
+            if (tileData.ambushState.npc && !tileData.ambushState.isDefeated && !tileData.ambushState.isPermanentlyRemoved &&
+                std::find(npcs.begin(), npcs.end(), tileData.ambushState.npc) == npcs.end())
+            {
+                npcs.push_back(tileData.ambushState.npc);
+            }
+        }
+
+        return npcs;
+    }
+
+    float renderWidgetNPCCard(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
+    {
+        if (!gameContext) return 0.0f;
+
+        auto npcs = getInteractingNPCs(gameContext);
+        if (npcs.empty()) return 0.0f;
+
+        entity* npc = npcs.front().get();
+        if (!npc) return 0.0f;
+
+        float startY = curY;
+        float padX = curX + (5.0f * uiScale);
+        float availableW = innerW - (10.0f * uiScale);
+
+        auto mousePos = gameContext->input.getMousePosition();
+        bool clicked = gameContext->input.isLeftMouseJustClicked();
+
+        // Dynamic Status Effects calculation
+        float innerPad = 4.0f * uiScale;
+        float subW = availableW - (innerPad * 2.0f);
+        float s2Pad = 5.0f * uiScale;
+        float s2ContentW = subW - (s2Pad * 2.0f);
+
+        const float chipSize = 22.0f * uiScale;
+        const float chipGap = 3.0f * uiScale;
+        int chipsPerRow = std::max(1, static_cast<int>(std::floor((s2ContentW + chipGap) / (chipSize + chipGap))));
+
+        const auto& effects = npc->statusEffects;
+        int numEffectRows = effects.empty() ? 1 : static_cast<int>(std::ceil(effects.size() / static_cast<float>(chipsPerRow)));
+        float statusSectionH = (numEffectRows * chipSize) + ((numEffectRows - 1) * chipGap);
+
+        float sub1H = 58.0f * uiScale;
+        float vitalsTopH = 80.0f * uiScale;
+        float sub2H = vitalsTopH + statusSectionH + (8.0f * uiScale);
+        float headerH = 20.0f * uiScale;
+        float outerH = headerH + (3.0f * uiScale) + sub1H + (5.0f * uiScale) + sub2H + (5.0f * uiScale);
+
+        // Outer Container: NPC Overview Card
+        SDL_FRect outerRect = { padX, curY, availableW, outerH };
+        UIWidget::drawPanel(renderer, outerRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+
+        // Header
+        bool isHostile = (gameContext->activeTargetMode == TargetMode::COMBAT_ENEMY || dynamic_cast<CombatState*>(gameContext->getActiveState()) != nullptr);
+        SDL_Color headerCol = isHostile ? Theme::colors.enemy : Theme::colors.textGold;
+        std::string headerTitle = isHostile ? std::format("OPPONENT: {}", npc->name) : std::format("TARGET: {}", npc->name);
+
+        SDL_FRect headerRect = { padX, curY, availableW, headerH };
+        UIWidget::drawHeader(renderer, headerRect, headerTitle, Theme::colors.bgHeader, headerCol, uiScale * 0.74f);
+
+        // Close / Deselect button [ X ] (when not locked in combat)
+        if (dynamic_cast<CombatState*>(gameContext->getActiveState()) == nullptr)
+        {
+            float closeBtnW = 16.0f * uiScale;
+            float closeBtnH = 16.0f * uiScale;
+            SDL_FRect closeRect = { padX + availableW - closeBtnW - (3.0f * uiScale), curY + (2.0f * uiScale), closeBtnW, closeBtnH };
+            bool closeHov = (mousePos.x >= closeRect.x && mousePos.x <= closeRect.x + closeRect.w &&
+                             mousePos.y >= closeRect.y && mousePos.y <= closeRect.y + closeRect.h);
+            UIWidget::drawButton(renderer, closeRect, "X", closeHov, true, false, uiScale * 0.60f);
+            TooltipManager::setHoverTooltip(closeRect, mousePos, "Deselect Target", "Close character card and return to exploration view.", "Deselect");
+
+            if (closeHov && clicked)
+            {
+                gameContext->activeTargetNPC = nullptr;
+                gameContext->input.consumeMouseClick();
+            }
+        }
+        curY += headerH + (3.0f * uiScale);
+
+        // Sub-Box 1: Identity & Wealth
+        float sub1X = padX + innerPad;
+        float sub1Y = curY;
+        SDL_FRect sub1Rect = { sub1X, sub1Y, subW, sub1H };
+        UIWidget::drawPanel(renderer, sub1Rect, Theme::colors.bgDark, Theme::colors.borderButton);
+
+        float s1Pad = 5.0f * uiScale;
+        float s1ContentX = sub1X + s1Pad;
+        float s1ContentW = subW - (s1Pad * 2.0f);
+        float s1Y = sub1Y + (4.0f * uiScale);
+
+        // Avatar Badge
+        float avatarSize = 30.0f * uiScale;
+        SDL_FRect avatarRect = { s1ContentX, s1Y, avatarSize, avatarSize };
+        UIWidget::drawPanel(renderer, avatarRect, Theme::colors.bgHeader, Theme::colors.borderButton);
+
+        std::string initials = "NPC";
+        if (!npc->name.empty())
+        {
+            initials = npc->name.substr(0, 1);
+            size_t spacePos = npc->name.find(' ');
+            if (spacePos != std::string::npos && spacePos + 1 < npc->name.length())
+            {
+                initials += npc->name[spacePos + 1];
+            }
+        }
+        float initW = UIWidget::getTextWidth(initials, uiScale * 0.78f);
+        UIWidget::drawText(renderer, initials, avatarRect.x + ((avatarSize - initW) / 2.0f), avatarRect.y + (5.0f * uiScale), headerCol, uiScale * 0.78f);
+
+        std::string raceStr = npc->anatomy.getRacialTitle().empty() ? "Demon" : npc->anatomy.getRacialTitle();
+        TooltipManager::setHoverTooltip(avatarRect, mousePos, npc->name,
+                                        "Character engaged in active interaction or combat.",
+                                        std::format("Level {} • {}", npc->stats.level, raceStr));
+
+        // Name & Level / Species
+        UIWidget::drawText(renderer, npc->name, s1ContentX + avatarSize + (6.0f * uiScale), s1Y + (1.0f * uiScale), Theme::colors.textGold, uiScale * 0.84f);
+        std::string lvlStr = std::format("Lvl {} • {}", npc->stats.level, raceStr);
+        UIWidget::drawText(renderer, lvlStr, s1ContentX + avatarSize + (6.0f * uiScale), s1Y + (15.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.70f);
+
+        // Gold & Gender Archetype
+        float goldVal = npc->getStat("currency");
+        std::string goldText = std::format("Gold: {:.0f} ¤", goldVal);
+        UIWidget::drawText(renderer, goldText, s1ContentX, s1Y + avatarSize + (4.0f * uiScale), Theme::colors.currency, uiScale * 0.72f);
+        TooltipManager::setHoverTooltip({ s1ContentX, s1Y + avatarSize + (2.0f * uiScale), 70.0f * uiScale, 16.0f * uiScale },
+                                        mousePos, "Enemy Spoils", "Carried coin that can be acquired through victory, bribery, or trade.", goldText);
+
+        std::string archStr = genderArchetypeToString(npc->genderArchetype);
+        float archW = UIWidget::getTextWidth(archStr, uiScale * 0.70f);
+        UIWidget::drawText(renderer, archStr, s1ContentX + s1ContentW - archW, s1Y + avatarSize + (4.0f * uiScale), Theme::colors.companion, uiScale * 0.70f);
+        TooltipManager::setHoverTooltip({ s1ContentX + s1ContentW - archW - (4.0f * uiScale), s1Y + avatarSize + (2.0f * uiScale), archW + (8.0f * uiScale), 16.0f * uiScale },
+                                        mousePos, "Gender & Archetype",
+                                        std::format("Orientation: {}", sexualOrientationToString(npc->orientation)),
+                                        archStr);
+
+        curY += sub1H + (5.0f * uiScale);
+
+        // Sub-Box 2: Vitals & Status Gauges
+        float sub2X = padX + innerPad;
+        float sub2Y = curY;
+        SDL_FRect sub2Rect = { sub2X, sub2Y, subW, sub2H };
+        UIWidget::drawPanel(renderer, sub2Rect, Theme::colors.bgDark, Theme::colors.borderButton);
+
+        float s2ContentX = sub2X + s2Pad;
+        float s2Y = sub2Y + (4.0f * uiScale);
+
+        UIWidget::drawText(renderer, "VITALS & STATUS", s2ContentX, s2Y, Theme::colors.textGold, uiScale * 0.72f);
+        s2Y += (16.0f * uiScale);
+
+        float barH = 10.0f * uiScale;
+        float barGap = 4.0f * uiScale;
+        float labelW = 40.0f * uiScale;
+        float valW = 44.0f * uiScale;
+        float progressW = s2ContentW - labelW - valW - (4.0f * uiScale);
+
+        // 1. Health Bar
+        float curHp = npc->getStat("health");
+        float maxHp = npc->getStat("max_health");
+        if (maxHp <= 0.0f) maxHp = std::max(curHp, 100.0f);
+        curHp = std::clamp(curHp, 0.0f, maxHp);
+
+        UIWidget::drawText(renderer, "Health", s2ContentX, s2Y, Theme::colors.health, uiScale * 0.65f);
+        UIWidget::drawProgressBar(renderer, { s2ContentX + labelW, s2Y, progressW, barH }, curHp, maxHp, Theme::colors.health, Theme::colors.bgHeader, "", uiScale);
+        std::string hpStr = std::format("{:.0f}/{:.0f}", curHp, maxHp);
+        UIWidget::drawText(renderer, hpStr, s2ContentX + labelW + progressW + (4.0f * uiScale), s2Y, Theme::colors.textPrimary, uiScale * 0.62f);
+        TooltipManager::setHoverTooltip({ s2ContentX, s2Y, s2ContentW, barH }, mousePos, "Health Points (HP)",
+                                        "Character vitality. Reaching 0 results in collapse, defeat, or surrender.",
+                                        std::format("{:.0f} / {:.0f} HP", curHp, maxHp));
+        s2Y += barH + barGap;
+
+        // 2. Mana Bar
+        float curMp = npc->getStat("mana");
+        float maxMp = npc->getStat("max_mana");
+        if (maxMp <= 0.0f) maxMp = std::max(curMp, 100.0f);
+        curMp = std::clamp(curMp, 0.0f, maxMp);
+
+        UIWidget::drawText(renderer, "Mana", s2ContentX, s2Y, Theme::colors.mana, uiScale * 0.65f);
+        UIWidget::drawProgressBar(renderer, { s2ContentX + labelW, s2Y, progressW, barH }, curMp, std::max(1.0f, maxMp), Theme::colors.mana, Theme::colors.bgHeader, "", uiScale);
+        std::string mpStr = std::format("{:.0f}/{:.0f}", curMp, maxMp);
+        UIWidget::drawText(renderer, mpStr, s2ContentX + labelW + progressW + (4.0f * uiScale), s2Y, Theme::colors.textPrimary, uiScale * 0.62f);
+        TooltipManager::setHoverTooltip({ s2ContentX, s2Y, s2ContentW, barH }, mousePos, "Arcane Mana (MP)",
+                                        "Magical reserves consumed by spells and special attacks.",
+                                        std::format("{:.0f} / {:.0f} MP", curMp, maxMp));
+        s2Y += barH + barGap;
+
+        // 3. Lust Bar
+        float curLust = std::clamp(npc->getStat("lust"), 0.0f, 100.0f);
+        float maxLust = npc->getStat("max_lust");
+        if (maxLust <= 0.0f) maxLust = 100.0f;
+
+        UIWidget::drawText(renderer, "Lust", s2ContentX, s2Y, Theme::colors.lust, uiScale * 0.65f);
+        UIWidget::drawProgressBar(renderer, { s2ContentX + labelW, s2Y, progressW, barH }, curLust, maxLust, Theme::colors.lust, Theme::colors.bgHeader, "", uiScale);
+        std::string lustStr = std::format("{:.0f}%", (curLust / maxLust) * 100.0f);
+        UIWidget::drawText(renderer, lustStr, s2ContentX + labelW + progressW + (4.0f * uiScale), s2Y, Theme::colors.textPrimary, uiScale * 0.62f);
+        TooltipManager::setHoverTooltip({ s2ContentX, s2Y, s2ContentW, barH }, mousePos, "Lust Level",
+                                        "Susceptibility to flirtation, seduction, and submission.",
+                                        std::format("{:.0f}% Lust", (curLust / maxLust) * 100.0f));
+        s2Y += barH + barGap;
+
+        // 4. Arousal Bar
+        float curArousal = std::clamp(npc->getStat("arousal"), 0.0f, 100.0f);
+        float maxArousal = npc->getStat("max_arousal");
+        if (maxArousal <= 0.0f) maxArousal = 100.0f;
+
+        UIWidget::drawText(renderer, "Arousal", s2ContentX, s2Y, Theme::colors.textGold, uiScale * 0.65f);
+        UIWidget::drawProgressBar(renderer, { s2ContentX + labelW, s2Y, progressW, barH }, curArousal, maxArousal, Theme::colors.textGold, Theme::colors.bgHeader, "", uiScale);
+        std::string arousalStr = std::format("{:.0f}%", (curArousal / maxArousal) * 100.0f);
+        UIWidget::drawText(renderer, arousalStr, s2ContentX + labelW + progressW + (4.0f * uiScale), s2Y, Theme::colors.textPrimary, uiScale * 0.62f);
+        TooltipManager::setHoverTooltip({ s2ContentX, s2Y, s2ContentW, barH }, mousePos, "Physical Arousal",
+                                        "Active physiological excitement during intimate encounters.",
+                                        std::format("{:.0f}% Arousal", (curArousal / maxArousal) * 100.0f));
+        s2Y += barH + (6.0f * uiScale);
+
+        // Status Effects Chips
+        if (effects.empty())
+        {
+            static const std::vector<std::pair<std::string, SDL_Color>> defaultChips = {
+                { "Phys", Theme::colors.health },
+                { "Arc", Theme::colors.mana },
+                { "Form", Theme::colors.companion },
+                { "Buff", Theme::colors.textGold }
+            };
+
+            float dGap = 3.0f * uiScale;
+            float dW = (s2ContentW - (dGap * (defaultChips.size() - 1))) / static_cast<float>(defaultChips.size());
+            float dH = chipSize;
+
+            for (size_t t = 0; t < defaultChips.size(); ++t)
+            {
+                SDL_FRect tBox = { s2ContentX + (t * (dW + dGap)), s2Y, dW, dH };
+                UIWidget::drawPanel(renderer, tBox, Theme::colors.bgHeader, Theme::colors.borderButton);
+                float txtW = UIWidget::getTextWidth(defaultChips[t].first, uiScale * 0.62f);
+                UIWidget::drawText(renderer, defaultChips[t].first, tBox.x + ((dW - txtW) / 2.0f), tBox.y + (3.0f * uiScale), defaultChips[t].second, uiScale * 0.62f);
+            }
+        }
+        else
+        {
+            for (size_t i = 0; i < effects.size(); ++i)
+            {
+                int row = static_cast<int>(i / chipsPerRow);
+                int col = static_cast<int>(i % chipsPerRow);
+
+                float chipX = s2ContentX + (col * (chipSize + chipGap));
+                float chipY = s2Y + (row * (chipSize + chipGap));
+                SDL_FRect chipRect = { chipX, chipY, chipSize, chipSize };
+
+                const auto& eff = effects[i];
+                SDL_Color bdCol = eff.isDebuff ? Theme::colors.health : Theme::colors.companion;
+                SDL_Color textCol = eff.isDebuff ? Theme::colors.health : Theme::colors.textGold;
+
+                UIWidget::drawPanel(renderer, chipRect, Theme::colors.bgHeader, bdCol);
+                std::string code = eff.name.substr(0, std::min<size_t>(2, eff.name.length()));
+                float cW = UIWidget::getTextWidth(code, uiScale * 0.58f);
+                UIWidget::drawText(renderer, code, chipX + ((chipSize - cW) / 2.0f), chipY + (3.0f * uiScale), textCol, uiScale * 0.58f);
+
+                std::string sub = std::format("{} • {} turns remaining", eff.isDebuff ? "Debuff" : "Buff", eff.durationTurns);
+                TooltipManager::setHoverTooltip(chipRect, mousePos, eff.name, eff.description, sub);
+            }
+        }
+
+        curY += sub2H + (5.0f * uiScale);
+        curY += (6.0f * uiScale);
+
+        // Secondary / Other NPCs list (when npcs.size() > 1)
+        if (npcs.size() > 1)
+        {
+            float addHeaderH = 18.0f * uiScale;
+            SDL_FRect addHeaderRect = { padX, curY, availableW, addHeaderH };
+            std::string addTitle = std::format("OTHER CHARACTERS ({})", npcs.size() - 1);
+            UIWidget::drawHeader(renderer, addHeaderRect, addTitle, Theme::colors.bgHeader, Theme::colors.textSecondary, uiScale * 0.68f);
+            curY += addHeaderH + (4.0f * uiScale);
+
+            for (size_t i = 1; i < npcs.size(); ++i)
+            {
+                entity* other = npcs[i].get();
+                if (!other) continue;
+
+                float itemCardH = 46.0f * uiScale;
+                SDL_FRect itemRect = { padX, curY, availableW, itemCardH };
+                bool itemHov = (mousePos.x >= itemRect.x && mousePos.x <= itemRect.x + itemRect.w &&
+                                mousePos.y >= itemRect.y && mousePos.y <= itemRect.y + itemRect.h);
+                UIWidget::drawPanel(renderer, itemRect, Theme::colors.bgSlot, itemHov ? Theme::colors.borderSelected : Theme::colors.borderNormal);
+
+                float oAvatarSize = 20.0f * uiScale;
+                SDL_FRect oAvatarRect = { padX + (4.0f * uiScale), curY + (4.0f * uiScale), oAvatarSize, oAvatarSize };
+                UIWidget::drawPanel(renderer, oAvatarRect, Theme::colors.bgDark, Theme::colors.borderButton);
+                std::string oInit = other->name.empty() ? "?" : other->name.substr(0, 1);
+                float oInitW = UIWidget::getTextWidth(oInit, uiScale * 0.66f);
+                UIWidget::drawText(renderer, oInit, oAvatarRect.x + ((oAvatarSize - oInitW) / 2.0f), oAvatarRect.y + (2.0f * uiScale), Theme::colors.textGold, uiScale * 0.66f);
+
+                float infoX = padX + oAvatarSize + (8.0f * uiScale);
+                UIWidget::drawText(renderer, other->name, infoX, curY + (3.0f * uiScale), Theme::colors.textGold, uiScale * 0.72f);
+                std::string otherSub = std::format("Lvl {} • {}", other->stats.level, other->anatomy.getRacialTitle());
+                UIWidget::drawText(renderer, otherSub, infoX, curY + (16.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.60f);
+
+                // Focus/Target button
+                float tgtBtnW = 44.0f * uiScale;
+                float tgtBtnH = 18.0f * uiScale;
+                SDL_FRect tgtBtnRect = { padX + availableW - tgtBtnW - (4.0f * uiScale), curY + (4.0f * uiScale), tgtBtnW, tgtBtnH };
+                bool tgtHov = (mousePos.x >= tgtBtnRect.x && mousePos.x <= tgtBtnRect.x + tgtBtnRect.w &&
+                               mousePos.y >= tgtBtnRect.y && mousePos.y <= tgtBtnRect.y + tgtBtnRect.h);
+                UIWidget::drawButton(renderer, tgtBtnRect, "Focus", tgtHov, true, false, uiScale * 0.60f);
+                TooltipManager::setHoverTooltip(tgtBtnRect, mousePos, "Focus on " + other->name, "Inspect and target this character in the overview card.", "Target");
+
+                if (tgtHov && clicked)
+                {
+                    gameContext->activeTargetNPC = npcs[i];
+                    gameContext->input.consumeMouseClick();
+                }
+
+                // Mini Vitals
+                float oHp = std::clamp(other->getStat("health"), 0.0f, std::max(1.0f, other->getStat("max_health")));
+                float oMaxHp = std::max(1.0f, other->getStat("max_health"));
+                float miniBarW = availableW - (8.0f * uiScale);
+                float miniBarH = 4.0f * uiScale;
+                float halfBarW = (miniBarW - (4.0f * uiScale)) / 2.0f;
+
+                UIWidget::drawProgressBar(renderer, { padX + (4.0f * uiScale), curY + (34.0f * uiScale), halfBarW, miniBarH }, oHp, oMaxHp, Theme::colors.health, Theme::colors.bgDark, "", uiScale);
+                float oLust = std::clamp(other->getStat("lust"), 0.0f, 100.0f);
+                float oMaxLust = std::max(1.0f, other->getStat("max_lust"));
+                UIWidget::drawProgressBar(renderer, { padX + (4.0f * uiScale) + halfBarW + (4.0f * uiScale), curY + (34.0f * uiScale), halfBarW, miniBarH }, oLust, oMaxLust, Theme::colors.lust, Theme::colors.bgDark, "", uiScale);
+
+                TooltipManager::setHoverTooltip(itemRect, mousePos, other->name,
+                                                std::format("Health: {:.0f}/{:.0f} • Lust: {:.0f}%", oHp, oMaxHp, (oLust / oMaxLust) * 100.0f),
+                                                otherSub);
+
+                curY += itemCardH + (4.0f * uiScale);
+            }
+        }
+
+        return (curY - startY);
+    }
+
     float renderWidgetCharactersPresent(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
     {
         if (!gameContext || !gameContext->getPlayer()) return 0.0f;
+
+        // When interacting with an NPC, replace the normal boxes with the dedicated NPC Character Card
+        if (isInteractingWithNPC(gameContext))
+        {
+            return renderWidgetNPCCard(renderer, gameContext, curX, curY, innerW, uiScale);
+        }
 
         float startY = curY;
         float padX = curX + (5.0f * uiScale);
@@ -77,75 +475,8 @@ namespace EntityListWidgets
             safeCol = Theme::colors.companion;
         }
 
-        std::string subText = "";
-        MapWarp warp;
-        if (m && m->checkWarp(pX, pY, warp))
-        {
-            if (warp.targetMap == "house_01") subText = "Entrance to Cozy Cottage";
-            else if (warp.targetMap == "overworld") subText = "Exit to Town District";
-            else subText = std::format("Passage to {}", warp.targetMap);
-        }
-        else if (m && !m->getTriggersAt(pX, pY).empty())
-        {
-            subText = m->getTriggersAt(pX, pY).front().label;
-        }
-        else if (m && !m->getTileTags(pX, pY).empty())
-        {
-            const auto& tags = m->getTileTags(pX, pY);
-            std::string chosenTag = tags.front();
-            for (const auto& tg : tags)
-            {
-                if (tg != "cobblestone" && tg != "walkway")
-                {
-                    chosenTag = tg;
-                    break;
-                }
-            }
-
-            if (chosenTag == "high_street") subText = "High Street";
-            else if (chosenTag == "central_square") subText = "Central Square";
-            else if (chosenTag == "market_quarter") subText = "Market Quarter";
-            else if (chosenTag == "residential") subText = "Residential Quarter";
-            else if (chosenTag == "alleyway") subText = "Narrow Alleyway";
-            else if (chosenTag == "plaza") subText = "Town Plaza";
-            else if (chosenTag == "avenue") subText = "Cobbled Avenue";
-            else if (chosenTag == "hearth") subText = "Cozy Hearth";
-            else if (chosenTag == "bookshelf_corner") subText = "Library Alcove";
-            else if (chosenTag == "window_nook") subText = "Window Nook";
-            else if (chosenTag == "kitchenette") subText = "Kitchenette";
-            else
-            {
-                std::string formatted = chosenTag;
-                bool capNext = true;
-                for (char& c : formatted)
-                {
-                    if (c == '_') { c = ' '; capNext = true; }
-                    else if (capNext) { c = static_cast<char>(std::toupper(static_cast<unsigned char>(c))); capNext = false; }
-                }
-                subText = formatted;
-            }
-        }
-        else if (m)
-        {
-            if (m->getId() == "house_01" || locName == "Cozy Cottage")
-            {
-                subText = "Cottage interior";
-            }
-            else if (m->getId() == "overworld" || locName == "Town District")
-            {
-                if (danger >= 2 || hasAmbush) subText = "Shadowed alleyways";
-                else if (danger == 1) subText = "Suburban crossing";
-                else subText = "Town thoroughfare";
-            }
-            else
-            {
-                subText = "Local surroundings";
-            }
-        }
-        else
-        {
-            subText = "Sanctuary interior";
-        }
+        // Subtext loaded 100% data-driven from map JSON (tileTitles, warps, triggers, tagTitles, or defaultTileTitle)
+        std::string subText = m ? m->getTileTitle(pX, pY) : "Sanctuary interior";
 
         UIWidget::drawText(renderer, locName, innerX, curY + (5.0f * uiScale), Theme::colors.textGold, uiScale * 0.78f);
         float safeW = UIWidget::getTextWidth(safeTag, uiScale * 0.68f);
@@ -163,73 +494,84 @@ namespace EntityListWidgets
         curY += card1H + (8.0f * uiScale);
 
         // ==========================================
-        // CARD 2: Characters Present Card
+        // CARD 2: Characters Present Card (Fully functional)
         // ==========================================
-        bool hasNpc = false;
-        std::shared_ptr<entity> npcShared = nullptr;
-        entity* npc = nullptr;
-        if (gameContext->map)
+        std::vector<std::shared_ptr<entity>> tileNPCs;
+        if (m)
         {
-            auto& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
-            if (!tileData.namedNPCs.empty())
+            TileRuntimeData& tileData = m->getRuntimeData(pX, pY);
+            for (const auto& n : tileData.namedNPCs)
             {
-                hasNpc = true;
-                npcShared = tileData.namedNPCs.front();
-                npc = npcShared.get();
+                if (n && std::find(tileNPCs.begin(), tileNPCs.end(), n) == tileNPCs.end())
+                    tileNPCs.push_back(n);
             }
-            else if (tileData.persistentNPC && tileData.persistentNPC != tileData.ambushState.npc)
+            if (tileData.persistentNPC && std::find(tileNPCs.begin(), tileNPCs.end(), tileData.persistentNPC) == tileNPCs.end())
             {
-                hasNpc = true;
-                npcShared = tileData.persistentNPC;
-                npc = npcShared.get();
+                tileNPCs.push_back(tileData.persistentNPC);
+            }
+            if (tileData.ambushState.npc && !tileData.ambushState.isDefeated && !tileData.ambushState.isPermanentlyRemoved &&
+                std::find(tileNPCs.begin(), tileNPCs.end(), tileData.ambushState.npc) == tileNPCs.end())
+            {
+                tileNPCs.push_back(tileData.ambushState.npc);
             }
         }
 
-        float card2H = hasNpc ? (64.0f * uiScale) : (48.0f * uiScale);
+        float card2H = tileNPCs.empty() ? (48.0f * uiScale) : (28.0f * uiScale + (tileNPCs.size() * (36.0f * uiScale)));
         SDL_FRect card2Rect = { padX, curY, availableW, card2H };
         UIWidget::drawPanel(renderer, card2Rect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
-        UIWidget::drawText(renderer, "CHARACTERS PRESENT", innerX, curY + (5.0f * uiScale), Theme::colors.textGold, uiScale * 0.74f);
+        std::string charHeader = tileNPCs.empty() ? "CHARACTERS PRESENT" : std::format("CHARACTERS PRESENT ({})", tileNPCs.size());
+        UIWidget::drawText(renderer, charHeader, innerX, curY + (5.0f * uiScale), Theme::colors.textGold, uiScale * 0.74f);
 
-        if (hasNpc && npc)
+        if (tileNPCs.empty())
         {
-            float npcY = curY + (22.0f * uiScale);
-            UIWidget::drawText(renderer, npc->name, innerX, npcY, Theme::colors.textGold, uiScale * 0.78f);
-            std::string raceStr = npc->anatomy.getRacialTitle().empty() ? "Demon" : npc->anatomy.getRacialTitle();
-            UIWidget::drawText(renderer, raceStr, innerX, npcY + (14.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.66f);
-
-            // Action buttons: [ Talk ] [ View ]
-            float btnW = 38.0f * uiScale;
-            float btnH = 20.0f * uiScale;
-            SDL_FRect talkBtn = { innerX + cW - (btnW * 2.0f) - (4.0f * uiScale), npcY + (2.0f * uiScale), btnW, btnH };
-            bool tHov = (mousePos.x >= talkBtn.x && mousePos.x <= talkBtn.x + talkBtn.w &&
-                         mousePos.y >= talkBtn.y && mousePos.y <= talkBtn.y + talkBtn.h);
-            UIWidget::drawButton(renderer, talkBtn, "Talk", tHov, true, false, uiScale * 0.66f);
-            TooltipManager::setHoverTooltip(talkBtn, mousePos, "Talk to " + npc->name, "Initiate dialogue conversation with this character.", "Dialogue");
-
-            if (tHov && clicked)
-            {
-                gameContext->activeTargetNPC = npcShared;
-                gameContext->activeTargetMode = TargetMode::DIALOGUE;
-                gameContext->input.consumeMouseClick();
-            }
-
-            SDL_FRect inspBtn = { innerX + cW - btnW, npcY + (2.0f * uiScale), btnW, btnH };
-            bool iHov = (mousePos.x >= inspBtn.x && mousePos.x <= inspBtn.x + inspBtn.w &&
-                         mousePos.y >= inspBtn.y && mousePos.y <= inspBtn.y + inspBtn.h);
-            UIWidget::drawButton(renderer, inspBtn, "View", iHov, true, false, uiScale * 0.66f);
-            TooltipManager::setHoverTooltip(inspBtn, mousePos, "Inspect " + npc->name, "View character paperdoll, equipment, and appearance.", "Inspector");
-
-            if (iHov && clicked)
-            {
-                gameContext->activeTargetNPC = npcShared;
-                gameContext->activeTargetMode = TargetMode::DIALOGUE;
-                gameContext->input.consumeMouseClick();
-            }
+            UIWidget::drawText(renderer, "No characters here.", innerX, curY + (22.0f * uiScale), Theme::colors.textMuted, uiScale * 0.68f);
         }
         else
         {
-            UIWidget::drawText(renderer, "No characters here.", innerX, curY + (22.0f * uiScale), Theme::colors.textMuted, uiScale * 0.68f);
+            float rowY = curY + (22.0f * uiScale);
+            for (const auto& npcShared : tileNPCs)
+            {
+                entity* npc = npcShared.get();
+                if (!npc) continue;
+
+                float btnW = 38.0f * uiScale;
+                float btnH = 20.0f * uiScale;
+
+                UIWidget::drawText(renderer, npc->name, innerX, rowY + (2.0f * uiScale), Theme::colors.textGold, uiScale * 0.74f);
+                std::string raceStr = npc->anatomy.getRacialTitle().empty() ? "Demon" : npc->anatomy.getRacialTitle();
+                std::string descStr = std::format("Lvl {} • {}", npc->stats.level, raceStr);
+                UIWidget::drawText(renderer, descStr, innerX, rowY + (15.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.62f);
+
+                // Action buttons: [ Talk ] [ View ]
+                SDL_FRect talkBtn = { innerX + cW - (btnW * 2.0f) - (4.0f * uiScale), rowY + (2.0f * uiScale), btnW, btnH };
+                bool tHov = (mousePos.x >= talkBtn.x && mousePos.x <= talkBtn.x + talkBtn.w &&
+                             mousePos.y >= talkBtn.y && mousePos.y <= talkBtn.y + talkBtn.h);
+                UIWidget::drawButton(renderer, talkBtn, "Talk", tHov, true, false, uiScale * 0.66f);
+                TooltipManager::setHoverTooltip(talkBtn, mousePos, "Talk to " + npc->name, "Initiate dialogue conversation with this character.", "Dialogue");
+
+                if (tHov && clicked)
+                {
+                    gameContext->activeTargetNPC = npcShared;
+                    gameContext->activeTargetMode = TargetMode::DIALOGUE;
+                    gameContext->input.consumeMouseClick();
+                }
+
+                SDL_FRect inspBtn = { innerX + cW - btnW, rowY + (2.0f * uiScale), btnW, btnH };
+                bool iHov = (mousePos.x >= inspBtn.x && mousePos.x <= inspBtn.x + inspBtn.w &&
+                             mousePos.y >= inspBtn.y && mousePos.y <= inspBtn.y + inspBtn.h);
+                UIWidget::drawButton(renderer, inspBtn, "View", iHov, true, false, uiScale * 0.66f);
+                TooltipManager::setHoverTooltip(inspBtn, mousePos, "Inspect " + npc->name, "View character overview and status.", "Inspector");
+
+                if (iHov && clicked)
+                {
+                    gameContext->activeTargetNPC = npcShared;
+                    gameContext->activeTargetMode = TargetMode::DIALOGUE;
+                    gameContext->input.consumeMouseClick();
+                }
+
+                rowY += (36.0f * uiScale);
+            }
         }
 
         curY += card2H + (8.0f * uiScale);
@@ -239,6 +581,9 @@ namespace EntityListWidgets
     float renderWidgetItemsPresent(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
     {
         if (!gameContext || !gameContext->getPlayer()) return 0.0f;
+
+        // When interacting with an NPC, suppress items card so the NPC card takes priority
+        if (isInteractingWithNPC(gameContext)) return 0.0f;
 
         float startY = curY;
         float padX = curX + (5.0f * uiScale);

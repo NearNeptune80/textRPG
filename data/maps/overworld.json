@@ -33,7 +33,8 @@
       "y": 1,
       "targetMap": "house_01",
       "targetX": 2,
-      "targetY": 3
+      "targetY": 3,
+      "label": "Entrance to Cozy Cottage"
     }
   ],
   "tileEncounters": {
@@ -76,9 +77,9 @@
     ]
   },
   "tileTags": {
-    "2,1": [ "cobblestone", "high_street" ],
-    "3,1": [ "cobblestone", "high_street" ],
-    "4,1": [ "cobblestone", "plaza" ],
+    "2,1": [ "high_street", "cobblestone" ],
+    "3,1": [ "high_street", "cobblestone" ],
+    "4,1": [ "plaza", "cobblestone" ],
     "7,1": [ "residential", "walkway" ],
     "1,2": [ "avenue", "residential" ],
     "4,2": [ "alleyway" ],
@@ -119,5 +120,25 @@
       "Canopies and stalls of local merchants line the road, their wares neatly arranged for browsing customers.",
       "A lively section of the street frequented by vendors and travelers trading daily provisions."
     ]
+  },
+  "defaultTileTitle": "Town Thoroughfare",
+  "tileTitles": {
+    "1,1": "Northern Gate Archway",
+    "1,2": "Residential Avenue",
+    "4,2": "Narrow Alleyway",
+    "1,5": "Shadowed Alleyway",
+    "2,5": "Shadowed Alleyway",
+    "3,5": "Shadowed Alleyway"
+  },
+  "tagTitles": {
+    "high_street": "High Street",
+    "plaza": "Town Plaza",
+    "residential": "Residential Quarter",
+    "alleyway": "Narrow Alleyway",
+    "central_square": "Central Square",
+    "market_quarter": "Market Quarter",
+    "cobblestone": "Cobblestone Thoroughfare",
+    "walkway": "Paved Walkway",
+    "avenue": "Town Avenue"
   }
 }

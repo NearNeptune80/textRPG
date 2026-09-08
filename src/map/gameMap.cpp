@@ -75,6 +75,7 @@ bool gameMap::loadFromFile(const std::string& filePath)
                 w.targetMap = wJson.at("targetMap").get<std::string>();
                 w.targetX = wJson.at("targetX").get<int>();
                 w.targetY = wJson.at("targetY").get<int>();
+                w.label = wJson.value("label", "");
                 warps.push_back(w);
 
                 getRuntimeData(w.x, w.y).iconId = "icon_door";
@@ -237,6 +238,33 @@ bool gameMap::loadFromFile(const std::string& filePath)
             }
         }
 
+        defaultTileTitle = data.value("defaultTileTitle", "");
+
+        tileTitles.clear();
+        if (data.contains("tileTitles") && data["tileTitles"].is_object())
+        {
+            for (const auto& [coordKey, val] : data["tileTitles"].items())
+            {
+                if (val.is_string()) tileTitles[coordKey] = val.get<std::string>();
+            }
+        }
+        else if (data.contains("tileNames") && data["tileNames"].is_object())
+        {
+            for (const auto& [coordKey, val] : data["tileNames"].items())
+            {
+                if (val.is_string()) tileTitles[coordKey] = val.get<std::string>();
+            }
+        }
+
+        tagTitles.clear();
+        if (data.contains("tagTitles") && data["tagTitles"].is_object())
+        {
+            for (const auto& [tagKey, val] : data["tagTitles"].items())
+            {
+                if (val.is_string()) tagTitles[tagKey] = val.get<std::string>();
+            }
+        }
+
         return true;
     }
     catch (const json::exception& e)
@@ -253,6 +281,54 @@ const std::vector<std::string>& gameMap::getTileTags(int x, int y) const
     auto it = tileTags.find(key);
     if (it != tileTags.end()) return it->second;
     return emptyTags;
+}
+
+std::string gameMap::getTileTitle(int x, int y) const
+{
+    std::string key = std::to_string(x) + "," + std::to_string(y);
+
+    // 1. Specific coordinate title from JSON
+    auto itTitle = tileTitles.find(key);
+    if (itTitle != tileTitles.end() && !itTitle->second.empty())
+    {
+        return itTitle->second;
+    }
+
+    // 2. Warp label from JSON
+    MapWarp warp;
+    if (checkWarp(x, y, warp) && !warp.label.empty())
+    {
+        return warp.label;
+    }
+
+    // 3. Trigger label from JSON
+    auto trigs = getTriggersAt(x, y);
+    if (!trigs.empty() && !trigs.front().label.empty())
+    {
+        return trigs.front().label;
+    }
+
+    // 4. Tag title from JSON
+    auto itTags = tileTags.find(key);
+    if (itTags != tileTags.end())
+    {
+        for (const auto& tag : itTags->second)
+        {
+            auto itTagTitle = tagTitles.find(tag);
+            if (itTagTitle != tagTitles.end() && !itTagTitle->second.empty())
+            {
+                return itTagTitle->second;
+            }
+        }
+    }
+
+    // 5. Default map title from JSON, or fallback to mapName
+    if (!defaultTileTitle.empty())
+    {
+        return defaultTileTitle;
+    }
+
+    return mapName.empty() ? "Local Area" : mapName;
 }
 
 std::string gameMap::getTileDescription(int x, int y) const

@@ -226,6 +226,8 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
                     curY += RadarWidgets::renderWidgetDpadRadar(renderer, gameContext, p.rect, curY, uiScale);
                 else if (wId == "widget_lt_characters_present")
                     curY += EntityListWidgets::renderWidgetCharactersPresent(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
+                else if (wId == "widget_lt_npc_card")
+                    curY += EntityListWidgets::renderWidgetNPCCard(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
                 else if (wId == "widget_lt_items_present")
                     curY += EntityListWidgets::renderWidgetItemsPresent(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
                 else if (wId == "widget_lt_event_log")
