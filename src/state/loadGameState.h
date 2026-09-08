@@ -4,6 +4,7 @@
 #include <string>
 #include <unordered_set>
 #include "state/iGameState.h"
+#include "save/saveManager.h"
 
 enum class SaveMenuMode
 {
@@ -58,8 +59,17 @@ public:
 
     void goBack(game* gameContext);
 
+    const std::vector<CharacterSaveGroup>& getCharacterGroups();
+    void refreshSaves();
+    void setSortMode(int mode);
+
 private:
     SaveMenuMode m_mode = SaveMenuMode::LOAD_ONLY;
     std::unordered_set<std::string> m_collapsedCharacters;
     std::unique_ptr<iGameState> m_returnState;
+
+    std::vector<CharacterSaveGroup> m_cachedGroups;
+    bool m_needsRefresh = true;
+    int m_lastSortMode = 0;
+    void applySorting();
 };

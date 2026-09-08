@@ -10,16 +10,78 @@
 loadGameState::loadGameState(SaveMenuMode mode, std::unique_ptr<iGameState> returnState)
     : m_mode(mode), m_returnState(std::move(returnState))
 {
+    refreshSaves();
 }
 
 void loadGameState::initialise(game* gameContext) {}
 
 void loadGameState::onEnter(game* gameContext)
 {
+    refreshSaves();
     if (gameContext)
     {
         gameContext->refreshActionGrid();
     }
+}
+
+void loadGameState::refreshSaves()
+{
+    m_cachedGroups = saveManager::getSavesGroupedByCharacter();
+    applySorting();
+    m_needsRefresh = false;
+    m_lastSortMode = sortMode;
+}
+
+void loadGameState::setSortMode(int mode)
+{
+    sortMode = mode;
+    applySorting();
+}
+
+void loadGameState::applySorting()
+{
+    if (sortMode == 1)
+    {
+        // Alphabetical sort
+        std::sort(m_cachedGroups.begin(), m_cachedGroups.end(), [](const CharacterSaveGroup& a, const CharacterSaveGroup& b) {
+            return a.characterName < b.characterName;
+        });
+        for (auto& grp : m_cachedGroups)
+        {
+            std::sort(grp.saves.begin(), grp.saves.end(), [](const SaveMetaData& a, const SaveMetaData& b) {
+                return a.saveName < b.saveName;
+            });
+        }
+    }
+    else
+    {
+        // Date sort
+        for (auto& grp : m_cachedGroups)
+        {
+            std::sort(grp.saves.begin(), grp.saves.end(), [](const SaveMetaData& a, const SaveMetaData& b) {
+                return a.timestamp > b.timestamp;
+            });
+        }
+        std::sort(m_cachedGroups.begin(), m_cachedGroups.end(), [](const CharacterSaveGroup& a, const CharacterSaveGroup& b) {
+            std::string tA = a.saves.empty() ? "" : a.saves.front().timestamp;
+            std::string tB = b.saves.empty() ? "" : b.saves.front().timestamp;
+            return tA > tB;
+        });
+    }
+    m_lastSortMode = sortMode;
+}
+
+const std::vector<CharacterSaveGroup>& loadGameState::getCharacterGroups()
+{
+    if (m_needsRefresh)
+    {
+        refreshSaves();
+    }
+    else if (m_lastSortMode != sortMode)
+    {
+        applySorting();
+    }
+    return m_cachedGroups;
 }
 
 void loadGameState::onExit(game* gameContext) {}

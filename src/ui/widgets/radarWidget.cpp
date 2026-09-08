@@ -159,13 +159,21 @@ namespace RadarWidgets
                 SDL_Color textCol = Theme::colors.textMuted;
                 std::string label = "";
 
+                // Query danger and ambush runtime data
+                TileRuntimeData& rData = map->getRuntimeData(targetX, targetY);
+                int danger = rData.getEffectiveDangerLevel();
+                bool hasAmbush = (!rData.ambushState.isDefeated && !rData.ambushState.isPermanentlyRemoved &&
+                                 (rData.ambushState.npc != nullptr || !rData.ambushState.templateId.empty() || !rData.ambushState.templatePool.empty()));
+                bool isDangerous = (danger > 0 || hasAmbush);
+
                 if (isPlayer)
                 {
-                    tileColor = Theme::colors.bgSlotSelected;
-                    borderColor = Theme::colors.borderSelected;
+                    tileColor = isDangerous ? SDL_Color{ 60, 24, 28, 255 } : Theme::colors.bgSlotSelected;
+                    borderColor = isDangerous ? Theme::colors.enemy : Theme::colors.borderSelected;
                     label = "YOU";
-                    textCol = Theme::colors.textGold;
-                    TooltipManager::setHoverTooltip(tileRect, mousePos, "Player Location", "Your current grid position on this map.", std::format("Grid ({}, {})", pX, pY));
+                    textCol = isDangerous ? Theme::colors.enemy : Theme::colors.textGold;
+                    std::string playerDesc = isDangerous ? "Current grid position. WARNING: Hostile territory or ambush threat!" : "Your current grid position on this map.";
+                    TooltipManager::setHoverTooltip(tileRect, mousePos, isDangerous ? "Player Location [Hazard Zone]" : "Player Location", playerDesc, std::format("Grid ({}, {})", pX, pY));
                 }
                 else
                 {
@@ -176,7 +184,7 @@ namespace RadarWidgets
                     if (t.type == TILE_WALL) label = "#";
                     else if (t.type == TILE_DOOR) label = "+";
                     else if (isWarp) label = "W";
-                    else if (walkable) label = "·";
+                    else if (walkable) label = isDangerous ? "!" : "·";
 
                     // 3-Tier Discovery System:
                     // 1. Undiscovered: Player has never stood on it and never stood next to it (Dark, but visible)
@@ -185,33 +193,71 @@ namespace RadarWidgets
                     if (t.visited || t.discovery == STATE_REVEALED)
                     {
                         // Visited / Fully shown
-                        tileColor = { 38, 44, 62, 255 };
-                        borderColor = Theme::colors.borderSelected;
-                        textCol = (label == "W") ? Theme::colors.companion : (label == "+" ? Theme::colors.textGold : Theme::colors.textGold);
+                        if (isDangerous)
+                        {
+                            tileColor = { 56, 22, 28, 255 };
+                            borderColor = { 200, 60, 65, 255 };
+                            textCol = (label == "W") ? Theme::colors.companion : (label == "+" ? Theme::colors.textGold : Theme::colors.enemy);
 
-                        std::string desc = isAdjacent ? (isExploration ? "Click to navigate to this adjacent tile." : "Explored tile. Movement locked during encounter/event.") : "Explored terrain. Must be adjacent to move here.";
-                        std::string title = (label == "#") ? "Explored Wall" : (label == "+" ? "Explored Door" : (isWarp ? "Zone Transition" : "Explored Floor"));
-                        TooltipManager::setHoverTooltip(tileRect, mousePos, title, desc, std::format("Grid ({}, {})", targetX, targetY));
+                            std::string desc = isAdjacent ? (isExploration ? "Click to navigate. DANGER: Hostile encounter or ambush!" : "Dangerous tile. Movement locked during encounter/event.") : "Explored hostile terrain. Must be adjacent to move here.";
+                            std::string title = (label == "#") ? "Explored Wall" : (label == "+" ? "Explored Door" : (isWarp ? "Hazardous Passage" : "Dangerous Floor"));
+                            TooltipManager::setHoverTooltip(tileRect, mousePos, title, desc, std::format("Grid ({}, {}) [Danger: {}]", targetX, targetY, danger > 0 ? danger : 1));
+                        }
+                        else
+                        {
+                            tileColor = { 38, 44, 62, 255 };
+                            borderColor = Theme::colors.borderSelected;
+                            textCol = (label == "W") ? Theme::colors.companion : (label == "+" ? Theme::colors.textGold : Theme::colors.textGold);
+
+                            std::string desc = isAdjacent ? (isExploration ? "Click to navigate to this adjacent tile." : "Explored tile. Movement locked during encounter/event.") : "Explored terrain. Must be adjacent to move here.";
+                            std::string title = (label == "#") ? "Explored Wall" : (label == "+" ? "Explored Door" : (isWarp ? "Zone Transition" : "Explored Floor"));
+                            TooltipManager::setHoverTooltip(tileRect, mousePos, title, desc, std::format("Grid ({}, {})", targetX, targetY));
+                        }
                     }
                     else if (t.discovery == STATE_PARTIAL)
                     {
                         // Partially discovered (stood adjacent to)
-                        tileColor = { 26, 30, 42, 255 };
-                        borderColor = Theme::colors.borderMuted;
-                        textCol = (label == "W") ? Theme::colors.companion : (label == "+" ? Theme::colors.textGold : Theme::colors.textSecondary);
+                        if (isDangerous)
+                        {
+                            tileColor = { 38, 18, 23, 255 };
+                            borderColor = { 150, 48, 54, 255 };
+                            textCol = (label == "W") ? Theme::colors.companion : (label == "+" ? Theme::colors.textGold : Theme::colors.enemy);
 
-                        std::string desc = isAdjacent ? (isExploration ? "Click to navigate to this adjacent tile." : "Surveyed tile. Movement locked during encounter/event.") : "Surveyed terrain tile. Must be adjacent to move here.";
-                        std::string title = (label == "#") ? "Surveyed Wall" : (label == "+" ? "Surveyed Door" : (isWarp ? "Surveyed Passage" : "Surveyed Floor"));
-                        TooltipManager::setHoverTooltip(tileRect, mousePos, title, desc, std::format("Grid ({}, {})", targetX, targetY));
+                            std::string desc = isAdjacent ? (isExploration ? "Click to navigate. Signs of threat or danger surveyed!" : "Surveyed hazard. Movement locked during encounter/event.") : "Surveyed hazard tile. Must be adjacent to move here.";
+                            std::string title = (label == "#") ? "Surveyed Wall" : (label == "+" ? "Surveyed Door" : (isWarp ? "Surveyed Passage" : "Surveyed Hazard"));
+                            TooltipManager::setHoverTooltip(tileRect, mousePos, title, desc, std::format("Grid ({}, {}) [Hazard]", targetX, targetY));
+                        }
+                        else
+                        {
+                            tileColor = { 26, 30, 42, 255 };
+                            borderColor = Theme::colors.borderMuted;
+                            textCol = (label == "W") ? Theme::colors.companion : (label == "+" ? Theme::colors.textGold : Theme::colors.textSecondary);
+
+                            std::string desc = isAdjacent ? (isExploration ? "Click to navigate to this adjacent tile." : "Surveyed tile. Movement locked during encounter/event.") : "Surveyed terrain tile. Must be adjacent to move here.";
+                            std::string title = (label == "#") ? "Surveyed Wall" : (label == "+" ? "Surveyed Door" : (isWarp ? "Surveyed Passage" : "Surveyed Floor"));
+                            TooltipManager::setHoverTooltip(tileRect, mousePos, title, desc, std::format("Grid ({}, {})", targetX, targetY));
+                        }
                     }
                     else
                     {
                         // Undiscovered (STATE_HIDDEN): Dark, but still visible
-                        tileColor = { 16, 17, 23, 255 };
-                        borderColor = { 32, 34, 46, 255 };
-                        textCol = { 75, 80, 95, 255 };
+                        if (isDangerous)
+                        {
+                            tileColor = { 28, 14, 18, 255 };
+                            borderColor = { 78, 28, 33, 255 };
+                            label = "!";
+                            textCol = { 155, 54, 58, 255 };
 
-                        TooltipManager::setHoverTooltip(tileRect, mousePos, "Undiscovered Area", "Terrain tile not yet approached. Move closer to inspect.", std::format("Grid ({}, {})", targetX, targetY));
+                            TooltipManager::setHoverTooltip(tileRect, mousePos, "Unexplored Hazard", "Terrain appears treacherous or ominous. Proceed with caution.", std::format("Grid ({}, {})", targetX, targetY));
+                        }
+                        else
+                        {
+                            tileColor = { 16, 17, 23, 255 };
+                            borderColor = { 32, 34, 46, 255 };
+                            textCol = { 75, 80, 95, 255 };
+
+                            TooltipManager::setHoverTooltip(tileRect, mousePos, "Undiscovered Area", "Terrain tile not yet approached. Move closer to inspect.", std::format("Grid ({}, {})", targetX, targetY));
+                        }
                     }
 
                     // Handle adjacent navigation clicking
@@ -219,7 +265,7 @@ namespace RadarWidgets
                                         mousePos.y >= tileRect.y && mousePos.y <= tileRect.y + tileRect.h);
                     if (tileHovered && isAdjacent && isExploration && walkable)
                     {
-                        borderColor = Theme::colors.textGold;
+                        borderColor = isDangerous ? Theme::colors.enemy : Theme::colors.textGold;
                         if (clicked)
                         {
                             gameContext->movePlayer(targetX, targetY);

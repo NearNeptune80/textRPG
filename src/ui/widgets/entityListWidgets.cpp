@@ -5,6 +5,7 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#include <cctype>
 
 #include "core/game.h"
 #include "entities/entity.h"
@@ -30,6 +31,10 @@ namespace EntityListWidgets
         auto mousePos = gameContext->input.getMousePosition();
         bool clicked = gameContext->input.isLeftMouseJustClicked();
 
+        int pX = gameContext->gridX;
+        int pY = gameContext->gridY;
+        gameMap* m = gameContext->map;
+
         // ==========================================
         // CARD 1: Zone & Environment Status Card
         // ==========================================
@@ -37,21 +42,123 @@ namespace EntityListWidgets
         SDL_FRect card1Rect = { padX, curY, availableW, card1H };
         UIWidget::drawPanel(renderer, card1Rect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
-        std::string locName = "Sanctuary Manor F1";
-        if (const gameMap* m = gameContext->getActiveMap())
+        std::string locName = "Unknown Area";
+        if (m && !m->getName().empty())
         {
-            if (!m->getName().empty() && m->getName() != "District Map") locName = m->getName();
+            locName = m->getName();
+        }
+
+        std::string safeTag = "[ Safe ]";
+        SDL_Color safeCol = Theme::colors.companion;
+
+        int danger = 0;
+        bool hasAmbush = false;
+        if (m)
+        {
+            TileRuntimeData& rData = m->getRuntimeData(pX, pY);
+            danger = rData.getEffectiveDangerLevel();
+            hasAmbush = (!rData.ambushState.isDefeated && !rData.ambushState.isPermanentlyRemoved &&
+                         (rData.ambushState.npc != nullptr || !rData.ambushState.templateId.empty() || !rData.ambushState.templatePool.empty()));
+        }
+
+        if (hasAmbush || danger >= 2)
+        {
+            safeTag = "[ Dangerous ]";
+            safeCol = Theme::colors.enemy;
+        }
+        else if (danger == 1)
+        {
+            safeTag = "[ Risky ]";
+            safeCol = Theme::colors.textGold;
+        }
+        else
+        {
+            safeTag = "[ Safe ]";
+            safeCol = Theme::colors.companion;
+        }
+
+        std::string subText = "";
+        MapWarp warp;
+        if (m && m->checkWarp(pX, pY, warp))
+        {
+            if (warp.targetMap == "house_01") subText = "Entrance to Cozy Cottage";
+            else if (warp.targetMap == "overworld") subText = "Exit to Town District";
+            else subText = std::format("Passage to {}", warp.targetMap);
+        }
+        else if (m && !m->getTriggersAt(pX, pY).empty())
+        {
+            subText = m->getTriggersAt(pX, pY).front().label;
+        }
+        else if (m && !m->getTileTags(pX, pY).empty())
+        {
+            const auto& tags = m->getTileTags(pX, pY);
+            std::string chosenTag = tags.front();
+            for (const auto& tg : tags)
+            {
+                if (tg != "cobblestone" && tg != "walkway")
+                {
+                    chosenTag = tg;
+                    break;
+                }
+            }
+
+            if (chosenTag == "high_street") subText = "High Street";
+            else if (chosenTag == "central_square") subText = "Central Square";
+            else if (chosenTag == "market_quarter") subText = "Market Quarter";
+            else if (chosenTag == "residential") subText = "Residential Quarter";
+            else if (chosenTag == "alleyway") subText = "Narrow Alleyway";
+            else if (chosenTag == "plaza") subText = "Town Plaza";
+            else if (chosenTag == "avenue") subText = "Cobbled Avenue";
+            else if (chosenTag == "hearth") subText = "Cozy Hearth";
+            else if (chosenTag == "bookshelf_corner") subText = "Library Alcove";
+            else if (chosenTag == "window_nook") subText = "Window Nook";
+            else if (chosenTag == "kitchenette") subText = "Kitchenette";
+            else
+            {
+                std::string formatted = chosenTag;
+                bool capNext = true;
+                for (char& c : formatted)
+                {
+                    if (c == '_') { c = ' '; capNext = true; }
+                    else if (capNext) { c = static_cast<char>(std::toupper(static_cast<unsigned char>(c))); capNext = false; }
+                }
+                subText = formatted;
+            }
+        }
+        else if (m)
+        {
+            if (m->getId() == "house_01" || locName == "Cozy Cottage")
+            {
+                subText = "Cottage interior";
+            }
+            else if (m->getId() == "overworld" || locName == "Town District")
+            {
+                if (danger >= 2 || hasAmbush) subText = "Shadowed alleyways";
+                else if (danger == 1) subText = "Suburban crossing";
+                else subText = "Town thoroughfare";
+            }
+            else
+            {
+                subText = "Local surroundings";
+            }
+        }
+        else
+        {
+            subText = "Sanctuary interior";
         }
 
         UIWidget::drawText(renderer, locName, innerX, curY + (5.0f * uiScale), Theme::colors.textGold, uiScale * 0.78f);
-        std::string safeTag = "[ Safe ]";
         float safeW = UIWidget::getTextWidth(safeTag, uiScale * 0.68f);
-        UIWidget::drawText(renderer, safeTag, innerX + cW - safeW, curY + (5.0f * uiScale), Theme::colors.companion, uiScale * 0.68f);
+        UIWidget::drawText(renderer, safeTag, innerX + cW - safeW, curY + (5.0f * uiScale), safeCol, uiScale * 0.68f);
 
-        UIWidget::drawText(renderer, "Sanctuary interior", innerX, curY + (22.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.66f);
+        UIWidget::drawText(renderer, subText, innerX, curY + (22.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.66f);
 
-        TooltipManager::setHoverTooltip(card1Rect, mousePos, locName,
-                                        "Current environment location and zone safety rating.", safeTag);
+        std::string tooltipDetail = std::format("Coordinates ({}, {}). Safety: {}", pX, pY, safeTag);
+        if (!subText.empty())
+        {
+            tooltipDetail = std::format("{} - {}", subText, tooltipDetail);
+        }
+        TooltipManager::setHoverTooltip(card1Rect, mousePos, locName, tooltipDetail, safeTag);
 
         curY += card1H + (8.0f * uiScale);
 

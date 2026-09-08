@@ -83,6 +83,7 @@ namespace LoadGameView
             {
                 saveManager::saveNamedGame(gameContext, loadState->pendingOverwriteSaveName);
                 loadState->pendingOverwriteSaveName = "";
+                loadState->refreshSaves();
                 gameContext->input.consumeMouseClick();
             }
             else if (cancelHovered && clicked)
@@ -119,6 +120,7 @@ namespace LoadGameView
             {
                 saveManager::deleteSave(loadState->pendingDeleteFileName);
                 loadState->pendingDeleteFileName = "";
+                loadState->refreshSaves();
                 gameContext->input.consumeMouseClick();
             }
             else if (cancelHovered && clicked)
@@ -169,6 +171,7 @@ namespace LoadGameView
             {
                 saveManager::saveNamedGame(gameContext, loadState->newSaveNameInput);
                 loadState->isEditingSaveName = false;
+                loadState->refreshSaves();
                 gameContext->input.consumeMouseClick();
             }
 
@@ -186,21 +189,8 @@ namespace LoadGameView
         curY += (24.0f * uiScale);
 
         // 4. Character Groups & Saves
-        auto characterGroups = saveManager::getSavesGroupedByCharacter();
-
-        if (loadState && loadState->sortMode == 1)
-        {
-            // Alphabetical sort
-            std::sort(characterGroups.begin(), characterGroups.end(), [](const CharacterSaveGroup& a, const CharacterSaveGroup& b) {
-                return a.characterName < b.characterName;
-            });
-            for (auto& grp : characterGroups)
-            {
-                std::sort(grp.saves.begin(), grp.saves.end(), [](const SaveMetaData& a, const SaveMetaData& b) {
-                    return a.saveName < b.saveName;
-                });
-            }
-        }
+        std::vector<CharacterSaveGroup> fallbackGroups;
+        const auto& characterGroups = loadState ? loadState->getCharacterGroups() : (fallbackGroups = saveManager::getSavesGroupedByCharacter(), fallbackGroups);
 
         if (characterGroups.empty())
         {
@@ -268,6 +258,7 @@ namespace LoadGameView
                             else
                             {
                                 saveManager::deleteSave(save.fileName);
+                                loadState->refreshSaves();
                             }
                             gameContext->input.consumeMouseClick();
                         }
@@ -310,6 +301,7 @@ namespace LoadGameView
                                 else
                                 {
                                     saveManager::saveNamedGame(gameContext, save.saveName.empty() ? save.fileName : save.saveName);
+                                    loadState->refreshSaves();
                                 }
                                 gameContext->input.consumeMouseClick();
                             }

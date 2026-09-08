@@ -46,6 +46,19 @@ std::string saveManager::sanitizeFilename(const std::string& input)
 
 SaveMetaData saveManager::readMetadata(const std::string& filePath)
 {
+    static std::unordered_map<std::string, std::pair<fs::file_time_type, SaveMetaData>> s_metadataCache;
+
+    std::error_code ec;
+    auto writeTime = fs::last_write_time(filePath, ec);
+    if (!ec)
+    {
+        auto it = s_metadataCache.find(filePath);
+        if (it != s_metadataCache.end() && it->second.first == writeTime)
+        {
+            return it->second.second;
+        }
+    }
+
     SaveMetaData meta;
     meta.fileName = fs::path(filePath).filename().string();
     std::ifstream file(filePath);
@@ -71,6 +84,11 @@ SaveMetaData saveManager::readMetadata(const std::string& filePath)
         }
     }
     catch (...) {}
+
+    if (!ec)
+    {
+        s_metadataCache[filePath] = { writeTime, meta };
+    }
 
     return meta;
 }
