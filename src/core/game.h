@@ -157,6 +157,7 @@ public:
 
     std::shared_ptr<entity> generateEncounterNPC();
     void triggerEncounter(std::shared_ptr<entity> npc);
+    void exploreTile();
 
     InventorySlotInfo getInventorySlotItem(int side, int absoluteIndex);
     std::string formatEquipSlotName(equipSlot slot);

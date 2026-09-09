@@ -2157,14 +2157,15 @@ namespace GameplayViews
         float innerPad = 10.0f * uiScale;
 
         // =========================================================================
-        // 1. TACTICAL STATUS CARD: Turn, AP, and Combatants
+        // 1. TACTICAL STATUS CARD: Turn, AP, Combatants, and Action Queue
         // =========================================================================
-        float statusCardH = 50.0f * uiScale;
+        const auto& playerParty = combat->getEngine().getPlayerParty();
+        bool hasQueue = (!playerParty.empty() && !playerParty.front().turnQueue.empty());
+        float statusCardH = hasQueue ? (72.0f * uiScale) : (50.0f * uiScale);
         SDL_FRect statusRect = { padX, curY, innerW, statusCardH };
         UIWidget::drawPanel(renderer, statusRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
         // Player side: Name & Action Points
-        const auto& playerParty = combat->getEngine().getPlayerParty();
         if (!playerParty.empty() && playerParty.front().character)
         {
             const auto& p = playerParty.front();
@@ -2172,6 +2173,18 @@ namespace GameplayViews
 
             std::string apStr = std::format("Turn Action Points: {} / {} AP", p.currentAp, p.maxAp);
             UIWidget::drawText(renderer, apStr, padX + innerPad, curY + (26.0f * uiScale), Theme::colors.companion, uiScale * 0.72f);
+
+            if (hasQueue)
+            {
+                std::string qStr = "Action Queue: ";
+                for (size_t qi = 0; qi < p.turnQueue.size(); ++qi)
+                {
+                    const auto& qa = p.turnQueue[qi];
+                    std::string tName = qa.target ? qa.target->name : "Enemy";
+                    qStr += std::format("[{}. {} -> {} ({} AP)] ", qi + 1, qa.action.name, tName, qa.actualApCost);
+                }
+                UIWidget::drawText(renderer, qStr, padX + innerPad, curY + (48.0f * uiScale), Theme::colors.friendly, uiScale * 0.68f);
+            }
         }
 
         // Opponent side: Target Name & Subtitle

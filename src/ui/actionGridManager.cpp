@@ -959,6 +959,10 @@ void ActionGridManager::refresh(game* gameContext)
     // 11. Combat State Actions
     if (auto combat = dynamic_cast<CombatState*>(currentState))
     {
+        auto& players = combat->getEngine().getPlayerParty();
+        int curAp = (!players.empty()) ? players[0].currentAp : 0;
+        bool hasQueuedActions = (!players.empty() && !players[0].turnQueue.empty());
+
         auto p = gameContext->getPlayer();
         float curMp = p ? p->getStat("mana") : 0.0f;
         int potionCount = 0;
@@ -970,36 +974,80 @@ void ActionGridManager::refresh(game* gameContext)
             }
         }
 
-        // Row 1: Physical Attacks
-        addBtn(gameContext, "Strike (1 AP)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "STRIKE" }); }, true, false, "Basic physical strike dealing weapon damage.");
-        addBtn(gameContext, "Heavy Strike (2 AP)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "HEAVY_STRIKE" }); }, true, false, "Heavy blow dealing high physical damage.");
-        addBtn(gameContext, "Defend (1 AP)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "DEFEND" }); }, true, false, "Raise defense stance to reduce incoming damage.");
-        addBtn(gameContext, "Disarm (2 AP)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "DISARM" }); }, true, false, "Attempt to disarm opponent's equipped weapon.");
-        addBtn(gameContext, "End Turn", [combat, gameContext]() { combat->handleEndTurn(gameContext); }, true, false, "Conclude turn and pass initiative to enemies.");
+        // Row 1: Physical Attacks & End Turn
+        bool canStrike = (curAp >= 1);
+        addBtn(gameContext, "Strike (1 AP)", [gameContext]() {
+            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "STRIKE" });
+        }, canStrike, false, canStrike ? "Queue physical strike dealing weapon damage." : "Insufficient AP (Requires 1 AP).");
 
-        // Row 2: Spells & Magic (greyed out if insufficient MP)
-        bool canDart = (curMp >= 10.0f);
-        addBtn(gameContext, "Arcane Dart (10 MP)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SPELL_DART" }); }, canDart, false, canDart ? "Fires a sharp dart of concentrated arcane power." : "Insufficient Mana (Requires 10 MP).");
+        bool canHeavy = (curAp >= 2);
+        addBtn(gameContext, "Heavy Strike (2 AP)", [gameContext]() {
+            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "HEAVY_STRIKE" });
+        }, canHeavy, false, canHeavy ? "Queue heavy blow dealing high physical damage." : "Insufficient AP (Requires 2 AP).");
 
-        bool canFireball = (curMp >= 25.0f);
-        addBtn(gameContext, "Fireball (25 MP)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SPELL_FIREBALL" }); }, canFireball, false, canFireball ? "Hurls an explosive sphere of demonic flame." : "Insufficient Mana (Requires 25 MP).");
+        bool canDefend = (curAp >= 1);
+        addBtn(gameContext, "Defend (1 AP)", [gameContext]() {
+            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "DEFEND" });
+        }, canDefend, false, canDefend ? "Queue defensive stance to bolster temporary barrier." : "Insufficient AP (Requires 1 AP).");
 
-        bool canShield = (curMp >= 15.0f);
-        addBtn(gameContext, "Shield (15 MP)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SPELL_SHIELD" }); }, canShield, false, canShield ? "Conjures a shimmering protective barrier." : "Insufficient Mana (Requires 15 MP).");
+        bool canDisarm = (curAp >= 2);
+        addBtn(gameContext, "Disarm (2 AP)", [gameContext]() {
+            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "DISARM" });
+        }, canDisarm, false, canDisarm ? "Queue disarm attempt dealing physical damage and disrupting foe." : "Insufficient AP (Requires 2 AP).");
 
-        bool canCleanse = (curMp >= 20.0f);
-        addBtn(gameContext, "Cleanse (20 MP)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SPELL_CLEANSE" }); }, canCleanse, false, canCleanse ? "Channels pure energy to purge negative debuffs." : "Insufficient Mana (Requires 20 MP).");
+        addBtn(gameContext, "End Turn", [combat, gameContext]() {
+            combat->handleEndTurn(gameContext);
+        }, true, false, "Conclude planning phase and resolve all queued turn actions.");
 
-        bool canBlink = (curMp >= 30.0f);
-        addBtn(gameContext, "Blink (30 MP)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SPELL_BLINK" }); }, canBlink, false, canBlink ? "Teleport short distance to evade attacks." : "Insufficient Mana (Requires 30 MP).");
+        // Row 2: Spells & Magic (AP + MP requirements)
+        bool canDart = (curAp >= 1 && curMp >= 10.0f);
+        addBtn(gameContext, "Arcane Dart (1 AP, 10 MP)", [gameContext]() {
+            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SPELL_DART" });
+        }, canDart, false, canDart ? "Queue sharp dart of concentrated arcane power." : (curAp < 1 ? "Insufficient AP." : "Insufficient Mana (Requires 10 MP)."));
 
-        // Row 3: Items & Utility
-        bool hasPot = (potionCount > 0);
-        addBtn(gameContext, "Potion (+50 HP)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "ITEM_POTION" }); }, hasPot, false, hasPot ? "Drink a healing potion to restore 50 Health." : "No healing potions in inventory.");
-        addBtn(gameContext, "Mana (+50 MP)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "ITEM_MANA" }); }, true, false, "Restore 50 Mana points.");
-        addBtn(gameContext, "Surrender", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SURRENDER" }); }, true, false, "Yield to enemy combatants and enter submission.");
-        addBtn(gameContext, "Escape", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "ESCAPE" }); }, true, false, "Flee from combat encounter.");
-        addBtn(gameContext, "Victory (Skip)", [gameContext]() { gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "WIN" }); }, true, false, "Instantly defeat remaining enemies.");
+        bool canFireball = (curAp >= 2 && curMp >= 25.0f);
+        addBtn(gameContext, "Fireball (2 AP, 25 MP)", [gameContext]() {
+            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SPELL_FIREBALL" });
+        }, canFireball, false, canFireball ? "Queue explosive sphere of demonic flame." : (curAp < 2 ? "Insufficient AP." : "Insufficient Mana (Requires 25 MP)."));
+
+        bool canShield = (curAp >= 1 && curMp >= 15.0f);
+        addBtn(gameContext, "Shield (1 AP, 15 MP)", [gameContext]() {
+            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SPELL_SHIELD" });
+        }, canShield, false, canShield ? "Queue shimmering protective barrier." : (curAp < 1 ? "Insufficient AP." : "Insufficient Mana (Requires 15 MP)."));
+
+        bool canCleanse = (curAp >= 1 && curMp >= 20.0f);
+        addBtn(gameContext, "Cleanse (1 AP, 20 MP)", [gameContext]() {
+            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SPELL_CLEANSE" });
+        }, canCleanse, false, canCleanse ? "Queue pure energy cleanse to purge debuffs and restore 40 HP." : (curAp < 1 ? "Insufficient AP." : "Insufficient Mana (Requires 20 MP)."));
+
+        bool canBlink = (curAp >= 1 && curMp >= 30.0f);
+        addBtn(gameContext, "Blink (1 AP, 30 MP)", [gameContext]() {
+            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SPELL_BLINK" });
+        }, canBlink, false, canBlink ? "Queue teleport evasive blink." : (curAp < 1 ? "Insufficient AP." : "Insufficient Mana (Requires 30 MP)."));
+
+        // Row 3: Items, Queue Management & Actions
+        bool canPot = (curAp >= 1 && potionCount > 0);
+        addBtn(gameContext, "Potion (1 AP)", [gameContext]() {
+            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "ITEM_POTION" });
+        }, canPot, false, canPot ? "Queue drinking a healing potion to restore 50 HP." : (curAp < 1 ? "Insufficient AP." : "No healing potions in inventory."));
+
+        bool canMana = (curAp >= 1);
+        addBtn(gameContext, "Mana (1 AP)", [gameContext]() {
+            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "ITEM_MANA" });
+        }, canMana, false, canMana ? "Queue consuming a mana crystal to restore 50 MP." : "Insufficient AP.");
+
+        addBtn(gameContext, "Clear Queue", [combat, gameContext]() {
+            combat->handleClearQueue(gameContext);
+        }, hasQueuedActions, false, hasQueuedActions ? "Clear all queued actions and refund spent AP/Mana." : "No actions currently queued.");
+
+        addBtn(gameContext, "Surrender", [gameContext]() {
+            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SURRENDER" });
+        }, true, false, "Yield to enemy combatants and enter submission.");
+
+        addBtn(gameContext, "Escape", [gameContext]() {
+            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "ESCAPE" });
+        }, true, false, "Attempt to flee from combat encounter.");
+
         return;
     }
 
@@ -1083,6 +1131,20 @@ void ActionGridManager::refresh(game* gameContext)
                 auto& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
                 auto targetNPC = gameContext->getActiveTargetNPCShared();
 
+                // Exploration Encounter Action: Explore (rerolls tile encounter chance)
+                bool hasEncounterHazard = tileData.getEffectiveDangerLevel() > 0 ||
+                                          tileData.ambushState.npc != nullptr ||
+                                          !tileData.ambushState.templateId.empty() ||
+                                          !tileData.ambushState.templatePool.empty() ||
+                                          tileData.ambushState.ambushChance > 0;
+
+                if (hasEncounterHazard)
+                {
+                    addBtn(gameContext, "Explore", [gameContext]() {
+                        gameContext->exploreTile();
+                    }, true, false, "Scout and search the area, rerolling the tile encounter chance.");
+                }
+
                 if (targetNPC)
                 {
                     bool isEnemy = (tileData.ambushState.npc && tileData.ambushState.npc == targetNPC) ||
@@ -1091,37 +1153,33 @@ void ActionGridManager::refresh(game* gameContext)
                                     targetNPC->name.find("Cutpurse") != std::string::npos ||
                                     targetNPC->name.find("Rogue") != std::string::npos);
 
-                    if (isEnemy)
+                    if (!isEnemy)
                     {
-                        addBtn(gameContext, std::format("Fight {}", targetNPC->name), [gameContext, targetNPC]() {
-                            gameContext->triggerEncounter(targetNPC);
-                        }, true, false, "Engage " + targetNPC->name + " in combat.");
-                    }
+                        auto namedChar = NamedCharacterManager::getCharacter(targetNPC->id);
+                        std::string sceneToLoad = "";
+                        if (namedChar)
+                        {
+                            if (!namedChar->activeSceneId.empty()) sceneToLoad = namedChar->activeSceneId;
+                            else if (!namedChar->defaultSceneId.empty()) sceneToLoad = namedChar->defaultSceneId;
+                        }
 
-                    auto namedChar = NamedCharacterManager::getCharacter(targetNPC->id);
-                    std::string sceneToLoad = "";
-                    if (namedChar)
-                    {
-                        if (!namedChar->activeSceneId.empty()) sceneToLoad = namedChar->activeSceneId;
-                        else if (!namedChar->defaultSceneId.empty()) sceneToLoad = namedChar->defaultSceneId;
-                    }
+                        if (!sceneToLoad.empty())
+                        {
+                            addBtn(gameContext, std::format("Talk to {}", targetNPC->name), [gameContext, sceneToLoad]() {
+                                gameContext->loadScene(sceneToLoad);
+                            }, true, false, "Initiate dialogue conversation with " + targetNPC->name + ".");
+                        }
 
-                    if (!sceneToLoad.empty())
-                    {
-                        addBtn(gameContext, std::format("Talk to {}", targetNPC->name), [gameContext, sceneToLoad]() {
-                            gameContext->loadScene(sceneToLoad);
-                        }, true, false, "Initiate dialogue conversation with " + targetNPC->name + ".");
-                    }
+                        bool isMerchant = (namedChar && namedChar->isMerchant) ||
+                                          targetNPC->name.find("Merchant") != std::string::npos ||
+                                          targetNPC->name.find("Shop") != std::string::npos;
 
-                    bool isMerchant = (namedChar && namedChar->isMerchant) ||
-                                      targetNPC->name.find("Merchant") != std::string::npos ||
-                                      targetNPC->name.find("Shop") != std::string::npos;
-
-                    if (isMerchant)
-                    {
-                        addBtn(gameContext, "Visit Shop", [gameContext, targetNPC]() {
-                            gameContext->changeState(std::make_unique<shopState>(targetNPC));
-                        }, true, false, "Browse " + targetNPC->name + "'s inventory and trade goods.");
+                        if (isMerchant)
+                        {
+                            addBtn(gameContext, "Visit Shop", [gameContext, targetNPC]() {
+                                gameContext->changeState(std::make_unique<shopState>(targetNPC));
+                            }, true, false, "Browse " + targetNPC->name + "'s inventory and trade goods.");
+                        }
                     }
                 }
 

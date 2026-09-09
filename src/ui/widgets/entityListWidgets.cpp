@@ -35,25 +35,16 @@ namespace EntityListWidgets
             }
         }
 
-        // 2. Active target set for encounter or interaction
-        if (gameContext->getActiveTargetNPC() != nullptr)
+        // 2. In dialogue scene (eventState) with an active target
+        if (dynamic_cast<eventState*>(gameContext->getActiveState()) != nullptr)
         {
-            // If in combat enemy mode, always interacting (e.g. encounter event)
-            if (gameContext->activeTargetMode == TargetMode::COMBAT_ENEMY)
+            if (gameContext->getActiveTargetNPC() != nullptr)
                 return true;
-
-            // In eventState / dialogue scene
-            if (dynamic_cast<eventState*>(gameContext->getActiveState()) != nullptr)
-                return true;
-
-            // In exploration: target must be one of the current tile NPCs
-            auto tileNPCs = gameContext->getTileNPCs();
-            for (const auto& n : tileNPCs)
-            {
-                if (n.get() == gameContext->getActiveTargetNPC())
-                    return true;
-            }
         }
+
+        // 3. In active combat encounter enemy mode (e.g. encounter resolution)
+        if (gameContext->activeTargetMode == TargetMode::COMBAT_ENEMY)
+            return true;
 
         return false;
     }
@@ -420,7 +411,7 @@ namespace EntityListWidgets
                 if (itemHov && clicked && !isSelected)
                 {
                     gameContext->activeTargetNPC = npcs[i];
-                    gameContext->activeTargetMode = TargetMode::DIALOGUE;
+                    gameContext->activeTargetMode = isHostile ? TargetMode::COMBAT_ENEMY : TargetMode::DIALOGUE;
                     gameContext->refreshActionGrid();
                     gameContext->input.consumeMouseClick();
                 }
@@ -543,18 +534,34 @@ namespace EntityListWidgets
         std::string charHeader = std::format("CHARACTERS PRESENT ({})", tileNPCs.size());
         UIWidget::drawText(renderer, charHeader, innerX, curY + (5.0f * uiScale), Theme::colors.textGold, uiScale * 0.74f);
 
+        // Ensure default selection: if unassigned or invalid, default to top of list
+        if (!gameContext->activeTargetNPC || std::find(tileNPCs.begin(), tileNPCs.end(), gameContext->activeTargetNPC) == tileNPCs.end())
+        {
+            gameContext->activeTargetNPC = tileNPCs.front();
+        }
+
         float rowY = curY + (22.0f * uiScale);
         for (const auto& npcShared : tileNPCs)
         {
             entity* npc = npcShared.get();
             if (!npc) continue;
 
+            bool isSelected = (gameContext->getActiveTargetNPC() == npc);
+
             SDL_FRect rowRect = { innerX, rowY, cW, rowH };
             bool rowHov = (mousePos.x >= rowRect.x && mousePos.x <= rowRect.x + rowRect.w &&
                            mousePos.y >= rowRect.y && mousePos.y <= rowRect.y + rowRect.h);
 
-            UIWidget::drawPanel(renderer, rowRect, rowHov ? Theme::colors.bgButtonHover : Theme::colors.bgDark,
-                                rowHov ? Theme::colors.borderButtonHover : Theme::colors.borderNormal);
+            SDL_Color rowBg = isSelected ? SDL_Color{ 36, 44, 62, 255 } : (rowHov ? Theme::colors.bgButtonHover : Theme::colors.bgDark);
+            SDL_Color rowBorder = isSelected ? Theme::colors.borderSelected : (rowHov ? Theme::colors.borderButtonHover : Theme::colors.borderNormal);
+            UIWidget::drawPanel(renderer, rowRect, rowBg, rowBorder);
+
+            if (isSelected)
+            {
+                SDL_FRect innerOutline = { rowRect.x + 1.0f, rowRect.y + 1.0f, rowRect.w - 2.0f, rowRect.h - 2.0f };
+                SDL_SetRenderDrawColor(renderer, Theme::colors.borderSelected.r, Theme::colors.borderSelected.g, Theme::colors.borderSelected.b, Theme::colors.borderSelected.a);
+                SDL_RenderRect(renderer, &innerOutline);
+            }
 
             float rowInnerX = innerX + (6.0f * uiScale);
 
@@ -568,10 +575,19 @@ namespace EntityListWidgets
             std::string subStr = std::format("Lvl {} • {}{}", npc->stats.level, raceStr, titleStr);
             UIWidget::drawText(renderer, subStr, rowInnerX, rowY + (17.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.60f);
 
-            // Gender Archetype
-            std::string genderStr = genderArchetypeToString(npc->genderArchetype);
-            float gW = UIWidget::getTextWidth(genderStr, uiScale * 0.56f);
-            UIWidget::drawText(renderer, genderStr, innerX + cW - gW - (6.0f * uiScale), rowY + (4.0f * uiScale), Theme::colors.textMuted, uiScale * 0.56f);
+            // Selected badge or Gender Archetype
+            if (isSelected)
+            {
+                std::string selBadge = "[Selected]";
+                float selW = UIWidget::getTextWidth(selBadge, uiScale * 0.56f);
+                UIWidget::drawText(renderer, selBadge, innerX + cW - selW - (6.0f * uiScale), rowY + (4.0f * uiScale), Theme::colors.friendly, uiScale * 0.56f);
+            }
+            else
+            {
+                std::string genderStr = genderArchetypeToString(npc->genderArchetype);
+                float gW = UIWidget::getTextWidth(genderStr, uiScale * 0.56f);
+                UIWidget::drawText(renderer, genderStr, innerX + cW - gW - (6.0f * uiScale), rowY + (4.0f * uiScale), Theme::colors.textMuted, uiScale * 0.56f);
+            }
 
             // Mini Vitals (Health & Lust)
             float hp = std::clamp(npc->getStat("health"), 0.0f, std::max(1.0f, npc->getStat("max_health")));
@@ -586,15 +602,15 @@ namespace EntityListWidgets
 
             // Tooltip
             TooltipManager::setHoverTooltip(rowRect, mousePos, npc->name,
-                std::format("Lvl {} • {}{}\nHealth: {:.0f}/{:.0f} • Lust: {:.0f}%\nClick to interact with {}.",
-                            npc->stats.level, raceStr, titleStr, hp, maxHp, (lust / maxLust) * 100.0f, npc->name),
-                "Character Present", "Interact");
+                std::format("Lvl {} • {}{}\nHealth: {:.0f}/{:.0f} • Lust: {:.0f}%\nClick to select as active target.",
+                            npc->stats.level, raceStr, titleStr, hp, maxHp, (lust / maxLust) * 100.0f),
+                "Character Present", isSelected ? "Active Selection" : "Click to Select");
 
-            // Clicking row initiates interaction with this character
-            if (rowHov && clicked)
+            // Clicking row selects this character without altering layout or initiating interaction
+            if (rowHov && clicked && !isSelected)
             {
                 gameContext->activeTargetNPC = npcShared;
-                gameContext->activeTargetMode = TargetMode::DIALOGUE;
+                gameContext->activeTargetMode = TargetMode::NONE;
                 gameContext->refreshActionGrid();
                 gameContext->input.consumeMouseClick();
             }

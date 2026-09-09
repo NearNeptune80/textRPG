@@ -452,7 +452,6 @@ void game::syncTileTarget(bool forceSelect)
         if (!activeTargetNPC || std::find(npcs.begin(), npcs.end(), activeTargetNPC) == npcs.end())
         {
             activeTargetNPC = npcs.front();
-            activeTargetMode = TargetMode::DIALOGUE;
         }
     }
     refreshActionGrid();
@@ -1470,6 +1469,50 @@ void game::triggerEncounter(std::shared_ptr<entity> npc)
     currentScene = encounterResolver::buildEncounterScene(this, npc);
     changeState(std::make_unique<eventState>());
     refreshActionGrid();
+}
+
+void game::exploreTile()
+{
+    if (!map) return;
+
+    gameTime.advanceTime(2);
+    TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
+    int bonusDanger = (gameTime.getPhase() == TimePhase::NIGHT) ? 1 : 0;
+    int dangerLevel = tileData.getEffectiveDangerLevel() + bonusDanger;
+    float playerStealth = Player ? Player->getStat("agility") : 0.0f;
+
+    int chance = tileData.ambushState.ambushChance > 0 ? tileData.ambushState.ambushChance : (dangerLevel * 25);
+    if (gameTime.getPhase() == TimePhase::NIGHT) chance += 15;
+    else if (gameTime.getPhase() == TimePhase::DUSK) chance += 5;
+    chance -= static_cast<int>(playerStealth * 0.5f);
+    chance = std::clamp(chance, 5, 85);
+
+    if (dice::rollPercent(static_cast<float>(chance)))
+    {
+        if (!tileData.ambushState.npc)
+        {
+            std::string tId = tileData.ambushState.templateId;
+            if (!tileData.ambushState.templatePool.empty())
+            {
+                int rIdx = dice::rollInt(0, static_cast<int>(tileData.ambushState.templatePool.size()) - 1);
+                tId = tileData.ambushState.templatePool[rIdx];
+                tileData.ambushState.templateId = tId;
+            }
+            if (tId.empty()) tId = "tpl_alley_bandit";
+            tileData.ambushState.npc = npcGenerator::generateFromTemplate(tId, &settings);
+            if (!tileData.ambushState.npc)
+            {
+                tileData.ambushState.npc = encounterResolver::createEncounterNPC(dangerLevel, settings);
+            }
+        }
+        addLogEntry("Exploration", std::format("While searching the area, you are ambushed by {}!", tileData.ambushState.npc->name), LogColor{ 220, 80, 80, 255 });
+        triggerEncounter(tileData.ambushState.npc);
+    }
+    else
+    {
+        addLogEntry("Exploration", "You carefully scout the surroundings, but find nothing hostile right now.", LogColor{ 180, 180, 190, 255 });
+        refreshActionGrid();
+    }
 }
 
 std::string game::formatEquipSlotName(equipSlot slot)

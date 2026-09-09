@@ -3074,15 +3074,16 @@ namespace EngineTests
         logResult("Peaceful tile arrival does not auto-select or trigger enemy card", peacefulUnselected && peacefulNotInteracting);
         allPassed &= (peacefulUnselected && peacefulNotInteracting);
 
-        // Initiating interaction with character (forceSelect = true)
+        // Initiating selection with character (forceSelect = true)
         g.syncTileTarget(true);
         bool autoSelectOne = (g.activeTargetNPC == testNpc1);
-        logResult("Single NPC on tile is selected when interacting (If theres only one character, obviously they are selected)", autoSelectOne);
+        logResult("Single NPC on tile is selected (If theres only one character, obviously they are selected)", autoSelectOne);
         allPassed &= autoSelectOne;
 
-        bool targetInteracting = EntityListWidgets::isInteractingWithNPC(&g);
-        logResult("EntityListWidgets::isInteractingWithNPC returns true when NPC is present and selected", targetInteracting);
-        allPassed &= targetInteracting;
+        // Selection during exploration does NOT change layout or trigger interaction card
+        bool targetExplorationNotInteracting = !EntityListWidgets::isInteractingWithNPC(&g);
+        logResult("Selecting character does NOT trigger interaction layout during exploration", targetExplorationNotInteracting);
+        allPassed &= targetExplorationNotInteracting;
 
         // Adding a second NPC on current tile
         auto testNpc2 = std::make_shared<entity>("guard_01", "Town Guard");
@@ -3122,6 +3123,72 @@ namespace EngineTests
         bool clearedInteracting = EntityListWidgets::isInteractingWithNPC(&g);
         logResult("EntityListWidgets::isInteractingWithNPC reverts to false when tile has no NPCs and no target", !clearedInteracting);
         allPassed &= !clearedInteracting;
+
+        // 4. Combat System AP Multi-Action Queueing, Targeting & Turn Resolution
+        auto combatPlayer = std::make_shared<entity>("test_hero", "Hero");
+        combatPlayer->stats.setBaseStat("physique", 20.0f);
+        combatPlayer->stats.setBaseStat("agility", 15.0f);
+        combatPlayer->stats.setBaseStat("health", 100.0f);
+        combatPlayer->stats.setBaseStat("max_health", 100.0f);
+
+        auto enemyA = std::make_shared<entity>("enemy_a", "Bandit A");
+        enemyA->stats.setBaseStat("health", 80.0f);
+        enemyA->stats.setBaseStat("max_health", 80.0f);
+
+        auto enemyB = std::make_shared<entity>("enemy_b", "Bandit B");
+        enemyB->stats.setBaseStat("health", 80.0f);
+        enemyB->stats.setBaseStat("max_health", 80.0f);
+
+        std::vector<std::shared_ptr<entity>> pParty = { combatPlayer };
+        std::vector<std::shared_ptr<entity>> eParty = { enemyA, enemyB };
+
+        g.changeState(std::make_unique<CombatState>(pParty, eParty));
+        CombatState* cs = dynamic_cast<CombatState*>(g.getActiveState());
+        bool inCombat = (cs != nullptr);
+        logResult("Game enters CombatState successfully", inCombat);
+        allPassed &= inCombat;
+
+        bool combatInteracting = EntityListWidgets::isInteractingWithNPC(&g);
+        logResult("EntityListWidgets::isInteractingWithNPC returns true in CombatState", combatInteracting);
+        allPassed &= combatInteracting;
+
+        if (cs)
+        {
+            auto& players = cs->getEngine().getPlayerParty();
+            int startingAp = players[0].currentAp;
+            bool hasStartingAp = (startingAp >= 3);
+            logResult("Player participant initializes with starting action points (>= 3 AP)", hasStartingAp);
+            allPassed &= hasStartingAp;
+
+            // Target Enemy A and queue Strike (1 AP)
+            g.activeTargetNPC = enemyA;
+            g.handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "STRIKE" });
+            int apAfterStrike = players[0].currentAp;
+            bool strikeQueued = (players[0].turnQueue.size() == 1 && apAfterStrike == startingAp - 1 &&
+                                 players[0].turnQueue[0].target == enemyA.get());
+            logResult("Queueing Strike (1 AP) targets Enemy A and deducts 1 AP without ending turn", strikeQueued);
+            allPassed &= strikeQueued;
+
+            // Target Enemy B and queue Heavy Strike (2 AP)
+            g.activeTargetNPC = enemyB;
+            g.handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "HEAVY_STRIKE" });
+            int apAfterHeavy = players[0].currentAp;
+            bool heavyQueued = (players[0].turnQueue.size() == 2 && apAfterHeavy == apAfterStrike - 2 &&
+                                players[0].turnQueue[1].target == enemyB.get());
+            logResult("Queueing Heavy Strike (2 AP) targets selected Enemy B and deducts 2 AP", heavyQueued);
+            allPassed &= heavyQueued;
+
+            // Resolve turn
+            cs->handleEndTurn(&g);
+            bool roundAdvanced = (cs->getEngine().getCurrentRound() >= 2 || cs->getEngine().isCombatOver());
+            bool enemyADamaged = (enemyA->getStat("health") < 80.0f);
+            bool enemyBDamaged = (enemyB->getStat("health") < 80.0f);
+            logResult("Ending turn executes all queued actions against their respective selected targets",
+                      roundAdvanced && enemyADamaged && enemyBDamaged);
+            allPassed &= (roundAdvanced && enemyADamaged && enemyBDamaged);
+        }
+
+        g.changeState(std::make_unique<explorationState>());
 
         return allPassed;
     }

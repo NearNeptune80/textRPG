@@ -154,8 +154,8 @@ void combatEngine::resolveTurn(game* g)
         allActions.insert(allActions.end(), p.turnQueue.begin(), p.turnQueue.end());
     }
 
-    // Sort queued actions by user Agility descending
-    std::sort(allActions.begin(), allActions.end(), [](const QueuedAction& a, const QueuedAction& b) {
+    // Sort queued actions by user Agility descending using stable_sort to preserve queue order
+    std::stable_sort(allActions.begin(), allActions.end(), [](const QueuedAction& a, const QueuedAction& b) {
         float agiA = a.user ? a.user->getStat("agility") : 0.0f;
         float agiB = b.user ? b.user->getStat("agility") : 0.0f;
         return agiA > agiB;
@@ -179,13 +179,37 @@ void combatEngine::resolveTurn(game* g)
 
 void combatEngine::executeAction(const QueuedAction& qa, game* g)
 {
-    if (!qa.user || !qa.target) return;
+    if (!qa.user || qa.user->getStat("health") <= 0.0f) return;
+
+    // Retarget to next living enemy if original target has already fallen
+    entity* target = qa.target;
+    if (target && target->getStat("health") <= 0.0f)
+    {
+        bool isUserPlayer = false;
+        for (const auto& pp : m_playerParty)
+        {
+            if (pp.character.get() == qa.user) { isUserPlayer = true; break; }
+        }
+        if (isUserPlayer)
+        {
+            for (const auto& ep : m_enemyParty)
+            {
+                if (ep.character && ep.character->getStat("health") > 0.0f)
+                {
+                    target = ep.character.get();
+                    break;
+                }
+            }
+        }
+    }
 
     if (qa.action.customExecute)
     {
-        qa.action.customExecute(qa.user, qa.target, g);
+        qa.action.customExecute(qa.user, target ? target : qa.target, g);
         return;
     }
+
+    if (!target || target->getStat("health") <= 0.0f) return;
 
     for (const auto& node : qa.action.effectNodes)
     {
@@ -197,13 +221,13 @@ void combatEngine::executeAction(const QueuedAction& qa, game* g)
             std::transform(attackType.begin(), attackType.end(), attackType.begin(), ::tolower);
 
             // Attacker Perk Damage Multiplier
-            std::string targetRace = qa.target->anatomy.getDominantRace();
+            std::string targetRace = target->anatomy.getDominantRace();
             float perkDmgMult = qa.user->getPerkDamageMultiplier(targetRace, attackType);
             float modifiedDamage = rawDamage * (1.0f + perkDmgMult);
 
             // Defender Perk Defense Multiplier (Damage Reduction)
             std::string attackerRace = qa.user->anatomy.getDominantRace();
-            float perkDefMult = qa.target->getPerkDefenseMultiplier(attackerRace, attackType);
+            float perkDefMult = target->getPerkDefenseMultiplier(attackerRace, attackType);
             modifiedDamage = modifiedDamage * std::max(0.05f, (1.0f - perkDefMult));
 
             // Gameplay Difficulty Multiplier: scale enemy attack power
@@ -225,16 +249,26 @@ void combatEngine::executeAction(const QueuedAction& qa, game* g)
             }
 
             int finalDamage = std::max(1, static_cast<int>(std::round(modifiedDamage)));
-            qa.target->stats.modifyBaseStat("health", -static_cast<float>(finalDamage));
+            target->stats.modifyBaseStat("health", -static_cast<float>(finalDamage));
 
             appendLog(std::format("{} uses {} on {} for {} {} damage!",
-                qa.user->name, qa.action.name, qa.target->name,
+                qa.user->name, qa.action.name, target->name,
                 finalDamage, node.element));
+
+            if (target->getStat("health") <= 0.0f)
+            {
+                appendLog(std::format("{} has been defeated!", target->name));
+            }
         }
         else if (node.effectType == "HEAL")
         {
-            qa.target->stats.modifyBaseStat("health", node.baseMagnitude);
-            appendLog(std::format("{} heals {} for {} HP!", qa.user->name, qa.target->name, static_cast<int>(node.baseMagnitude)));
+            target->stats.modifyBaseStat("health", node.baseMagnitude);
+            appendLog(std::format("{} heals {} for {} HP!", qa.user->name, target->name, static_cast<int>(node.baseMagnitude)));
+        }
+        else if (node.effectType == "SHIELD")
+        {
+            qa.user->stats.modifyBaseStat("health", node.baseMagnitude);
+            appendLog(std::format("{} bolsters a shield barrier of {} HP!", qa.user->name, static_cast<int>(node.baseMagnitude)));
         }
     }
 }

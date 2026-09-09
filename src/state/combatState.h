@@ -29,6 +29,7 @@ public:
 
 	// Action Handlers
 	void handleEndTurn(game* gameContext);
+	void handleClearQueue(game* gameContext);
 	void handleRunAttempt(game* gameContext);
 	void handleSurrender(game* gameContext);
 

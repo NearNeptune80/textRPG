@@ -10,6 +10,7 @@
 #include "entities/entity.h"
 #include "events/gameEvents.h"
 #include "map/encounterResolver.h"
+#include "items/item.h"
 #include "state/encounterResolutionState.h"
 #include "state/eventState.h"
 #include "state/explorationState.h"
@@ -135,6 +136,16 @@ void CombatState::handleCommand(game* gameContext, const UICommand& cmd)
             handleSurrender(gameContext);
             return;
         }
+        else if (cmd.stringPayload == "CLEAR_QUEUE")
+        {
+            handleClearQueue(gameContext);
+            return;
+        }
+        else if (cmd.stringPayload == "END_TURN")
+        {
+            handleEndTurn(gameContext);
+            return;
+        }
         else if (cmd.stringPayload == "STRIKE" || cmd.stringPayload == "HEAVY_STRIKE" ||
                  cmd.stringPayload == "DEFEND" || cmd.stringPayload == "DISARM" ||
                  cmd.stringPayload == "SPELL_DART" || cmd.stringPayload == "SPELL_FIREBALL" ||
@@ -142,130 +153,186 @@ void CombatState::handleCommand(game* gameContext, const UICommand& cmd)
                  cmd.stringPayload == "SPELL_BLINK" || cmd.stringPayload == "ITEM_POTION" ||
                  cmd.stringPayload == "ITEM_MANA")
         {
-            if (!m_engine.getPlayerParty().empty() && !m_engine.getEnemyParty().empty())
+            auto& players = m_engine.getPlayerParty();
+            if (players.empty() || !players[0].character) return;
+            auto& p = players[0];
+            entity* player = p.character.get();
+
+            // Target the enemy selected when added to queue ("targeting the enemy selected when they are added to the queue")
+            entity* target = gameContext->getActiveTargetNPC();
+            if (!target || target->getStat("health") <= 0.0f)
             {
-                entity* player = m_engine.getPlayerParty()[0].character.get();
-                entity* target = m_engine.getEnemyParty()[0].character.get();
-                if (!player || !target) return;
+                for (const auto& ep : m_engine.getEnemyParty())
+                {
+                    if (ep.character && ep.character->getStat("health") > 0.0f)
+                    {
+                        target = ep.character.get();
+                        gameContext->activeTargetNPC = ep.character;
+                        break;
+                    }
+                }
+            }
+            if (!target) return;
 
-                CombatAction act;
-                if (cmd.stringPayload == "STRIKE")
-                {
-                    act.id = "action_strike";
-                    act.name = "Strike";
-                    act.baseApCost = 1;
-                    SpellEffectNode node;
-                    node.effectType = "DAMAGE";
-                    node.element = "Physical";
-                    node.baseMagnitude = std::max(8.0f, player->getStat("physique") * 0.8f);
-                    act.effectNodes.push_back(node);
-                }
-                else if (cmd.stringPayload == "HEAVY_STRIKE")
-                {
-                    act.id = "action_heavy_strike";
-                    act.name = "Heavy Strike";
-                    act.baseApCost = 2;
-                    SpellEffectNode node;
-                    node.effectType = "DAMAGE";
-                    node.element = "Physical";
-                    node.baseMagnitude = std::max(18.0f, player->getStat("physique") * 1.8f);
-                    act.effectNodes.push_back(node);
-                }
-                else if (cmd.stringPayload == "DEFEND")
-                {
-                    act.id = "action_defend";
-                    act.name = "Defensive Stance";
-                    act.baseApCost = 1;
-                    SpellEffectNode node;
-                    node.effectType = "SHIELD";
-                    node.element = "Physical";
-                    node.baseMagnitude = 20.0f;
-                    act.effectNodes.push_back(node);
-                }
-                else if (cmd.stringPayload == "DISARM")
-                {
-                    act.id = "action_disarm";
-                    act.name = "Disarm";
-                    act.baseApCost = 2;
-                    SpellEffectNode node;
-                    node.effectType = "DAMAGE";
-                    node.element = "Physical";
-                    node.baseMagnitude = 12.0f;
-                    act.effectNodes.push_back(node);
-                }
-                else if (cmd.stringPayload == "SPELL_DART")
-                {
-                    if (player->getStat("mana") < 10.0f) { m_engine.appendLog("[Combat] Not enough mana for Arcane Dart!"); return; }
-                    player->stats.modifyBaseStat("mana", -10.0f);
-                    act.id = "spell_arcane_dart";
-                    act.name = "Arcane Dart";
-                    act.baseApCost = 1;
-                    SpellEffectNode node;
-                    node.effectType = "DAMAGE";
-                    node.element = "Arcane";
-                    node.baseMagnitude = 25.0f;
-                    act.effectNodes.push_back(node);
-                }
-                else if (cmd.stringPayload == "SPELL_FIREBALL")
-                {
-                    if (player->getStat("mana") < 25.0f) { m_engine.appendLog("[Combat] Not enough mana for Fireball!"); return; }
-                    player->stats.modifyBaseStat("mana", -25.0f);
-                    act.id = "spell_fireball";
-                    act.name = "Fireball";
-                    act.baseApCost = 2;
-                    SpellEffectNode node;
-                    node.effectType = "DAMAGE";
-                    node.element = "Fire";
-                    node.baseMagnitude = 55.0f;
-                    act.effectNodes.push_back(node);
-                }
-                else if (cmd.stringPayload == "SPELL_SHIELD")
-                {
-                    if (player->getStat("mana") < 15.0f) { m_engine.appendLog("[Combat] Not enough mana for Arcane Shield!"); return; }
-                    player->stats.modifyBaseStat("mana", -15.0f);
-                    act.id = "spell_arcane_shield";
-                    act.name = "Arcane Shield";
-                    act.baseApCost = 1;
-                    SpellEffectNode node;
-                    node.effectType = "SHIELD";
-                    node.element = "Arcane";
-                    node.baseMagnitude = 35.0f;
-                    act.effectNodes.push_back(node);
-                }
-                else if (cmd.stringPayload == "SPELL_CLEANSE")
-                {
-                    if (player->getStat("mana") < 20.0f) { m_engine.appendLog("[Combat] Not enough mana for Cleanse!"); return; }
-                    player->stats.modifyBaseStat("mana", -20.0f);
-                    player->stats.modifyBaseStat("health", 40.0f);
-                    m_engine.appendLog(std::format("[Spell] {} cast Cleanse and restored 40 HP!", player->name));
-                    m_engine.resolveTurn(gameContext);
-                    return;
-                }
-                else if (cmd.stringPayload == "SPELL_BLINK")
-                {
-                    if (player->getStat("mana") < 30.0f) { m_engine.appendLog("[Combat] Not enough mana for Blink!"); return; }
-                    player->stats.modifyBaseStat("mana", -30.0f);
-                    m_engine.appendLog(std::format("[Spell] {} cast Blink, vanishing into arcane mist!", player->name));
-                    m_engine.resolveTurn(gameContext);
-                    return;
-                }
-                else if (cmd.stringPayload == "ITEM_POTION")
-                {
-                    player->stats.modifyBaseStat("health", 50.0f);
-                    m_engine.appendLog(std::format("[Item] {} consumed a Health Potion and recovered 50 HP!", player->name));
-                    m_engine.resolveTurn(gameContext);
-                    return;
-                }
-                else if (cmd.stringPayload == "ITEM_MANA")
-                {
-                    player->stats.modifyBaseStat("mana", 50.0f);
-                    m_engine.appendLog(std::format("[Item] {} consumed a Mana Crystal and recovered 50 MP!", player->name));
-                    m_engine.resolveTurn(gameContext);
-                    return;
-                }
+            CombatAction act;
+            if (cmd.stringPayload == "STRIKE")
+            {
+                act.id = "action_strike";
+                act.name = "Strike";
+                act.baseApCost = 1;
+                SpellEffectNode node;
+                node.effectType = "DAMAGE";
+                node.element = "Physical";
+                node.baseMagnitude = std::max(8.0f, player->getStat("physique") * 0.8f);
+                act.effectNodes.push_back(node);
+            }
+            else if (cmd.stringPayload == "HEAVY_STRIKE")
+            {
+                act.id = "action_heavy_strike";
+                act.name = "Heavy Strike";
+                act.baseApCost = 2;
+                SpellEffectNode node;
+                node.effectType = "DAMAGE";
+                node.element = "Physical";
+                node.baseMagnitude = std::max(18.0f, player->getStat("physique") * 1.8f);
+                act.effectNodes.push_back(node);
+            }
+            else if (cmd.stringPayload == "DEFEND")
+            {
+                act.id = "action_defend";
+                act.name = "Defensive Stance";
+                act.baseApCost = 1;
+                act.customExecute = [this](entity* user, entity* target, game* g) {
+                    if (!user) return;
+                    user->stats.modifyBaseStat("health", 15.0f);
+                    m_engine.appendLog(std::format("{} assumes a Defensive Stance and bolsters 15 HP barrier!", user->name));
+                };
+            }
+            else if (cmd.stringPayload == "DISARM")
+            {
+                act.id = "action_disarm";
+                act.name = "Disarm";
+                act.baseApCost = 2;
+                SpellEffectNode node;
+                node.effectType = "DAMAGE";
+                node.element = "Physical";
+                node.baseMagnitude = 14.0f;
+                act.effectNodes.push_back(node);
+            }
+            else if (cmd.stringPayload == "SPELL_DART")
+            {
+                act.id = "spell_arcane_dart";
+                act.name = "Arcane Dart";
+                act.baseApCost = 1;
+                act.manaCost = 10.0f;
+                SpellEffectNode node;
+                node.effectType = "DAMAGE";
+                node.element = "Arcane";
+                node.baseMagnitude = 25.0f;
+                act.effectNodes.push_back(node);
+            }
+            else if (cmd.stringPayload == "SPELL_FIREBALL")
+            {
+                act.id = "spell_fireball";
+                act.name = "Fireball";
+                act.baseApCost = 2;
+                act.manaCost = 25.0f;
+                SpellEffectNode node;
+                node.effectType = "DAMAGE";
+                node.element = "Fire";
+                node.baseMagnitude = 55.0f;
+                act.effectNodes.push_back(node);
+            }
+            else if (cmd.stringPayload == "SPELL_SHIELD")
+            {
+                act.id = "spell_arcane_shield";
+                act.name = "Arcane Shield";
+                act.baseApCost = 1;
+                act.manaCost = 15.0f;
+                act.customExecute = [this](entity* user, entity* target, game* g) {
+                    if (!user) return;
+                    user->stats.modifyBaseStat("health", 35.0f);
+                    m_engine.appendLog(std::format("{} conjures an Arcane Shield, absorbing 35 HP damage!", user->name));
+                };
+            }
+            else if (cmd.stringPayload == "SPELL_CLEANSE")
+            {
+                act.id = "spell_cleanse";
+                act.name = "Cleanse";
+                act.baseApCost = 1;
+                act.manaCost = 20.0f;
+                act.customExecute = [this](entity* user, entity* target, game* g) {
+                    if (!user) return;
+                    user->stats.modifyBaseStat("health", 40.0f);
+                    user->statusEffects.clear();
+                    m_engine.appendLog(std::format("[Spell] {} cast Cleanse, purged debuffs and restored 40 HP!", user->name));
+                };
+            }
+            else if (cmd.stringPayload == "SPELL_BLINK")
+            {
+                act.id = "spell_blink";
+                act.name = "Blink";
+                act.baseApCost = 1;
+                act.manaCost = 30.0f;
+                act.customExecute = [this](entity* user, entity* target, game* g) {
+                    if (!user) return;
+                    user->stats.modifyBaseStat("agility", 15.0f);
+                    m_engine.appendLog(std::format("[Spell] {} cast Blink, evading enemy strikes!", user->name));
+                };
+            }
+            else if (cmd.stringPayload == "ITEM_POTION")
+            {
+                act.id = "item_potion";
+                act.name = "Health Potion";
+                act.baseApCost = 1;
+                act.customExecute = [this](entity* user, entity* target, game* g) {
+                    if (!user) return;
+                    user->stats.modifyBaseStat("health", 50.0f);
+                    m_engine.appendLog(std::format("[Item] {} consumed a Health Potion and recovered 50 HP!", user->name));
+                };
+            }
+            else if (cmd.stringPayload == "ITEM_MANA")
+            {
+                act.id = "item_mana";
+                act.name = "Mana Crystal";
+                act.baseApCost = 1;
+                act.customExecute = [this](entity* user, entity* target, game* g) {
+                    if (!user) return;
+                    user->stats.modifyBaseStat("mana", 50.0f);
+                    m_engine.appendLog(std::format("[Item] {} consumed a Mana Crystal and recovered 50 MP!", user->name));
+                };
+            }
 
-                m_engine.queuePlayerAction(0, act, target);
-                m_engine.resolveTurn(gameContext);
+            // Validate AP
+            if (p.currentAp < act.baseApCost)
+            {
+                m_engine.appendLog(std::format("[Combat] Not enough AP for {} (Requires {} AP, {} remaining)!", act.name, act.baseApCost, p.currentAp));
+                return;
+            }
+
+            // Validate and deduct Mana
+            if (act.manaCost > 0.0f)
+            {
+                if (player->getStat("mana") < act.manaCost)
+                {
+                    m_engine.appendLog(std::format("[Combat] Not enough Mana for {} (Requires {:.0f} MP)!", act.name, act.manaCost));
+                    return;
+                }
+                player->stats.modifyBaseStat("mana", -act.manaCost);
+            }
+
+            // Deduct item if potion
+            if (cmd.stringPayload == "ITEM_POTION")
+            {
+                player->inventory.removeItem("item_health_potion", 1);
+            }
+
+            // Queue action targeting the enemy selected at this moment
+            if (m_engine.queuePlayerAction(0, act, target))
+            {
+                m_engine.appendLog(std::format("[Queued #{}] {} -> {} ({} AP, {} AP remaining)",
+                    p.turnQueue.size(), act.name, target->name, act.baseApCost, p.currentAp));
+                gameContext->refreshActionGrid();
             }
             return;
         }
@@ -409,7 +476,46 @@ void CombatState::resolveDefeat(game* gameContext)
 
 void CombatState::handleEndTurn(game* gameContext)
 {
+    if (!gameContext) return;
     m_engine.resolveTurn(gameContext);
+    if (!m_engine.isCombatOver())
+    {
+        gameContext->refreshActionGrid();
+    }
+}
+
+void CombatState::handleClearQueue(game* gameContext)
+{
+    if (!gameContext) return;
+    auto& players = m_engine.getPlayerParty();
+    if (!players.empty())
+    {
+        auto& p = players[0];
+        if (p.character)
+        {
+            for (const auto& qa : p.turnQueue)
+            {
+                if (qa.action.manaCost > 0.0f)
+                {
+                    p.character->stats.modifyBaseStat("mana", qa.action.manaCost);
+                }
+                if (qa.action.id == "item_potion")
+                {
+                    auto pot = std::make_shared<item>();
+                    pot->id = "item_health_potion";
+                    pot->name = "Health Potion";
+                    pot->description = "Restores 50 health";
+                    pot->category = ItemCategory::CONSUMABLE;
+                    pot->isConsumable = true;
+                    pot->count = 1;
+                    p.character->inventory.addItem(pot);
+                }
+            }
+        }
+        m_engine.clearPlayerQueue(0);
+        m_engine.appendLog("[Combat] Action queue cleared. AP and resources refunded.");
+        gameContext->refreshActionGrid();
+    }
 }
 
 void CombatState::handleRunAttempt(game* gameContext)
