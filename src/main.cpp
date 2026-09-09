@@ -221,6 +221,7 @@ int main(int argc, char* argv[])
                 }
             }
             if (screenshotState == "exploration_overworld") engine.loadMap("overworld", 1, 1);
+            else if (screenshotState == "exploration_hazard") engine.loadMap("overworld", 1, 3);
             else engine.loadMap("house_01", 1, 1);
             engine.changeState(std::make_unique<explorationState>());
         }

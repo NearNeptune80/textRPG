@@ -367,6 +367,7 @@ void game::movePlayer(int nextX, int nextY)
 
     // 3. Check Dynamic Encounters & Persistent Ambushes
     TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
+    ensureTileAmbushNPC(tileData);
     int bonusDanger = (gameTime.getPhase() == TimePhase::NIGHT) ? 1 : 0;
     int dangerLevel = tileData.getEffectiveDangerLevel() + bonusDanger;
     float playerStealth = Player ? Player->getStat("agility") : 0.0f;
@@ -374,7 +375,7 @@ void game::movePlayer(int nextX, int nextY)
     if (dangerLevel > 0)
     {
         bool isRestocking = tileData.ambushState.isDefeated && tileData.ambushState.restockMinutesRemaining > 0;
-        if (!isRestocking)
+        if (!isRestocking && !tileData.ambushState.isPermanentlyRemoved)
         {
             int chance = tileData.ambushState.ambushChance > 0 ? tileData.ambushState.ambushChance : (dangerLevel * 25);
             if (gameTime.getPhase() == TimePhase::NIGHT) chance += 15;
@@ -384,22 +385,7 @@ void game::movePlayer(int nextX, int nextY)
 
             if (dice::rollPercent(static_cast<float>(chance)))
             {
-                if (!tileData.ambushState.npc)
-                {
-                    std::string tId = tileData.ambushState.templateId;
-                    if (!tileData.ambushState.templatePool.empty())
-                    {
-                        int rIdx = dice::rollInt(0, static_cast<int>(tileData.ambushState.templatePool.size()) - 1);
-                        tId = tileData.ambushState.templatePool[rIdx];
-                        tileData.ambushState.templateId = tId;
-                    }
-                    if (tId.empty()) tId = "tpl_alley_bandit";
-                    tileData.ambushState.npc = npcGenerator::generateFromTemplate(tId, &settings);
-                    if (!tileData.ambushState.npc)
-                    {
-                        tileData.ambushState.npc = encounterResolver::createEncounterNPC(dangerLevel, settings);
-                    }
-                }
+                ensureTileAmbushNPC(tileData);
                 triggerEncounter(tileData.ambushState.npc);
                 return;
             }
@@ -412,12 +398,58 @@ void game::movePlayer(int nextX, int nextY)
     refreshActionGrid();
 }
 
+void game::ensureTileAmbushNPC(TileRuntimeData& tileData) const
+{
+    if (tileData.ambushState.isDefeated || tileData.ambushState.isPermanentlyRemoved)
+        return;
+
+    int dangerLevel = tileData.getEffectiveDangerLevel();
+    bool hasHazard = (dangerLevel > 0) ||
+                     !tileData.ambushState.templateId.empty() ||
+                     !tileData.ambushState.templatePool.empty();
+
+    if (!hasHazard) return;
+
+    if (tileData.ambushState.templateId.empty())
+    {
+        std::string defTpl = (dangerLevel >= 2) ? "tpl_rogue_mage" : "tpl_alley_bandit";
+        tileData.ambushState.templateId = defTpl;
+        if (tileData.ambushState.templatePool.empty())
+        {
+            tileData.ambushState.templatePool.push_back(defTpl);
+        }
+        if (tileData.ambushState.ambushChance <= 0)
+        {
+            tileData.ambushState.ambushChance = std::clamp(dangerLevel * 25, 20, 75);
+        }
+    }
+
+    if (!tileData.ambushState.npc)
+    {
+        std::string tId = tileData.ambushState.templateId;
+        if (!tileData.ambushState.templatePool.empty())
+        {
+            int rIdx = dice::rollInt(0, static_cast<int>(tileData.ambushState.templatePool.size()) - 1);
+            tId = tileData.ambushState.templatePool[rIdx];
+            tileData.ambushState.templateId = tId;
+        }
+        if (tId.empty()) tId = "tpl_alley_bandit";
+        tileData.ambushState.npc = npcGenerator::generateFromTemplate(tId, &settings);
+        if (!tileData.ambushState.npc)
+        {
+            tileData.ambushState.npc = encounterResolver::createEncounterNPC(std::max(1, dangerLevel), settings);
+        }
+    }
+}
+
 std::vector<std::shared_ptr<entity>> game::getTileNPCs() const
 {
     std::vector<std::shared_ptr<entity>> npcs;
     if (!map) return npcs;
 
     auto& tileData = map->getRuntimeData(gridX, gridY);
+    ensureTileAmbushNPC(tileData);
+
     for (const auto& n : tileData.namedNPCs)
     {
         if (n && std::find(npcs.begin(), npcs.end(), n) == npcs.end())
@@ -1477,6 +1509,16 @@ void game::exploreTile()
 
     gameTime.advanceTime(2);
     TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
+    ensureTileAmbushNPC(tileData);
+
+    bool isRestocking = tileData.ambushState.isDefeated && tileData.ambushState.restockMinutesRemaining > 0;
+    if (isRestocking || tileData.ambushState.isPermanentlyRemoved)
+    {
+        addLogEntry("Exploration", "The area has been cleared of hostiles. Nothing dangerous remains here right now.", LogColor{ 180, 180, 190, 255 });
+        refreshActionGrid();
+        return;
+    }
+
     int bonusDanger = (gameTime.getPhase() == TimePhase::NIGHT) ? 1 : 0;
     int dangerLevel = tileData.getEffectiveDangerLevel() + bonusDanger;
     float playerStealth = Player ? Player->getStat("agility") : 0.0f;
@@ -1489,24 +1531,17 @@ void game::exploreTile()
 
     if (dice::rollPercent(static_cast<float>(chance)))
     {
-        if (!tileData.ambushState.npc)
+        ensureTileAmbushNPC(tileData);
+        if (tileData.ambushState.npc)
         {
-            std::string tId = tileData.ambushState.templateId;
-            if (!tileData.ambushState.templatePool.empty())
-            {
-                int rIdx = dice::rollInt(0, static_cast<int>(tileData.ambushState.templatePool.size()) - 1);
-                tId = tileData.ambushState.templatePool[rIdx];
-                tileData.ambushState.templateId = tId;
-            }
-            if (tId.empty()) tId = "tpl_alley_bandit";
-            tileData.ambushState.npc = npcGenerator::generateFromTemplate(tId, &settings);
-            if (!tileData.ambushState.npc)
-            {
-                tileData.ambushState.npc = encounterResolver::createEncounterNPC(dangerLevel, settings);
-            }
+            addLogEntry("Exploration", std::format("While searching the area, you are ambushed by {}!", tileData.ambushState.npc->name), LogColor{ 220, 80, 80, 255 });
+            triggerEncounter(tileData.ambushState.npc);
         }
-        addLogEntry("Exploration", std::format("While searching the area, you are ambushed by {}!", tileData.ambushState.npc->name), LogColor{ 220, 80, 80, 255 });
-        triggerEncounter(tileData.ambushState.npc);
+        else
+        {
+            addLogEntry("Exploration", "You carefully scout the surroundings, but find nothing hostile right now.", LogColor{ 180, 180, 190, 255 });
+            refreshActionGrid();
+        }
     }
     else
     {

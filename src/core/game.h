@@ -122,6 +122,7 @@ public:
     void movePlayer(int nextX, int nextY);
     void refreshActionGrid();
     std::vector<std::shared_ptr<entity>> getTileNPCs() const;
+    void ensureTileAmbushNPC(TileRuntimeData& tileData) const;
     void syncTileTarget(bool forceSelect = false);
 
     void handleDropAction(int stackedIndex, int quantity);

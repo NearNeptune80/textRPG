@@ -1132,11 +1132,12 @@ void ActionGridManager::refresh(game* gameContext)
                 auto targetNPC = gameContext->getActiveTargetNPCShared();
 
                 // Exploration Encounter Action: Explore (rerolls tile encounter chance)
-                bool hasEncounterHazard = tileData.getEffectiveDangerLevel() > 0 ||
-                                          tileData.ambushState.npc != nullptr ||
-                                          !tileData.ambushState.templateId.empty() ||
-                                          !tileData.ambushState.templatePool.empty() ||
-                                          tileData.ambushState.ambushChance > 0;
+                bool isRestocking = tileData.ambushState.isDefeated && tileData.ambushState.restockMinutesRemaining > 0;
+                bool hasEncounterHazard = !tileData.ambushState.isPermanentlyRemoved && !isRestocking &&
+                                          (tileData.getEffectiveDangerLevel() > 0 ||
+                                           tileData.ambushState.npc != nullptr ||
+                                           !tileData.ambushState.templateId.empty() ||
+                                           !tileData.ambushState.templatePool.empty());
 
                 if (hasEncounterHazard)
                 {

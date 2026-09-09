@@ -473,12 +473,12 @@ namespace EntityListWidgets
                          (rData.ambushState.npc != nullptr || !rData.ambushState.templateId.empty() || !rData.ambushState.templatePool.empty()));
         }
 
-        if (hasAmbush || danger >= 2)
+        if (danger >= 2)
         {
             safeTag = "[ Dangerous ]";
             safeCol = Theme::colors.enemy;
         }
-        else if (danger == 1)
+        else if (danger == 1 || hasAmbush)
         {
             safeTag = "[ Risky ]";
             safeCol = Theme::colors.textGold;

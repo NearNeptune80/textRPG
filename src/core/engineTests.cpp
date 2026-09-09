@@ -3116,7 +3116,15 @@ namespace EngineTests
         logResult("Ambush enemy present on tile is visible in tile NPCs for characters present display", ambushIncluded);
         allPassed &= ambushIncluded;
 
-        // Clear all NPCs from tile (5, 5)
+        // Hazard tile (1, 3) immediately populates ambush NPC and includes it in getTileNPCs
+        g.loadMap("overworld", 1, 3);
+        auto overworldTileNPCs = g.getTileNPCs();
+        bool hazardHasNPC = (!overworldTileNPCs.empty() && overworldTileNPCs.front() != nullptr);
+        logResult("Hazard tile (1, 3) populates random encounter enemy in characters present list", hazardHasNPC);
+        allPassed &= hazardHasNPC;
+
+        // Reset to peaceful tile (5, 5) without NPCs
+        g.loadMap("overworld", 5, 5);
         g.map->getRuntimeData(5, 5).namedNPCs.clear();
         g.map->getRuntimeData(5, 5).ambushState.npc.reset();
         g.syncTileTarget(false);
