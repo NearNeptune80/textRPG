@@ -1085,6 +1085,19 @@ void ActionGridManager::refresh(game* gameContext)
 
                 if (targetNPC)
                 {
+                    bool isEnemy = (tileData.ambushState.npc && tileData.ambushState.npc == targetNPC) ||
+                                   (targetNPC->stats.getBaseStat("corruption") > 50.0f) ||
+                                   (targetNPC->name.find("Bandit") != std::string::npos ||
+                                    targetNPC->name.find("Cutpurse") != std::string::npos ||
+                                    targetNPC->name.find("Rogue") != std::string::npos);
+
+                    if (isEnemy)
+                    {
+                        addBtn(gameContext, std::format("Fight {}", targetNPC->name), [gameContext, targetNPC]() {
+                            gameContext->triggerEncounter(targetNPC);
+                        }, true, false, "Engage " + targetNPC->name + " in combat.");
+                    }
+
                     auto namedChar = NamedCharacterManager::getCharacter(targetNPC->id);
                     std::string sceneToLoad = "";
                     if (namedChar)

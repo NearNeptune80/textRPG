@@ -110,33 +110,26 @@
     "COMBAT": {
       "enabled": true,
       "rootNode": {
-        "id": "combat_root_column",
+        "id": "combat_root_row",
         "type": "CONTAINER",
-        "direction": "COLUMN",
-        "sizes": [6.0, 72.0, 22.0],
+        "direction": "ROW",
+        "sizes": [16.0, 68.0, 16.0],
         "children": [
           {
-            "id": "combat_top_bar",
+            "id": "combat_left_column",
             "type": "LEAF",
-            "name": "Top Status Bar",
-            "widgets": ["widget_top_bar_full"]
+            "name": "Navigation & Status Sidebar",
+            "widgets": [
+              "widget_lt_character_card",
+              "widget_lt_dpad_radar"
+            ]
           },
           {
-            "id": "combat_middle_row",
+            "id": "combat_center_column",
             "type": "CONTAINER",
-            "direction": "ROW",
-            "sizes": [16.0, 68.0, 16.0],
+            "direction": "COLUMN",
+            "sizes": [78.0, 22.0],
             "children": [
-              {
-                "id": "combat_left_sidebar",
-                "type": "LEAF",
-                "name": "Player Vitals",
-                "widgets": [
-                  "widget_char_overview",
-                  "widget_vitals_gauges",
-                  "widget_attributes_table"
-                ]
-              },
               {
                 "id": "combat_center_arena",
                 "type": "LEAF",
@@ -146,21 +139,23 @@
                 ]
               },
               {
-                "id": "combat_right_target",
+                "id": "combat_bottom_actions",
                 "type": "LEAF",
-                "name": "Target Status",
+                "name": "Action Commands Grid",
                 "widgets": [
-                  "widget_target_inspector",
-                  "widget_minimap_radar"
+                  "widget_action_commands"
                 ]
               }
             ]
           },
           {
-            "id": "combat_bottom_actions",
+            "id": "combat_right_column",
             "type": "LEAF",
-            "name": "Combat Actions",
-            "widgets": ["widget_action_commands"]
+            "name": "Entities & Activity Sidebar",
+            "widgets": [
+              "widget_lt_npc_card",
+              "widget_lt_event_log"
+            ]
           }
         ]
       }

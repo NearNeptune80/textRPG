@@ -2125,7 +2125,7 @@ namespace EngineTests
 
         // 4. Validate Standard 3-Column States Coverage Across All Key States
         static const std::vector<std::string> threeColStates = {
-            "EXPLORATION", "INVENTORY", "SHOP", "TRANSFORMATION", "PHONE_APP", "CHARACTER_CREATION", "SETTINGS", "LOAD_GAME"
+            "EXPLORATION", "INVENTORY", "SHOP", "TRANSFORMATION", "PHONE_APP", "CHARACTER_CREATION", "SETTINGS", "LOAD_GAME", "COMBAT"
         };
         bool allThreeColOk = true;
         for (const auto& st : threeColStates)
@@ -2139,7 +2139,7 @@ namespace EngineTests
             }
             if (bounds.size() < 3 || minX >= maxX) allThreeColOk = false;
         }
-        logResult("All core gameplay states (Exploration, Inv, Shop, TF, Phone, Creation, Settings, Load) compute multi-column bounds", allThreeColOk);
+        logResult("All core gameplay states (Exploration, Inv, Shop, TF, Phone, Creation, Settings, Load, Combat) compute multi-column bounds", allThreeColOk);
         allPassed &= allThreeColOk;
 
         // 5. Dynamic Window Resolution Rescaling Invariance
@@ -3103,20 +3103,21 @@ namespace EngineTests
         logResult("Selecting character does NOT alter list order or change layout (The selection thing isn't to change the layout)", stableOrder);
         allPassed &= stableOrder;
 
-        // Verify ambush hazard that did not roll an encounter is NOT in tile NPCs
+        // Verify ambush hazard enemy present on tile is included in tile NPCs for characters present
         g.map->getRuntimeData(5, 5).ambushState.templateId = "tpl_alley_bandit";
         g.map->getRuntimeData(5, 5).ambushState.npc = std::make_shared<entity>("ambush_01", "Shadow Bandit");
         auto currentTileNPCs = g.getTileNPCs();
-        bool ambushExcluded = true;
+        bool ambushIncluded = false;
         for (const auto& n : currentTileNPCs)
         {
-            if (n && n->id == "ambush_01") ambushExcluded = false;
+            if (n && n->id == "ambush_01") ambushIncluded = true;
         }
-        logResult("Ambush hazard that did not roll encounter is excluded from tile NPCs and characters present", ambushExcluded);
-        allPassed &= ambushExcluded;
+        logResult("Ambush enemy present on tile is visible in tile NPCs for characters present display", ambushIncluded);
+        allPassed &= ambushIncluded;
 
-        // Clear NPCs from tile (5, 5)
+        // Clear all NPCs from tile (5, 5)
         g.map->getRuntimeData(5, 5).namedNPCs.clear();
+        g.map->getRuntimeData(5, 5).ambushState.npc.reset();
         g.syncTileTarget(false);
         bool clearedInteracting = EntityListWidgets::isInteractingWithNPC(&g);
         logResult("EntityListWidgets::isInteractingWithNPC reverts to false when tile has no NPCs and no target", !clearedInteracting);

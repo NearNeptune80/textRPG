@@ -56,11 +56,23 @@ void CombatState::onEnter(game* gameContext)
 {
     if (gameContext)
     {
+        if (!gameContext->activeTargetNPC && !m_engine.getEnemyParty().empty())
+        {
+            gameContext->activeTargetNPC = m_engine.getEnemyParty().front().character;
+            gameContext->activeTargetMode = TargetMode::COMBAT_ENEMY;
+        }
         gameContext->refreshActionGrid();
     }
 }
 
-void CombatState::onExit(game* gameContext) {}
+void CombatState::onExit(game* gameContext)
+{
+    if (gameContext)
+    {
+        gameContext->activeTargetNPC = nullptr;
+        gameContext->activeTargetMode = TargetMode::NONE;
+    }
+}
 
 void CombatState::handleCommand(game* gameContext, const UICommand& cmd)
 {

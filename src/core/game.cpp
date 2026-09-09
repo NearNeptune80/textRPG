@@ -428,6 +428,11 @@ std::vector<std::shared_ptr<entity>> game::getTileNPCs() const
     {
         npcs.push_back(tileData.persistentNPC);
     }
+    if (tileData.ambushState.npc && !tileData.ambushState.isDefeated && !tileData.ambushState.isPermanentlyRemoved &&
+        std::find(npcs.begin(), npcs.end(), tileData.ambushState.npc) == npcs.end())
+    {
+        npcs.push_back(tileData.ambushState.npc);
+    }
 
     return npcs;
 }

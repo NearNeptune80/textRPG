@@ -2144,44 +2144,97 @@ namespace GameplayViews
         float startY = curY;
         float headerH = 26.0f * uiScale;
         SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
-        UIWidget::drawHeader(renderer, headerRect, std::format("TACTICAL COMBAT (Round {})", combat->getEngine().getCurrentRound()), Theme::colors.bgHeader, Theme::colors.enemy, uiScale);
+
+        std::string locTitle = (gameContext->getActiveMap() && !gameContext->getActiveMap()->getName().empty())
+                               ? gameContext->getActiveMap()->getName()
+                               : "Encounter Arena";
+        std::string headerText = std::format("{} • Tactical Combat (Round {})", locTitle, combat->getEngine().getCurrentRound());
+        UIWidget::drawHeader(renderer, headerRect, headerText, Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
         curY += headerH + (10.0f * uiScale);
 
         float padX = rect.x + (12.0f * uiScale);
         float innerW = rect.w - (24.0f * uiScale);
-        float halfW = (innerW - (10.0f * uiScale)) / 2.0f;
-        float barH = 18.0f * uiScale;
+        float innerPad = 10.0f * uiScale;
 
-        UIWidget::drawText(renderer, "PARTY STATUS", padX, curY, Theme::colors.textGold, uiScale);
-        curY += (18.0f * uiScale);
+        // =========================================================================
+        // 1. TACTICAL STATUS CARD: Turn, AP, and Combatants
+        // =========================================================================
+        float statusCardH = 50.0f * uiScale;
+        SDL_FRect statusRect = { padX, curY, innerW, statusCardH };
+        UIWidget::drawPanel(renderer, statusRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
-        for (const auto& p : combat->getEngine().getPlayerParty())
+        // Player side: Name & Action Points
+        const auto& playerParty = combat->getEngine().getPlayerParty();
+        if (!playerParty.empty() && playerParty.front().character)
         {
-            if (p.character)
-            {
-                float hp = p.character->getStat("health");
-                UIWidget::drawProgressBar(renderer, { padX, curY, halfW, barH }, hp, 100.0f, Theme::colors.health, Theme::colors.bgDark, std::format("{} HP: {:.0f} (AP: {})", p.character->name, hp, p.currentAp), uiScale);
-            }
+            const auto& p = playerParty.front();
+            UIWidget::drawText(renderer, p.character->name, padX + innerPad, curY + (7.0f * uiScale), Theme::colors.textGold, uiScale * 0.84f);
+
+            std::string apStr = std::format("Turn Action Points: {} / {} AP", p.currentAp, p.maxAp);
+            UIWidget::drawText(renderer, apStr, padX + innerPad, curY + (26.0f * uiScale), Theme::colors.companion, uiScale * 0.72f);
         }
 
-        for (const auto& enemyP : combat->getEngine().getEnemyParty())
+        // Opponent side: Target Name & Subtitle
+        const auto& enemyParty = combat->getEngine().getEnemyParty();
+        entity* targetEnemy = gameContext->getActiveTargetNPC();
+        if (!targetEnemy && !enemyParty.empty())
         {
-            if (enemyP.character)
-            {
-                float hp = enemyP.character->getStat("health");
-                UIWidget::drawProgressBar(renderer, { padX + halfW + (10.0f * uiScale), curY, halfW, barH }, hp, 100.0f, Theme::colors.enemy, Theme::colors.bgDark, std::format("{} HP: {:.0f}", enemyP.character->name, hp), uiScale);
-            }
-        }
-        curY += (barH + 12.0f * uiScale);
-
-        UIWidget::drawText(renderer, "COMBAT LOG:", padX, curY, Theme::colors.textGold, uiScale);
-        curY += (18.0f * uiScale);
-        for (const auto& logEntry : combat->getEngine().getCombatLog())
-        {
-            UIWidget::drawText(renderer, logEntry, padX, curY, Theme::colors.textSecondary, uiScale);
-            curY += (16.0f * uiScale);
+            targetEnemy = enemyParty.front().character.get();
         }
 
+        if (targetEnemy)
+        {
+            std::string eName = targetEnemy->name;
+            float eW = UIWidget::getTextWidth(eName, uiScale * 0.84f);
+            UIWidget::drawText(renderer, eName, padX + innerW - eW - innerPad, curY + (7.0f * uiScale), Theme::colors.enemy, uiScale * 0.84f);
+
+            std::string raceStr = targetEnemy->anatomy.getRacialTitle().empty() ? "Enemy" : targetEnemy->anatomy.getRacialTitle();
+            std::string eSub = std::format("Target: Lvl {} • {}", targetEnemy->stats.level, raceStr);
+            float eSubW = UIWidget::getTextWidth(eSub, uiScale * 0.72f);
+            UIWidget::drawText(renderer, eSub, padX + innerW - eSubW - innerPad, curY + (26.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.72f);
+        }
+
+        curY += statusCardH + (10.0f * uiScale);
+
+        // =========================================================================
+        // 2. TACTICAL COMBAT LOG CHRONICLE
+        // =========================================================================
+        float logCardH = rect.h - (curY - startY) - (10.0f * uiScale);
+        if (logCardH < 180.0f * uiScale) logCardH = 220.0f * uiScale;
+        SDL_FRect logRect = { padX, curY, innerW, logCardH };
+        UIWidget::drawPanel(renderer, logRect, Theme::colors.bgPanel, Theme::colors.borderNormal);
+
+        UIWidget::drawText(renderer, "TACTICAL COMBAT LOG", padX + innerPad, curY + (8.0f * uiScale), Theme::colors.textGold, uiScale * 0.76f);
+
+        float logY = curY + (28.0f * uiScale);
+        const auto& combatLog = combat->getEngine().getCombatLog();
+
+        float lineH = 17.0f * uiScale;
+        int maxLines = static_cast<int>((logCardH - (34.0f * uiScale)) / lineH);
+        if (maxLines < 1) maxLines = 1;
+
+        int startIdx = std::max(0, static_cast<int>(combatLog.size()) - maxLines);
+        for (size_t i = startIdx; i < combatLog.size(); ++i)
+        {
+            const auto& line = combatLog[i];
+            SDL_Color col = Theme::colors.textSecondary;
+
+            if (line.find("===") != std::string::npos || line.find("--- Round") != std::string::npos)
+                col = Theme::colors.textGold;
+            else if (line.find("takes") != std::string::npos || line.find("damage") != std::string::npos || line.find("deals") != std::string::npos)
+                col = Theme::colors.enemy;
+            else if (line.find("casts") != std::string::npos || line.find("Fireball") != std::string::npos || line.find("Dart") != std::string::npos)
+                col = Theme::colors.arcane;
+            else if (line.find("defends") != std::string::npos || line.find("parries") != std::string::npos || line.find("dodges") != std::string::npos || line.find("Shield") != std::string::npos)
+                col = Theme::colors.companion;
+            else if (line.find("defeated") != std::string::npos || line.find("Defeated") != std::string::npos)
+                col = Theme::colors.lust;
+
+            UIWidget::drawText(renderer, line, padX + innerPad, logY, col, uiScale * 0.72f);
+            logY += lineH;
+        }
+
+        curY += logCardH + (10.0f * uiScale);
         return (curY - startY);
     }
 
