@@ -1085,30 +1085,26 @@ void ActionGridManager::refresh(game* gameContext)
 
                 if (targetNPC)
                 {
-                    bool isAmbushEnemy = (tileData.ambushState.npc && tileData.ambushState.npc == targetNPC &&
-                                          !tileData.ambushState.isDefeated && !tileData.ambushState.isPermanentlyRemoved);
-
-                    if (isAmbushEnemy)
+                    auto namedChar = NamedCharacterManager::getCharacter(targetNPC->id);
+                    std::string sceneToLoad = "";
+                    if (namedChar)
                     {
-                        addBtn(gameContext, std::format("Fight {}", targetNPC->name), [gameContext, targetNPC]() {
-                            gameContext->triggerEncounter(targetNPC);
-                        }, true, false, "Engage " + targetNPC->name + " in combat.");
+                        if (!namedChar->activeSceneId.empty()) sceneToLoad = namedChar->activeSceneId;
+                        else if (!namedChar->defaultSceneId.empty()) sceneToLoad = namedChar->defaultSceneId;
                     }
 
-                    addBtn(gameContext, std::format("Talk to {}", targetNPC->name), [gameContext, targetNPC]() {
-                        auto namedChar = NamedCharacterManager::getCharacter(targetNPC->id);
-                        if (namedChar && !namedChar->activeSceneId.empty())
-                        {
-                            gameContext->loadScene(namedChar->activeSceneId);
-                        }
-                        else
-                        {
-                            gameContext->triggerEncounter(targetNPC);
-                        }
-                    }, true, false, "Initiate dialogue or interaction with " + targetNPC->name + ".");
+                    if (!sceneToLoad.empty())
+                    {
+                        addBtn(gameContext, std::format("Talk to {}", targetNPC->name), [gameContext, sceneToLoad]() {
+                            gameContext->loadScene(sceneToLoad);
+                        }, true, false, "Initiate dialogue conversation with " + targetNPC->name + ".");
+                    }
 
-                    if (targetNPC->buyMarkup != 1.0f || targetNPC->sellMarkdown != 0.5f ||
-                        targetNPC->name.find("Merchant") != std::string::npos || targetNPC->name.find("Shop") != std::string::npos)
+                    bool isMerchant = (namedChar && namedChar->isMerchant) ||
+                                      targetNPC->name.find("Merchant") != std::string::npos ||
+                                      targetNPC->name.find("Shop") != std::string::npos;
+
+                    if (isMerchant)
                     {
                         addBtn(gameContext, "Visit Shop", [gameContext, targetNPC]() {
                             gameContext->changeState(std::make_unique<shopState>(targetNPC));

@@ -122,7 +122,7 @@ public:
     void movePlayer(int nextX, int nextY);
     void refreshActionGrid();
     std::vector<std::shared_ptr<entity>> getTileNPCs() const;
-    void syncTileTarget();
+    void syncTileTarget(bool forceSelect = false);
 
     void handleDropAction(int stackedIndex, int quantity);
     void handlePickupAction(int groundIndex, int quantity);

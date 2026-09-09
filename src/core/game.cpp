@@ -325,7 +325,9 @@ bool game::loadMap(const std::string& mapId, int startX, int startY)
     NamedCharacterManager::syncMapCharacters(map);
 
     map->updateDiscovery(gridX, gridY, 3);
-    syncTileTarget();
+    activeTargetNPC = nullptr;
+    activeTargetMode = TargetMode::NONE;
+    refreshActionGrid();
 
     std::string zoneTitle = map->getName().empty() ? mapId : map->getName();
     addLogEntry("[ZONE]", "Entered " + zoneTitle, { 80, 160, 220, 255 });
@@ -404,7 +406,10 @@ void game::movePlayer(int nextX, int nextY)
         }
     }
 
-    syncTileTarget();
+    // Peaceful tile arrival: player is not interacting with NPCs yet
+    activeTargetNPC = nullptr;
+    activeTargetMode = TargetMode::NONE;
+    refreshActionGrid();
 }
 
 std::vector<std::shared_ptr<entity>> game::getTileNPCs() const
@@ -418,20 +423,16 @@ std::vector<std::shared_ptr<entity>> game::getTileNPCs() const
         if (n && std::find(npcs.begin(), npcs.end(), n) == npcs.end())
             npcs.push_back(n);
     }
-    if (tileData.persistentNPC && std::find(npcs.begin(), npcs.end(), tileData.persistentNPC) == npcs.end())
+    if (tileData.persistentNPC && tileData.persistentNPC != tileData.ambushState.npc &&
+        std::find(npcs.begin(), npcs.end(), tileData.persistentNPC) == npcs.end())
     {
         npcs.push_back(tileData.persistentNPC);
-    }
-    if (tileData.ambushState.npc && !tileData.ambushState.isDefeated && !tileData.ambushState.isPermanentlyRemoved &&
-        std::find(npcs.begin(), npcs.end(), tileData.ambushState.npc) == npcs.end())
-    {
-        npcs.push_back(tileData.ambushState.npc);
     }
 
     return npcs;
 }
 
-void game::syncTileTarget()
+void game::syncTileTarget(bool forceSelect)
 {
     auto npcs = getTileNPCs();
     if (npcs.empty())
@@ -439,10 +440,10 @@ void game::syncTileTarget()
         activeTargetNPC = nullptr;
         activeTargetMode = TargetMode::NONE;
     }
-    else
+    else if (forceSelect || activeTargetNPC != nullptr)
     {
-        // If only one character, obviously they are selected.
-        // More than one should default to the top of the list if current target is not in the list.
+        // If already interacting or forced, ensure target is in the list;
+        // otherwise default to the top of the list
         if (!activeTargetNPC || std::find(npcs.begin(), npcs.end(), activeTargetNPC) == npcs.end())
         {
             activeTargetNPC = npcs.front();

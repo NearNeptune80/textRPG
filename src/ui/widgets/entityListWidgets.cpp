@@ -10,9 +10,11 @@
 
 #include "core/game.h"
 #include "entities/entity.h"
+#include "entities/namedCharacter.h"
 #include "map/gameMap.h"
 #include "state/characterCreationState.h"
 #include "state/combatState.h"
+#include "state/eventState.h"
 #include "common/enums.h"
 #include "ui/theme.h"
 #include "ui/uiWidget.h"
@@ -24,9 +26,7 @@ namespace EntityListWidgets
     {
         if (!gameContext) return false;
 
-        if (gameContext->getActiveTargetNPC() != nullptr)
-            return true;
-
+        // 1. In CombatState with enemy party
         if (auto* cs = dynamic_cast<CombatState*>(gameContext->getActiveState()))
         {
             for (const auto& p : cs->getEngine().getEnemyParty())
@@ -35,8 +35,25 @@ namespace EntityListWidgets
             }
         }
 
-        if (!gameContext->getTileNPCs().empty())
-            return true;
+        // 2. Active target set for encounter or interaction
+        if (gameContext->getActiveTargetNPC() != nullptr)
+        {
+            // If in combat enemy mode, always interacting (e.g. encounter event)
+            if (gameContext->activeTargetMode == TargetMode::COMBAT_ENEMY)
+                return true;
+
+            // In eventState / dialogue scene
+            if (dynamic_cast<eventState*>(gameContext->getActiveState()) != nullptr)
+                return true;
+
+            // In exploration: target must be one of the current tile NPCs
+            auto tileNPCs = gameContext->getTileNPCs();
+            for (const auto& n : tileNPCs)
+            {
+                if (n.get() == gameContext->getActiveTargetNPC())
+                    return true;
+            }
+        }
 
         return false;
     }
@@ -500,34 +517,90 @@ namespace EntityListWidgets
         curY += card1H + (8.0f * uiScale);
 
         // ==========================================
-        // CARD 2: Characters Present Card (Fully functional)
+        // CARD 2: Characters Present Card (Basic Info)
         // ==========================================
-        std::vector<std::shared_ptr<entity>> tileNPCs;
-        if (m)
+        auto tileNPCs = gameContext->getTileNPCs();
+
+        if (tileNPCs.empty())
         {
-            TileRuntimeData& tileData = m->getRuntimeData(pX, pY);
-            for (const auto& n : tileData.namedNPCs)
-            {
-                if (n && std::find(tileNPCs.begin(), tileNPCs.end(), n) == tileNPCs.end())
-                    tileNPCs.push_back(n);
-            }
-            if (tileData.persistentNPC && std::find(tileNPCs.begin(), tileNPCs.end(), tileData.persistentNPC) == tileNPCs.end())
-            {
-                tileNPCs.push_back(tileData.persistentNPC);
-            }
-            if (tileData.ambushState.npc && !tileData.ambushState.isDefeated && !tileData.ambushState.isPermanentlyRemoved &&
-                std::find(tileNPCs.begin(), tileNPCs.end(), tileData.ambushState.npc) == tileNPCs.end())
-            {
-                tileNPCs.push_back(tileData.ambushState.npc);
-            }
+            float card2H = 48.0f * uiScale;
+            SDL_FRect card2Rect = { padX, curY, availableW, card2H };
+            UIWidget::drawPanel(renderer, card2Rect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+
+            UIWidget::drawText(renderer, "CHARACTERS PRESENT", innerX, curY + (5.0f * uiScale), Theme::colors.textGold, uiScale * 0.74f);
+            UIWidget::drawText(renderer, "No characters here.", innerX, curY + (22.0f * uiScale), Theme::colors.textMuted, uiScale * 0.68f);
+
+            curY += card2H + (8.0f * uiScale);
+            return (curY - startY);
         }
 
-        float card2H = 48.0f * uiScale;
+        float rowH = 40.0f * uiScale;
+        float rowSpacing = 4.0f * uiScale;
+        float card2H = (24.0f * uiScale) + (static_cast<float>(tileNPCs.size()) * (rowH + rowSpacing)) + (4.0f * uiScale);
         SDL_FRect card2Rect = { padX, curY, availableW, card2H };
         UIWidget::drawPanel(renderer, card2Rect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
-        UIWidget::drawText(renderer, "CHARACTERS PRESENT", innerX, curY + (5.0f * uiScale), Theme::colors.textGold, uiScale * 0.74f);
-        UIWidget::drawText(renderer, "No characters here.", innerX, curY + (22.0f * uiScale), Theme::colors.textMuted, uiScale * 0.68f);
+        std::string charHeader = std::format("CHARACTERS PRESENT ({})", tileNPCs.size());
+        UIWidget::drawText(renderer, charHeader, innerX, curY + (5.0f * uiScale), Theme::colors.textGold, uiScale * 0.74f);
+
+        float rowY = curY + (22.0f * uiScale);
+        for (const auto& npcShared : tileNPCs)
+        {
+            entity* npc = npcShared.get();
+            if (!npc) continue;
+
+            SDL_FRect rowRect = { innerX, rowY, cW, rowH };
+            bool rowHov = (mousePos.x >= rowRect.x && mousePos.x <= rowRect.x + rowRect.w &&
+                           mousePos.y >= rowRect.y && mousePos.y <= rowRect.y + rowRect.h);
+
+            UIWidget::drawPanel(renderer, rowRect, rowHov ? Theme::colors.bgButtonHover : Theme::colors.bgDark,
+                                rowHov ? Theme::colors.borderButtonHover : Theme::colors.borderNormal);
+
+            float rowInnerX = innerX + (6.0f * uiScale);
+
+            // Name in gold
+            UIWidget::drawText(renderer, npc->name, rowInnerX, rowY + (3.0f * uiScale), Theme::colors.textGold, uiScale * 0.72f);
+
+            // Basic Info (Lvl, Race, Title)
+            std::string raceStr = npc->anatomy.getRacialTitle().empty() ? "Human" : npc->anatomy.getRacialTitle();
+            auto nc = NamedCharacterManager::getCharacter(npc->id);
+            std::string titleStr = (nc && !nc->title.empty()) ? (" • " + nc->title) : "";
+            std::string subStr = std::format("Lvl {} • {}{}", npc->stats.level, raceStr, titleStr);
+            UIWidget::drawText(renderer, subStr, rowInnerX, rowY + (17.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.60f);
+
+            // Gender Archetype
+            std::string genderStr = genderArchetypeToString(npc->genderArchetype);
+            float gW = UIWidget::getTextWidth(genderStr, uiScale * 0.56f);
+            UIWidget::drawText(renderer, genderStr, innerX + cW - gW - (6.0f * uiScale), rowY + (4.0f * uiScale), Theme::colors.textMuted, uiScale * 0.56f);
+
+            // Mini Vitals (Health & Lust)
+            float hp = std::clamp(npc->getStat("health"), 0.0f, std::max(1.0f, npc->getStat("max_health")));
+            float maxHp = std::max(1.0f, npc->getStat("max_health"));
+            float miniBarW = cW - (12.0f * uiScale);
+            float miniBarH = 3.0f * uiScale;
+            float halfBarW = (miniBarW - (4.0f * uiScale)) / 2.0f;
+            UIWidget::drawProgressBar(renderer, { rowInnerX, rowY + (31.0f * uiScale), halfBarW, miniBarH }, hp, maxHp, Theme::colors.health, Theme::colors.bgDark, "", uiScale);
+            float lust = std::clamp(npc->getStat("lust"), 0.0f, 100.0f);
+            float maxLust = std::max(1.0f, npc->getStat("max_lust"));
+            UIWidget::drawProgressBar(renderer, { rowInnerX + halfBarW + (4.0f * uiScale), rowY + (31.0f * uiScale), halfBarW, miniBarH }, lust, maxLust, Theme::colors.lust, Theme::colors.bgDark, "", uiScale);
+
+            // Tooltip
+            TooltipManager::setHoverTooltip(rowRect, mousePos, npc->name,
+                std::format("Lvl {} • {}{}\nHealth: {:.0f}/{:.0f} • Lust: {:.0f}%\nClick to interact with {}.",
+                            npc->stats.level, raceStr, titleStr, hp, maxHp, (lust / maxLust) * 100.0f, npc->name),
+                "Character Present", "Interact");
+
+            // Clicking row initiates interaction with this character
+            if (rowHov && clicked)
+            {
+                gameContext->activeTargetNPC = npcShared;
+                gameContext->activeTargetMode = TargetMode::DIALOGUE;
+                gameContext->refreshActionGrid();
+                gameContext->input.consumeMouseClick();
+            }
+
+            rowY += rowH + rowSpacing;
+        }
 
         curY += card2H + (8.0f * uiScale);
         return (curY - startY);

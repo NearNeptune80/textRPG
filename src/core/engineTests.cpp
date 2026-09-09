@@ -3066,10 +3066,18 @@ namespace EngineTests
         testNpc1->stats.setBaseStat("max_lust", 100.0f);
 
         g.map->getRuntimeData(5, 5).namedNPCs.push_back(testNpc1);
-        g.syncTileTarget();
 
+        // Peaceful arrival: does not auto-select or show enemy card
+        g.syncTileTarget(false);
+        bool peacefulUnselected = (g.activeTargetNPC == nullptr);
+        bool peacefulNotInteracting = !EntityListWidgets::isInteractingWithNPC(&g);
+        logResult("Peaceful tile arrival does not auto-select or trigger enemy card", peacefulUnselected && peacefulNotInteracting);
+        allPassed &= (peacefulUnselected && peacefulNotInteracting);
+
+        // Initiating interaction with character (forceSelect = true)
+        g.syncTileTarget(true);
         bool autoSelectOne = (g.activeTargetNPC == testNpc1);
-        logResult("Single NPC on tile is automatically selected (If theres only one character, obviously they are selected)", autoSelectOne);
+        logResult("Single NPC on tile is selected when interacting (If theres only one character, obviously they are selected)", autoSelectOne);
         allPassed &= autoSelectOne;
 
         bool targetInteracting = EntityListWidgets::isInteractingWithNPC(&g);
@@ -3083,7 +3091,7 @@ namespace EngineTests
 
         // Auto-default when target is unassigned defaults to the top of the list
         g.activeTargetNPC = nullptr;
-        g.syncTileTarget();
+        g.syncTileTarget(true);
         bool autoDefaultTop = (g.activeTargetNPC == testNpc1);
         logResult("Multiple NPCs on tile default selection to top of list (More than one should default to the top of the list)", autoDefaultTop);
         allPassed &= autoDefaultTop;
@@ -3095,9 +3103,21 @@ namespace EngineTests
         logResult("Selecting character does NOT alter list order or change layout (The selection thing isn't to change the layout)", stableOrder);
         allPassed &= stableOrder;
 
+        // Verify ambush hazard that did not roll an encounter is NOT in tile NPCs
+        g.map->getRuntimeData(5, 5).ambushState.templateId = "tpl_alley_bandit";
+        g.map->getRuntimeData(5, 5).ambushState.npc = std::make_shared<entity>("ambush_01", "Shadow Bandit");
+        auto currentTileNPCs = g.getTileNPCs();
+        bool ambushExcluded = true;
+        for (const auto& n : currentTileNPCs)
+        {
+            if (n && n->id == "ambush_01") ambushExcluded = false;
+        }
+        logResult("Ambush hazard that did not roll encounter is excluded from tile NPCs and characters present", ambushExcluded);
+        allPassed &= ambushExcluded;
+
         // Clear NPCs from tile (5, 5)
         g.map->getRuntimeData(5, 5).namedNPCs.clear();
-        g.syncTileTarget();
+        g.syncTileTarget(false);
         bool clearedInteracting = EntityListWidgets::isInteractingWithNPC(&g);
         logResult("EntityListWidgets::isInteractingWithNPC reverts to false when tile has no NPCs and no target", !clearedInteracting);
         allPassed &= !clearedInteracting;
