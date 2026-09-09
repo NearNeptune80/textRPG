@@ -3201,6 +3201,136 @@ namespace EngineTests
         return allPassed;
     }
 
+    bool testStatusEffectLifecycleAndGrid()
+    {
+        std::cout << "\n--- Running Test 28: Dynamic Status Effects, 0-24h Shading, Lifecycle & Shuffling ---\n";
+        bool allPassed = true;
+
+        auto testEnt = std::make_shared<entity>("hero_status", "Status Hero");
+
+        // 1. Structure & getRemainingMinutes calculations
+        StatusEffect fxMins("buff_m", "Min Buff", "Minute effect", -1, false, 720, 1440, "MIN");
+        StatusEffect fxTurns("buff_t", "Turn Buff", "Turn effect", 4, false, -1, 1440, "TRN");
+        StatusEffect fxZero("buff_z", "Zero Buff", "Zero effect", 0, false, 0, 1440, "ZER");
+
+        bool remMinsOk = (fxMins.getRemainingMinutes() == 720);
+        bool remTurnsOk = (fxTurns.getRemainingMinutes() == 240); // 4 turns * 60 = 240 mins
+        bool remZeroOk = (fxZero.getRemainingMinutes() == 0);
+        logResult("StatusEffect::getRemainingMinutes calculates minute and turn equivalents correctly",
+                  remMinsOk && remTurnsOk && remZeroOk);
+        allPassed &= (remMinsOk && remTurnsOk && remZeroOk);
+
+        // 2. FIFO Ordering ("ordered as they come")
+        testEnt->clearStatusEffects();
+        testEnt->addStatusEffect(StatusEffect("fx_str", "Strength", "+15% Str", 10, false, 1440, 1440, "STR"));
+        testEnt->addStatusEffect(StatusEffect("fx_arc", "Arcane", "+20% Mana", 10, false, 720, 1440, "ARC"));
+        testEnt->addStatusEffect(StatusEffect("fx_poi", "Poison", "-5 HP/t", 5, true, 180, 1440, "POI"));
+
+        bool orderedAsTheyCome = (testEnt->statusEffects.size() == 3 &&
+                                  testEnt->statusEffects[0].id == "fx_str" &&
+                                  testEnt->statusEffects[1].id == "fx_arc" &&
+                                  testEnt->statusEffects[2].id == "fx_poi");
+        logResult("addStatusEffect stores effects in exact arrival order (ordered as they come)", orderedAsTheyCome);
+        allPassed &= orderedAsTheyCome;
+
+        // 3. Time limit decay & pruning via updateStatusEffectsOnTime
+        // Poison has 180 mins remaining. Advance time by 180 minutes.
+        testEnt->updateStatusEffectsOnTime(180);
+
+        bool poiExpired = (testEnt->statusEffects.size() == 2 && !testEnt->hasStatusEffect("fx_poi"));
+        bool strRemains = (testEnt->hasStatusEffect("fx_str") && testEnt->statusEffects[0].durationMinutes == 1260);
+        bool arcRemains = (testEnt->hasStatusEffect("fx_arc") && testEnt->statusEffects[1].durationMinutes == 540);
+        logResult("updateStatusEffectsOnTime decrements duration in minutes and removes expired effects",
+                  poiExpired && strRemains && arcRemains);
+        allPassed &= (poiExpired && strRemains && arcRemains);
+
+        // 4. Shuffling over when one disappears
+        // Current order: [0] fx_str, [1] fx_arc
+        // Now remove fx_str (index 0). fx_arc MUST shuffle over to index 0!
+        testEnt->removeStatusEffect("fx_str");
+        bool shuffledOver = (testEnt->statusEffects.size() == 1 && testEnt->statusEffects[0].id == "fx_arc");
+        logResult("Removing an effect causes subsequent effects to shuffle over into preceding slots", shuffledOver);
+        allPassed &= shuffledOver;
+
+        // 5. Dynamic wrap & auto-extending grid calculation
+        // Simulate row count calculation: chipsPerRow = 7
+        const int chipsPerRow = 7;
+        auto getRows = [](size_t count, int perRow) {
+            return count == 0 ? 0 : static_cast<int>(std::ceil(count / static_cast<float>(perRow)));
+        };
+
+        bool row0Ok = (getRows(0, chipsPerRow) == 0);
+        bool row1Ok = (getRows(5, chipsPerRow) == 1 && getRows(7, chipsPerRow) == 1);
+        bool row2Ok = (getRows(8, chipsPerRow) == 2 && getRows(14, chipsPerRow) == 2);
+        bool row3Ok = (getRows(15, chipsPerRow) == 3);
+        bool gridRowsOk = (row0Ok && row1Ok && row2Ok && row3Ok);
+        logResult("Dynamic status effect rows calculation correctly extends for 0, 1, 2, and 3+ rows", gridRowsOk);
+        allPassed &= gridRowsOk;
+
+        // 6. 0-24h Shading fillRatio calculations & boundaries
+        auto calcFill = [](int mins) {
+            return std::clamp(static_cast<float>(mins) / 1440.0f, 0.0f, 1.0f);
+        };
+
+        bool fill0 = (calcFill(0) == 0.0f);
+        bool fillHalf = (std::abs(calcFill(720) - 0.5f) < 0.001f);
+        bool fillFull = (calcFill(1440) == 1.0f);
+        bool fillOver = (calcFill(2000) == 1.0f);
+        bool fillOk = (fill0 && fillHalf && fillFull && fillOver);
+        logResult("0-24h shading ratio correctly fills 0% at 0h, 50% at 12h, and caps 100% at 24h", fillOk);
+        allPassed &= fillOk;
+
+        // 7. Green-to-Red Dynamic Color Transition
+        auto getGradientColor = [](float fillRatio) -> std::tuple<uint8_t, uint8_t, uint8_t> {
+            uint8_t r, g, b;
+            if (fillRatio >= 0.5f)
+            {
+                float t = (fillRatio - 0.5f) / 0.5f;
+                r = static_cast<uint8_t>(std::lerp(230.0f, 45.0f, t));
+                g = static_cast<uint8_t>(std::lerp(190.0f, 190.0f, t));
+                b = static_cast<uint8_t>(std::lerp(40.0f, 75.0f, t));
+            }
+            else
+            {
+                float t = fillRatio / 0.5f;
+                r = static_cast<uint8_t>(std::lerp(230.0f, 230.0f, t));
+                g = static_cast<uint8_t>(std::lerp(50.0f, 190.0f, t));
+                b = static_cast<uint8_t>(std::lerp(50.0f, 40.0f, t));
+            }
+            return { r, g, b };
+        };
+
+        auto [rFull, gFull, bFull] = getGradientColor(1.0f); // 24h: Green
+        auto [rMid, gMid, bMid] = getGradientColor(0.5f);   // 12h: Yellow / Amber
+        auto [rEmpty, gEmpty, bEmpty] = getGradientColor(0.0f); // 0h: Red
+
+        bool colorFullGreen = (rFull == 45 && gFull == 190 && bFull == 75);
+        bool colorMidYellow = (rMid == 230 && gMid == 190 && bMid == 40);
+        bool colorEmptyRed = (rEmpty == 230 && gEmpty == 50 && bEmpty == 50);
+        bool colorGradOk = (colorFullGreen && colorMidYellow && colorEmptyRed);
+        logResult("Shading color transitions from rich green (24h) to amber (12h) to bright red (0h)", colorGradOk);
+        allPassed &= colorGradOk;
+
+        // 8. JSON Serialization & Deserialization roundtrip
+        testEnt->clearStatusEffects();
+        testEnt->addStatusEffect(StatusEffect("fx_ward", "Ward", "Shield buff", 8, false, 1200, 1440, "WRD"));
+
+        nlohmann::json j = testEnt->toJson();
+        entity roundtripEnt("hero_rt", "Roundtrip");
+        roundtripEnt.fromJson(j);
+
+        bool rtOk = (roundtripEnt.statusEffects.size() == 1 &&
+                     roundtripEnt.statusEffects[0].id == "fx_ward" &&
+                     roundtripEnt.statusEffects[0].durationMinutes == 1200 &&
+                     roundtripEnt.statusEffects[0].maxDurationMinutes == 1440 &&
+                     roundtripEnt.statusEffects[0].iconId == "WRD" &&
+                     roundtripEnt.statusEffects[0].durationTurns == 8);
+        logResult("StatusEffect durationMinutes, maxDurationMinutes, and iconId roundtrip cleanly in JSON", rtOk);
+        allPassed &= rtOk;
+
+        return allPassed;
+    }
+
     bool runAllTests()
     {
         g_passCount = 0;
@@ -3236,6 +3366,7 @@ namespace EngineTests
         bool t25 = testDataDrivenPerksAndContentOptions();
         bool t26 = testExpandedContentOptionsAndSceneGating();
         bool t27 = testDataDrivenMapTitlesAndNPCCards();
+        bool t28 = testStatusEffectLifecycleAndGrid();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";

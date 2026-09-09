@@ -23,6 +23,9 @@ void entity::addStatusEffect(const StatusEffect& effect)
         if (fx.id == effect.id)
         {
             fx.durationTurns = effect.durationTurns;
+            fx.durationMinutes = effect.durationMinutes;
+            fx.maxDurationMinutes = effect.maxDurationMinutes;
+            if (!effect.iconId.empty()) fx.iconId = effect.iconId;
             invalidateStatCache();
             return;
         }
@@ -55,10 +58,52 @@ bool entity::hasStatusEffect(const std::string& effectId) const
 void entity::updateStatusEffectsOnTurn()
 {
     std::erase_if(statusEffects, [](StatusEffect& fx) {
-        if (fx.durationTurns > 0) fx.durationTurns--;
-        return fx.durationTurns == 0;
+        if (fx.durationTurns > 0)
+        {
+            fx.durationTurns--;
+            if (fx.durationTurns <= 0) return true;
+        }
+        else if (fx.durationMinutes > 0)
+        {
+            fx.durationMinutes--;
+            if (fx.durationMinutes <= 0) return true;
+        }
+        return false;
     });
     invalidateStatCache();
+}
+
+/**
+ * Advances real-time / overworld time and prunes expired status effects.
+ * Remaining effects naturally shift left / shuffle over.
+ */
+void entity::updateStatusEffectsOnTime(int minutesPassed)
+{
+    if (minutesPassed <= 0) return;
+    std::erase_if(statusEffects, [minutesPassed](StatusEffect& fx) {
+        if (fx.durationMinutes > 0)
+        {
+            fx.durationMinutes -= minutesPassed;
+            if (fx.durationMinutes <= 0) return true;
+        }
+        else if (fx.durationTurns > 0)
+        {
+            int turnDecay = std::max(1, minutesPassed / 5);
+            fx.durationTurns -= turnDecay;
+            if (fx.durationTurns <= 0) return true;
+        }
+        return false;
+    });
+    invalidateStatCache();
+}
+
+void entity::clearStatusEffects()
+{
+    if (!statusEffects.empty())
+    {
+        statusEffects.clear();
+        invalidateStatCache();
+    }
 }
 
 void entity::invalidateStatCache() const
@@ -177,6 +222,9 @@ json entity::toJson() const
         fxJson["description"] = fx.description;
         fxJson["durationTurns"] = fx.durationTurns;
         fxJson["isDebuff"] = fx.isDebuff;
+        fxJson["durationMinutes"] = fx.durationMinutes;
+        fxJson["maxDurationMinutes"] = fx.maxDurationMinutes;
+        fxJson["iconId"] = fx.iconId;
         fxJson["grantedTags"] = fx.grantedTags;
 
         json modsArray = json::array();
@@ -326,6 +374,9 @@ void entity::fromJson(const json& j)
             fx.description = fxJson.value("description", "");
             fx.durationTurns = fxJson.value("durationTurns", -1);
             fx.isDebuff = fxJson.value("isDebuff", false);
+            fx.durationMinutes = fxJson.value("durationMinutes", -1);
+            fx.maxDurationMinutes = fxJson.value("maxDurationMinutes", 1440);
+            fx.iconId = fxJson.value("iconId", "");
             fx.grantedTags = fxJson.value("grantedTags", std::vector<std::string>{});
 
             if (fxJson.contains("statModifiers"))

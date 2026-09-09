@@ -1,6 +1,7 @@
 #include "ui/widgets/characterCardWidget.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <format>
 #include <string>
@@ -9,6 +10,7 @@
 
 #include "core/game.h"
 #include "entities/entity.h"
+#include "entities/statusEffect.h"
 #include "state/characterCreationState.h"
 #include "ui/theme.h"
 #include "ui/uiWidget.h"
@@ -16,6 +18,114 @@
 
 namespace CharacterCardWidget
 {
+    void renderStatusEffectsGrid(SDL_Renderer* renderer, const std::vector<StatusEffect>& effects, float s2ContentX, float s2Y, float s2ContentW, float chipSize, float chipGap, int chipsPerRow, float uiScale, const TooltipPoint& mousePos)
+    {
+        if (effects.empty()) return;
+
+        for (size_t i = 0; i < effects.size(); ++i)
+        {
+            int row = static_cast<int>(i / chipsPerRow);
+            int col = static_cast<int>(i % chipsPerRow);
+
+            float chipX = s2ContentX + (col * (chipSize + chipGap));
+            float chipY = s2Y + (row * (chipSize + chipGap));
+            SDL_FRect chipRect = { chipX, chipY, chipSize, chipSize };
+
+            bool isHov = (mousePos.x >= chipRect.x && mousePos.x <= chipRect.x + chipRect.w &&
+                          mousePos.y >= chipRect.y && mousePos.y <= chipRect.y + chipRect.h);
+
+            const auto& eff = effects[i];
+            SDL_Color bdCol = isHov ? Theme::colors.borderSelected : (eff.isDebuff ? Theme::colors.health : Theme::colors.companion);
+
+            // 1. Base dark background panel
+            UIWidget::drawPanel(renderer, chipRect, Theme::colors.bgDark, bdCol);
+
+            // 2. Interior horizontal shading (0hrs on left to 24hrs on right)
+            int remMins = eff.getRemainingMinutes();
+            float fillRatio = std::clamp(static_cast<float>(remMins) / 1440.0f, 0.0f, 1.0f);
+            if (fillRatio > 0.0f)
+            {
+                float borderInset = 1.0f * uiScale;
+                float shadeW = (chipSize - (borderInset * 2.0f)) * fillRatio;
+                float shadeH = chipSize - (borderInset * 2.0f);
+                SDL_FRect shadeRect = { chipX + borderInset, chipY + borderInset, shadeW, shadeH };
+
+                // Color gradient transitioning from rich green (24h) to bright red (0h)
+                uint8_t r, g, b;
+                if (fillRatio >= 0.5f)
+                {
+                    float t = (fillRatio - 0.5f) / 0.5f;
+                    r = static_cast<uint8_t>(std::lerp(230.0f, 45.0f, t));
+                    g = static_cast<uint8_t>(std::lerp(190.0f, 190.0f, t));
+                    b = static_cast<uint8_t>(std::lerp(40.0f, 75.0f, t));
+                }
+                else
+                {
+                    float t = fillRatio / 0.5f;
+                    r = static_cast<uint8_t>(std::lerp(230.0f, 230.0f, t));
+                    g = static_cast<uint8_t>(std::lerp(50.0f, 190.0f, t));
+                    b = static_cast<uint8_t>(std::lerp(50.0f, 40.0f, t));
+                }
+                uint8_t a = 180;
+
+                SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+                SDL_SetRenderDrawColor(renderer, r, g, b, a);
+                SDL_RenderFillRect(renderer, &shadeRect);
+            }
+
+            // 3. Centered icon / glyph abbreviation
+            std::string code;
+            if (!eff.iconId.empty() && eff.iconId.length() <= 3)
+            {
+                code = eff.iconId;
+            }
+            else if (eff.id == "buff_str") code = "STR";
+            else if (eff.id == "buff_arc") code = "ARC";
+            else if (eff.id == "debuff_pois") code = "POI";
+            else if (eff.id == "buff_haste") code = "HST";
+            else if (eff.id == "buff_shield") code = "SHD";
+            else if (eff.id == "debuff_lust") code = "LST";
+            else if (eff.id == "buff_regen") code = "REG";
+            else
+            {
+                code = eff.name.substr(0, std::min<size_t>(3, eff.name.length()));
+            }
+            for (auto& c : code) c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+
+            float textScale = uiScale * 0.54f;
+            float cW = UIWidget::getTextWidth(code, textScale);
+            float textH = UIWidget::getLineHeight(textScale);
+            float tX = chipX + ((chipSize - cW) / 2.0f);
+            float tY = chipY + ((chipSize - textH) / 2.0f) - (1.0f * uiScale);
+
+            // Drop shadow for legibility over shaded background
+            UIWidget::drawText(renderer, code, tX + (1.0f * uiScale), tY + (1.0f * uiScale), SDL_Color{ 10, 10, 15, 240 }, textScale);
+            UIWidget::drawText(renderer, code, tX, tY, Theme::colors.textPrimary, textScale);
+
+            // 4. Hover Tooltip
+            std::string timeStr;
+            if (eff.durationMinutes > 0)
+            {
+                int h = eff.durationMinutes / 60;
+                int m = eff.durationMinutes % 60;
+                if (h > 0 && m > 0) timeStr = std::format("{}h {}m remaining", h, m);
+                else if (h > 0) timeStr = std::format("{}h remaining", h);
+                else timeStr = std::format("{}m remaining", m);
+            }
+            else if (eff.durationTurns > 0)
+            {
+                timeStr = std::format("{} turns remaining", eff.durationTurns);
+            }
+            else
+            {
+                timeStr = "Permanent";
+            }
+
+            std::string sub = std::format("{} • {}", eff.isDebuff ? "Debuff" : "Buff", timeStr);
+            TooltipManager::setHoverTooltip(chipRect, mousePos, eff.name, eff.description, sub);
+        }
+    }
+
     static float renderSingleCompanionCard(SDL_Renderer* renderer, entity* companion, float padX, float curY, float availableW, float uiScale, const TooltipPoint& mousePos)
     {
         if (!companion) return 0.0f;
@@ -118,18 +228,18 @@ namespace CharacterCardWidget
         float s2Pad = 5.0f * uiScale;
         float s2ContentW = subW - (s2Pad * 2.0f);
 
-        const float chipSize = 22.0f * uiScale;
-        const float chipGap = 3.0f * uiScale;
+        const float chipSize = 25.0f * uiScale;
+        const float chipGap = 4.0f * uiScale;
         int chipsPerRow = std::max(1, static_cast<int>(std::floor((s2ContentW + chipGap) / (chipSize + chipGap))));
 
         const auto& effects = player->statusEffects;
-        int numEffectRows = effects.empty() ? 1 : static_cast<int>(std::ceil(effects.size() / static_cast<float>(chipsPerRow)));
-        float statusSectionH = (numEffectRows * chipSize) + ((numEffectRows - 1) * chipGap);
+        int numEffectRows = effects.empty() ? 0 : static_cast<int>(std::ceil(effects.size() / static_cast<float>(chipsPerRow)));
+        float statusSectionH = (numEffectRows == 0) ? 0.0f : ((numEffectRows * chipSize) + ((numEffectRows - 1) * chipGap) + (6.0f * uiScale));
 
         // Calculate heights dynamically with generous vertical headroom
         float sub1H = 58.0f * uiScale;
         float vitalsTopH = 80.0f * uiScale; // "VITALS & STATUS" header + 4 progress bars
-        float sub2H = vitalsTopH + statusSectionH + (8.0f * uiScale);
+        float sub2H = vitalsTopH + statusSectionH + (4.0f * uiScale);
         float headerH = 20.0f * uiScale;
         float outerH = headerH + (3.0f * uiScale) + sub1H + (5.0f * uiScale) + sub2H + (5.0f * uiScale);
 
@@ -287,57 +397,9 @@ namespace CharacterCardWidget
         // -------------------------------------------------------------------------
         // DYNAMIC STATUS EFFECT SQUARE CHIP ROWS
         // -------------------------------------------------------------------------
-        if (effects.empty())
+        if (!effects.empty())
         {
-            // Baseline status chips when no active effects
-            static const std::vector<std::pair<std::string, SDL_Color>> defaultChips = {
-                { "Phys", Theme::colors.health },
-                { "Arc", Theme::colors.mana },
-                { "Form", Theme::colors.companion },
-                { "Buff", Theme::colors.textGold }
-            };
-
-            float dGap = 3.0f * uiScale;
-            float dW = (s2ContentW - (dGap * (defaultChips.size() - 1))) / static_cast<float>(defaultChips.size());
-            float dH = chipSize;
-
-            for (size_t t = 0; t < defaultChips.size(); ++t)
-            {
-                SDL_FRect tBox = { s2ContentX + (t * (dW + dGap)), s2Y, dW, dH };
-                UIWidget::drawPanel(renderer, tBox, Theme::colors.bgHeader, Theme::colors.borderButton);
-                float txtW = UIWidget::getTextWidth(defaultChips[t].first, uiScale * 0.62f);
-                UIWidget::drawText(renderer, defaultChips[t].first, tBox.x + ((dW - txtW) / 2.0f), tBox.y + (3.0f * uiScale), defaultChips[t].second, uiScale * 0.62f);
-            }
-        }
-        else
-        {
-            // Render square status effect icons in 1, 2, 3+ dynamic rows
-            for (size_t i = 0; i < effects.size(); ++i)
-            {
-                int row = static_cast<int>(i / chipsPerRow);
-                int col = static_cast<int>(i % chipsPerRow);
-
-                float chipX = s2ContentX + (col * (chipSize + chipGap));
-                float chipY = s2Y + (row * (chipSize + chipGap));
-                SDL_FRect chipRect = { chipX, chipY, chipSize, chipSize };
-
-                bool isHov = (mousePos.x >= chipRect.x && mousePos.x <= chipRect.x + chipRect.w &&
-                              mousePos.y >= chipRect.y && mousePos.y <= chipRect.y + chipRect.h);
-
-                const auto& eff = effects[i];
-                SDL_Color fillCol = isHov ? Theme::colors.bgHeader : Theme::colors.bgHeader;
-                SDL_Color bdCol = eff.isDebuff ? Theme::colors.health : Theme::colors.companion;
-                SDL_Color textCol = eff.isDebuff ? Theme::colors.health : Theme::colors.textGold;
-
-                UIWidget::drawPanel(renderer, chipRect, fillCol, bdCol);
-
-                std::string code = eff.name.substr(0, std::min<size_t>(2, eff.name.length()));
-                float cW = UIWidget::getTextWidth(code, uiScale * 0.58f);
-                UIWidget::drawText(renderer, code, chipX + ((chipSize - cW) / 2.0f), chipY + (3.0f * uiScale), textCol, uiScale * 0.58f);
-
-                std::string sub = std::format("{} • {} turns remaining", eff.isDebuff ? "Debuff" : "Buff", eff.durationTurns);
-                TooltipManager::setHoverTooltip(chipRect, mousePos, eff.name, eff.description, sub);
-            }
+            renderStatusEffectsGrid(renderer, effects, s2ContentX, s2Y, s2ContentW, chipSize, chipGap, chipsPerRow, uiScale, mousePos);
         }
 
         curY += sub2H + (5.0f * uiScale);

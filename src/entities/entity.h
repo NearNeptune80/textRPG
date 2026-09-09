@@ -76,6 +76,8 @@ public:
     void removeStatusEffect(const std::string& effectId);
     bool hasStatusEffect(const std::string& effectId) const;
     void updateStatusEffectsOnTurn();
+    void updateStatusEffectsOnTime(int minutesPassed);
+    void clearStatusEffects();
 
     void invalidateStatCache() const;
     float getStat(const std::string& statName) const;

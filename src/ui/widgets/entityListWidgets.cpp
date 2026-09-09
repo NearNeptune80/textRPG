@@ -19,6 +19,7 @@
 #include "ui/theme.h"
 #include "ui/uiWidget.h"
 #include "ui/tooltipManager.h"
+#include "ui/widgets/characterCardWidget.h"
 
 namespace EntityListWidgets
 {
@@ -125,17 +126,17 @@ namespace EntityListWidgets
         float s2Pad = 5.0f * uiScale;
         float s2ContentW = subW - (s2Pad * 2.0f);
 
-        const float chipSize = 22.0f * uiScale;
-        const float chipGap = 3.0f * uiScale;
+        const float chipSize = 25.0f * uiScale;
+        const float chipGap = 4.0f * uiScale;
         int chipsPerRow = std::max(1, static_cast<int>(std::floor((s2ContentW + chipGap) / (chipSize + chipGap))));
 
         const auto& effects = npc->statusEffects;
-        int numEffectRows = effects.empty() ? 1 : static_cast<int>(std::ceil(effects.size() / static_cast<float>(chipsPerRow)));
-        float statusSectionH = (numEffectRows * chipSize) + ((numEffectRows - 1) * chipGap);
+        int numEffectRows = effects.empty() ? 0 : static_cast<int>(std::ceil(effects.size() / static_cast<float>(chipsPerRow)));
+        float statusSectionH = (numEffectRows == 0) ? 0.0f : ((numEffectRows * chipSize) + ((numEffectRows - 1) * chipGap) + (6.0f * uiScale));
 
         float sub1H = 58.0f * uiScale;
         float vitalsTopH = 80.0f * uiScale;
-        float sub2H = vitalsTopH + statusSectionH + (8.0f * uiScale);
+        float sub2H = vitalsTopH + statusSectionH + (4.0f * uiScale);
         float headerH = 20.0f * uiScale;
         float outerH = headerH + (3.0f * uiScale) + sub1H + (5.0f * uiScale) + sub2H + (5.0f * uiScale);
 
@@ -285,50 +286,9 @@ namespace EntityListWidgets
         s2Y += barH + (6.0f * uiScale);
 
         // Status Effects Chips
-        if (effects.empty())
+        if (!effects.empty())
         {
-            static const std::vector<std::pair<std::string, SDL_Color>> defaultChips = {
-                { "Phys", Theme::colors.health },
-                { "Arc", Theme::colors.mana },
-                { "Form", Theme::colors.companion },
-                { "Buff", Theme::colors.textGold }
-            };
-
-            float dGap = 3.0f * uiScale;
-            float dW = (s2ContentW - (dGap * (defaultChips.size() - 1))) / static_cast<float>(defaultChips.size());
-            float dH = chipSize;
-
-            for (size_t t = 0; t < defaultChips.size(); ++t)
-            {
-                SDL_FRect tBox = { s2ContentX + (t * (dW + dGap)), s2Y, dW, dH };
-                UIWidget::drawPanel(renderer, tBox, Theme::colors.bgHeader, Theme::colors.borderButton);
-                float txtW = UIWidget::getTextWidth(defaultChips[t].first, uiScale * 0.62f);
-                UIWidget::drawText(renderer, defaultChips[t].first, tBox.x + ((dW - txtW) / 2.0f), tBox.y + (3.0f * uiScale), defaultChips[t].second, uiScale * 0.62f);
-            }
-        }
-        else
-        {
-            for (size_t i = 0; i < effects.size(); ++i)
-            {
-                int row = static_cast<int>(i / chipsPerRow);
-                int col = static_cast<int>(i % chipsPerRow);
-
-                float chipX = s2ContentX + (col * (chipSize + chipGap));
-                float chipY = s2Y + (row * (chipSize + chipGap));
-                SDL_FRect chipRect = { chipX, chipY, chipSize, chipSize };
-
-                const auto& eff = effects[i];
-                SDL_Color bdCol = eff.isDebuff ? Theme::colors.health : Theme::colors.companion;
-                SDL_Color textCol = eff.isDebuff ? Theme::colors.health : Theme::colors.textGold;
-
-                UIWidget::drawPanel(renderer, chipRect, Theme::colors.bgHeader, bdCol);
-                std::string code = eff.name.substr(0, std::min<size_t>(2, eff.name.length()));
-                float cW = UIWidget::getTextWidth(code, uiScale * 0.58f);
-                UIWidget::drawText(renderer, code, chipX + ((chipSize - cW) / 2.0f), chipY + (3.0f * uiScale), textCol, uiScale * 0.58f);
-
-                std::string sub = std::format("{} • {} turns remaining", eff.isDebuff ? "Debuff" : "Buff", eff.durationTurns);
-                TooltipManager::setHoverTooltip(chipRect, mousePos, eff.name, eff.description, sub);
-            }
+            CharacterCardWidget::renderStatusEffectsGrid(renderer, effects, s2ContentX, s2Y, s2ContentW, chipSize, chipGap, chipsPerRow, uiScale, mousePos);
         }
 
         curY += sub2H + (5.0f * uiScale);

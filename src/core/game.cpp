@@ -162,11 +162,11 @@ void game::init()
                 this->Player->stats.modifyBaseStat("lust", -std::min(currentLust, decayAmount));
             }
 
-            // Status effect expiration ticks
-            int turnTicks = std::max(1, mins / 5);
-            for (int t = 0; t < turnTicks; ++t)
+            // Status effect expiration ticks (minutes-based with turn fallback)
+            this->Player->updateStatusEffectsOnTime(mins);
+            for (auto& comp : this->partyCompanions)
             {
-                this->Player->updateStatusEffectsOnTurn();
+                if (comp) comp->updateStatusEffectsOnTime(mins);
             }
 
             // Advance active pregnancy & process birth
@@ -190,6 +190,7 @@ void game::init()
         {
             this->activeTargetNPC->anatomy.processMutations(mins);
             this->activeTargetNPC->anatomy.processBiologicalRecovery(mins);
+            this->activeTargetNPC->updateStatusEffectsOnTime(mins);
             if (this->activeTargetNPC->gestation.isPregnant)
             {
                 this->activeTargetNPC->gestation.processGestationMinutes(mins);

@@ -211,13 +211,13 @@ int main(int argc, char* argv[])
             {
                 if (engine.getPlayer())
                 {
-                    engine.getPlayer()->addStatusEffect(StatusEffect{ "buff_str", "Strength Buff", "Increases physical damage by 15%", 10, false });
-                    engine.getPlayer()->addStatusEffect(StatusEffect{ "buff_arc", "Arcane Focus", "Mana regen increased by 20%", 10, false });
-                    engine.getPlayer()->addStatusEffect(StatusEffect{ "debuff_pois", "Poisoned", "Taking 5 nature damage per turn", 5, true });
-                    engine.getPlayer()->addStatusEffect(StatusEffect{ "buff_haste", "Haste", "Action speed doubled", 3, false });
-                    engine.getPlayer()->addStatusEffect(StatusEffect{ "buff_shield", "Arcane Ward", "Absorbs up to 50 damage", 8, false });
-                    engine.getPlayer()->addStatusEffect(StatusEffect{ "debuff_lust", "Aphrodisiac", "Arousal increases over time", 6, true });
-                    engine.getPlayer()->addStatusEffect(StatusEffect{ "buff_regen", "Regeneration", "Restores 10 HP every turn", 12, false });
+                    engine.getPlayer()->addStatusEffect(StatusEffect{ "buff_str", "Strength Buff", "Increases physical damage by 15%", 10, false, 1440 });
+                    engine.getPlayer()->addStatusEffect(StatusEffect{ "buff_arc", "Arcane Focus", "Mana regen increased by 20%", 10, false, 1080 });
+                    engine.getPlayer()->addStatusEffect(StatusEffect{ "buff_shield", "Arcane Ward", "Absorbs up to 50 damage", 8, false, 720 });
+                    engine.getPlayer()->addStatusEffect(StatusEffect{ "debuff_lust", "Aphrodisiac", "Arousal increases over time", 6, true, 360 });
+                    engine.getPlayer()->addStatusEffect(StatusEffect{ "debuff_pois", "Poisoned", "Taking 5 nature damage per turn", 5, true, 180 });
+                    engine.getPlayer()->addStatusEffect(StatusEffect{ "buff_regen", "Regeneration", "Restores 10 HP every turn", 12, false, 60 });
+                    engine.getPlayer()->addStatusEffect(StatusEffect{ "buff_haste", "Haste", "Action speed doubled", 3, false, 25 });
                 }
             }
             if (screenshotState == "exploration_overworld") engine.loadMap("overworld", 1, 1);
@@ -356,13 +356,13 @@ int main(int argc, char* argv[])
 
                 if (screenshotState == "inventory_status" && engine.getPlayer())
                 {
-                    engine.getPlayer()->addStatusEffect(StatusEffect{ "buff_str", "Strength Buff", "Increases physical damage by 15%", 10, false });
-                    engine.getPlayer()->addStatusEffect(StatusEffect{ "buff_arc", "Arcane Focus", "Mana regen increased by 20%", 10, false });
-                    engine.getPlayer()->addStatusEffect(StatusEffect{ "debuff_pois", "Poisoned", "Taking 5 nature damage per turn", 5, true });
-                    engine.getPlayer()->addStatusEffect(StatusEffect{ "buff_haste", "Haste", "Action speed doubled", 3, false });
-                    engine.getPlayer()->addStatusEffect(StatusEffect{ "buff_shield", "Arcane Ward", "Absorbs up to 50 damage", 8, false });
-                    engine.getPlayer()->addStatusEffect(StatusEffect{ "debuff_lust", "Aphrodisiac", "Arousal increases over time", 6, true });
-                    engine.getPlayer()->addStatusEffect(StatusEffect{ "buff_regen", "Regeneration", "Restores 10 HP every turn", 12, false });
+                    engine.getPlayer()->addStatusEffect(StatusEffect{ "buff_str", "Strength Buff", "Increases physical damage by 15%", 10, false, 1440 });
+                    engine.getPlayer()->addStatusEffect(StatusEffect{ "buff_arc", "Arcane Focus", "Mana regen increased by 20%", 10, false, 1080 });
+                    engine.getPlayer()->addStatusEffect(StatusEffect{ "buff_shield", "Arcane Ward", "Absorbs up to 50 damage", 8, false, 720 });
+                    engine.getPlayer()->addStatusEffect(StatusEffect{ "debuff_lust", "Aphrodisiac", "Arousal increases over time", 6, true, 360 });
+                    engine.getPlayer()->addStatusEffect(StatusEffect{ "debuff_pois", "Poisoned", "Taking 5 nature damage per turn", 5, true, 180 });
+                    engine.getPlayer()->addStatusEffect(StatusEffect{ "buff_regen", "Regeneration", "Restores 10 HP every turn", 12, false, 60 });
+                    engine.getPlayer()->addStatusEffect(StatusEffect{ "buff_haste", "Haste", "Action speed doubled", 3, false, 25 });
                 }
             }
         }
