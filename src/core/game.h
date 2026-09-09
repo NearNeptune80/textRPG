@@ -121,6 +121,8 @@ public:
     bool loadMap(const std::string& mapId, int startX, int startY);
     void movePlayer(int nextX, int nextY);
     void refreshActionGrid();
+    std::vector<std::shared_ptr<entity>> getTileNPCs() const;
+    void syncTileTarget();
 
     void handleDropAction(int stackedIndex, int quantity);
     void handlePickupAction(int groundIndex, int quantity);

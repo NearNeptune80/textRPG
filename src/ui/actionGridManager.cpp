@@ -1081,33 +1081,38 @@ void ActionGridManager::refresh(game* gameContext)
                 }
 
                 auto& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
-                std::vector<std::shared_ptr<entity>> talkableNPCs = tileData.namedNPCs;
-                if (talkableNPCs.empty() && tileData.persistentNPC && tileData.persistentNPC != tileData.ambushState.npc)
-                {
-                    talkableNPCs.push_back(tileData.persistentNPC);
-                }
+                auto targetNPC = gameContext->getActiveTargetNPCShared();
 
-                for (const auto& npc : talkableNPCs)
+                if (targetNPC)
                 {
-                    if (!npc) continue;
-                    addBtn(gameContext, std::format("Talk to {}", npc->name), [gameContext, npc]() {
-                        auto namedChar = NamedCharacterManager::getCharacter(npc->id);
+                    bool isAmbushEnemy = (tileData.ambushState.npc && tileData.ambushState.npc == targetNPC &&
+                                          !tileData.ambushState.isDefeated && !tileData.ambushState.isPermanentlyRemoved);
+
+                    if (isAmbushEnemy)
+                    {
+                        addBtn(gameContext, std::format("Fight {}", targetNPC->name), [gameContext, targetNPC]() {
+                            gameContext->triggerEncounter(targetNPC);
+                        }, true, false, "Engage " + targetNPC->name + " in combat.");
+                    }
+
+                    addBtn(gameContext, std::format("Talk to {}", targetNPC->name), [gameContext, targetNPC]() {
+                        auto namedChar = NamedCharacterManager::getCharacter(targetNPC->id);
                         if (namedChar && !namedChar->activeSceneId.empty())
                         {
                             gameContext->loadScene(namedChar->activeSceneId);
                         }
                         else
                         {
-                            gameContext->triggerEncounter(npc);
+                            gameContext->triggerEncounter(targetNPC);
                         }
-                    }, true, false, "Initiate dialogue with " + npc->name + ".");
+                    }, true, false, "Initiate dialogue or interaction with " + targetNPC->name + ".");
 
-                    if (npc->buyMarkup != 1.0f || npc->sellMarkdown != 0.5f ||
-                        npc->name.find("Merchant") != std::string::npos || npc->name.find("Shop") != std::string::npos)
+                    if (targetNPC->buyMarkup != 1.0f || targetNPC->sellMarkdown != 0.5f ||
+                        targetNPC->name.find("Merchant") != std::string::npos || targetNPC->name.find("Shop") != std::string::npos)
                     {
-                        addBtn(gameContext, "Visit Shop", [gameContext, npc]() {
-                            gameContext->changeState(std::make_unique<shopState>(npc));
-                        }, true, false, "Browse " + npc->name + "'s inventory and trade goods.");
+                        addBtn(gameContext, "Visit Shop", [gameContext, targetNPC]() {
+                            gameContext->changeState(std::make_unique<shopState>(targetNPC));
+                        }, true, false, "Browse " + targetNPC->name + "'s inventory and trade goods.");
                     }
                 }
 
@@ -1138,10 +1143,9 @@ void ActionGridManager::refresh(game* gameContext)
                     }
                 }
 
-                for (const auto& npc : talkableNPCs)
+                if (targetNPC)
                 {
-                    if (!npc) continue;
-                    auto npcTriggers = questDatabase::getTriggersForNPC(npc->id);
+                    auto npcTriggers = questDatabase::getTriggersForNPC(targetNPC->id);
                     for (const auto& trig : npcTriggers)
                     {
                         if (gameContext->checkConditions(trig.conditions) && !addedTriggerIds.contains(trig.id))

@@ -324,20 +324,8 @@ bool game::loadMap(const std::string& mapId, int startX, int startY)
 
     NamedCharacterManager::syncMapCharacters(map);
 
-    auto& entryTile = map->getRuntimeData(gridX, gridY);
-    if (!entryTile.namedNPCs.empty())
-    {
-        activeTargetNPC = entryTile.namedNPCs.front();
-        activeTargetMode = TargetMode::DIALOGUE;
-    }
-    else
-    {
-        activeTargetNPC = nullptr;
-        activeTargetMode = TargetMode::NONE;
-    }
-
     map->updateDiscovery(gridX, gridY, 3);
-    refreshActionGrid();
+    syncTileTarget();
 
     std::string zoneTitle = map->getName().empty() ? mapId : map->getName();
     addLogEntry("[ZONE]", "Entered " + zoneTitle, { 80, 160, 220, 255 });
@@ -416,15 +404,50 @@ void game::movePlayer(int nextX, int nextY)
         }
     }
 
-    if (!tileData.namedNPCs.empty())
+    syncTileTarget();
+}
+
+std::vector<std::shared_ptr<entity>> game::getTileNPCs() const
+{
+    std::vector<std::shared_ptr<entity>> npcs;
+    if (!map) return npcs;
+
+    auto& tileData = map->getRuntimeData(gridX, gridY);
+    for (const auto& n : tileData.namedNPCs)
     {
-        activeTargetNPC = tileData.namedNPCs.front();
-        activeTargetMode = TargetMode::DIALOGUE;
+        if (n && std::find(npcs.begin(), npcs.end(), n) == npcs.end())
+            npcs.push_back(n);
     }
-    else
+    if (tileData.persistentNPC && std::find(npcs.begin(), npcs.end(), tileData.persistentNPC) == npcs.end())
+    {
+        npcs.push_back(tileData.persistentNPC);
+    }
+    if (tileData.ambushState.npc && !tileData.ambushState.isDefeated && !tileData.ambushState.isPermanentlyRemoved &&
+        std::find(npcs.begin(), npcs.end(), tileData.ambushState.npc) == npcs.end())
+    {
+        npcs.push_back(tileData.ambushState.npc);
+    }
+
+    return npcs;
+}
+
+void game::syncTileTarget()
+{
+    auto npcs = getTileNPCs();
+    if (npcs.empty())
     {
         activeTargetNPC = nullptr;
         activeTargetMode = TargetMode::NONE;
+    }
+    else
+    {
+        // If only one character, obviously they are selected.
+        // More than one should default to the top of the list if current target is not in the list.
+        if (!activeTargetNPC || std::find(npcs.begin(), npcs.end(), activeTargetNPC) == npcs.end())
+        {
+            activeTargetNPC = npcs.front();
+            activeTargetMode = TargetMode::DIALOGUE;
+        }
     }
     refreshActionGrid();
 }

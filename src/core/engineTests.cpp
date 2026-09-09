@@ -3048,14 +3048,14 @@ namespace EngineTests
             allPassed &= interiorDefaultOk;
         }
 
-        // 3. NPC Interaction State and Dynamic List Helpers
-        g.loadMap("overworld", 2, 3);
+        // 3. NPC Interaction State, Auto-Selection, and Stable List Targeting
+        g.loadMap("overworld", 5, 5); // Tile (5, 5) has no NPCs
         g.activeTargetNPC = nullptr;
         bool initialInteracting = EntityListWidgets::isInteractingWithNPC(&g);
-        logResult("EntityListWidgets::isInteractingWithNPC returns false when no active target NPC", !initialInteracting);
+        logResult("EntityListWidgets::isInteractingWithNPC returns false when no NPCs on tile and no target", !initialInteracting);
         allPassed &= !initialInteracting;
 
-        // Create a mock NPC
+        // Add 1 NPC on tile (5, 5)
         auto testNpc1 = std::make_shared<entity>("bandit_01", "Alleyway Bandit");
         testNpc1->stats.level = 3;
         testNpc1->stats.setBaseStat("health", 85.0f);
@@ -3065,33 +3065,41 @@ namespace EngineTests
         testNpc1->stats.setBaseStat("lust", 10.0f);
         testNpc1->stats.setBaseStat("max_lust", 100.0f);
 
-        // When activeTargetNPC is set
-        g.activeTargetNPC = testNpc1;
-        bool targetInteracting = EntityListWidgets::isInteractingWithNPC(&g);
-        logResult("EntityListWidgets::isInteractingWithNPC returns true when activeTargetNPC is set", targetInteracting);
-        allPassed &= targetInteracting;
+        g.map->getRuntimeData(5, 5).namedNPCs.push_back(testNpc1);
+        g.syncTileTarget();
 
-        auto interactingNPCs = EntityListWidgets::getInteractingNPCs(&g);
-        bool listHasTarget = (!interactingNPCs.empty() && interactingNPCs[0] == testNpc1);
-        logResult("getInteractingNPCs returns active target NPC as primary card candidate", listHasTarget);
-        allPassed &= listHasTarget;
+        bool autoSelectOne = (g.activeTargetNPC == testNpc1);
+        logResult("Single NPC on tile is automatically selected (If theres only one character, obviously they are selected)", autoSelectOne);
+        allPassed &= autoSelectOne;
+
+        bool targetInteracting = EntityListWidgets::isInteractingWithNPC(&g);
+        logResult("EntityListWidgets::isInteractingWithNPC returns true when NPC is present and selected", targetInteracting);
+        allPassed &= targetInteracting;
 
         // Adding a second NPC on current tile
         auto testNpc2 = std::make_shared<entity>("guard_01", "Town Guard");
         testNpc2->stats.level = 5;
-        if (g.map)
-        {
-            g.map->getRuntimeData(g.gridX, g.gridY).namedNPCs.push_back(testNpc2);
-        }
-        auto multiNPCs = EntityListWidgets::getInteractingNPCs(&g);
-        bool multiOk = (multiNPCs.size() == 2 && multiNPCs[0] == testNpc1 && multiNPCs[1] == testNpc2);
-        logResult("getInteractingNPCs aggregates primary target and secondary tile characters for scrollable list", multiOk);
-        allPassed &= multiOk;
+        g.map->getRuntimeData(5, 5).namedNPCs.push_back(testNpc2);
 
-        // Clear target
+        // Auto-default when target is unassigned defaults to the top of the list
         g.activeTargetNPC = nullptr;
+        g.syncTileTarget();
+        bool autoDefaultTop = (g.activeTargetNPC == testNpc1);
+        logResult("Multiple NPCs on tile default selection to top of list (More than one should default to the top of the list)", autoDefaultTop);
+        allPassed &= autoDefaultTop;
+
+        // Switching selection to second NPC keeps list order stable without changing layout
+        g.activeTargetNPC = testNpc2;
+        auto multiNPCs = EntityListWidgets::getInteractingNPCs(&g);
+        bool stableOrder = (multiNPCs.size() == 2 && multiNPCs[0] == testNpc1 && multiNPCs[1] == testNpc2);
+        logResult("Selecting character does NOT alter list order or change layout (The selection thing isn't to change the layout)", stableOrder);
+        allPassed &= stableOrder;
+
+        // Clear NPCs from tile (5, 5)
+        g.map->getRuntimeData(5, 5).namedNPCs.clear();
+        g.syncTileTarget();
         bool clearedInteracting = EntityListWidgets::isInteractingWithNPC(&g);
-        logResult("EntityListWidgets::isInteractingWithNPC reverts to false when target is cleared", !clearedInteracting);
+        logResult("EntityListWidgets::isInteractingWithNPC reverts to false when tile has no NPCs and no target", !clearedInteracting);
         allPassed &= !clearedInteracting;
 
         return allPassed;
