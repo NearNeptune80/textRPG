@@ -29,7 +29,35 @@ std::vector<std::string> InfusionEffect::getEffectDescriptions(const entity* tar
     int bonus = getTierStatBonus(tier);
     std::string sign = bonus >= 0 ? std::format("+{}", bonus) : std::format("{}", bonus);
 
-    if (property == AspectProperty::PHYSIQUE_STAT)
+    // Continuous Sizing & Gradual Transformations on Apparel
+    if (propertySupportsLimits(property, nullptr))
+    {
+        if (targetType == InfusionTargetType::APPAREL)
+        {
+            std::string interval = "Weekly";
+            if (tier == InfusionTier::MAJOR_HEX || tier == InfusionTier::GREATER_BOON) interval = "Hourly";
+            else if (tier == InfusionTier::HEX || tier == InfusionTier::BOON) interval = "Daily";
+
+            std::string dir = isTierNegative(tier) ? "reduction" : "increase";
+            std::string propName = getPropertyDefinition(property).displayName;
+            std::string limitStr = "";
+            if (limitThreshold >= 0)
+            {
+                std::string limLabel = getLimitStepLabel(property, limitThreshold);
+                limitStr = std::format(" (Limit: {})", limLabel);
+            }
+            desc.push_back(std::format("{} {} {}.{}", interval, propName, dir, limitStr));
+            return desc;
+        }
+        else if (limitThreshold >= 0)
+        {
+            std::string limLabel = getLimitStepLabel(property, limitThreshold);
+            desc.push_back(std::format("{} {} (Limit: {})", sign, getPropertyDefinition(property).displayName, limLabel));
+            return desc;
+        }
+    }
+
+    if (property == AspectProperty::PHYSIQUE_STAT || property == AspectProperty::CORE_PHYSIQUE)
     {
         desc.push_back(std::format("{} Physique & Physical Fortitude", sign));
         if (targetType == InfusionTargetType::CONSUMABLE_TONIC)
@@ -37,7 +65,7 @@ std::vector<std::string> InfusionEffect::getEffectDescriptions(const entity* tar
             desc.push_back("Applies 'Colossus Might' status effect (4 hours).");
         }
     }
-    else if (property == AspectProperty::AGILITY_STAT)
+    else if (property == AspectProperty::AGILITY_STAT || property == AspectProperty::ATTR_AGILITY)
     {
         desc.push_back(std::format("{} Agility & Reflexive Speed", sign));
         if (targetType == InfusionTargetType::CONSUMABLE_TONIC)
@@ -45,7 +73,7 @@ std::vector<std::string> InfusionEffect::getEffectDescriptions(const entity* tar
             desc.push_back("Applies 'Predator's Instinct' status effect (4 hours).");
         }
     }
-    else if (property == AspectProperty::ARCANE_STAT)
+    else if (property == AspectProperty::ARCANE_STAT || property == AspectProperty::CORE_ARCANE)
     {
         desc.push_back(std::format("{} Arcane Resonance", sign));
         if (targetType == InfusionTargetType::CONSUMABLE_TONIC)
@@ -53,15 +81,19 @@ std::vector<std::string> InfusionEffect::getEffectDescriptions(const entity* tar
             desc.push_back("Applies 'Eldritch Clarity' status effect (4 hours).");
         }
     }
-    else if (property == AspectProperty::HEALTH_CEILING)
+    else if (property == AspectProperty::HEALTH_CEILING || property == AspectProperty::CORE_HEALTH)
     {
         desc.push_back(std::format("{} Maximum Vitality", bonus * 15 >= 0 ? std::format("+{}", bonus * 15) : std::format("{}", bonus * 15)));
     }
-    else if (property == AspectProperty::MANA_CEILING)
+    else if (property == AspectProperty::MANA_CEILING || property == AspectProperty::CORE_MANA)
     {
         desc.push_back(std::format("{} Maximum Aura", bonus * 15 >= 0 ? std::format("+{}", bonus * 15) : std::format("{}", bonus * 15)));
     }
-    else if (property == AspectProperty::VIRILITY_FACTOR)
+    else if (property == AspectProperty::CORE_STAMINA)
+    {
+        desc.push_back(std::format("{} Maximum Stamina", bonus * 10 >= 0 ? std::format("+{}", bonus * 10) : std::format("{}", bonus * 10)));
+    }
+    else if (property == AspectProperty::VIRILITY_FACTOR || property == AspectProperty::VIRILITY_POTENCY || property == AspectProperty::ATTR_VIRILITY)
     {
         desc.push_back(std::format("{} Virile Potency", bonus * 10 >= 0 ? std::format("+{}", bonus * 10) : std::format("{}", bonus * 10)));
         if (targetType == InfusionTargetType::CONSUMABLE_TONIC)
@@ -69,7 +101,7 @@ std::vector<std::string> InfusionEffect::getEffectDescriptions(const entity* tar
             desc.push_back("Applies 'Primal Surge' status effect (24 hours).");
         }
     }
-    else if (property == AspectProperty::FERTILITY_FACTOR)
+    else if (property == AspectProperty::FERTILITY_FACTOR || property == AspectProperty::FERTILITY_RECEPTIVITY || property == AspectProperty::ATTR_FERTILITY)
     {
         desc.push_back(std::format("{} Fertile Receptivity", bonus * 10 >= 0 ? std::format("+{}", bonus * 10) : std::format("{}", bonus * 10)));
         if (targetType == InfusionTargetType::CONSUMABLE_TONIC)
@@ -77,13 +109,113 @@ std::vector<std::string> InfusionEffect::getEffectDescriptions(const entity* tar
             desc.push_back("Applies 'Primal Surge' status effect (24 hours).");
         }
     }
-    else if (property == AspectProperty::CORRUPTION_AURA)
+    else if (property == AspectProperty::CORRUPTION_AURA || property == AspectProperty::CORE_CORRUPTION)
     {
         desc.push_back(std::format("{} Demonic Corruption Aura", sign));
         if (targetType == InfusionTargetType::CONSUMABLE_TONIC)
         {
             desc.push_back("Applies 'Alchemical Trance' status effect (6 hours).");
         }
+    }
+    else if (property == AspectProperty::ATTR_PHYSICAL_DAMAGE || property == AspectProperty::DAMAGE_PHYSICAL)
+    {
+        desc.push_back(std::format("{} Physical Damage", sign));
+    }
+    else if (property == AspectProperty::ATTR_SPELL_POWER)
+    {
+        desc.push_back(std::format("{} Spell Power", sign));
+    }
+    else if (property == AspectProperty::ATTR_ARMOR || property == AspectProperty::ARMOR_RATING)
+    {
+        desc.push_back(std::format("{} Armor Rating", sign));
+    }
+    else if (property == AspectProperty::ATTR_WARDING || property == AspectProperty::WARD_RESISTANCE)
+    {
+        desc.push_back(std::format("{} Elemental Warding", sign));
+    }
+    else if (property == AspectProperty::ATTR_CRITICAL || property == AspectProperty::CRITICAL_POWER)
+    {
+        desc.push_back(std::format("{} Critical Precision", sign));
+    }
+    else if (property == AspectProperty::SOULBOUND_SEAL)
+    {
+        desc.push_back("Soulbound Seal (Unseal: 5) - Affixes permanently onto wearer.");
+    }
+    else if (property == AspectProperty::CONCEAL_IDENTITY)
+    {
+        desc.push_back("Conceal Identity - Obscures true facial identity under an arcane shroud.");
+    }
+    else if (property == AspectProperty::SERVITUDE_INHIBITION)
+    {
+        desc.push_back("Servitude Binding - Suppresses uninhibited transformations and seals willpower.");
+    }
+    else if (property == AspectProperty::SENSORY_VIBRATION)
+    {
+        desc.push_back("+10 Resting Arousal & rhythmic sensory stimulation.");
+    }
+    else if (property == AspectProperty::RETENTION_STOMACH)
+    {
+        desc.push_back(std::format("{} Stomach Fluid Retention", sign));
+    }
+    else if (property == AspectProperty::RETENTION_MAMMARY)
+    {
+        desc.push_back(std::format("{} Mammary Fluid Retention", sign));
+    }
+    else if (property == AspectProperty::RETENTION_YONI)
+    {
+        desc.push_back(std::format("{} Yoni Semen Retention", sign));
+    }
+    else if (property == AspectProperty::RETENTION_ANAL)
+    {
+        desc.push_back(std::format("{} Anal Fluid Retention", sign));
+    }
+    else if (property == AspectProperty::DESIRE_ANAL)
+    {
+        desc.push_back(std::format("{} Anal Attunement & Craving", sign));
+    }
+    else if (property == AspectProperty::DESIRE_MAMMARY)
+    {
+        desc.push_back(std::format("{} Mammary Attunement & Craving", sign));
+    }
+    else if (property == AspectProperty::DESIRE_PHALLIC)
+    {
+        desc.push_back(std::format("{} Phallic Attunement & Craving", sign));
+    }
+    else if (property == AspectProperty::DESIRE_YONI)
+    {
+        desc.push_back(std::format("{} Yoni Attunement & Craving", sign));
+    }
+    else if (property == AspectProperty::DESIRE_FEET)
+    {
+        desc.push_back(std::format("{} Foot Attunement & Craving", sign));
+    }
+    else if (property == AspectProperty::DESIRE_DOMINANT)
+    {
+        desc.push_back(std::format("{} Dominant Behavioral Instinct", sign));
+    }
+    else if (property == AspectProperty::DESIRE_SUBMISSIVE)
+    {
+        desc.push_back(std::format("{} Submissive Behavioral Instinct", sign));
+    }
+    else if (property == AspectProperty::DESIRE_BONDAGE)
+    {
+        desc.push_back(std::format("{} Bondage & Restraint Craving", sign));
+    }
+    else if (property == AspectProperty::DESIRE_EXHIBITIONISM)
+    {
+        desc.push_back(std::format("{} Exhibitionism Inclination", sign));
+    }
+    else if (property == AspectProperty::DESIRE_CHASTITY)
+    {
+        desc.push_back(std::format("{} Chastity & Denial Craving", sign));
+    }
+    else if (property == AspectProperty::DESIRE_MASOCHISM)
+    {
+        desc.push_back(std::format("{} Masochistic Pleasure", sign));
+    }
+    else if (property == AspectProperty::DESIRE_SADISM)
+    {
+        desc.push_back(std::format("{} Sadistic Dominance", sign));
     }
     else if (property == AspectProperty::SCALE_SIZE)
     {
@@ -92,14 +224,6 @@ std::vector<std::string> InfusionEffect::getEffectDescriptions(const entity* tar
     else if (property == AspectProperty::FLUID_PRODUCTION || property == AspectProperty::REGENERATION_RATE)
     {
         desc.push_back(std::format("{} Fluid Capacity & Regeneration Rate", sign));
-    }
-    else if (property == AspectProperty::SOULBOUND_SEAL)
-    {
-        desc.push_back("Seals permanently onto wearer (Requires essence cleansing to unbind).");
-    }
-    else if (property == AspectProperty::SENSORY_VIBRATION)
-    {
-        desc.push_back("+10 Resting Arousal & rhythmic sensory stimulation.");
     }
     else
     {

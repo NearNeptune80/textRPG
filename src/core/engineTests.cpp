@@ -4063,6 +4063,150 @@ namespace EngineTests
         return allPassed;
     }
 
+    bool testEnchantingAltarParityAndLimits()
+    {
+        std::cout << "\n--- Running Test 34: Enchanting Altar Parity, Limits & Unequipped Enforcement ---\n";
+        bool allPassed = true;
+
+        // 1. Validate Continuous Limit Support
+        bool breastLimits = propertySupportsLimits(AspectProperty::BREAST_SIZE, nullptr);
+        bool penisLimits = propertySupportsLimits(AspectProperty::PENIS_LENGTH, nullptr);
+        bool heightLimits = propertySupportsLimits(AspectProperty::STATURE_HEIGHT, nullptr);
+        bool hairLimits = propertySupportsLimits(AspectProperty::HAIR_LENGTH, nullptr);
+        bool sealNoLimits = !propertySupportsLimits(AspectProperty::SOULBOUND_SEAL, nullptr);
+        bool statNoLimits = !propertySupportsLimits(AspectProperty::CORE_PHYSIQUE, nullptr);
+
+        bool limitsCheck = breastLimits && penisLimits && heightLimits && hairLimits && sealNoLimits && statNoLimits;
+        logResult("Continuous limit support correctly identifies sizing vs non-continuous properties", limitsCheck);
+        allPassed &= limitsCheck;
+
+        // 2. Discrete 6-Step Limit Thresholds
+        auto bSteps = getPropertyLimitSteps(AspectProperty::BREAST_SIZE);
+        bool breastStepsOk = (bSteps.size() == 6 && bSteps.front() == "flat" && bSteps.back() == "titanic");
+        logResult("Breast sizing exposes 6 discrete limit steps ranging from 'flat' to 'titanic'", breastStepsOk);
+        allPassed &= breastStepsOk;
+
+        auto hSteps = getPropertyLimitSteps(AspectProperty::STATURE_HEIGHT);
+        bool heightStepsOk = (hSteps.size() == 6 && hSteps.front() == "tiny" && hSteps.back() == "titanic");
+        logResult("Height exposes 6 discrete limit steps ranging from 'tiny' to 'titanic'", heightStepsOk);
+        allPassed &= heightStepsOk;
+
+        // 3. Apparel vs Non-Apparel Tier Naming Parity
+        bool apparelTiersOk = (
+            getTierName(InfusionTier::MAJOR_HEX, true) == "Major Drain" &&
+            getTierName(InfusionTier::HEX, true) == "Drain" &&
+            getTierName(InfusionTier::MINOR_HEX, true) == "Minor Drain" &&
+            getTierName(InfusionTier::MINOR_BOON, true) == "Minor Boost" &&
+            getTierName(InfusionTier::BOON, true) == "Boost" &&
+            getTierName(InfusionTier::GREATER_BOON, true) == "Major Boost"
+        );
+        logResult("Apparel tier naming uses Drain and Boost terminology (Major Drain -> Major Boost)", apparelTiersOk);
+        allPassed &= apparelTiersOk;
+
+        bool standardTiersOk = (
+            getTierName(InfusionTier::MAJOR_HEX, false) == "Major Hex" &&
+            getTierName(InfusionTier::GREATER_BOON, false) == "Greater Boon"
+        );
+        logResult("Consumables and weapons preserve standard Hex and Boon tier labels", standardTiersOk);
+        allPassed &= standardTiersOk;
+
+        // 4. Gradual Time Intervals and Limit Formatting in Descriptions
+        InfusionEffect apparelEffect{
+            InfusionTargetType::APPAREL,
+            EnchantmentFocus::BREASTS,
+            AspectProperty::BREAST_SIZE,
+            InfusionTier::BOON,
+            0 // limit step 0: flat
+        };
+        auto desc1 = apparelEffect.getEffectDescriptions();
+        bool desc1Ok = !desc1.empty() && (desc1.front() == "Daily Breast Size increase. (Limit: flat)");
+        logResult("Apparel continuous sizing description formats with interval and limit ('Daily Breast Size increase. (Limit: flat)')", desc1Ok);
+        allPassed &= desc1Ok;
+
+        InfusionEffect drainEffect{
+            InfusionTargetType::APPAREL,
+            EnchantmentFocus::BREASTS,
+            AspectProperty::BREAST_SIZE,
+            InfusionTier::MAJOR_HEX,
+            1 // limit step 1: small
+        };
+        auto desc2 = drainEffect.getEffectDescriptions();
+        bool desc2Ok = !desc2.empty() && (desc2.front() == "Hourly Breast Size reduction. (Limit: small)");
+        logResult("Apparel major drain description formats with hourly reduction ('Hourly Breast Size reduction. (Limit: small)')", desc2Ok);
+        allPassed &= desc2Ok;
+
+        // 5. Unequipped Enforcement at the Altar
+        game engine;
+        engine.playerEntity = std::make_shared<entity>("test_enchanter", "TestEnchanter");
+        engine.Player = engine.playerEntity.get();
+        engine.Player->stats.setBaseStat("arcaneEssence", 100.0f);
+
+        auto testRing = std::make_shared<item>();
+        testRing->id = "test_ward_ring";
+        testRing->name = "Ring of Warding";
+        testRing->category = ItemCategory::ACCESSORY;
+        testRing->targetSlot = equipSlot::FINGER_PRIMARY;
+        testRing->isEquippable = true;
+
+        engine.Player->inventory.backpack.push_back(testRing);
+
+        // First test unequipped state:
+        auto ringAltar = std::make_unique<enchantingState>(0, std::make_unique<inventoryState>(), testRing);
+        ringAltar->initialise(&engine);
+
+        bool equippedInitial = ringAltar->isTargetItemEquipped(&engine);
+        logResult("Unequipped backpack item is detected as unequipped by the altar", !equippedInitial);
+        allPassed &= !equippedInitial;
+
+        ringAltar->setFocus(EnchantmentFocus::RESISTANCE_WARDING);
+        ringAltar->setProperty(AspectProperty::WARD_RESISTANCE);
+        ringAltar->stageCurrentEffect();
+
+        bool canCraftUnequipped = ringAltar->canAffordCraft(&engine);
+        logResult("Unequipped item with staged effect and sufficient essence can be crafted", canCraftUnequipped);
+        allPassed &= canCraftUnequipped;
+
+        // Now equip the item on the player:
+        engine.Player->inventory.equipItem(0, equipSlot::FINGER_PRIMARY);
+        bool isEquippedNow = ringAltar->isTargetItemEquipped(&engine);
+        logResult("Equipping the item is immediately detected by the altar (isTargetItemEquipped == true)", isEquippedNow);
+        allPassed &= isEquippedNow;
+
+        bool canCraftEquipped = ringAltar->canAffordCraft(&engine);
+        logResult("Altar strictly blocks crafting when the target item is equipped (canAffordCraft == false)", !canCraftEquipped);
+        allPassed &= !canCraftEquipped;
+
+        // 6. Complete Parity Focus Domain Matrix
+        auto apparelFocuses = getCompatibleFocuses(testRing.get());
+        bool hasCore = false, hasGen = false, hasSpec = false, hasRet = false, hasBodyD = false, hasBehD = false;
+        for (auto f : apparelFocuses)
+        {
+            if (f == EnchantmentFocus::CORE_ATTRIBUTES) hasCore = true;
+            if (f == EnchantmentFocus::GENERAL_ATTRIBUTES) hasGen = true;
+            if (f == EnchantmentFocus::SPECIAL_EFFECTS) hasSpec = true;
+            if (f == EnchantmentFocus::RETENTION_FLUIDS) hasRet = true;
+            if (f == EnchantmentFocus::BODY_DESIRES) hasBodyD = true;
+            if (f == EnchantmentFocus::BEHAVIORAL_DESIRES) hasBehD = true;
+        }
+        bool apparelCategoriesOk = hasCore && hasGen && hasSpec && hasRet && hasBodyD && hasBehD;
+        logResult("Apparel unlocks all Lilith's Throne core, attribute, desire, and retention categories", apparelCategoriesOk);
+        allPassed &= apparelCategoriesOk;
+
+        // Verify that these new focuses have non-empty available property sets
+        bool propSetsValid = (
+            !getAvailablePropertiesForFocus(EnchantmentFocus::CORE_ATTRIBUTES, testRing.get()).empty() &&
+            !getAvailablePropertiesForFocus(EnchantmentFocus::GENERAL_ATTRIBUTES, testRing.get()).empty() &&
+            !getAvailablePropertiesForFocus(EnchantmentFocus::SPECIAL_EFFECTS, testRing.get()).empty() &&
+            !getAvailablePropertiesForFocus(EnchantmentFocus::RETENTION_FLUIDS, testRing.get()).empty() &&
+            !getAvailablePropertiesForFocus(EnchantmentFocus::BODY_DESIRES, testRing.get()).empty() &&
+            !getAvailablePropertiesForFocus(EnchantmentFocus::BEHAVIORAL_DESIRES, testRing.get()).empty()
+        );
+        logResult("All new LT enchantment categories expose valid, non-empty property sets", propSetsValid);
+        allPassed &= propSetsValid;
+
+        return allPassed;
+    }
+
     bool runAllTests()
     {
         g_passCount = 0;
@@ -4104,6 +4248,7 @@ namespace EngineTests
         bool t31 = testEnchantingCompatibilityAndRacialGating();
         bool t32 = testEnchantingItemSelectionAndStackedMapping();
         bool t33 = testGranularDomainPropertiesAndZeroLockedButtons();
+        bool t34 = testEnchantingAltarParityAndLimits();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";

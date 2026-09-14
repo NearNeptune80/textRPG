@@ -31,7 +31,20 @@ static const std::unordered_map<EnchantmentFocus, AspectDefinition> s_focusDefs 
     { EnchantmentFocus::WEAPON_LETHALITY,    { "focus_weapon", "Weapon Lethality", "Focuses infusion upon edge sharpness, impact velocity, and critical trauma.", "Striking", ItemRarity::RARE } },
     { EnchantmentFocus::ARCANE_AMPLIFICATION,{ "focus_arcane", "Arcane Amplification", "Focuses infusion upon magical resonance, spell potency, and aura capacity.", "Eldritch", ItemRarity::EPIC } },
     { EnchantmentFocus::RESISTANCE_WARDING,  { "focus_resistance", "Elemental Warding", "Focuses infusion upon shielding against elemental and physical harm.", "Impenetrable", ItemRarity::RARE } },
-    { EnchantmentFocus::BINDING_SPECIAL,     { "focus_binding", "Soulbound Binding", "Focuses infusion upon inescapable binding, servitude seals, and arousal stimulation.", "Runic", ItemRarity::LEGENDARY } }
+    { EnchantmentFocus::BINDING_SPECIAL,     { "focus_binding", "Soulbound Binding", "Focuses infusion upon inescapable binding, servitude seals, and arousal stimulation.", "Runic", ItemRarity::LEGENDARY } },
+
+    { EnchantmentFocus::CORE_ATTRIBUTES,     { "focus_core_attr", "Core Attributes", "Focuses infusion upon baseline vitality, mana aura, stamina, and physical might.", "Primal", ItemRarity::COMMON } },
+    { EnchantmentFocus::GENERAL_ATTRIBUTES,  { "focus_gen_attr", "Attributes", "Focuses infusion upon combat ratings, spell power, defenses, agility, and fertility.", "Ascendant", ItemRarity::COMMON } },
+    { EnchantmentFocus::SPECIAL_EFFECTS,     { "focus_special_fx", "Special Arcana", "Focuses infusion upon soulbound bindings, identity concealment, and servitude runes.", "Enigmatic", ItemRarity::EPIC } },
+    { EnchantmentFocus::RETENTION_FLUIDS,    { "focus_retention", "Fluid Retention", "Focuses infusion upon bodily fluid containment, pregnancy capacity, and fullness.", "Retentive", ItemRarity::UNCOMMON } },
+    { EnchantmentFocus::BODY_DESIRES,        { "focus_body_desires", "Body Desires", "Focuses infusion upon primal erotic attunement and bodily fixations.", "Yearning", ItemRarity::RARE } },
+    { EnchantmentFocus::BEHAVIORAL_DESIRES,  { "focus_behav_desires", "Behavioral Desires", "Focuses infusion upon personality inclinations, dominance, and surrender.", "Compelling", ItemRarity::RARE } },
+    { EnchantmentFocus::CROTCH_MAMMARIES,    { "focus_crotch_mammaries", "Crotch Mammaries", "Focuses infusion upon inguinal udders, teats, and pastoral milk generation.", "Pastoral", ItemRarity::EPIC } },
+    { EnchantmentFocus::ANTENNAE,            { "focus_antennae", "Cranial Antennae", "Focuses infusion upon sensory antennae feelers and insectoid plumes.", "Sensitive", ItemRarity::UNCOMMON } },
+    { EnchantmentFocus::FLUIDS_CUM,          { "focus_fluids_cum", "Ejaculate Fluids", "Focuses infusion upon virile seed volume, replenishment velocity, and potency.", "Virile", ItemRarity::RARE } },
+    { EnchantmentFocus::FLUIDS_MILK,         { "focus_fluids_milk", "Mammary Milk", "Focuses infusion upon breast milk volume, replenishment rate, and sweetness.", "Lacteal", ItemRarity::RARE } },
+    { EnchantmentFocus::FLUIDS_GIRLCUM,      { "focus_fluids_girlcum", "Yoni Nectar", "Focuses infusion upon vaginal lubrication, nectar flow, and arousal aroma.", "Nectareous", ItemRarity::RARE } },
+    { EnchantmentFocus::RACE_AWAKENING,      { "focus_race_awaken", "Race Awakening", "Awakens the primal morphology and racial essence of the reagent.", "Awakened", ItemRarity::EPIC } }
 };
 
 static const std::unordered_map<AspectProperty, AspectDefinition> s_propDefs = {
@@ -187,7 +200,74 @@ static const std::unordered_map<AspectProperty, AspectDefinition> s_propDefs = {
     { AspectProperty::VIRILITY_FACTOR,      { "prop_virility", "Virile Potency", "Dramatically surges virility, masculine arousal, and potency.", "Virility", ItemRarity::RARE } },
     { AspectProperty::FERTILITY_FACTOR,     { "prop_fertility", "Fertile Receptivity", "Elevates fertile receptivity, feminine hormonal response, and bloom.", "Fertility", ItemRarity::RARE } },
     { AspectProperty::CORRUPTION_AURA,      { "prop_corruption", "Demonic Corruption", "Induces seductive corruption and unrestrained libido.", "Sin", ItemRarity::EPIC } },
-    { AspectProperty::RACIAL_TRANSFORMATION,{ "prop_racial_tf", "Racial Awakening", "Manifests or awakens the full racial morphology of the reagent.", "Awakened", ItemRarity::RARE } }
+    { AspectProperty::RACIAL_TRANSFORMATION,{ "prop_racial_tf", "Racial Awakening", "Manifests or awakens the full racial morphology of the reagent.", "Awakened", ItemRarity::RARE } },
+
+    // Core Attributes
+    { AspectProperty::CORE_HEALTH,          { "prop_core_health", "Health Vitality", "Bolsters maximum health reserves and physical endurance.", "Vital", ItemRarity::COMMON } },
+    { AspectProperty::CORE_MANA,            { "prop_core_mana", "Mana Aura", "Expands maximum mana pool and magical reserves.", "Aura", ItemRarity::COMMON } },
+    { AspectProperty::CORE_STAMINA,         { "prop_core_stamina", "Stamina", "Enhances stamina threshold and action endurance.", "Enduring", ItemRarity::COMMON } },
+    { AspectProperty::CORE_PHYSIQUE,        { "prop_core_physique", "Physique Might", "Augments core muscular density, raw power, and physical fortitude.", "Might", ItemRarity::COMMON } },
+    { AspectProperty::CORE_ARCANE,          { "prop_core_arcane", "Arcane Resonance", "Deepens attunement to arcane currents and mystic energy.", "Resonant", ItemRarity::COMMON } },
+    { AspectProperty::CORE_CORRUPTION,      { "prop_core_corruption", "Demonic Corruption", "Induces seductive corruption and unrestrained libido.", "Corrupt", ItemRarity::UNCOMMON } },
+
+    // General Attributes
+    { AspectProperty::ATTR_PHYSICAL_DAMAGE, { "prop_attr_phys_dmg", "Physical Damage", "Increases melee strike force and kinetic weapon impact.", "Striking", ItemRarity::COMMON } },
+    { AspectProperty::ATTR_SPELL_POWER,     { "prop_attr_spell_pwr", "Spell Power", "Amplifies destructive and beneficial spell potency.", "Potent", ItemRarity::COMMON } },
+    { AspectProperty::ATTR_ARMOR,           { "prop_attr_armor", "Defense / Armor", "Bolsters kinetic deflection and physical armor protection.", "Armored", ItemRarity::COMMON } },
+    { AspectProperty::ATTR_WARDING,         { "prop_attr_warding", "Wards / Resistance", "Weaves defensive barriers against elemental and magical harm.", "Warded", ItemRarity::COMMON } },
+    { AspectProperty::ATTR_FERTILITY,       { "prop_attr_fertility", "Fertility", "Elevates conception probability and womb bloom.", "Fertile", ItemRarity::COMMON } },
+    { AspectProperty::ATTR_VIRILITY,        { "prop_attr_virility", "Virility", "Heightens reproductive virility and masculine vigor.", "Virile", ItemRarity::COMMON } },
+    { AspectProperty::ATTR_CRITICAL,        { "prop_attr_critical", "Crit Precision", "Sharpens accuracy to exploit vulnerabilities and strike critically.", "Precise", ItemRarity::COMMON } },
+    { AspectProperty::ATTR_AGILITY,         { "prop_attr_agility", "Agility / Speed", "Enhances movement speed, balance, and evasion reflexes.", "Swift", ItemRarity::COMMON } },
+
+    // Special Effects
+    { AspectProperty::CONCEAL_IDENTITY,     { "prop_conceal_identity", "Conceal Identity", "Obscures facial features under an arcane shroud, hiding true identity.", "Shrouded", ItemRarity::EPIC } },
+
+    // Fluid Retention
+    { AspectProperty::RETENTION_STOMACH,    { "prop_retention_stomach", "Stomach Retention", "Increases capacity to retain fluids and food in the stomach without digestion discomfort.", "Sated", ItemRarity::UNCOMMON } },
+    { AspectProperty::RETENTION_MAMMARY,    { "prop_retention_mammary", "Mammary Retention", "Suppresses spontaneous milk leakage, allowing extreme engorgement.", "Engorged", ItemRarity::UNCOMMON } },
+    { AspectProperty::RETENTION_YONI,       { "prop_retention_yoni", "Yoni Retention", "Tightly seals semen and fluids within the vaginal canal.", "Sealed", ItemRarity::UNCOMMON } },
+    { AspectProperty::RETENTION_ANAL,       { "prop_retention_anal", "Anal Retention", "Tightly locks enema fluids and seed within the anal passage.", "Locked", ItemRarity::UNCOMMON } },
+
+    // Body Desires / Fetishes
+    { AspectProperty::DESIRE_ANAL,          { "prop_desire_anal", "Anal Attunement", "Heightens psychological craving and physical sensitivity for anal play.", "Rearward", ItemRarity::RARE } },
+    { AspectProperty::DESIRE_MAMMARY,       { "prop_desire_mammary", "Mammary Attunement", "Deepens fixations with breast worship, suckling, and chest contact.", "Maternal", ItemRarity::RARE } },
+    { AspectProperty::DESIRE_PHALLIC,       { "prop_desire_phallic", "Phallic Attunement", "Intensifies desires for phallic pleasure, stroking, and penetrating.", "Phallic", ItemRarity::RARE } },
+    { AspectProperty::DESIRE_YONI,          { "prop_desire_yoni", "Yoni Attunement", "Heightens cravings for vaginal intimacy, fingering, and mating.", "Receptive", ItemRarity::RARE } },
+    { AspectProperty::DESIRE_FEET,          { "prop_desire_feet", "Foot Attunement", "Imbues an erotic fascination with soles, paws, hooves, and trampling.", "Pedal", ItemRarity::RARE } },
+
+    // Behavioral Desires / Fetishes
+    { AspectProperty::DESIRE_DOMINANT,      { "prop_desire_dominant", "Dominant Instinct", "Inspires command, authority, and assertiveness over partners.", "Imperious", ItemRarity::RARE } },
+    { AspectProperty::DESIRE_SUBMISSIVE,    { "prop_desire_submissive", "Submissive Instinct", "Encourages yielding, obedience, and blissful surrender.", "Obedient", ItemRarity::RARE } },
+    { AspectProperty::DESIRE_BONDAGE,       { "prop_desire_bondage", "Bondage Desire", "Creates an erotic longing to be tightly bound and restrained.", "Bound", ItemRarity::RARE } },
+    { AspectProperty::DESIRE_EXHIBITIONISM, { "prop_desire_exhibitionism", "Exhibitionism", "Stirs thrilling arousal from displaying one's body openly.", "Exposed", ItemRarity::RARE } },
+    { AspectProperty::DESIRE_CHASTITY,      { "prop_desire_chastity", "Chastity Desire", "Imparts deep satisfaction from sexual denial and confinement.", "Chaste", ItemRarity::RARE } },
+    { AspectProperty::DESIRE_MASOCHISM,     { "prop_desire_masochism", "Masochism", "Transmutes physical discipline and impact into searing pleasure.", "Suffering", ItemRarity::RARE } },
+    { AspectProperty::DESIRE_SADISM,        { "prop_desire_sadism", "Sadism", "Draws erotic excitement from dominating, marking, and teasing others.", "Cruel", ItemRarity::RARE } },
+
+    // Additional Facial, Torso, Arm, Chest & Udder options
+    { AspectProperty::NOSE_SIZE,            { "prop_nose_size", "Nose Size", "Adjusts nasal bridge, button tip, and contour prominence.", "Sculpted", ItemRarity::COMMON } },
+    { AspectProperty::FACIAL_BEARD,         { "prop_facial_beard", "Facial Beard", "Styles and grows rugged facial hair, stubble, or long beards.", "Bearded", ItemRarity::COMMON } },
+    { AspectProperty::EYEBROW_SHAPE,        { "prop_eyebrow_shape", "Eyebrow Contours", "Shapes eyebrow arch, thickness, and expression.", "Arched", ItemRarity::COMMON } },
+    { AspectProperty::FEMININITY_MASCULINITY,{ "prop_fem_masc", "Femininity / Masculinity", "Shifts overall body and facial aura between masculine and feminine.", "Alluring", ItemRarity::COMMON } },
+    { AspectProperty::BODY_HAIR,            { "prop_body_hair", "Body Hairiness", "Increases or removes chest, stomach, and leg body hair.", "Furred", ItemRarity::COMMON } },
+    { AspectProperty::UNDERARM_HAIR,        { "prop_underarm_hair", "Underarm Hair", "Trims, grooms, or grows underarm hair.", "Groomed", ItemRarity::COMMON } },
+    { AspectProperty::GRIP_STRENGTH,        { "prop_grip_strength", "Grip Strength", "Strengthens manual grip and grappling leverage.", "Gripping", ItemRarity::COMMON } },
+    { AspectProperty::ANUS_WETNESS,         { "prop_anus_wetness", "Anus Wetness", "Increases natural internal lubrication of the anal canal.", "Moist", ItemRarity::UNCOMMON } },
+    { AspectProperty::AREOLA_SIZE,          { "prop_areola_size", "Areola Diameter", "Expands or contracts the pigmented circle surrounding the nipple.", "Rosy", ItemRarity::COMMON } },
+    { AspectProperty::MILK_FLAVOR,          { "prop_milk_flavor", "Milk Flavor & Nectar", "Imparts sweetened alchemical flavoring to expressed fluids.", "Nectar", ItemRarity::RARE } },
+    { AspectProperty::UDDER_SIZE,           { "prop_udder_size", "Udder Volume", "Expands inguinal udder swell and milk storage capacity.", "Bountiful", ItemRarity::RARE } },
+    { AspectProperty::TEAT_LENGTH,          { "prop_teat_length", "Teat Length", "Extends or trims udder teat length for milking.", "Milked", ItemRarity::COMMON } },
+    { AspectProperty::TEAT_COUNT,           { "prop_teat_count", "Teat Count", "Increases number of teats (two, four, or six).", "Prolific", ItemRarity::UNCOMMON } },
+    { AspectProperty::UDDER_CAPACITY,       { "prop_udder_capacity", "Udder Capacity", "Expands internal udder milk holding reservoir.", "Capacious", ItemRarity::RARE } },
+    { AspectProperty::UDDER_REGEN,          { "prop_udder_regen", "Udder Lactation Regen", "Accelerates replenishment rate of udder milk.", "Quenched", ItemRarity::RARE } },
+    { AspectProperty::ANTENNAE_MORPH,       { "prop_antennae_morph", "Racial Antennae", "Sprouts or transforms cranial sensory antennae.", "Attuned", ItemRarity::RARE } },
+    { AspectProperty::ANTENNAE_LENGTH,      { "prop_antennae_length", "Antennae Length", "Extends antennae reach and sensory sensitivity.", "Feathered", ItemRarity::COMMON } },
+    { AspectProperty::ANTENNAE_TYPE,        { "prop_antennae_type", "Antennae Type", "Alters antennae structure (feathered moth, slender thread, segmented).", "Silken", ItemRarity::UNCOMMON } },
+    { AspectProperty::FOOT_MORPH,           { "prop_foot_morph", "Foot Morphology", "Morphs feet into hooves, padded paws, talons, or webbed digits.", "Paw", ItemRarity::RARE } },
+    { AspectProperty::LEG_HAIR,             { "prop_leg_hair", "Leg Hair / Fur", "Adjusts follicle covering, shaves, or grows plush leg fur.", "Pelt", ItemRarity::COMMON } },
+    { AspectProperty::ARMOR_PIERCING,       { "prop_armor_piercing", "Armor Piercing", "Strikes bypass natural armor deflection and hardened scales.", "Sundering", ItemRarity::RARE } },
+    { AspectProperty::WEAPON_BLEED,         { "prop_weapon_bleed", "Lacerating Bleed", "Inflicts deep hemorrhaging wounds causing damage over time.", "Lacerating", ItemRarity::UNCOMMON } }
 };
 
 const AspectDefinition& getFocusDefinition(EnchantmentFocus focus)
@@ -207,23 +287,35 @@ const AspectDefinition& getPropertyDefinition(AspectProperty prop)
 std::vector<EnchantmentFocus> getAllEnchantmentFocuses()
 {
     return {
+        EnchantmentFocus::CORE_ATTRIBUTES,
+        EnchantmentFocus::GENERAL_ATTRIBUTES,
+        EnchantmentFocus::SPECIAL_EFFECTS,
+        EnchantmentFocus::RETENTION_FLUIDS,
+        EnchantmentFocus::BODY_DESIRES,
+        EnchantmentFocus::BEHAVIORAL_DESIRES,
+        EnchantmentFocus::FACE,
+        EnchantmentFocus::TORSO,
+        EnchantmentFocus::ARMS,
+        EnchantmentFocus::HAIR,
+        EnchantmentFocus::HIPS_ASS,
+        EnchantmentFocus::BREASTS,
+        EnchantmentFocus::CROTCH_MAMMARIES,
+        EnchantmentFocus::GENITALIA_PRIMARY,
+        EnchantmentFocus::GENITALIA_SECONDARY,
+        EnchantmentFocus::LEGS_FEET,
         EnchantmentFocus::HEAD_FEATURE,
         EnchantmentFocus::HORNS,
-        EnchantmentFocus::HAIR,
+        EnchantmentFocus::ANTENNAE,
+        EnchantmentFocus::WINGS,
+        EnchantmentFocus::TAIL,
         EnchantmentFocus::EYES,
         EnchantmentFocus::EARS,
         EnchantmentFocus::MOUTH,
-        EnchantmentFocus::FACE,
         EnchantmentFocus::SKIN,
-        EnchantmentFocus::ARMS,
-        EnchantmentFocus::TORSO,
-        EnchantmentFocus::BREASTS,
-        EnchantmentFocus::WINGS,
-        EnchantmentFocus::TAIL,
-        EnchantmentFocus::GENITALIA_PRIMARY,
-        EnchantmentFocus::GENITALIA_SECONDARY,
-        EnchantmentFocus::HIPS_ASS,
-        EnchantmentFocus::LEGS_FEET,
+        EnchantmentFocus::FLUIDS_CUM,
+        EnchantmentFocus::FLUIDS_MILK,
+        EnchantmentFocus::FLUIDS_GIRLCUM,
+        EnchantmentFocus::RACE_AWAKENING,
         EnchantmentFocus::ARMOR_REINFORCEMENT,
         EnchantmentFocus::WEAPON_LETHALITY,
         EnchantmentFocus::ARCANE_AMPLIFICATION,
@@ -237,6 +329,12 @@ std::vector<EnchantmentFocus> getCompatibleFocuses(const item* baseItem)
     if (!baseItem)
     {
         return {
+            EnchantmentFocus::CORE_ATTRIBUTES,
+            EnchantmentFocus::GENERAL_ATTRIBUTES,
+            EnchantmentFocus::SPECIAL_EFFECTS,
+            EnchantmentFocus::RETENTION_FLUIDS,
+            EnchantmentFocus::BODY_DESIRES,
+            EnchantmentFocus::BEHAVIORAL_DESIRES,
             EnchantmentFocus::HEAD_FEATURE,
             EnchantmentFocus::HAIR,
             EnchantmentFocus::EYES,
@@ -247,6 +345,7 @@ std::vector<EnchantmentFocus> getCompatibleFocuses(const item* baseItem)
             EnchantmentFocus::ARMS,
             EnchantmentFocus::TORSO,
             EnchantmentFocus::BREASTS,
+            EnchantmentFocus::CROTCH_MAMMARIES,
             EnchantmentFocus::GENITALIA_PRIMARY,
             EnchantmentFocus::GENITALIA_SECONDARY,
             EnchantmentFocus::HIPS_ASS,
@@ -278,33 +377,37 @@ std::vector<EnchantmentFocus> getCompatibleFocuses(const item* baseItem)
     if (isApparel)
     {
         return {
+            EnchantmentFocus::CORE_ATTRIBUTES,
+            EnchantmentFocus::GENERAL_ATTRIBUTES,
+            EnchantmentFocus::SPECIAL_EFFECTS,
+            EnchantmentFocus::RETENTION_FLUIDS,
+            EnchantmentFocus::BODY_DESIRES,
+            EnchantmentFocus::BEHAVIORAL_DESIRES,
+            EnchantmentFocus::FACE,
+            EnchantmentFocus::TORSO,
+            EnchantmentFocus::ARMS,
+            EnchantmentFocus::HAIR,
+            EnchantmentFocus::HIPS_ASS,
+            EnchantmentFocus::BREASTS,
+            EnchantmentFocus::CROTCH_MAMMARIES,
+            EnchantmentFocus::GENITALIA_PRIMARY,
+            EnchantmentFocus::GENITALIA_SECONDARY,
+            EnchantmentFocus::LEGS_FEET,
             EnchantmentFocus::ARMOR_REINFORCEMENT,
             EnchantmentFocus::RESISTANCE_WARDING,
             EnchantmentFocus::ARCANE_AMPLIFICATION,
-            EnchantmentFocus::BINDING_SPECIAL,
-            EnchantmentFocus::BREASTS,
-            EnchantmentFocus::GENITALIA_PRIMARY,
-            EnchantmentFocus::GENITALIA_SECONDARY,
-            EnchantmentFocus::HIPS_ASS,
-            EnchantmentFocus::LEGS_FEET,
-            EnchantmentFocus::TORSO,
-            EnchantmentFocus::ARMS,
-            EnchantmentFocus::HEAD_FEATURE,
-            EnchantmentFocus::FACE,
-            EnchantmentFocus::MOUTH,
-            EnchantmentFocus::EYES,
-            EnchantmentFocus::EARS,
-            EnchantmentFocus::HAIR,
-            EnchantmentFocus::SKIN
+            EnchantmentFocus::BINDING_SPECIAL
         };
     }
 
-    // Consumables / Food / Potions
+    // Consumables / Food / Potions with racial affinity
     if (baseItem->isRacialReagent())
     {
         return {
+            EnchantmentFocus::RACE_AWAKENING,
             EnchantmentFocus::HEAD_FEATURE,
             EnchantmentFocus::HORNS,
+            EnchantmentFocus::ANTENNAE,
             EnchantmentFocus::HAIR,
             EnchantmentFocus::EYES,
             EnchantmentFocus::EARS,
@@ -314,12 +417,18 @@ std::vector<EnchantmentFocus> getCompatibleFocuses(const item* baseItem)
             EnchantmentFocus::ARMS,
             EnchantmentFocus::TORSO,
             EnchantmentFocus::BREASTS,
+            EnchantmentFocus::CROTCH_MAMMARIES,
             EnchantmentFocus::WINGS,
             EnchantmentFocus::TAIL,
             EnchantmentFocus::GENITALIA_PRIMARY,
             EnchantmentFocus::GENITALIA_SECONDARY,
             EnchantmentFocus::HIPS_ASS,
             EnchantmentFocus::LEGS_FEET,
+            EnchantmentFocus::FLUIDS_CUM,
+            EnchantmentFocus::FLUIDS_MILK,
+            EnchantmentFocus::FLUIDS_GIRLCUM,
+            EnchantmentFocus::CORE_ATTRIBUTES,
+            EnchantmentFocus::SPECIAL_EFFECTS,
             EnchantmentFocus::ARCANE_AMPLIFICATION,
             EnchantmentFocus::BINDING_SPECIAL
         };
@@ -327,6 +436,12 @@ std::vector<EnchantmentFocus> getCompatibleFocuses(const item* baseItem)
 
     // Generic consumable / food without race affinity
     return {
+        EnchantmentFocus::CORE_ATTRIBUTES,
+        EnchantmentFocus::GENERAL_ATTRIBUTES,
+        EnchantmentFocus::SPECIAL_EFFECTS,
+        EnchantmentFocus::RETENTION_FLUIDS,
+        EnchantmentFocus::BODY_DESIRES,
+        EnchantmentFocus::BEHAVIORAL_DESIRES,
         EnchantmentFocus::HEAD_FEATURE,
         EnchantmentFocus::HAIR,
         EnchantmentFocus::EYES,
@@ -337,10 +452,14 @@ std::vector<EnchantmentFocus> getCompatibleFocuses(const item* baseItem)
         EnchantmentFocus::ARMS,
         EnchantmentFocus::TORSO,
         EnchantmentFocus::BREASTS,
+        EnchantmentFocus::CROTCH_MAMMARIES,
         EnchantmentFocus::GENITALIA_PRIMARY,
         EnchantmentFocus::GENITALIA_SECONDARY,
         EnchantmentFocus::HIPS_ASS,
         EnchantmentFocus::LEGS_FEET,
+        EnchantmentFocus::FLUIDS_CUM,
+        EnchantmentFocus::FLUIDS_MILK,
+        EnchantmentFocus::FLUIDS_GIRLCUM,
         EnchantmentFocus::ARCANE_AMPLIFICATION,
         EnchantmentFocus::BINDING_SPECIAL
     };
@@ -352,6 +471,64 @@ std::vector<AspectProperty> getAvailablePropertiesForFocus(EnchantmentFocus focu
 
     switch (focus)
     {
+        case EnchantmentFocus::CORE_ATTRIBUTES:
+            return {
+                AspectProperty::CORE_HEALTH,
+                AspectProperty::CORE_MANA,
+                AspectProperty::CORE_STAMINA,
+                AspectProperty::CORE_PHYSIQUE,
+                AspectProperty::CORE_ARCANE,
+                AspectProperty::CORE_CORRUPTION
+            };
+
+        case EnchantmentFocus::GENERAL_ATTRIBUTES:
+            return {
+                AspectProperty::ATTR_PHYSICAL_DAMAGE,
+                AspectProperty::ATTR_SPELL_POWER,
+                AspectProperty::ATTR_ARMOR,
+                AspectProperty::ATTR_WARDING,
+                AspectProperty::ATTR_FERTILITY,
+                AspectProperty::ATTR_VIRILITY,
+                AspectProperty::ATTR_CRITICAL,
+                AspectProperty::ATTR_AGILITY
+            };
+
+        case EnchantmentFocus::SPECIAL_EFFECTS:
+            return {
+                AspectProperty::SOULBOUND_SEAL,
+                AspectProperty::CONCEAL_IDENTITY,
+                AspectProperty::SERVITUDE_INHIBITION,
+                AspectProperty::SENSORY_VIBRATION
+            };
+
+        case EnchantmentFocus::RETENTION_FLUIDS:
+            return {
+                AspectProperty::RETENTION_STOMACH,
+                AspectProperty::RETENTION_MAMMARY,
+                AspectProperty::RETENTION_YONI,
+                AspectProperty::RETENTION_ANAL
+            };
+
+        case EnchantmentFocus::BODY_DESIRES:
+            return {
+                AspectProperty::DESIRE_ANAL,
+                AspectProperty::DESIRE_MAMMARY,
+                AspectProperty::DESIRE_PHALLIC,
+                AspectProperty::DESIRE_YONI,
+                AspectProperty::DESIRE_FEET
+            };
+
+        case EnchantmentFocus::BEHAVIORAL_DESIRES:
+            return {
+                AspectProperty::DESIRE_DOMINANT,
+                AspectProperty::DESIRE_SUBMISSIVE,
+                AspectProperty::DESIRE_BONDAGE,
+                AspectProperty::DESIRE_EXHIBITIONISM,
+                AspectProperty::DESIRE_CHASTITY,
+                AspectProperty::DESIRE_MASOCHISM,
+                AspectProperty::DESIRE_SADISM
+            };
+
         case EnchantmentFocus::BREASTS:
         {
             std::vector<AspectProperty> props = {
@@ -361,9 +538,11 @@ std::vector<AspectProperty> getAvailablePropertiesForFocus(EnchantmentFocus focu
                 AspectProperty::NIPPLE_GIRTH,
                 AspectProperty::NIPPLE_TYPE,
                 AspectProperty::NIPPLE_CAPACITY,
+                AspectProperty::AREOLA_SIZE,
                 AspectProperty::LACTATION_VOLUME,
                 AspectProperty::LACTATION_REGEN,
-                AspectProperty::FLUID_TYPE
+                AspectProperty::FLUID_TYPE,
+                AspectProperty::MILK_FLAVOR
             };
             if (isRacial)
             {
@@ -371,6 +550,15 @@ std::vector<AspectProperty> getAvailablePropertiesForFocus(EnchantmentFocus focu
             }
             return props;
         }
+
+        case EnchantmentFocus::CROTCH_MAMMARIES:
+            return {
+                AspectProperty::UDDER_SIZE,
+                AspectProperty::TEAT_LENGTH,
+                AspectProperty::TEAT_COUNT,
+                AspectProperty::UDDER_CAPACITY,
+                AspectProperty::UDDER_REGEN
+            };
 
         case EnchantmentFocus::GENITALIA_PRIMARY:
         {
@@ -414,21 +602,23 @@ std::vector<AspectProperty> getAvailablePropertiesForFocus(EnchantmentFocus focu
                 AspectProperty::HIP_WIDTH,
                 AspectProperty::ANUS_CAPACITY,
                 AspectProperty::ANUS_DEPTH,
-                AspectProperty::ANUS_ELASTICITY
+                AspectProperty::ANUS_ELASTICITY,
+                AspectProperty::ANUS_WETNESS
             };
 
         case EnchantmentFocus::LEGS_FEET:
         {
-            std::vector<AspectProperty> props = {
-                AspectProperty::LEG_LENGTH,
-                AspectProperty::THIGH_FULLNESS
-            };
+            std::vector<AspectProperty> props;
             if (isRacial)
             {
                 props.push_back(AspectProperty::RACIAL_LEGS_BIPED);
                 props.push_back(AspectProperty::RACIAL_STANCE_MORPH);
                 props.push_back(AspectProperty::RACIAL_BODY_CONFIG);
+                props.push_back(AspectProperty::FOOT_MORPH);
             }
+            props.push_back(AspectProperty::LEG_LENGTH);
+            props.push_back(AspectProperty::THIGH_FULLNESS);
+            props.push_back(AspectProperty::LEG_HAIR);
             props.push_back(AspectProperty::SPRINT_AGILITY);
             return props;
         }
@@ -450,6 +640,10 @@ std::vector<AspectProperty> getAvailablePropertiesForFocus(EnchantmentFocus focu
         case EnchantmentFocus::FACE:
         {
             std::vector<AspectProperty> props = {
+                AspectProperty::LIP_FULLNESS,
+                AspectProperty::NOSE_SIZE,
+                AspectProperty::FACIAL_BEARD,
+                AspectProperty::EYEBROW_SHAPE,
                 AspectProperty::FACE_SHAPE
             };
             if (isRacial)
@@ -517,6 +711,8 @@ std::vector<AspectProperty> getAvailablePropertiesForFocus(EnchantmentFocus focu
                 AspectProperty::STATURE_HEIGHT,
                 AspectProperty::MUSCLE_PHYSIQUE,
                 AspectProperty::WAIST_TAPER,
+                AspectProperty::FEMININITY_MASCULINITY,
+                AspectProperty::BODY_HAIR,
                 AspectProperty::STOMACH_FIRMNESS,
                 AspectProperty::HEALTH_VITALITY
             };
@@ -537,6 +733,8 @@ std::vector<AspectProperty> getAvailablePropertiesForFocus(EnchantmentFocus focu
         case EnchantmentFocus::ARMS:
             return {
                 AspectProperty::ARM_MUSCLE,
+                AspectProperty::UNDERARM_HAIR,
+                AspectProperty::GRIP_STRENGTH,
                 AspectProperty::CLAWS_NAILS,
                 AspectProperty::MANUAL_DEXTERITY
             };
@@ -553,6 +751,19 @@ std::vector<AspectProperty> getAvailablePropertiesForFocus(EnchantmentFocus focu
                 props.push_back(AspectProperty::RACIAL_HORN_PRIMARY);
                 props.push_back(AspectProperty::RACIAL_HORN_VARIANT);
             }
+            props.push_back(AspectProperty::PART_REMOVAL);
+            return props;
+        }
+
+        case EnchantmentFocus::ANTENNAE:
+        {
+            std::vector<AspectProperty> props;
+            if (isRacial)
+            {
+                props.push_back(AspectProperty::ANTENNAE_MORPH);
+            }
+            props.push_back(AspectProperty::ANTENNAE_LENGTH);
+            props.push_back(AspectProperty::ANTENNAE_TYPE);
             props.push_back(AspectProperty::PART_REMOVAL);
             return props;
         }
@@ -589,6 +800,32 @@ std::vector<AspectProperty> getAvailablePropertiesForFocus(EnchantmentFocus focu
             return props;
         }
 
+        case EnchantmentFocus::FLUIDS_CUM:
+            return {
+                AspectProperty::CUM_VOLUME,
+                AspectProperty::CUM_REGEN,
+                AspectProperty::VIRILITY_POTENCY
+            };
+
+        case EnchantmentFocus::FLUIDS_MILK:
+            return {
+                AspectProperty::LACTATION_VOLUME,
+                AspectProperty::LACTATION_REGEN,
+                AspectProperty::FLUID_TYPE,
+                AspectProperty::MILK_FLAVOR
+            };
+
+        case EnchantmentFocus::FLUIDS_GIRLCUM:
+            return {
+                AspectProperty::LUBRICATION_WETNESS,
+                AspectProperty::FERTILITY_RECEPTIVITY
+            };
+
+        case EnchantmentFocus::RACE_AWAKENING:
+            return {
+                AspectProperty::RACIAL_TRANSFORMATION
+            };
+
         case EnchantmentFocus::WEAPON_LETHALITY:
             return {
                 AspectProperty::ATTACK_POWER,
@@ -596,7 +833,9 @@ std::vector<AspectProperty> getAvailablePropertiesForFocus(EnchantmentFocus focu
                 AspectProperty::DAMAGE_PHYSICAL,
                 AspectProperty::DAMAGE_ELEMENTAL,
                 AspectProperty::CRITICAL_POWER,
-                AspectProperty::LIFE_LEECH
+                AspectProperty::LIFE_LEECH,
+                AspectProperty::ARMOR_PIERCING,
+                AspectProperty::WEAPON_BLEED
             };
 
         case EnchantmentFocus::ARMOR_REINFORCEMENT:
@@ -672,6 +911,8 @@ bool isAnatomicalRacialFocus(EnchantmentFocus focus)
         case EnchantmentFocus::HORNS:
         case EnchantmentFocus::WINGS:
         case EnchantmentFocus::TAIL:
+        case EnchantmentFocus::ANTENNAE:
+        case EnchantmentFocus::RACE_AWAKENING:
             return true;
         default:
             return false;
@@ -692,6 +933,7 @@ bool isAnatomicalSizingFocus(EnchantmentFocus focus)
         case EnchantmentFocus::ARMS:
         case EnchantmentFocus::TORSO:
         case EnchantmentFocus::BREASTS:
+        case EnchantmentFocus::CROTCH_MAMMARIES:
         case EnchantmentFocus::GENITALIA_PRIMARY:
         case EnchantmentFocus::GENITALIA_SECONDARY:
         case EnchantmentFocus::HIPS_ASS:
@@ -743,7 +985,7 @@ std::string getFocusLockReason(EnchantmentFocus focus, const item* baseItem)
 
         if (isApparel && isAnatomicalRacialFocus(focus))
         {
-            return "Apparel cannot hold racial body transformations (horns, wings, tails). Use for gradual part sizing, modifiers, or defense.";
+            return "Apparel cannot hold racial body transformations (horns, wings, tails, antennae). Use for gradual part sizing, modifiers, or defense.";
         }
 
         if (isApparel && focus == EnchantmentFocus::WEAPON_LETHALITY)
@@ -764,23 +1006,35 @@ std::string getFocusShortLabel(EnchantmentFocus focus)
 {
     switch (focus)
     {
+        case EnchantmentFocus::CORE_ATTRIBUTES:     return "Core";
+        case EnchantmentFocus::GENERAL_ATTRIBUTES:  return "Attrib";
+        case EnchantmentFocus::SPECIAL_EFFECTS:     return "Special";
+        case EnchantmentFocus::RETENTION_FLUIDS:    return "Retent";
+        case EnchantmentFocus::BODY_DESIRES:        return "B-Desire";
+        case EnchantmentFocus::BEHAVIORAL_DESIRES:  return "P-Desire";
+        case EnchantmentFocus::FACE:                return "Face";
+        case EnchantmentFocus::TORSO:               return "Torso";
+        case EnchantmentFocus::ARMS:                return "Arms";
+        case EnchantmentFocus::HAIR:                return "Hair";
+        case EnchantmentFocus::HIPS_ASS:            return "Hips";
+        case EnchantmentFocus::BREASTS:             return "Chest";
+        case EnchantmentFocus::CROTCH_MAMMARIES:    return "Udders";
+        case EnchantmentFocus::GENITALIA_PRIMARY:   return "Phallus";
+        case EnchantmentFocus::GENITALIA_SECONDARY: return "Yoni";
+        case EnchantmentFocus::LEGS_FEET:           return "Legs";
         case EnchantmentFocus::HEAD_FEATURE:        return "Head";
         case EnchantmentFocus::HORNS:               return "Horns";
-        case EnchantmentFocus::HAIR:                return "Hair";
+        case EnchantmentFocus::ANTENNAE:            return "Antenna";
+        case EnchantmentFocus::WINGS:               return "Wings";
+        case EnchantmentFocus::TAIL:                return "Tail";
         case EnchantmentFocus::EYES:                return "Eyes";
         case EnchantmentFocus::EARS:                return "Ears";
         case EnchantmentFocus::MOUTH:               return "Mouth";
-        case EnchantmentFocus::FACE:                return "Face";
         case EnchantmentFocus::SKIN:                return "Skin";
-        case EnchantmentFocus::ARMS:                return "Arms";
-        case EnchantmentFocus::TORSO:               return "Torso";
-        case EnchantmentFocus::BREASTS:             return "Chest";
-        case EnchantmentFocus::WINGS:               return "Wings";
-        case EnchantmentFocus::TAIL:                return "Tail";
-        case EnchantmentFocus::GENITALIA_PRIMARY:   return "Phallus";
-        case EnchantmentFocus::GENITALIA_SECONDARY: return "Yoni";
-        case EnchantmentFocus::HIPS_ASS:            return "Hips";
-        case EnchantmentFocus::LEGS_FEET:           return "Legs";
+        case EnchantmentFocus::FLUIDS_CUM:          return "Cum";
+        case EnchantmentFocus::FLUIDS_MILK:         return "Milk";
+        case EnchantmentFocus::FLUIDS_GIRLCUM:      return "Girlcum";
+        case EnchantmentFocus::RACE_AWAKENING:      return "Awaken";
         case EnchantmentFocus::ARMOR_REINFORCEMENT: return "Armor";
         case EnchantmentFocus::WEAPON_LETHALITY:    return "Weapon";
         case EnchantmentFocus::ARCANE_AMPLIFICATION:return "Arcane";
@@ -794,23 +1048,35 @@ std::string getFocusIconGlyph(EnchantmentFocus focus)
 {
     switch (focus)
     {
+        case EnchantmentFocus::CORE_ATTRIBUTES:     return "CR";
+        case EnchantmentFocus::GENERAL_ATTRIBUTES:  return "AT";
+        case EnchantmentFocus::SPECIAL_EFFECTS:     return "SP";
+        case EnchantmentFocus::RETENTION_FLUIDS:    return "RT";
+        case EnchantmentFocus::BODY_DESIRES:        return "BD";
+        case EnchantmentFocus::BEHAVIORAL_DESIRES:  return "PD";
+        case EnchantmentFocus::FACE:                return "FC";
+        case EnchantmentFocus::TORSO:               return "TR";
+        case EnchantmentFocus::ARMS:                return "AM";
+        case EnchantmentFocus::HAIR:                return "HR";
+        case EnchantmentFocus::HIPS_ASS:            return "HP";
+        case EnchantmentFocus::BREASTS:             return "BS";
+        case EnchantmentFocus::CROTCH_MAMMARIES:    return "UD";
+        case EnchantmentFocus::GENITALIA_PRIMARY:   return "PH";
+        case EnchantmentFocus::GENITALIA_SECONDARY: return "YN";
+        case EnchantmentFocus::LEGS_FEET:           return "LG";
         case EnchantmentFocus::HEAD_FEATURE:        return "HD";
         case EnchantmentFocus::HORNS:               return "HN";
-        case EnchantmentFocus::HAIR:                return "HR";
+        case EnchantmentFocus::ANTENNAE:            return "AN";
+        case EnchantmentFocus::WINGS:               return "WG";
+        case EnchantmentFocus::TAIL:                return "TL";
         case EnchantmentFocus::EYES:                return "EY";
         case EnchantmentFocus::EARS:                return "ER";
         case EnchantmentFocus::MOUTH:               return "MT";
-        case EnchantmentFocus::FACE:                return "FC";
         case EnchantmentFocus::SKIN:                return "SK";
-        case EnchantmentFocus::ARMS:                return "AM";
-        case EnchantmentFocus::TORSO:               return "TR";
-        case EnchantmentFocus::BREASTS:             return "BS";
-        case EnchantmentFocus::WINGS:               return "WG";
-        case EnchantmentFocus::TAIL:                return "TL";
-        case EnchantmentFocus::GENITALIA_PRIMARY:   return "PH";
-        case EnchantmentFocus::GENITALIA_SECONDARY: return "YN";
-        case EnchantmentFocus::HIPS_ASS:            return "HP";
-        case EnchantmentFocus::LEGS_FEET:           return "LG";
+        case EnchantmentFocus::FLUIDS_CUM:          return "CM";
+        case EnchantmentFocus::FLUIDS_MILK:         return "MK";
+        case EnchantmentFocus::FLUIDS_GIRLCUM:      return "GC";
+        case EnchantmentFocus::RACE_AWAKENING:      return "AW";
         case EnchantmentFocus::ARMOR_REINFORCEMENT: return "SH";
         case EnchantmentFocus::WEAPON_LETHALITY:    return "SW";
         case EnchantmentFocus::ARCANE_AMPLIFICATION:return "MG";
@@ -850,11 +1116,13 @@ std::string getPropertyDisplayName(AspectProperty prop, const item* baseItem)
         case AspectProperty::RACIAL_PATTERN_COLOR:      return race + " Pattern & Hue";
         case AspectProperty::RACIAL_HORN_PRIMARY:       return race + " Horns";
         case AspectProperty::RACIAL_HORN_VARIANT:       return race + " Horn Variant";
+        case AspectProperty::ANTENNAE_MORPH:            return race + " Antennae";
         case AspectProperty::RACIAL_WING_PRIMARY:       return race + " Wings";
         case AspectProperty::RACIAL_WING_VARIANT:       return race + " Wing Variant";
         case AspectProperty::RACIAL_TAIL_PRIMARY:       return race + " Tail";
         case AspectProperty::RACIAL_TAIL_VARIANT:       return race + " Tail Variant";
         case AspectProperty::CROTCH_MAMMARY_MORPH:      return race + " Crotch Mammaries";
+        case AspectProperty::FOOT_MORPH:                return race + " Foot Morph";
         default:
             return getPropertyDefinition(prop).displayName;
     }
@@ -864,6 +1132,47 @@ std::string getPropertyShortLabel(AspectProperty prop, const item* baseItem)
 {
     switch (prop)
     {
+        // Core Attributes
+        case AspectProperty::CORE_HEALTH:          return "Health";
+        case AspectProperty::CORE_MANA:            return "Mana";
+        case AspectProperty::CORE_STAMINA:         return "Stamina";
+        case AspectProperty::CORE_PHYSIQUE:        return "Physiq";
+        case AspectProperty::CORE_ARCANE:          return "Arcane";
+        case AspectProperty::CORE_CORRUPTION:      return "Corrupt";
+
+        // General Attributes
+        case AspectProperty::ATTR_PHYSICAL_DAMAGE: return "Damage";
+        case AspectProperty::ATTR_SPELL_POWER:     return "Sp Power";
+        case AspectProperty::ATTR_ARMOR:           return "Armor";
+        case AspectProperty::ATTR_WARDING:         return "Wards";
+        case AspectProperty::ATTR_FERTILITY:       return "Fertil";
+        case AspectProperty::ATTR_VIRILITY:        return "Viril";
+        case AspectProperty::ATTR_CRITICAL:        return "Crit";
+        case AspectProperty::ATTR_AGILITY:         return "Agility";
+
+        // Special Effects
+        case AspectProperty::CONCEAL_IDENTITY:     return "Shroud";
+
+        // Retention Fluids
+        case AspectProperty::RETENTION_STOMACH:    return "Stomach";
+        case AspectProperty::RETENTION_MAMMARY:    return "Mammary";
+        case AspectProperty::RETENTION_YONI:       return "Yoni";
+        case AspectProperty::RETENTION_ANAL:       return "Anal";
+
+        // Desires
+        case AspectProperty::DESIRE_ANAL:          return "Anal";
+        case AspectProperty::DESIRE_MAMMARY:       return "Mammary";
+        case AspectProperty::DESIRE_PHALLIC:       return "Phallus";
+        case AspectProperty::DESIRE_YONI:          return "Yoni";
+        case AspectProperty::DESIRE_FEET:          return "Feet";
+        case AspectProperty::DESIRE_DOMINANT:      return "Dominant";
+        case AspectProperty::DESIRE_SUBMISSIVE:    return "Submiss";
+        case AspectProperty::DESIRE_BONDAGE:       return "Bondage";
+        case AspectProperty::DESIRE_EXHIBITIONISM: return "Exhibit";
+        case AspectProperty::DESIRE_CHASTITY:      return "Chastity";
+        case AspectProperty::DESIRE_MASOCHISM:     return "Masoch";
+        case AspectProperty::DESIRE_SADISM:        return "Sadism";
+
         // Chest & Breasts
         case AspectProperty::BREAST_SIZE:          return "Size";
         case AspectProperty::BREAST_SHAPE:         return "Shape";
@@ -871,10 +1180,19 @@ std::string getPropertyShortLabel(AspectProperty prop, const item* baseItem)
         case AspectProperty::NIPPLE_GIRTH:         return "Nip Girth";
         case AspectProperty::NIPPLE_TYPE:          return "Nip Type";
         case AspectProperty::NIPPLE_CAPACITY:      return "Nip Cap";
+        case AspectProperty::AREOLA_SIZE:          return "Areola";
         case AspectProperty::LACTATION_VOLUME:     return "Milk Vol";
         case AspectProperty::LACTATION_REGEN:      return "Milk Regen";
         case AspectProperty::FLUID_TYPE:           return "Fluid";
+        case AspectProperty::MILK_FLAVOR:          return "Flavor";
         case AspectProperty::CROTCH_MAMMARY_MORPH: return "Udder";
+
+        // Crotch Udders
+        case AspectProperty::UDDER_SIZE:           return "Udder";
+        case AspectProperty::TEAT_LENGTH:          return "TeatLen";
+        case AspectProperty::TEAT_COUNT:           return "Teats";
+        case AspectProperty::UDDER_CAPACITY:       return "UddrCap";
+        case AspectProperty::UDDER_REGEN:          return "UddrReg";
 
         // Phallus & Virility
         case AspectProperty::PENIS_LENGTH:         return "Length";
@@ -902,17 +1220,23 @@ std::string getPropertyShortLabel(AspectProperty prop, const item* baseItem)
         case AspectProperty::ANUS_CAPACITY:        return "Anus Cap";
         case AspectProperty::ANUS_DEPTH:           return "Anus Depth";
         case AspectProperty::ANUS_ELASTICITY:      return "Elastic";
+        case AspectProperty::ANUS_WETNESS:         return "Wetness";
 
         // Legs & Lower Body
         case AspectProperty::LEG_LENGTH:           return "Length";
         case AspectProperty::THIGH_FULLNESS:       return "Thighs";
+        case AspectProperty::LEG_HAIR:             return "LegHair";
         case AspectProperty::RACIAL_LEGS_BIPED:    return "Biped";
         case AspectProperty::RACIAL_STANCE_MORPH:  return "Stance";
         case AspectProperty::RACIAL_BODY_CONFIG:   return "Taur";
+        case AspectProperty::FOOT_MORPH:           return "Foot";
         case AspectProperty::SPRINT_AGILITY:       return "Sprint";
 
         // Head & Visage
         case AspectProperty::FACE_SHAPE:           return "Face";
+        case AspectProperty::NOSE_SIZE:            return "Nose";
+        case AspectProperty::FACIAL_BEARD:         return "Beard";
+        case AspectProperty::EYEBROW_SHAPE:        return "Eyebrow";
         case AspectProperty::RACIAL_FACIAL_STRUCTURE: return "Visage";
         case AspectProperty::RACIAL_MUZZLE_MORPH:  return "Muzzle";
         case AspectProperty::PREDATORY_PERCEPTION: return "Sense";
@@ -947,6 +1271,8 @@ std::string getPropertyShortLabel(AspectProperty prop, const item* baseItem)
         case AspectProperty::STATURE_HEIGHT:       return "Height";
         case AspectProperty::MUSCLE_PHYSIQUE:      return "Muscle";
         case AspectProperty::WAIST_TAPER:          return "Waist";
+        case AspectProperty::FEMININITY_MASCULINITY: return "Gender";
+        case AspectProperty::BODY_HAIR:            return "BodyHair";
         case AspectProperty::STOMACH_FIRMNESS:     return "Tone";
         case AspectProperty::HEALTH_VITALITY:      return "Vitality";
 
@@ -958,15 +1284,20 @@ std::string getPropertyShortLabel(AspectProperty prop, const item* baseItem)
 
         // Arms & Hands
         case AspectProperty::ARM_MUSCLE:           return "Muscle";
+        case AspectProperty::UNDERARM_HAIR:        return "ArmHair";
+        case AspectProperty::GRIP_STRENGTH:        return "Grip";
         case AspectProperty::CLAWS_NAILS:          return "Claws";
         case AspectProperty::MANUAL_DEXTERITY:     return "Dexterity";
 
-        // Horns, Wings & Tail
+        // Horns, Wings, Tail & Antennae
         case AspectProperty::HORN_SIZE:            return "Size";
         case AspectProperty::HORN_SHAPE:           return "Shape";
         case AspectProperty::HORN_TEXTURE:         return "Texture";
         case AspectProperty::RACIAL_HORN_PRIMARY:  return "Horns";
         case AspectProperty::RACIAL_HORN_VARIANT:  return "Horn Var";
+        case AspectProperty::ANTENNAE_MORPH:       return "Antenna";
+        case AspectProperty::ANTENNAE_LENGTH:      return "Ant Len";
+        case AspectProperty::ANTENNAE_TYPE:        return "Ant Type";
         case AspectProperty::WING_SIZE:            return "Size";
         case AspectProperty::WING_TYPE:            return "Type";
         case AspectProperty::GLIDING_FLIGHT:       return "Flight";
@@ -986,6 +1317,8 @@ std::string getPropertyShortLabel(AspectProperty prop, const item* baseItem)
         case AspectProperty::DAMAGE_ELEMENTAL:     return "Elements";
         case AspectProperty::CRITICAL_POWER:       return "Critical";
         case AspectProperty::LIFE_LEECH:           return "Leech";
+        case AspectProperty::ARMOR_PIERCING:       return "Pierce";
+        case AspectProperty::WEAPON_BLEED:         return "Bleed";
         case AspectProperty::ARMOR_RATING:         return "Armor";
         case AspectProperty::FORTITUDE_STAT:       return "Fortitude";
         case AspectProperty::WARD_RESISTANCE:      return "Wards";
@@ -1034,6 +1367,229 @@ std::string getGradualTimeInterval(InfusionTier tier)
         default:
             return "Weekly gradual shift (Ticks every week worn)";
     }
+}
+
+bool propertySupportsLimits(AspectProperty prop, const item* baseItem)
+{
+    switch (prop)
+    {
+        // Chest & Breasts
+        case AspectProperty::BREAST_SIZE:
+        case AspectProperty::NIPPLE_LENGTH:
+        case AspectProperty::NIPPLE_GIRTH:
+        case AspectProperty::AREOLA_SIZE:
+        case AspectProperty::LACTATION_VOLUME:
+        case AspectProperty::LACTATION_REGEN:
+
+        // Crotch Udders
+        case AspectProperty::UDDER_SIZE:
+        case AspectProperty::TEAT_LENGTH:
+        case AspectProperty::UDDER_CAPACITY:
+        case AspectProperty::UDDER_REGEN:
+
+        // Phallus
+        case AspectProperty::PENIS_LENGTH:
+        case AspectProperty::PENIS_GIRTH:
+        case AspectProperty::KNOT_SIZE:
+        case AspectProperty::TESTES_SIZE:
+        case AspectProperty::CUM_VOLUME:
+        case AspectProperty::CUM_REGEN:
+
+        // Yoni
+        case AspectProperty::CLIT_SIZE:
+        case AspectProperty::LABIA_SIZE:
+        case AspectProperty::VAGINA_DEPTH:
+        case AspectProperty::VAGINA_TIGHTNESS:
+        case AspectProperty::LUBRICATION_WETNESS:
+
+        // Hips & Ass
+        case AspectProperty::BUTT_SIZE:
+        case AspectProperty::HIP_WIDTH:
+        case AspectProperty::ANUS_CAPACITY:
+        case AspectProperty::ANUS_DEPTH:
+        case AspectProperty::ANUS_ELASTICITY:
+        case AspectProperty::ANUS_WETNESS:
+
+        // Legs
+        case AspectProperty::LEG_LENGTH:
+        case AspectProperty::THIGH_FULLNESS:
+        case AspectProperty::LEG_HAIR:
+
+        // Face
+        case AspectProperty::LIP_FULLNESS:
+        case AspectProperty::NOSE_SIZE:
+        case AspectProperty::FACIAL_BEARD:
+        case AspectProperty::EYEBROW_SHAPE:
+
+        // Hair
+        case AspectProperty::HAIR_LENGTH:
+        case AspectProperty::HAIR_VOLUME:
+
+        // Torso / Core
+        case AspectProperty::STATURE_HEIGHT:
+        case AspectProperty::MUSCLE_PHYSIQUE:
+        case AspectProperty::WAIST_TAPER:
+        case AspectProperty::FEMININITY_MASCULINITY:
+        case AspectProperty::BODY_HAIR:
+
+        // Arms
+        case AspectProperty::UNDERARM_HAIR:
+        case AspectProperty::ARM_MUSCLE:
+
+        // Horns, Wings, Tail, Ears, Antennae
+        case AspectProperty::HORN_SIZE:
+        case AspectProperty::WING_SIZE:
+        case AspectProperty::TAIL_LENGTH:
+        case AspectProperty::TAIL_GIRTH:
+        case AspectProperty::EAR_SIZE:
+        case AspectProperty::ANTENNAE_LENGTH:
+
+        // Legacy continuous
+        case AspectProperty::SCALE_SIZE:
+        case AspectProperty::SECONDARY_SIZE:
+        case AspectProperty::VOLUME_CAPACITY:
+        case AspectProperty::DEPTH:
+        case AspectProperty::ELASTICITY:
+        case AspectProperty::FLUID_PRODUCTION:
+        case AspectProperty::REGENERATION_RATE:
+        case AspectProperty::HAIR_GROWTH:
+            return true;
+
+        default:
+            return false;
+    }
+}
+
+std::vector<std::string> getPropertyLimitSteps(AspectProperty prop)
+{
+    switch (prop)
+    {
+        case AspectProperty::BREAST_SIZE:
+            return { "flat", "small", "perky", "voluptuous", "massive", "titanic" };
+        case AspectProperty::NIPPLE_LENGTH:
+            return { "flat", "tiny", "distinct", "protruding", "long", "hyper" };
+        case AspectProperty::NIPPLE_GIRTH:
+            return { "thin", "normal", "broad", "puffy", "wide", "massive" };
+        case AspectProperty::AREOLA_SIZE:
+            return { "tiny", "small", "average", "large", "plate", "hyper" };
+        case AspectProperty::LACTATION_VOLUME:
+        case AspectProperty::FLUID_PRODUCTION:
+            return { "dry", "droplets", "trickle", "stream", "torrent", "deluge" };
+        case AspectProperty::LACTATION_REGEN:
+        case AspectProperty::REGENERATION_RATE:
+        case AspectProperty::UDDER_REGEN:
+            return { "none", "slow", "steady", "rapid", "surging", "fountain" };
+
+        case AspectProperty::UDDER_SIZE:
+            return { "flat", "budding", "small", "full", "heavy", "gargantuan" };
+        case AspectProperty::TEAT_LENGTH:
+            return { "tiny", "small", "standard", "long", "dangling", "hyper" };
+        case AspectProperty::UDDER_CAPACITY:
+            return { "dry", "small", "moderate", "bountiful", "deluging", "endless" };
+
+        case AspectProperty::PENIS_LENGTH:
+            return { "tiny", "modest", "average", "large", "horse", "monster" };
+        case AspectProperty::PENIS_GIRTH:
+            return { "thin", "slim", "thick", "girthy", "massive", "arm" };
+        case AspectProperty::KNOT_SIZE:
+            return { "none", "slight", "pronounced", "large", "massive", "locking" };
+        case AspectProperty::TESTES_SIZE:
+            return { "pea", "small", "apple", "grapefruit", "watermelon", "carriage" };
+        case AspectProperty::CUM_VOLUME:
+            return { "drops", "trickle", "splash", "squirt", "geyser", "tsunami" };
+        case AspectProperty::CUM_REGEN:
+            return { "sluggish", "daily", "hourly", "rapid", "nonstop", "surging" };
+
+        case AspectProperty::CLIT_SIZE:
+            return { "button", "small", "prominent", "engorged", "pseudo", "massive" };
+        case AspectProperty::LABIA_SIZE:
+            return { "tidy", "small", "petal", "fleshy", "pendulous", "drapery" };
+        case AspectProperty::VAGINA_DEPTH:
+        case AspectProperty::DEPTH:
+            return { "shallow", "snug", "average", "deep", "cavernous", "abyssal" };
+        case AspectProperty::VAGINA_TIGHTNESS:
+            return { "gaping", "relaxed", "loose", "snug", "clenched", "impassable" };
+        case AspectProperty::LUBRICATION_WETNESS:
+            return { "dry", "moist", "slick", "dripping", "soaking", "torrential" };
+
+        case AspectProperty::BUTT_SIZE:
+            return { "flat", "small", "round", "plump", "huge", "colossal" };
+        case AspectProperty::HIP_WIDTH:
+        case AspectProperty::SECONDARY_SIZE:
+            return { "narrow", "slender", "average", "wide", "flaring", "broad" };
+        case AspectProperty::ANUS_CAPACITY:
+        case AspectProperty::VOLUME_CAPACITY:
+            return { "tight", "snug", "receptive", "cavernous", "gaping", "bottomless" };
+        case AspectProperty::ANUS_DEPTH:
+            return { "shallow", "short", "average", "deep", "abyssal", "endless" };
+        case AspectProperty::ANUS_ELASTICITY:
+        case AspectProperty::ELASTICITY:
+            return { "rigid", "firm", "pliant", "elastic", "hyper-elastic", "liquid" };
+        case AspectProperty::ANUS_WETNESS:
+            return { "dry", "normal", "moist", "wet", "dripping", "soaking" };
+
+        case AspectProperty::LEG_LENGTH:
+            return { "short", "average", "long", "towering", "stilt", "sky" };
+        case AspectProperty::THIGH_FULLNESS:
+            return { "slim", "slender", "curvy", "thick", "muscular", "thunderous" };
+        case AspectProperty::LEG_HAIR:
+        case AspectProperty::BODY_HAIR:
+            return { "smooth", "faint", "light", "moderate", "hairy", "pelt" };
+
+        case AspectProperty::LIP_FULLNESS:
+            return { "thin", "small", "normal", "plump", "full", "huge" };
+        case AspectProperty::NOSE_SIZE:
+            return { "tiny", "small", "normal", "large", "huge", "massive" };
+        case AspectProperty::FACIAL_BEARD:
+            return { "clean", "stubble", "trimmed", "full", "long", "wizard" };
+        case AspectProperty::EYEBROW_SHAPE:
+            return { "thin", "fine", "natural", "thick", "bushy", "wild" };
+
+        case AspectProperty::HAIR_LENGTH:
+        case AspectProperty::HAIR_GROWTH:
+            return { "bald", "short", "shoulder", "waist", "floor", "infinite" };
+        case AspectProperty::HAIR_VOLUME:
+            return { "sparse", "thin", "normal", "full", "voluminous", "enormous" };
+
+        case AspectProperty::STATURE_HEIGHT:
+            return { "tiny", "short", "average", "tall", "giant", "titanic" };
+        case AspectProperty::MUSCLE_PHYSIQUE:
+            return { "soft", "light", "toned", "athletic", "ripped", "colossus" };
+        case AspectProperty::WAIST_TAPER:
+            return { "wasp", "slender", "average", "wide", "heavy", "stout" };
+        case AspectProperty::FEMININITY_MASCULINITY:
+            return { "masculine", "androgynous", "soft", "feminine", "doll", "hyper-fem" };
+
+        case AspectProperty::UNDERARM_HAIR:
+            return { "hairless", "faint", "trimmed", "bushy", "luxuriant", "wild" };
+        case AspectProperty::ARM_MUSCLE:
+            return { "soft", "toned", "athletic", "muscular", "massive", "colossus" };
+
+        case AspectProperty::HORN_SIZE:
+            return { "budding", "short", "medium", "long", "towering", "colossal" };
+        case AspectProperty::WING_SIZE:
+            return { "tiny", "small", "medium", "large", "expansive", "massive" };
+        case AspectProperty::TAIL_LENGTH:
+            return { "stub", "short", "medium", "long", "floor", "endless" };
+        case AspectProperty::TAIL_GIRTH:
+            return { "thin", "slender", "thick", "fluffy", "massive", "hyper" };
+        case AspectProperty::EAR_SIZE:
+            return { "tiny", "small", "normal", "large", "long", "huge" };
+        case AspectProperty::ANTENNAE_LENGTH:
+            return { "nubs", "short", "medium", "long", "arching", "giant" };
+
+        case AspectProperty::SCALE_SIZE:
+        default:
+            return { "tiny", "small", "normal", "large", "huge", "maximum" };
+    }
+}
+
+std::string getLimitStepLabel(AspectProperty prop, int stepIndex)
+{
+    auto steps = getPropertyLimitSteps(prop);
+    if (steps.empty()) return "none";
+    int clamped = std::clamp(stepIndex, 0, static_cast<int>(steps.size()) - 1);
+    return steps[clamped];
 }
 
 

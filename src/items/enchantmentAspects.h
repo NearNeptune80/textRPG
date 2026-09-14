@@ -49,6 +49,26 @@ enum class EnchantmentFocus
     HIPS_ASS,
     LEGS_FEET,
 
+    // Core & Attributes
+    CORE_ATTRIBUTES,
+    GENERAL_ATTRIBUTES,
+
+    // Special & Seals
+    SPECIAL_EFFECTS,
+
+    // Fluids & Desires
+    RETENTION_FLUIDS,
+    BODY_DESIRES,
+    BEHAVIORAL_DESIRES,
+
+    // Granular Bodily & Racial Domains
+    CROTCH_MAMMARIES,
+    ANTENNAE,
+    FLUIDS_CUM,
+    FLUIDS_MILK,
+    FLUIDS_GIRLCUM,
+    RACE_AWAKENING,
+
     // Equipment & Combat Attunement Domains
     ARMOR_REINFORCEMENT,
     WEAPON_LETHALITY,
@@ -61,6 +81,52 @@ enum class AspectProperty
 {
     NONE,
 
+    // Core Attributes
+    CORE_HEALTH,
+    CORE_MANA,
+    CORE_STAMINA,
+    CORE_PHYSIQUE,
+    CORE_ARCANE,
+    CORE_CORRUPTION,
+
+    // General Attributes
+    ATTR_PHYSICAL_DAMAGE,
+    ATTR_SPELL_POWER,
+    ATTR_ARMOR,
+    ATTR_WARDING,
+    ATTR_FERTILITY,
+    ATTR_VIRILITY,
+    ATTR_CRITICAL,
+    ATTR_AGILITY,
+
+    // Special Effects
+    SOULBOUND_SEAL,
+    CONCEAL_IDENTITY,
+    SERVITUDE_INHIBITION,
+    SENSORY_VIBRATION,
+
+    // Fluid Retention
+    RETENTION_STOMACH,
+    RETENTION_MAMMARY,
+    RETENTION_YONI,
+    RETENTION_ANAL,
+
+    // Body Desires / Fetishes
+    DESIRE_ANAL,
+    DESIRE_MAMMARY,
+    DESIRE_PHALLIC,
+    DESIRE_YONI,
+    DESIRE_FEET,
+
+    // Behavioral Desires / Fetishes
+    DESIRE_DOMINANT,
+    DESIRE_SUBMISSIVE,
+    DESIRE_BONDAGE,
+    DESIRE_EXHIBITIONISM,
+    DESIRE_CHASTITY,
+    DESIRE_MASOCHISM,
+    DESIRE_SADISM,
+
     // Chest & Breasts
     BREAST_SIZE,
     BREAST_SHAPE,
@@ -68,10 +134,19 @@ enum class AspectProperty
     NIPPLE_GIRTH,
     NIPPLE_TYPE,
     NIPPLE_CAPACITY,
+    AREOLA_SIZE,
     LACTATION_VOLUME,
     LACTATION_REGEN,
     FLUID_TYPE,
+    MILK_FLAVOR,
     CROTCH_MAMMARY_MORPH,
+
+    // Crotch Udders
+    UDDER_SIZE,
+    TEAT_LENGTH,
+    TEAT_COUNT,
+    UDDER_CAPACITY,
+    UDDER_REGEN,
 
     // Phallus & Virility
     PENIS_LENGTH,
@@ -99,17 +174,23 @@ enum class AspectProperty
     ANUS_CAPACITY,
     ANUS_DEPTH,
     ANUS_ELASTICITY,
+    ANUS_WETNESS,
 
     // Legs & Lower Body
     LEG_LENGTH,
     THIGH_FULLNESS,
+    LEG_HAIR,
     RACIAL_LEGS_BIPED,
     RACIAL_STANCE_MORPH,
     RACIAL_BODY_CONFIG,
+    FOOT_MORPH,
     SPRINT_AGILITY,
 
     // Head & Visage
     FACE_SHAPE,
+    NOSE_SIZE,
+    FACIAL_BEARD,
+    EYEBROW_SHAPE,
     RACIAL_FACIAL_STRUCTURE,
     RACIAL_MUZZLE_MORPH,
     PREDATORY_PERCEPTION,
@@ -144,6 +225,8 @@ enum class AspectProperty
     STATURE_HEIGHT,
     MUSCLE_PHYSIQUE,
     WAIST_TAPER,
+    FEMININITY_MASCULINITY,
+    BODY_HAIR,
     STOMACH_FIRMNESS,
     HEALTH_VITALITY,
 
@@ -155,15 +238,20 @@ enum class AspectProperty
 
     // Arms & Hands
     ARM_MUSCLE,
+    UNDERARM_HAIR,
+    GRIP_STRENGTH,
     CLAWS_NAILS,
     MANUAL_DEXTERITY,
 
-    // Horns, Wings & Tail
+    // Horns, Wings, Tail & Antennae
     HORN_SIZE,
     HORN_SHAPE,
     HORN_TEXTURE,
     RACIAL_HORN_PRIMARY,
     RACIAL_HORN_VARIANT,
+    ANTENNAE_MORPH,
+    ANTENNAE_LENGTH,
+    ANTENNAE_TYPE,
     WING_SIZE,
     WING_TYPE,
     GLIDING_FLIGHT,
@@ -182,6 +270,8 @@ enum class AspectProperty
     STRIKE_VELOCITY,
     CRITICAL_POWER,
     LIFE_LEECH,
+    ARMOR_PIERCING,
+    WEAPON_BLEED,
     DAMAGE_ELEMENTAL,
     ARCANE_STAT,
     MANA_CEILING,
@@ -192,11 +282,6 @@ enum class AspectProperty
     FORTITUDE_STAT,
     WARD_RESISTANCE,
     MIND_WARD,
-
-    // Binding, Seals & Sensory
-    SOULBOUND_SEAL,
-    SERVITUDE_INHIBITION,
-    SENSORY_VIBRATION,
 
     // Backwards compatibility aliases
     SCALE_SIZE,
@@ -259,3 +344,8 @@ std::string getFocusIconGlyph(EnchantmentFocus focus);
 std::string getPropertyShortLabel(AspectProperty prop, const item* baseItem = nullptr);
 std::string getPropertyDisplayName(AspectProperty prop, const item* baseItem = nullptr);
 std::string getGradualTimeInterval(InfusionTier tier);
+
+// Discrete Limit Threshold Helpers
+bool propertySupportsLimits(AspectProperty prop, const item* baseItem = nullptr);
+std::vector<std::string> getPropertyLimitSteps(AspectProperty prop);
+std::string getLimitStepLabel(AspectProperty prop, int stepIndex);

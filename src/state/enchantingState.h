@@ -20,6 +20,7 @@ public:
     EnchantmentFocus selectedFocus = EnchantmentFocus::HEAD_FEATURE;
     AspectProperty selectedProperty = AspectProperty::AGILITY_STAT;
     InfusionTier selectedTier = InfusionTier::GREATER_BOON;
+    int selectedLimitIndex = 5;
     int limitValue = -1;
 
     std::vector<InfusionEffect> stagedEffects;
@@ -42,9 +43,12 @@ public:
     void cycleBackpackItem(game* gameContext);
     const item* getSelectedBaseItem(const game* gameContext) const;
     std::shared_ptr<item> getSelectedBaseItemPtr(const game* gameContext) const;
+    bool isTargetItemEquipped(const game* gameContext) const;
+
     void setFocus(EnchantmentFocus focus);
     void setProperty(AspectProperty prop);
     void setTier(InfusionTier tier);
+    void setLimitIndex(int index);
 
     void stageCurrentEffect();
     void removeStagedEffect(size_t index);

@@ -33,12 +33,20 @@ void enchantingState::initialise(game* gameContext)
         {
             selectBackpackItem(selectedBackpackIndex, gameContext);
         }
+
+        if (isTargetItemEquipped(gameContext))
+        {
+            statusMessage = "Cannot enchant equipped items! Please unequip this item before enchanting.";
+        }
     }
 }
 
 void enchantingState::handleCommand(game* gameContext, const UICommand& cmd)
 {
-    // Subscribed state commands can be handled here if needed
+    if (cmd.type == CommandType::CLOSE_MENU)
+    {
+        exitAltar(gameContext);
+    }
 }
 
 void enchantingState::update(game* gameContext, float deltaTime)
@@ -79,6 +87,21 @@ std::shared_ptr<item> enchantingState::getSelectedBaseItemPtr(const game* gameCo
         return gameContext->Player->inventory.backpack[selectedBackpackIndex];
     }
     return targetItemPtr;
+}
+
+bool enchantingState::isTargetItemEquipped(const game* gameContext) const
+{
+    if (!gameContext || !gameContext->Player) return false;
+    const item* baseItem = getSelectedBaseItem(gameContext);
+    if (!baseItem) return false;
+    for (const auto& eqItem : gameContext->Player->inventory.equipped)
+    {
+        if (eqItem && (eqItem.get() == baseItem || (targetItemPtr && eqItem == targetItemPtr)))
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 void enchantingState::selectBackpackItem(int index, game* gameContext)
@@ -226,6 +249,12 @@ void enchantingState::setTier(InfusionTier tier)
     selectedTier = tier;
 }
 
+void enchantingState::setLimitIndex(int index)
+{
+    selectedLimitIndex = std::clamp(index, 0, 5);
+    limitValue = selectedLimitIndex;
+}
+
 void enchantingState::stageCurrentEffect()
 {
     InfusionEffect eff = getCurrentPreviewEffect();
@@ -260,8 +289,23 @@ InfusionEffect enchantingState::getCurrentPreviewEffect() const
 {
     InfusionTargetType targetType = InfusionTargetType::CONSUMABLE_TONIC;
 
-    // We can infer target type or let it default to tonic
-    if (selectedFocus == EnchantmentFocus::ARMOR_REINFORCEMENT || selectedFocus == EnchantmentFocus::BINDING_SPECIAL)
+    const item* baseItem = targetItemPtr.get();
+    if (baseItem)
+    {
+        ItemCategory cat = determineItemCategory(*baseItem);
+        if (cat == ItemCategory::WEAPON)
+        {
+            targetType = InfusionTargetType::WEAPONRY;
+        }
+        else if (cat == ItemCategory::CLOTHING || cat == ItemCategory::UNDERWEAR || cat == ItemCategory::ACCESSORY || (baseItem->isEquippable && cat != ItemCategory::WEAPON))
+        {
+            targetType = InfusionTargetType::APPAREL;
+        }
+    }
+    else if (selectedFocus == EnchantmentFocus::ARMOR_REINFORCEMENT || selectedFocus == EnchantmentFocus::BINDING_SPECIAL ||
+             selectedFocus == EnchantmentFocus::CORE_ATTRIBUTES || selectedFocus == EnchantmentFocus::GENERAL_ATTRIBUTES ||
+             selectedFocus == EnchantmentFocus::SPECIAL_EFFECTS || selectedFocus == EnchantmentFocus::RETENTION_FLUIDS ||
+             selectedFocus == EnchantmentFocus::BODY_DESIRES || selectedFocus == EnchantmentFocus::BEHAVIORAL_DESIRES)
     {
         targetType = InfusionTargetType::APPAREL;
     }
@@ -270,12 +314,14 @@ InfusionEffect enchantingState::getCurrentPreviewEffect() const
         targetType = InfusionTargetType::WEAPONRY;
     }
 
+    int lim = propertySupportsLimits(selectedProperty, baseItem) ? selectedLimitIndex : -1;
+
     return InfusionEffect{
         targetType,
         selectedFocus,
         selectedProperty,
         selectedTier,
-        limitValue
+        lim
     };
 }
 
@@ -296,6 +342,7 @@ int enchantingState::getTotalCost(game* gameContext) const
 bool enchantingState::canAffordCraft(game* gameContext) const
 {
     if (!gameContext || !gameContext->Player) return false;
+    if (isTargetItemEquipped(gameContext)) return false;
     float currentEssence = gameContext->Player->getStat("arcaneEssence");
     int cost = getTotalCost(gameContext);
     return currentEssence >= cost && !stagedEffects.empty();
@@ -304,6 +351,12 @@ bool enchantingState::canAffordCraft(game* gameContext) const
 void enchantingState::craft(game* gameContext)
 {
     if (!gameContext || !gameContext->Player) return;
+
+    if (isTargetItemEquipped(gameContext))
+    {
+        statusMessage = "Cannot enchant equipped items! Please unequip this item before enchanting.";
+        return;
+    }
 
     int cost = getTotalCost(gameContext);
     if (!canAffordCraft(gameContext))

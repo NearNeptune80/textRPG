@@ -2948,13 +2948,27 @@ namespace GameplayViews
         float headerH = 26.0f * uiScale;
         SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
         UIWidget::drawHeader(renderer, headerRect, "ENCHANTING & INFUSION ALTAR", Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
-        curY += headerH + (10.0f * uiScale);
 
         auto rawMouse = gameContext->input.getMousePosition();
         SDL_FPoint mousePos = { rawMouse.x, rawMouse.y };
         bool clicked = gameContext->input.isLeftMouseJustClicked();
 
         auto ench = dynamic_cast<enchantingState*>(gameContext->getActiveState());
+
+        // Header Back Button to exit altar
+        float backBtnW = 68.0f * uiScale;
+        float backBtnH = 20.0f * uiScale;
+        SDL_FRect backRect = { rect.x + rect.w - backBtnW - (8.0f * uiScale), curY + (3.0f * uiScale), backBtnW, backBtnH };
+        bool backHov = (mousePos.x >= backRect.x && mousePos.x <= backRect.x + backRect.w &&
+                        mousePos.y >= backRect.y && mousePos.y <= backRect.y + backRect.h);
+        UIWidget::drawButton(renderer, backRect, "< Back", backHov, true, false, uiScale * 0.74f);
+        TooltipManager::setHoverTooltip(backRect, mousePos, "Leave Altar", "Exit the enchanting altar and return to inventory.");
+        if (backHov && clicked && ench)
+        {
+            ench->exitAltar(gameContext);
+        }
+
+        curY += headerH + (10.0f * uiScale);
 
         float halfW = (availableW - (16.0f * uiScale)) / 2.0f;
 
@@ -3017,7 +3031,7 @@ namespace GameplayViews
         }
 
         int numPropRows = availProps.empty() ? 0 : static_cast<int>((availProps.size() + 4) / 5);
-        for (size_t i = 0; i < availProps.size() && i < 15; ++i)
+        for (size_t i = 0; i < availProps.size() && i < 25; ++i)
         {
             int r = static_cast<int>(i / 5);
             int c = static_cast<int>(i % 5);
@@ -3110,6 +3124,8 @@ namespace GameplayViews
         float tierW = (availableW - (5.0f * gap)) / 6.0f;
         float tierH = 22.0f * uiScale;
 
+        bool isApparel = baseItem && (baseItem->category == ItemCategory::CLOTHING || baseItem->category == ItemCategory::UNDERWEAR || baseItem->category == ItemCategory::ACCESSORY);
+
         for (int t = 0; t < 6; ++t)
         {
             InfusionTier tier = allTiers[t];
@@ -3118,7 +3134,7 @@ namespace GameplayViews
             bool isHov = (mousePos.x >= tRect.x && mousePos.x <= tRect.x + tRect.w &&
                           mousePos.y >= tRect.y && mousePos.y <= tRect.y + tRect.h);
 
-            std::string tName = getTierName(tier);
+            std::string tName = getTierName(tier, isApparel);
             UIWidget::drawButton(renderer, tRect, tName, isHov, true, isSelected, uiScale * 0.78f);
             TooltipManager::setHoverTooltip(tRect, mousePos, tName,
                                             std::format("Tier essence multiplier: {}x. Affects potency, stat modifier amplitude, and gradual growth velocity.", getTierEssenceCost(tier)));
@@ -3128,7 +3144,41 @@ namespace GameplayViews
                 ench->setTier(tier);
             }
         }
-        curY += tierH + (10.0f * uiScale);
+        curY += tierH + (6.0f * uiScale);
+
+        // 2b. Limit Threshold Selector Row (Rendered if property supports continuous limits)
+        if (ench && propertySupportsLimits(ench->selectedProperty, baseItem.get()))
+        {
+            static const char* limitLabels[6] = {
+                "Limit Min.",
+                "Limit--",
+                "Limit-",
+                "Limit+",
+                "Limit++",
+                "Limit Max."
+            };
+
+            for (int l = 0; l < 6; ++l)
+            {
+                SDL_FRect lRect = { padX + (l * (tierW + gap)), curY, tierW, tierH };
+                bool isSelected = (ench->selectedLimitIndex == l);
+                bool isHov = (mousePos.x >= lRect.x && mousePos.x <= lRect.x + lRect.w &&
+                              mousePos.y >= lRect.y && mousePos.y <= lRect.y + lRect.h);
+
+                std::string stepVal = getLimitStepLabel(ench->selectedProperty, l);
+                std::string btnText = limitLabels[l];
+                UIWidget::drawButton(renderer, lRect, btnText, isHov, true, isSelected, uiScale * 0.78f);
+                TooltipManager::setHoverTooltip(lRect, mousePos, std::format("{} ({})", btnText, stepVal),
+                                                std::format("Sets target sizing limit to '{}'. Gradual changes cease when this threshold is reached.", stepVal));
+
+                if (isHov && clicked)
+                {
+                    ench->setLimitIndex(l);
+                }
+            }
+            curY += tierH + (6.0f * uiScale);
+        }
+        curY += (4.0f * uiScale);
 
         // 3. Staging and Preview Bar
         SDL_FRect addBarRect = { padX, curY, availableW, 26.0f * uiScale };
@@ -3167,7 +3217,7 @@ namespace GameplayViews
         SDL_FRect recipeRect = { padX, curY, availableW, 114.0f * uiScale };
         UIWidget::drawPanel(renderer, recipeRect, Theme::colors.bgDark, Theme::colors.borderButton);
 
-        // --- Column 1: Input Item & Selection (Left, ~185px) ---
+        // --- Column 1: Input Item & Dedicated Target Status (Left, ~185px) ---
         float col1X = padX + (10.0f * uiScale);
         UIWidget::drawText(renderer, "Input Item", col1X, curY + (6.0f * uiScale), Theme::colors.textAccent, uiScale * 0.80f);
 
@@ -3217,20 +3267,30 @@ namespace GameplayViews
         std::string subCatStr = baseItem ? std::format("{} (x{})", itemCategoryToString(determineItemCategory(*baseItem)), baseItem->count) : "Pure Alchemy";
         UIWidget::drawText(renderer, subCatStr, inTextX, curY + (40.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.68f);
 
-        // Explicit Cycle Button
-        SDL_FRect cycleBtnRect = { col1X, curY + (76.0f * uiScale), 170.0f * uiScale, 24.0f * uiScale };
-        bool cycleHov = (mousePos.x >= cycleBtnRect.x && mousePos.x <= cycleBtnRect.x + cycleBtnRect.w &&
-                         mousePos.y >= cycleBtnRect.y && mousePos.y <= cycleBtnRect.y + cycleBtnRect.h);
-        UIWidget::drawButton(renderer, cycleBtnRect, "[Cycle Item]", cycleHov, true, false, uiScale * 0.74f);
-
-        TooltipManager::setHoverTooltip(inSlotRect, mousePos, baseItem ? baseItem->name : "Blank Tonic Base",
-                                        "Click slot or [Cycle Item] button to cycle through enchantable items in your inventory.",
-                                        baseItem ? ("Category: " + itemCategoryToString(determineItemCategory(*baseItem))) : "");
-        TooltipManager::setHoverTooltip(cycleBtnRect, mousePos, "Cycle Backpack Item", "Cycle to the next enchantable item in your backpack (or blank base).");
-
-        if ((inHov || cycleHov) && clicked && ench)
+        // Dedicated Target / Unequipped Status Panel
+        SDL_FRect statusBadgeRect = { col1X, curY + (76.0f * uiScale), 170.0f * uiScale, 24.0f * uiScale };
+        bool isTargetEquipped = ench && ench->isTargetItemEquipped(gameContext);
+        if (isTargetEquipped)
         {
-            ench->cycleBackpackItem(gameContext);
+            UIWidget::drawPanel(renderer, statusBadgeRect, Theme::colors.bgHeader, Theme::colors.lust);
+            std::string eqText = "EQUIPPED - UNEQUIP";
+            float eqW = UIWidget::getTextWidth(eqText, uiScale * 0.70f);
+            UIWidget::drawText(renderer, eqText, statusBadgeRect.x + ((statusBadgeRect.w - eqW) / 2.0f), statusBadgeRect.y + (5.0f * uiScale), Theme::colors.lust, uiScale * 0.70f);
+            TooltipManager::setHoverTooltip(statusBadgeRect, mousePos, "Item is Equipped", "This item is currently equipped! You must unequip it before you can enchant or alter its infusions.");
+            TooltipManager::setHoverTooltip(inSlotRect, mousePos, baseItem ? baseItem->name : "Blank Tonic Base",
+                                            "Item is currently equipped. Please unequip it to enchant.",
+                                            baseItem ? ("Category: " + itemCategoryToString(determineItemCategory(*baseItem))) : "");
+        }
+        else
+        {
+            UIWidget::drawPanel(renderer, statusBadgeRect, Theme::colors.bgDark, Theme::colors.borderNormal);
+            std::string badgeText = "DEDICATED TARGET";
+            float bW = UIWidget::getTextWidth(badgeText, uiScale * 0.70f);
+            UIWidget::drawText(renderer, badgeText, statusBadgeRect.x + ((statusBadgeRect.w - bW) / 2.0f), statusBadgeRect.y + (5.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.70f);
+            TooltipManager::setHoverTooltip(statusBadgeRect, mousePos, "Dedicated Target", "Item selected for enchanting. To enchant a different item, back out and select it.");
+            TooltipManager::setHoverTooltip(inSlotRect, mousePos, baseItem ? baseItem->name : "Blank Tonic Base",
+                                            "Dedicated target item placed in the altar.",
+                                            baseItem ? ("Category: " + itemCategoryToString(determineItemCategory(*baseItem))) : "");
         }
 
         // --- Column 2: Infusion Staging & Output Configuration (Center) ---
@@ -3337,7 +3397,11 @@ namespace GameplayViews
         bool canCraft = ench && ench->canAffordCraft(gameContext);
         bool hasChanges = ench && (!ench->stagedEffects.empty() || (baseItem && !baseItem->infusionEffects.empty()));
         std::string craftLabel = "INFUSE";
-        if (totalCost > 0)
+        if (isTargetEquipped)
+        {
+            craftLabel = "UNEQUIP FIRST";
+        }
+        else if (totalCost > 0)
         {
             craftLabel = std::format("INFUSE ({}*)", totalCost);
         }

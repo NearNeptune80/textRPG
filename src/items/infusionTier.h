@@ -13,8 +13,22 @@ enum class InfusionTier
     GREATER_BOON     // +3 stat, essence weight 8
 };
 
-inline std::string getTierName(InfusionTier tier)
+inline std::string getTierName(InfusionTier tier, bool isApparel = false)
 {
+    if (isApparel)
+    {
+        switch (tier)
+        {
+            case InfusionTier::MAJOR_HEX:    return "Major Drain";
+            case InfusionTier::HEX:          return "Drain";
+            case InfusionTier::MINOR_HEX:    return "Minor Drain";
+            case InfusionTier::MINOR_BOON:   return "Minor Boost";
+            case InfusionTier::BOON:         return "Boost";
+            case InfusionTier::GREATER_BOON: return "Major Boost";
+            default:                         return "Boost";
+        }
+    }
+
     switch (tier)
     {
         case InfusionTier::MAJOR_HEX:    return "Major Hex";
