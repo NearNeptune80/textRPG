@@ -125,13 +125,37 @@ namespace EnchantingEngine
         {
             suffix = "of the Leech";
         }
-        else if (primEff.property == AspectProperty::ARMOR_RATING)
+        else if (primEff.property == AspectProperty::ATTACK_POWER)
         {
-            suffix = "of Iron Aegis";
+            suffix = "of Carnage";
         }
-        else if (primEff.property == AspectProperty::WARD_RESISTANCE)
+        else if (primEff.property == AspectProperty::STRIKE_VELOCITY)
         {
-            suffix = "of Elemental Wards";
+            suffix = "of Celerity";
+        }
+        else if (primEff.property == AspectProperty::FORTITUDE_STAT)
+        {
+            suffix = "of Iron Bastion";
+        }
+        else if (primEff.property == AspectProperty::MIND_WARD)
+        {
+            suffix = "of Mental Sanctuary";
+        }
+        else if (primEff.property == AspectProperty::MANA_REGENERATION)
+        {
+            suffix = "of Astral Flux";
+        }
+        else if (primEff.property == AspectProperty::HEALTH_VITALITY)
+        {
+            suffix = "of Primal Vitality";
+        }
+        else if (primEff.property == AspectProperty::BREAST_SIZE)
+        {
+            suffix = "of Voluptuous Bloom";
+        }
+        else if (primEff.property == AspectProperty::RACIAL_LEGS_BIPED || primEff.property == AspectProperty::RACIAL_STANCE_MORPH || primEff.property == AspectProperty::RACIAL_BODY_CONFIG)
+        {
+            suffix = "of Primal Awakening";
         }
         else
         {
@@ -230,6 +254,30 @@ namespace EnchantingEngine
                 else if (eff.property == AspectProperty::WARD_RESISTANCE)
                 {
                     crafted->statModifiers.push_back({ "ward_resistance", static_cast<float>(bonus * 3), 0.0f });
+                }
+                else if (eff.property == AspectProperty::ATTACK_POWER)
+                {
+                    crafted->statModifiers.push_back({ "damage", static_cast<float>(bonus * 2), 0.0f });
+                }
+                else if (eff.property == AspectProperty::STRIKE_VELOCITY || eff.property == AspectProperty::SPRINT_AGILITY)
+                {
+                    crafted->statModifiers.push_back({ "agility", static_cast<float>(bonus), 0.0f });
+                }
+                else if (eff.property == AspectProperty::FORTITUDE_STAT)
+                {
+                    crafted->statModifiers.push_back({ "physique", static_cast<float>(bonus), 0.0f });
+                }
+                else if (eff.property == AspectProperty::MIND_WARD)
+                {
+                    crafted->statModifiers.push_back({ "willpower", static_cast<float>(bonus), 0.0f });
+                }
+                else if (eff.property == AspectProperty::MANA_REGENERATION)
+                {
+                    crafted->statModifiers.push_back({ "arcane", static_cast<float>(bonus), 0.0f });
+                }
+                else if (eff.property == AspectProperty::HEALTH_VITALITY)
+                {
+                    crafted->statModifiers.push_back({ "max_health", static_cast<float>(bonus * 15), 0.0f });
                 }
             }
         }

@@ -32,23 +32,6 @@ void enchantingState::initialise(game* gameContext)
         if (selectedBackpackIndex >= 0)
         {
             selectBackpackItem(selectedBackpackIndex, gameContext);
-            const item* baseItem = getSelectedBaseItem(gameContext);
-            if (baseItem)
-            {
-                ItemCategory cat = determineItemCategory(*baseItem);
-                if (cat == ItemCategory::WEAPON)
-                {
-                    setFocus(EnchantmentFocus::WEAPON_LETHALITY);
-                }
-                else if (cat == ItemCategory::CLOTHING || cat == ItemCategory::UNDERWEAR || cat == ItemCategory::ACCESSORY)
-                {
-                    setFocus(EnchantmentFocus::ARMOR_REINFORCEMENT);
-                }
-                else
-                {
-                    setFocus(EnchantmentFocus::HEAD_FEATURE);
-                }
-            }
         }
     }
 }
@@ -119,21 +102,49 @@ void enchantingState::selectBackpackItem(int index, game* gameContext)
         stagedEffects = baseItem->infusionEffects;
         customOutputName.clear();
 
-        if (!isFocusCompatibleWithItem(selectedFocus, baseItem))
+        ItemCategory cat = determineItemCategory(*baseItem);
+        if (cat == ItemCategory::WEAPON)
         {
-            ItemCategory cat = determineItemCategory(*baseItem);
-            if (cat == ItemCategory::WEAPON)
+            selectedFocus = EnchantmentFocus::WEAPON_LETHALITY;
+        }
+        else if (cat == ItemCategory::CLOTHING || cat == ItemCategory::UNDERWEAR || cat == ItemCategory::ACCESSORY)
+        {
+            selectedFocus = EnchantmentFocus::ARMOR_REINFORCEMENT;
+        }
+        else if (!isFocusCompatibleWithItem(selectedFocus, baseItem))
+        {
+            auto comp = getCompatibleFocuses(baseItem);
+            if (!comp.empty()) selectedFocus = comp.front();
+        }
+
+        auto compFocuses = getCompatibleFocuses(baseItem);
+        bool focusValid = false;
+        for (auto f : compFocuses)
+        {
+            if (f == selectedFocus)
             {
-                setFocus(EnchantmentFocus::WEAPON_LETHALITY);
+                focusValid = true;
+                break;
             }
-            else if (cat == ItemCategory::CLOTHING || cat == ItemCategory::UNDERWEAR || cat == ItemCategory::ACCESSORY)
+        }
+        if (!focusValid && !compFocuses.empty())
+        {
+            selectedFocus = compFocuses.front();
+        }
+
+        auto available = getAvailablePropertiesForFocus(selectedFocus, baseItem);
+        bool propValid = false;
+        for (auto p : available)
+        {
+            if (p == selectedProperty)
             {
-                setFocus(EnchantmentFocus::ARMOR_REINFORCEMENT);
+                propValid = true;
+                break;
             }
-            else
-            {
-                setFocus(EnchantmentFocus::HEAD_FEATURE);
-            }
+        }
+        if (!propValid && !available.empty())
+        {
+            selectedProperty = available.front();
         }
     }
 }
@@ -186,7 +197,7 @@ void enchantingState::cycleBackpackItem(game* gameContext)
 void enchantingState::setFocus(EnchantmentFocus focus)
 {
     selectedFocus = focus;
-    auto available = getAvailablePropertiesForFocus(selectedFocus);
+    auto available = getAvailablePropertiesForFocus(selectedFocus, targetItemPtr.get());
     if (!available.empty())
     {
         bool currentValid = false;

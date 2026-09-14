@@ -3897,6 +3897,172 @@ namespace EngineTests
         return allPassed;
     }
 
+    bool testGranularDomainPropertiesAndZeroLockedButtons()
+    {
+        std::cout << "\n--- Running Test 33: Granular Domain Properties & Zero Locked Buttons ---\n";
+        bool allPassed = true;
+
+        item weapon;
+        weapon.id = "test_sword";
+        weapon.name = "Iron Longsword";
+        weapon.category = ItemCategory::WEAPON;
+        weapon.targetSlot = equipSlot::WEAPON_MAIN;
+
+        item apparel;
+        apparel.id = "test_choker";
+        apparel.name = "Leather Choker";
+        apparel.category = ItemCategory::ACCESSORY;
+        apparel.targetSlot = equipSlot::NECKWEAR;
+        apparel.isEquippable = true;
+
+        item tonic;
+        tonic.id = "plain_elixir";
+        tonic.name = "Plain Elixir";
+        tonic.category = ItemCategory::CONSUMABLE;
+        tonic.isConsumable = true;
+
+        item canisRoot;
+        canisRoot.id = "item_canis_root";
+        canisRoot.name = "Canis Root";
+        canisRoot.category = ItemCategory::CONSUMABLE;
+        canisRoot.isConsumable = true;
+        canisRoot.baseRace = "canine";
+
+        // 1. Validate getCompatibleFocuses counts and contents
+        auto weaponFocuses = getCompatibleFocuses(&weapon);
+        bool weaponCountValid = (weaponFocuses.size() == 4);
+        bool weaponHasNoAnatomy = true;
+        for (auto f : weaponFocuses)
+        {
+            if (isAnatomicalSizingFocus(f) || isAnatomicalRacialFocus(f)) weaponHasNoAnatomy = false;
+        }
+        bool weaponFocusesOk = weaponCountValid && weaponHasNoAnatomy;
+        logResult("Weapons receive exactly 4 equipment focuses with zero bodily transforms", weaponFocusesOk);
+        allPassed &= weaponFocusesOk;
+
+        auto apparelFocuses = getCompatibleFocuses(&apparel);
+        bool apparelNoRacial = true;
+        bool apparelHasArmor = false;
+        bool apparelHasBreasts = false;
+        for (auto f : apparelFocuses)
+        {
+            if (isAnatomicalRacialFocus(f)) apparelNoRacial = false;
+            if (f == EnchantmentFocus::ARMOR_REINFORCEMENT) apparelHasArmor = true;
+            if (f == EnchantmentFocus::BREASTS) apparelHasBreasts = true;
+        }
+        bool apparelFocusesOk = apparelNoRacial && apparelHasArmor && apparelHasBreasts;
+        logResult("Apparel receives sizing and defense focuses with zero racial transformations", apparelFocusesOk);
+        allPassed &= apparelFocusesOk;
+
+        auto tonicFocuses = getCompatibleFocuses(&tonic);
+        bool tonicNoRacial = true;
+        for (auto f : tonicFocuses)
+        {
+            if (isAnatomicalRacialFocus(f)) tonicNoRacial = false;
+        }
+        logResult("Generic uninfused elixir excludes racial transforms (horns, wings, tail)", tonicNoRacial);
+        allPassed &= tonicNoRacial;
+
+        auto rootFocuses = getCompatibleFocuses(&canisRoot);
+        bool rootHasHorns = false, rootHasWings = false, rootHasTail = false;
+        for (auto f : rootFocuses)
+        {
+            if (f == EnchantmentFocus::HORNS) rootHasHorns = true;
+            if (f == EnchantmentFocus::WINGS) rootHasWings = true;
+            if (f == EnchantmentFocus::TAIL) rootHasTail = true;
+        }
+        bool rootRacialUnlocked = rootHasHorns && rootHasWings && rootHasTail;
+        logResult("Canis Root reagent unlocks full anatomical and racial focus matrix", rootRacialUnlocked);
+        allPassed &= rootRacialUnlocked;
+
+        // 2. Validate Granular Chest Properties
+        auto chestPropsApparel = getAvailablePropertiesForFocus(EnchantmentFocus::BREASTS, &apparel);
+        bool chestHasGranular = false;
+        bool chestHasShape = false;
+        bool chestHasMilkVol = false;
+        bool chestHasNoCrotchUdder = true;
+        for (auto p : chestPropsApparel)
+        {
+            if (p == AspectProperty::BREAST_SIZE) chestHasGranular = true;
+            if (p == AspectProperty::BREAST_SHAPE) chestHasShape = true;
+            if (p == AspectProperty::LACTATION_VOLUME) chestHasMilkVol = true;
+            if (p == AspectProperty::CROTCH_MAMMARY_MORPH) chestHasNoCrotchUdder = false;
+        }
+        bool chestApparelOk = chestHasGranular && chestHasShape && chestHasMilkVol && chestHasNoCrotchUdder;
+        logResult("Chest focus exposes granular breast, nipple, and lactation properties", chestApparelOk);
+        allPassed &= chestApparelOk;
+
+        auto chestPropsRoot = getAvailablePropertiesForFocus(EnchantmentFocus::BREASTS, &canisRoot);
+        bool rootHasCrotchUdder = false;
+        for (auto p : chestPropsRoot)
+        {
+            if (p == AspectProperty::CROTCH_MAMMARY_MORPH) rootHasCrotchUdder = true;
+        }
+        logResult("Racial reagent unlocks crotch mammary/udder morph on chest focus", rootHasCrotchUdder);
+        allPassed &= rootHasCrotchUdder;
+
+        // 3. Validate Multi-Option Lower Body & Leg Morphs
+        auto legPropsApparel = getAvailablePropertiesForFocus(EnchantmentFocus::LEGS_FEET, &apparel);
+        bool legApparelNoRacial = true;
+        for (auto p : legPropsApparel)
+        {
+            if (p == AspectProperty::RACIAL_LEGS_BIPED || p == AspectProperty::RACIAL_STANCE_MORPH || p == AspectProperty::RACIAL_BODY_CONFIG)
+            {
+                legApparelNoRacial = false;
+            }
+        }
+        logResult("Apparel legs focus restricts to length, thighs, and sprint agility", legApparelNoRacial);
+        allPassed &= legApparelNoRacial;
+
+        auto legPropsRoot = getAvailablePropertiesForFocus(EnchantmentFocus::LEGS_FEET, &canisRoot);
+        bool hasBipedLegs = false;
+        bool hasStanceMorph = false;
+        bool hasBodyConfig = false;
+        for (auto p : legPropsRoot)
+        {
+            if (p == AspectProperty::RACIAL_LEGS_BIPED) hasBipedLegs = true;
+            if (p == AspectProperty::RACIAL_STANCE_MORPH) hasStanceMorph = true;
+            if (p == AspectProperty::RACIAL_BODY_CONFIG) hasBodyConfig = true;
+        }
+        bool legsMultiOptionOk = hasBipedLegs && hasStanceMorph && hasBodyConfig;
+        logResult("Canis Root provides multi-option racial morphs (biped, stance, and taur/multi body)", legsMultiOptionOk);
+        allPassed &= legsMultiOptionOk;
+
+        // 4. Dynamic Race Affix Labels & Zero-Locked Guarantee
+        std::string bipedName = getPropertyDisplayName(AspectProperty::RACIAL_LEGS_BIPED, &canisRoot);
+        std::string stanceName = getPropertyDisplayName(AspectProperty::RACIAL_STANCE_MORPH, &canisRoot);
+        std::string bodyName = getPropertyDisplayName(AspectProperty::RACIAL_BODY_CONFIG, &canisRoot);
+        bool namesFormatted = (bipedName == "Canine Biped Legs" && stanceName == "Canine Stance Morph" && bodyName == "Canine Taur / Multi-Body");
+        logResult("Dynamic racial property titles format with reagent race ('Canine Biped Legs')", namesFormatted);
+        allPassed &= namesFormatted;
+
+        std::string bipedShort = getPropertyShortLabel(AspectProperty::RACIAL_LEGS_BIPED, &canisRoot);
+        std::string stanceShort = getPropertyShortLabel(AspectProperty::RACIAL_STANCE_MORPH, &canisRoot);
+        std::string taurShort = getPropertyShortLabel(AspectProperty::RACIAL_BODY_CONFIG, &canisRoot);
+        bool shortsFormatted = (bipedShort == "Biped" && stanceShort == "Stance" && taurShort == "Taur");
+        logResult("Short labels fit inside 54px icon boxes ('Biped', 'Stance', 'Taur')", shortsFormatted);
+        allPassed &= shortsFormatted;
+
+        // Verify zero locked buttons in compatible lists
+        bool zeroLocked = true;
+        for (auto f : weaponFocuses)
+        {
+            if (!isFocusCompatibleWithItem(f, &weapon)) zeroLocked = false;
+        }
+        for (auto f : apparelFocuses)
+        {
+            if (!isFocusCompatibleWithItem(f, &apparel)) zeroLocked = false;
+        }
+        for (auto f : rootFocuses)
+        {
+            if (!isFocusCompatibleWithItem(f, &canisRoot)) zeroLocked = false;
+        }
+        logResult("Zero locked buttons guarantee: all rendered focus options are 100% compatible", zeroLocked);
+        allPassed &= zeroLocked;
+
+        return allPassed;
+    }
+
     bool runAllTests()
     {
         g_passCount = 0;
@@ -3937,6 +4103,7 @@ namespace EngineTests
         bool t30 = testUnifiedToolbarAndStarterTestKit();
         bool t31 = testEnchantingCompatibilityAndRacialGating();
         bool t32 = testEnchantingItemSelectionAndStackedMapping();
+        bool t33 = testGranularDomainPropertiesAndZeroLockedButtons();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";

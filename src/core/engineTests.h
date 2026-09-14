@@ -28,4 +28,5 @@ namespace EngineTests
     bool testExpandedContentOptionsAndSceneGating();
     bool testUnifiedToolbarAndStarterTestKit();
     bool testEnchantingCompatibilityAndRacialGating();
+    bool testGranularDomainPropertiesAndZeroLockedButtons();
 }

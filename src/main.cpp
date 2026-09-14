@@ -528,6 +528,16 @@ int main(int argc, char* argv[])
                 choker->targetSlot = equipSlot::NECKWEAR;
                 p->inventory.addItem(choker);
 
+                auto canisRoot = std::make_shared<item>();
+                canisRoot->id = "item_canis_root";
+                canisRoot->name = "Canis Root";
+                canisRoot->category = ItemCategory::CONSUMABLE;
+                canisRoot->isConsumable = true;
+                canisRoot->baseRace = "canine";
+                canisRoot->description = "A pungent feral root exuding lupine essence.";
+                canisRoot->baseValue = 25;
+                p->inventory.addItem(canisRoot);
+
                 engine.playerEntity = p;
                 engine.Player = p.get();
             }
@@ -535,6 +545,7 @@ int main(int argc, char* argv[])
             int initIdx = 0;
             if (screenshotState == "enchanting_weapon") initIdx = 1;
             else if (screenshotState == "enchanting_choker" || screenshotState == "enchanting_apparel") initIdx = 2;
+            else if (screenshotState == "enchanting_root" || screenshotState == "enchanting_racial") initIdx = 3;
 
             auto targetItem = engine.Player->inventory.backpack[initIdx];
             auto ench = std::make_unique<enchantingState>(initIdx, std::make_unique<explorationState>(), targetItem);
@@ -553,6 +564,13 @@ int main(int argc, char* argv[])
                 {
                     activeEnch->setFocus(EnchantmentFocus::ARMOR_REINFORCEMENT);
                     activeEnch->setProperty(AspectProperty::ARMOR_RATING);
+                    activeEnch->setTier(InfusionTier::BOON);
+                    activeEnch->stageCurrentEffect();
+                }
+                else if (screenshotState == "enchanting_root" || screenshotState == "enchanting_racial")
+                {
+                    activeEnch->setFocus(EnchantmentFocus::LEGS_FEET);
+                    activeEnch->setProperty(AspectProperty::RACIAL_STANCE_MORPH);
                     activeEnch->setTier(InfusionTier::BOON);
                     activeEnch->stageCurrentEffect();
                 }
