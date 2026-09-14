@@ -3025,27 +3025,23 @@ namespace GameplayViews
                            (isSelected ? Theme::colors.textGold : (isHov ? Theme::colors.borderSelected : Theme::colors.borderNormal));
             UIWidget::drawPanel(renderer, mRect, fill, bd);
 
-            // Dedicated Inner Icon Frame (Top Area)
-            SDL_FRect iconFrame = { mRect.x + (11.0f * uiScale), mRect.y + (5.0f * uiScale), 32.0f * uiScale, 26.0f * uiScale };
-            SDL_Color iconBg = !isCompatible ? SDL_Color{ 12, 12, 16, 255 } : Theme::colors.bgDark;
-            SDL_Color iconBd = !isCompatible ? SDL_Color{ 40, 40, 48, 255 } : (isSelected ? Theme::colors.textGold : Theme::colors.borderButton);
-            UIWidget::drawPanel(renderer, iconFrame, iconBg, iconBd);
-
+            // Icon Box Content: Temporary text label centered directly inside the icon box
+            std::string label = getFocusShortLabel(f);
             if (!isCompatible)
             {
-                UIWidget::drawText(renderer, "LOCK", iconFrame.x + (2.0f * uiScale), iconFrame.y + (6.0f * uiScale), SDL_Color{ 160, 70, 70, 255 }, uiScale * 0.65f);
+                float lblW = UIWidget::getTextWidth(label, uiScale * 0.68f);
+                UIWidget::drawText(renderer, label, mRect.x + ((mRect.w - lblW) / 2.0f), mRect.y + (12.0f * uiScale), SDL_Color{ 110, 110, 120, 255 }, uiScale * 0.68f);
+                std::string lockStr = "[LOCK]";
+                float lkW = UIWidget::getTextWidth(lockStr, uiScale * 0.62f);
+                UIWidget::drawText(renderer, lockStr, mRect.x + ((mRect.w - lkW) / 2.0f), mRect.y + (28.0f * uiScale), SDL_Color{ 175, 65, 65, 255 }, uiScale * 0.62f);
             }
             else
             {
-                std::string glyph = getFocusIconGlyph(f);
-                SDL_Color glyphCol = isCombatEquipmentFocus(f) ? Theme::colors.textGold : (isAnatomicalRacialFocus(f) ? Theme::colors.arcane : Theme::colors.lust);
-                UIWidget::drawText(renderer, glyph, iconFrame.x + (6.0f * uiScale), iconFrame.y + (5.0f * uiScale), glyphCol, uiScale * 0.75f);
+                float lblW = UIWidget::getTextWidth(label, uiScale * 0.74f);
+                float lblH = 14.0f * uiScale;
+                SDL_Color txtCol = isSelected ? Theme::colors.textGold : (isHov ? Theme::colors.textPrimary : Theme::colors.textAccent);
+                UIWidget::drawText(renderer, label, mRect.x + ((mRect.w - lblW) / 2.0f), mRect.y + ((mRect.h - lblH) / 2.0f), txtCol, uiScale * 0.74f);
             }
-
-            // Readable Short Label (Bottom Area)
-            std::string label = getFocusShortLabel(f);
-            SDL_Color txtCol = !isCompatible ? SDL_Color{ 80, 80, 90, 255 } : (isSelected ? Theme::colors.textGold : Theme::colors.textPrimary);
-            UIWidget::drawText(renderer, label, mRect.x + (5.0f * uiScale), mRect.y + (35.0f * uiScale), txtCol, uiScale * 0.68f);
 
             // Tooltips & Interaction
             if (!isCompatible)
@@ -3088,15 +3084,12 @@ namespace GameplayViews
             SDL_Color bd = isSelected ? Theme::colors.textGold : (isHov ? Theme::colors.borderSelected : Theme::colors.borderNormal);
             UIWidget::drawPanel(renderer, pRect, fill, bd);
 
-            // Icon Frame
-            SDL_FRect pIconFrame = { pRect.x + (11.0f * uiScale), pRect.y + (5.0f * uiScale), 32.0f * uiScale, 26.0f * uiScale };
-            UIWidget::drawPanel(renderer, pIconFrame, Theme::colors.bgDark, isSelected ? Theme::colors.textGold : Theme::colors.borderButton);
-            std::string pGlyph = def.displayName.substr(0, 2);
-            UIWidget::drawText(renderer, pGlyph, pIconFrame.x + (7.0f * uiScale), pIconFrame.y + (5.0f * uiScale), Theme::colors.textAccent, uiScale * 0.75f);
-
-            // Label
+            // Temporary text label centered directly inside property icon box
             std::string pLabel = getPropertyShortLabel(p);
-            UIWidget::drawText(renderer, pLabel, pRect.x + (4.0f * uiScale), pRect.y + (35.0f * uiScale), isSelected ? Theme::colors.textGold : Theme::colors.textPrimary, uiScale * 0.68f);
+            float pLabelW = UIWidget::getTextWidth(pLabel, uiScale * 0.72f);
+            float pLabelH = 14.0f * uiScale;
+            SDL_Color pCol = isSelected ? Theme::colors.textGold : (isHov ? Theme::colors.textPrimary : Theme::colors.textAccent);
+            UIWidget::drawText(renderer, pLabel, pRect.x + ((pRect.w - pLabelW) / 2.0f), pRect.y + ((pRect.h - pLabelH) / 2.0f), pCol, uiScale * 0.72f);
 
             TooltipManager::setHoverTooltip(pRect, mousePos, def.displayName, def.description, std::format("Essence Weight: {}", def.getEssenceWeight()));
 
@@ -3160,41 +3153,41 @@ namespace GameplayViews
             InfusionTier::GREATER_BOON
         };
 
-        float tierW = (availableW - (gap * 5)) / 6.0f;
+        float tierW = (availableW - (5.0f * gap)) / 6.0f;
         float tierH = 22.0f * uiScale;
 
-        for (size_t i = 0; i < 6; ++i)
+        for (int t = 0; t < 6; ++t)
         {
-            InfusionTier t = allTiers[i];
-            SDL_FRect tRect = { padX + (i * (tierW + gap)), curY, tierW, tierH };
-            bool isSelected = ench && (ench->selectedTier == t);
-            std::string tName = getTierName(t);
-
+            InfusionTier tier = allTiers[t];
+            SDL_FRect tRect = { padX + (t * (tierW + gap)), curY, tierW, tierH };
+            bool isSelected = ench && (ench->selectedTier == tier);
             bool isHov = (mousePos.x >= tRect.x && mousePos.x <= tRect.x + tRect.w &&
                           mousePos.y >= tRect.y && mousePos.y <= tRect.y + tRect.h);
 
-            UIWidget::drawButton(renderer, tRect, tName, isSelected, true, isSelected, uiScale * 0.78f);
-            TooltipManager::setHoverTooltip(tRect, mousePos, tName, std::format("Stat bonus: {:+} | Cost Weight: {}", getTierStatBonus(t), getTierEssenceCost(t)));
+            std::string tName = getTierName(tier);
+            UIWidget::drawButton(renderer, tRect, tName, isHov, true, isSelected, uiScale * 0.78f);
+            TooltipManager::setHoverTooltip(tRect, mousePos, tName,
+                                            std::format("Tier essence multiplier: {}x. Affects potency, stat modifier amplitude, and gradual growth velocity.", getTierEssenceCost(tier)));
 
             if (isHov && clicked && ench)
             {
-                ench->setTier(t);
+                ench->setTier(tier);
             }
         }
         curY += tierH + (10.0f * uiScale);
 
-        // 3. Effect To Be Added Banner & Add Button
-        InfusionEffect previewEff = ench ? ench->getCurrentPreviewEffect() : InfusionEffect{};
-        std::vector<std::string> prevDescs = previewEff.getEffectDescriptions();
-        std::string previewText = prevDescs.empty() ? "Configure focus and property to view effect." : prevDescs.front();
-        int addCost = previewEff.calculateCost();
-
+        // 3. Staging and Preview Bar
         SDL_FRect addBarRect = { padX, curY, availableW, 26.0f * uiScale };
-        UIWidget::drawPanel(renderer, addBarRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
-        UIWidget::drawText(renderer, std::format("Effect to be added: {}", previewText), padX + (8.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.lust, uiScale * 0.85f);
+        UIWidget::drawPanel(renderer, addBarRect, Theme::colors.bgDark, Theme::colors.borderNormal);
 
-        float addBtnW = 78.0f * uiScale;
-        SDL_FRect addBtnRect = { padX + availableW - addBtnW - (4.0f * uiScale), curY + (3.0f * uiScale), addBtnW, 20.0f * uiScale };
+        InfusionEffect curPreview = ench ? ench->getCurrentPreviewEffect() : InfusionEffect{};
+        auto descriptions = curPreview.getEffectDescriptions();
+        std::string previewDesc = descriptions.empty() ? "None" : descriptions.front();
+
+        UIWidget::drawText(renderer, std::format("Effect to be added: {}", previewDesc), padX + (8.0f * uiScale), curY + (5.0f * uiScale), Theme::colors.lust, uiScale * 0.82f);
+
+        int addCost = curPreview.calculateCost();
+        SDL_FRect addBtnRect = { padX + availableW - (88.0f * uiScale), curY + (2.0f * uiScale), 84.0f * uiScale, 22.0f * uiScale };
         bool addHov = (mousePos.x >= addBtnRect.x && mousePos.x <= addBtnRect.x + addBtnRect.w &&
                        mousePos.y >= addBtnRect.y && mousePos.y <= addBtnRect.y + addBtnRect.h);
         std::string addBtnStr = std::format("Add | {}*", addCost);
@@ -3206,67 +3199,127 @@ namespace GameplayViews
         }
         curY += addBarRect.h + (12.0f * uiScale);
 
-        // 4. Recipe Craft Container (Input, Name + Effects List, Output)
+        // 4. Recipe Craft Container (Input Item Column, Infusion Staging Column, Output Item Column)
         SDL_FRect recipeRect = { padX, curY, availableW, 114.0f * uiScale };
         UIWidget::drawPanel(renderer, recipeRect, Theme::colors.bgDark, Theme::colors.borderButton);
 
-        // Input Slot with Click-to-Cycle Support
-        std::string inName = baseItem ? baseItem->name : "PLAIN";
-        if (inName.length() > 8) inName = inName.substr(0, 7) + ".";
+        // --- Column 1: Input Item & Selection (Left, ~185px) ---
+        float col1X = padX + (10.0f * uiScale);
+        UIWidget::drawText(renderer, "Input Item", col1X, curY + (6.0f * uiScale), Theme::colors.textAccent, uiScale * 0.80f);
 
-        UIWidget::drawText(renderer, "Input", padX + (12.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textAccent, uiScale * 0.80f);
-        SDL_FRect inSlotRect = { padX + (10.0f * uiScale), curY + (24.0f * uiScale), 48.0f * uiScale, 48.0f * uiScale };
+        SDL_FRect inSlotRect = { col1X, curY + (22.0f * uiScale), 48.0f * uiScale, 48.0f * uiScale };
         bool inHov = (mousePos.x >= inSlotRect.x && mousePos.x <= inSlotRect.x + inSlotRect.w &&
                       mousePos.y >= inSlotRect.y && mousePos.y <= inSlotRect.y + inSlotRect.h);
         UIWidget::drawPanel(renderer, inSlotRect, inHov ? Theme::colors.bgSlot : Theme::colors.bgHeader, inHov ? Theme::colors.borderSelected : Theme::colors.borderButton);
-        UIWidget::drawText(renderer, inName, inSlotRect.x + (4.0f * uiScale), inSlotRect.y + (16.0f * uiScale), Theme::colors.textGold, uiScale * 0.72f);
 
-        SDL_FRect cycleBtnRect = { padX + (8.0f * uiScale), curY + (78.0f * uiScale), 52.0f * uiScale, 22.0f * uiScale };
+        std::string slotGlyph = "BLANK";
+        SDL_Color glyphCol = Theme::colors.textDisabled;
+        if (baseItem)
+        {
+            if (baseItem->category == ItemCategory::WEAPON || baseItem->targetSlot == equipSlot::WEAPON_MAIN || baseItem->targetSlot == equipSlot::WEAPON_OFF)
+            {
+                slotGlyph = "WEAP";
+                glyphCol = Theme::colors.textGold;
+            }
+            else if (baseItem->category == ItemCategory::CLOTHING || baseItem->category == ItemCategory::UNDERWEAR || baseItem->category == ItemCategory::ACCESSORY)
+            {
+                slotGlyph = "ARMOR";
+                glyphCol = Theme::colors.textGold;
+            }
+            else if (baseItem->isFood)
+            {
+                slotGlyph = "FOOD";
+                glyphCol = Theme::colors.textAccent;
+            }
+            else if (baseItem->isConsumable)
+            {
+                slotGlyph = "POTION";
+                glyphCol = Theme::colors.lust;
+            }
+        }
+        float gW = UIWidget::getTextWidth(slotGlyph, uiScale * 0.65f);
+        UIWidget::drawText(renderer, slotGlyph, inSlotRect.x + ((inSlotRect.w - gW) / 2.0f), inSlotRect.y + (16.0f * uiScale), glyphCol, uiScale * 0.65f);
+
+        // Beside 48x48 slot: Full Item Name & Category
+        float inTextX = col1X + (54.0f * uiScale);
+        std::string fullItemName = baseItem ? baseItem->name : "Blank Tonic Base";
+        if (fullItemName.length() > 18)
+        {
+            fullItemName = fullItemName.substr(0, 16) + "..";
+        }
+        UIWidget::drawText(renderer, fullItemName, inTextX, curY + (24.0f * uiScale), Theme::colors.textGold, uiScale * 0.76f);
+
+        std::string subCatStr = baseItem ? std::format("{} (x{})", itemCategoryToString(determineItemCategory(*baseItem)), baseItem->count) : "Pure Alchemy";
+        UIWidget::drawText(renderer, subCatStr, inTextX, curY + (40.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.68f);
+
+        // Explicit Cycle Button
+        SDL_FRect cycleBtnRect = { col1X, curY + (76.0f * uiScale), 170.0f * uiScale, 24.0f * uiScale };
         bool cycleHov = (mousePos.x >= cycleBtnRect.x && mousePos.x <= cycleBtnRect.x + cycleBtnRect.w &&
                          mousePos.y >= cycleBtnRect.y && mousePos.y <= cycleBtnRect.y + cycleBtnRect.h);
-        UIWidget::drawButton(renderer, cycleBtnRect, "CYCLE", cycleHov, true, false, uiScale * 0.72f);
+        UIWidget::drawButton(renderer, cycleBtnRect, "[Cycle Item]", cycleHov, true, false, uiScale * 0.74f);
 
-        TooltipManager::setHoverTooltip(inSlotRect, mousePos, baseItem ? baseItem->name : "Alchemical Tonic Base",
-                                        "Click slot or CYCLE button to cycle through available items in your backpack (or select none for blank alchemy).",
+        TooltipManager::setHoverTooltip(inSlotRect, mousePos, baseItem ? baseItem->name : "Blank Tonic Base",
+                                        "Click slot or [Cycle Item] button to cycle through enchantable items in your inventory.",
                                         baseItem ? ("Category: " + itemCategoryToString(determineItemCategory(*baseItem))) : "");
-        TooltipManager::setHoverTooltip(cycleBtnRect, mousePos, "Cycle Backpack Item", "Cycle to the next enchantable item in your inventory.");
+        TooltipManager::setHoverTooltip(cycleBtnRect, mousePos, "Cycle Backpack Item", "Cycle to the next enchantable item in your backpack (or blank base).");
 
         if ((inHov || cycleHov) && clicked && ench)
         {
             ench->cycleBackpackItem(gameContext);
         }
 
-        // Effects Middle List
-        float midX = padX + (70.0f * uiScale);
-        float midW = availableW - (150.0f * uiScale);
+        // --- Column 2: Infusion Staging & Output Configuration (Center) ---
+        float midX = padX + (195.0f * uiScale);
+        float midW = availableW - (335.0f * uiScale);
 
         int totalCost = ench ? ench->getTotalCost(gameContext) : 0;
         size_t effCount = ench ? ench->stagedEffects.size() : 0;
         float curEssence = gameContext->Player ? gameContext->Player->getStat("arcaneEssence") : 0.0f;
 
-        UIWidget::drawText(renderer, std::format("Effects ({}/10) | Cost: {}* | Essences: {:.0f}", effCount, totalCost, curEssence), midX, curY + (6.0f * uiScale), Theme::colors.textGold, uiScale * 0.82f);
+        UIWidget::drawText(renderer, std::format("Infusions ({}/10)  |  Cost: {}* Essences", effCount, totalCost), midX, curY + (6.0f * uiScale), Theme::colors.textGold, uiScale * 0.80f);
+        UIWidget::drawText(renderer, std::format("Available: {:.0f}*", curEssence), midX + midW - (90.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textAccent, uiScale * 0.78f);
 
-        SDL_FRect nameInputRect = { midX, curY + (22.0f * uiScale), midW, 20.0f * uiScale };
+        // Resulting Item Name Bar
+        SDL_FRect nameInputRect = { midX, curY + (22.0f * uiScale), midW, 22.0f * uiScale };
         UIWidget::drawPanel(renderer, nameInputRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
         std::string dispName = ench && !ench->customOutputName.empty() ? ench->customOutputName : (ench ? EnchantingEngine::composeItemName(baseItem.get(), ench->stagedEffects) : "Infused Item");
-        UIWidget::drawText(renderer, dispName, nameInputRect.x + (6.0f * uiScale), nameInputRect.y + (3.0f * uiScale), Theme::colors.textGold, uiScale * 0.82f);
+        UIWidget::drawText(renderer, std::format("Result: {}", dispName), nameInputRect.x + (6.0f * uiScale), nameInputRect.y + (3.0f * uiScale), Theme::colors.textGold, uiScale * 0.80f);
 
-        float effY = curY + (46.0f * uiScale);
+        // Staged Effects Rows
+        float effY = curY + (48.0f * uiScale);
         if (ench && !ench->stagedEffects.empty())
         {
             for (size_t it = 0; it < std::min<size_t>(ench->stagedEffects.size(), 4); ++it)
             {
-                auto dList = ench->stagedEffects[it].getEffectDescriptions();
+                const auto& eff = ench->stagedEffects[it];
+                auto dList = eff.getEffectDescriptions();
                 std::string sText = dList.empty() ? "Infusion Property" : dList.front();
-                if (sText.length() > 42) sText = sText.substr(0, 40) + "..";
+                if (sText.length() > 44) sText = sText.substr(0, 42) + "..";
 
-                UIWidget::drawText(renderer, std::format("• {}", sText), midX, effY, Theme::colors.textPrimary, uiScale * 0.78f);
+                // Check if this effect was inherent to baseItem
+                bool isInherent = false;
+                if (baseItem)
+                {
+                    for (const auto& bEff : baseItem->infusionEffects)
+                    {
+                        if (bEff == eff) { isInherent = true; break; }
+                    }
+                }
 
-                // Small [X] delete button
-                SDL_FRect delRect = { midX + midW - (18.0f * uiScale), effY - (1.0f * uiScale), 16.0f * uiScale, 14.0f * uiScale };
+                std::string tagStr = isInherent ? "[Inherent] " : "[New] ";
+                SDL_Color tagCol = isInherent ? Theme::colors.textSecondary : Theme::colors.textAccent;
+                UIWidget::drawText(renderer, tagStr, midX, effY, tagCol, uiScale * 0.74f);
+
+                float tagW = UIWidget::getTextWidth(tagStr, uiScale * 0.74f);
+                UIWidget::drawText(renderer, sText, midX + tagW, effY, Theme::colors.textPrimary, uiScale * 0.76f);
+
+                // Delete / Cleanse Button
+                SDL_FRect delRect = { midX + midW - (20.0f * uiScale), effY - (1.0f * uiScale), 18.0f * uiScale, 15.0f * uiScale };
                 bool delHov = (mousePos.x >= delRect.x && mousePos.x <= delRect.x + delRect.w &&
                                mousePos.y >= delRect.y && mousePos.y <= delRect.y + delRect.h);
                 UIWidget::drawButton(renderer, delRect, "x", delHov, true, false, uiScale * 0.65f);
+                TooltipManager::setHoverTooltip(delRect, mousePos, isInherent ? "Cleanse Infusion" : "Remove Staged Effect",
+                                                isInherent ? "Cleanses this inherent infusion from the item (Costs 0 essence)." : "Removes this effect from the staged recipe.");
                 if (delHov && clicked)
                 {
                     ench->removeStagedEffect(it);
@@ -3278,21 +3331,49 @@ namespace GameplayViews
         }
         else
         {
-            UIWidget::drawText(renderer, "• No effects staged. Select focus and property above and click Add.", midX, effY, Theme::colors.textSecondary, uiScale * 0.75f);
+            UIWidget::drawText(renderer, "• No infusions staged. Select focus and property above and click [+ Add].", midX, effY, Theme::colors.textSecondary, uiScale * 0.74f);
         }
 
-        // Output Slot & Craft Button
-        float outX = padX + availableW - (65.0f * uiScale);
-        UIWidget::drawText(renderer, "Output", outX + (4.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textAccent, uiScale * 0.82f);
-        SDL_FRect outSlotRect = { outX, curY + (24.0f * uiScale), 48.0f * uiScale, 48.0f * uiScale };
-        UIWidget::drawPanel(renderer, outSlotRect, Theme::colors.bgHeader, Theme::colors.lust);
-        UIWidget::drawText(renderer, "RUNIC", outSlotRect.x + (6.0f * uiScale), outSlotRect.y + (16.0f * uiScale), Theme::colors.lust, uiScale * 0.78f);
+        // --- Column 3: Output Preview & Infusion (Right, ~125px) ---
+        float outX = padX + availableW - (125.0f * uiScale);
+        UIWidget::drawText(renderer, "Result Preview", outX + (4.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textAccent, uiScale * 0.80f);
 
-        SDL_FRect craftBtnRect = { outX - (4.0f * uiScale), curY + (78.0f * uiScale), 58.0f * uiScale, 22.0f * uiScale };
+        SDL_FRect outSlotRect = { outX + (36.0f * uiScale), curY + (22.0f * uiScale), 48.0f * uiScale, 48.0f * uiScale };
+        UIWidget::drawPanel(renderer, outSlotRect, Theme::colors.bgHeader, Theme::colors.lust);
+
+        std::string outGlyph = "POTION";
+        if (baseItem && (baseItem->category == ItemCategory::WEAPON || baseItem->targetSlot == equipSlot::WEAPON_MAIN || baseItem->targetSlot == equipSlot::WEAPON_OFF))
+        {
+            outGlyph = "WEAP";
+        }
+        else if (baseItem && (baseItem->category == ItemCategory::CLOTHING || baseItem->category == ItemCategory::UNDERWEAR || baseItem->category == ItemCategory::ACCESSORY))
+        {
+            outGlyph = "ARMOR";
+        }
+        float outGW = UIWidget::getTextWidth(outGlyph, uiScale * 0.65f);
+        UIWidget::drawText(renderer, outGlyph, outSlotRect.x + ((outSlotRect.w - outGW) / 2.0f), outSlotRect.y + (16.0f * uiScale), Theme::colors.lust, uiScale * 0.65f);
+
+        // Dynamic Craft/Infuse Button
+        SDL_FRect craftBtnRect = { outX + (8.0f * uiScale), curY + (76.0f * uiScale), 108.0f * uiScale, 24.0f * uiScale };
         bool canCraft = ench && ench->canAffordCraft(gameContext);
+        bool hasChanges = ench && (!ench->stagedEffects.empty() || (baseItem && !baseItem->infusionEffects.empty()));
+        std::string craftLabel = "INFUSE";
+        if (totalCost > 0)
+        {
+            craftLabel = std::format("INFUSE ({}*)", totalCost);
+        }
+        else if (!hasChanges)
+        {
+            craftLabel = "NO CHANGES";
+        }
+        else if (!canCraft)
+        {
+            craftLabel = "NEED ESSENCE";
+        }
+
         bool craftHov = (mousePos.x >= craftBtnRect.x && mousePos.x <= craftBtnRect.x + craftBtnRect.w &&
                          mousePos.y >= craftBtnRect.y && mousePos.y <= craftBtnRect.y + craftBtnRect.h);
-        UIWidget::drawButton(renderer, craftBtnRect, "CRAFT", craftHov, canCraft, false, uiScale * 0.78f);
+        UIWidget::drawButton(renderer, craftBtnRect, craftLabel, craftHov, canCraft, false, uiScale * 0.74f);
         if (craftHov && clicked && ench && canCraft)
         {
             ench->craft(gameContext);

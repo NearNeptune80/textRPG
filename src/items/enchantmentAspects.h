@@ -79,10 +79,24 @@ enum class AspectProperty
     FERTILITY_FACTOR,
     CORRUPTION_AURA,
 
+    // Weapon & Combat Properties
+    DAMAGE_PHYSICAL,
+    DAMAGE_ELEMENTAL,
+    CRITICAL_POWER,
+    LIFE_LEECH,
+
+    // Armor & Protective Properties
+    ARMOR_RATING,
+    WARD_RESISTANCE,
+
     // Binding, Seals & Sensory
     SOULBOUND_SEAL,
     SERVITUDE_INHIBITION,
-    SENSORY_VIBRATION
+    SENSORY_VIBRATION,
+
+    // Racial Transformation Properties
+    PART_REMOVAL,
+    RACIAL_TRANSFORMATION
 };
 
 struct AspectDefinition

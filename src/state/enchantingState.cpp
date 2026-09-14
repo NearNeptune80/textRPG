@@ -23,7 +23,7 @@ void enchantingState::initialise(game* gameContext)
             if (itPtr)
             {
                 stagedEffects = itPtr->infusionEffects;
-                customOutputName = itPtr->name;
+                customOutputName.clear();
 
                 if (!isFocusCompatibleWithItem(selectedFocus, itPtr.get()))
                 {
@@ -82,7 +82,7 @@ void enchantingState::selectBackpackItem(int index, game* gameContext)
     if (baseItem)
     {
         stagedEffects = baseItem->infusionEffects;
-        customOutputName = baseItem->name;
+        customOutputName.clear();
 
         if (!isFocusCompatibleWithItem(selectedFocus, baseItem))
         {

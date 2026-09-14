@@ -526,21 +526,25 @@ int main(int argc, char* argv[])
 
             int initIdx = (screenshotState == "enchanting_weapon") ? 1 : 0;
             auto ench = std::make_unique<enchantingState>(initIdx, std::make_unique<explorationState>());
-            if (screenshotState == "enchanting_weapon")
-            {
-                ench->selectedFocus = EnchantmentFocus::WEAPON_LETHALITY;
-                ench->selectedProperty = AspectProperty::PHYSIQUE_STAT;
-                ench->selectedTier = InfusionTier::GREATER_BOON;
-                ench->stageCurrentEffect();
-            }
-            else
-            {
-                ench->selectedFocus = EnchantmentFocus::TORSO;
-                ench->selectedProperty = AspectProperty::PHYSIQUE_STAT;
-                ench->selectedTier = InfusionTier::BOON;
-                ench->stageCurrentEffect();
-            }
             engine.changeState(std::move(ench));
+
+            if (auto activeEnch = dynamic_cast<enchantingState*>(engine.getActiveState()))
+            {
+                if (screenshotState == "enchanting_weapon")
+                {
+                    activeEnch->setFocus(EnchantmentFocus::WEAPON_LETHALITY);
+                    activeEnch->setProperty(AspectProperty::DAMAGE_PHYSICAL);
+                    activeEnch->setTier(InfusionTier::GREATER_BOON);
+                    activeEnch->stageCurrentEffect();
+                }
+                else
+                {
+                    activeEnch->setFocus(EnchantmentFocus::TORSO);
+                    activeEnch->setProperty(AspectProperty::PHYSIQUE_STAT);
+                    activeEnch->setTier(InfusionTier::BOON);
+                    activeEnch->stageCurrentEffect();
+                }
+            }
         }
 
         engine.refreshActionGrid();

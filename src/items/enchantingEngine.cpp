@@ -109,6 +109,30 @@ namespace EnchantingEngine
         {
             suffix = "of Resonant Aura";
         }
+        else if (primEff.property == AspectProperty::DAMAGE_PHYSICAL)
+        {
+            suffix = "of Slaughter";
+        }
+        else if (primEff.property == AspectProperty::DAMAGE_ELEMENTAL)
+        {
+            suffix = "of the Elements";
+        }
+        else if (primEff.property == AspectProperty::CRITICAL_POWER)
+        {
+            suffix = "of Precision";
+        }
+        else if (primEff.property == AspectProperty::LIFE_LEECH)
+        {
+            suffix = "of the Leech";
+        }
+        else if (primEff.property == AspectProperty::ARMOR_RATING)
+        {
+            suffix = "of Iron Aegis";
+        }
+        else if (primEff.property == AspectProperty::WARD_RESISTANCE)
+        {
+            suffix = "of Elemental Wards";
+        }
         else
         {
             suffix = std::format("of {} {}", getPropertyDefinition(primEff.property).affixDescriptor, getFocusDefinition(primEff.focus).displayName);
@@ -190,6 +214,22 @@ namespace EnchantingEngine
                 else if (eff.property == AspectProperty::CORRUPTION_AURA)
                 {
                     crafted->statModifiers.push_back({ "corruption", static_cast<float>(bonus * 5), 0.0f });
+                }
+                else if (eff.property == AspectProperty::DAMAGE_PHYSICAL || eff.property == AspectProperty::DAMAGE_ELEMENTAL)
+                {
+                    crafted->statModifiers.push_back({ "damage", static_cast<float>(bonus * 2), 0.0f });
+                }
+                else if (eff.property == AspectProperty::CRITICAL_POWER)
+                {
+                    crafted->statModifiers.push_back({ "critical_damage", static_cast<float>(bonus * 10), 0.0f });
+                }
+                else if (eff.property == AspectProperty::ARMOR_RATING)
+                {
+                    crafted->statModifiers.push_back({ "armor", static_cast<float>(bonus * 2), 0.0f });
+                }
+                else if (eff.property == AspectProperty::WARD_RESISTANCE)
+                {
+                    crafted->statModifiers.push_back({ "ward_resistance", static_cast<float>(bonus * 3), 0.0f });
                 }
             }
         }

@@ -51,7 +51,18 @@ static const std::unordered_map<AspectProperty, AspectDefinition> s_propDefs = {
 
     { AspectProperty::SOULBOUND_SEAL,      { "prop_soulbound", "Soulbound Seal", "Affixes clothing permanently onto wearer until purged with essence.", "Soulbound", ItemRarity::EPIC } },
     { AspectProperty::SERVITUDE_INHIBITION, { "prop_servitude", "Servitude Binding", "Suppresses uninhibited transformations and seals willpower.", "Servitude", ItemRarity::EPIC } },
-    { AspectProperty::SENSORY_VIBRATION,   { "prop_vibration", "Sensory Vibration", "Generates continuous rhythmic sensory stimulation.", "Buzzing", ItemRarity::RARE } }
+    { AspectProperty::SENSORY_VIBRATION,   { "prop_vibration", "Sensory Vibration", "Generates continuous rhythmic sensory stimulation.", "Buzzing", ItemRarity::RARE } },
+
+    { AspectProperty::DAMAGE_PHYSICAL,     { "prop_damage_physical", "Physical Lethality", "Infuses striking edge and impact velocity to deal bonus physical trauma.", "Striking", ItemRarity::UNCOMMON } },
+    { AspectProperty::DAMAGE_ELEMENTAL,    { "prop_damage_elemental", "Elemental Surge", "Surges with fiery, icy, or toxic energies inflicting elemental damage.", "Elemental", ItemRarity::RARE } },
+    { AspectProperty::CRITICAL_POWER,      { "prop_critical_power", "Critical Precision", "Sharpens strike precision to inflict devastating critical wounds.", "Keen", ItemRarity::RARE } },
+    { AspectProperty::LIFE_LEECH,          { "prop_life_leech", "Vampiric Leech", "Siphons the vital essence of targets on strike to restore health.", "Vampiric", ItemRarity::EPIC } },
+
+    { AspectProperty::ARMOR_RATING,        { "prop_armor_rating", "Armor Protection", "Bolsters physical deflection and reduces incoming kinetic trauma.", "Reinforced", ItemRarity::UNCOMMON } },
+    { AspectProperty::WARD_RESISTANCE,     { "prop_ward_resistance", "Elemental Warding", "Weaves a shimmering barrier deflecting magical and elemental damage.", "Warded", ItemRarity::RARE } },
+
+    { AspectProperty::PART_REMOVAL,        { "prop_part_removal", "Anatomical Cleansing", "Sheds, dissolves, or retracts the targeted anatomical structure.", "Vanishing", ItemRarity::UNCOMMON } },
+    { AspectProperty::RACIAL_TRANSFORMATION,{ "prop_racial_tf", "Racial Awakening", "Manifests or awakens the full racial morphology of the reagent.", "Awakened", ItemRarity::RARE } }
 };
 
 const AspectDefinition& getFocusDefinition(EnchantmentFocus focus)
@@ -98,48 +109,65 @@ std::vector<AspectProperty> getAvailablePropertiesForFocus(EnchantmentFocus focu
 {
     switch (focus)
     {
-        case EnchantmentFocus::HEAD_FEATURE:
-        case EnchantmentFocus::FACE:
-        case EnchantmentFocus::EARS:
-        case EnchantmentFocus::EYES:
-            return { AspectProperty::SCALE_SIZE, AspectProperty::AGILITY_STAT, AspectProperty::CORRUPTION_AURA };
-
-        case EnchantmentFocus::HAIR:
-            return { AspectProperty::HAIR_GROWTH, AspectProperty::SCALE_SIZE };
-
-        case EnchantmentFocus::HORNS:
-        case EnchantmentFocus::WINGS:
-        case EnchantmentFocus::TAIL:
-            return { AspectProperty::SCALE_SIZE, AspectProperty::SECONDARY_SIZE, AspectProperty::CORRUPTION_AURA, AspectProperty::AGILITY_STAT };
-
-        case EnchantmentFocus::ARMS:
-        case EnchantmentFocus::TORSO:
-            return { AspectProperty::SCALE_SIZE, AspectProperty::PHYSIQUE_STAT, AspectProperty::HEALTH_CEILING };
-
-        case EnchantmentFocus::BREASTS:
-            return { AspectProperty::SCALE_SIZE, AspectProperty::SECONDARY_SIZE, AspectProperty::VOLUME_CAPACITY, AspectProperty::FLUID_PRODUCTION, AspectProperty::REGENERATION_RATE, AspectProperty::FERTILITY_FACTOR };
-
-        case EnchantmentFocus::HIPS_ASS:
-            return { AspectProperty::SCALE_SIZE, AspectProperty::SECONDARY_SIZE, AspectProperty::VOLUME_CAPACITY, AspectProperty::DEPTH, AspectProperty::ELASTICITY };
-
-        case EnchantmentFocus::GENITALIA_PRIMARY:
-            return { AspectProperty::SCALE_SIZE, AspectProperty::SECONDARY_SIZE, AspectProperty::VOLUME_CAPACITY, AspectProperty::FLUID_PRODUCTION, AspectProperty::REGENERATION_RATE, AspectProperty::VIRILITY_FACTOR };
-
-        case EnchantmentFocus::GENITALIA_SECONDARY:
-            return { AspectProperty::SCALE_SIZE, AspectProperty::SECONDARY_SIZE, AspectProperty::VOLUME_CAPACITY, AspectProperty::DEPTH, AspectProperty::ELASTICITY, AspectProperty::FLUID_PRODUCTION, AspectProperty::FERTILITY_FACTOR };
-
-        case EnchantmentFocus::ARMOR_REINFORCEMENT:
-        case EnchantmentFocus::RESISTANCE_WARDING:
-            return { AspectProperty::PHYSIQUE_STAT, AspectProperty::HEALTH_CEILING, AspectProperty::ARCANE_STAT };
-
         case EnchantmentFocus::WEAPON_LETHALITY:
-            return { AspectProperty::PHYSIQUE_STAT, AspectProperty::AGILITY_STAT, AspectProperty::ARCANE_STAT };
+            return { AspectProperty::DAMAGE_PHYSICAL, AspectProperty::PHYSIQUE_STAT, AspectProperty::AGILITY_STAT, AspectProperty::CRITICAL_POWER, AspectProperty::LIFE_LEECH };
 
         case EnchantmentFocus::ARCANE_AMPLIFICATION:
-            return { AspectProperty::ARCANE_STAT, AspectProperty::MANA_CEILING, AspectProperty::CORRUPTION_AURA };
+            return { AspectProperty::ARCANE_STAT, AspectProperty::DAMAGE_ELEMENTAL, AspectProperty::MANA_CEILING, AspectProperty::REGENERATION_RATE };
+
+        case EnchantmentFocus::ARMOR_REINFORCEMENT:
+            return { AspectProperty::ARMOR_RATING, AspectProperty::PHYSIQUE_STAT, AspectProperty::HEALTH_CEILING };
+
+        case EnchantmentFocus::RESISTANCE_WARDING:
+            return { AspectProperty::WARD_RESISTANCE, AspectProperty::ARCANE_STAT, AspectProperty::CORRUPTION_AURA };
 
         case EnchantmentFocus::BINDING_SPECIAL:
             return { AspectProperty::SOULBOUND_SEAL, AspectProperty::SERVITUDE_INHIBITION, AspectProperty::SENSORY_VIBRATION };
+
+        case EnchantmentFocus::BREASTS:
+            return { AspectProperty::SCALE_SIZE, AspectProperty::SECONDARY_SIZE, AspectProperty::VOLUME_CAPACITY, AspectProperty::FLUID_PRODUCTION, AspectProperty::ELASTICITY, AspectProperty::FERTILITY_FACTOR };
+
+        case EnchantmentFocus::HIPS_ASS:
+            return { AspectProperty::SCALE_SIZE, AspectProperty::SECONDARY_SIZE, AspectProperty::VOLUME_CAPACITY, AspectProperty::DEPTH, AspectProperty::ELASTICITY, AspectProperty::FLUID_PRODUCTION };
+
+        case EnchantmentFocus::HAIR:
+            return { AspectProperty::HAIR_GROWTH, AspectProperty::SCALE_SIZE, AspectProperty::SECONDARY_SIZE };
+
+        case EnchantmentFocus::TORSO:
+            return { AspectProperty::PHYSIQUE_STAT, AspectProperty::SCALE_SIZE, AspectProperty::HEALTH_CEILING, AspectProperty::SECONDARY_SIZE };
+
+        case EnchantmentFocus::ARMS:
+            return { AspectProperty::PHYSIQUE_STAT, AspectProperty::DAMAGE_PHYSICAL, AspectProperty::SCALE_SIZE };
+
+        case EnchantmentFocus::HEAD_FEATURE:
+            return { AspectProperty::AGILITY_STAT, AspectProperty::ARCANE_STAT, AspectProperty::SCALE_SIZE };
+
+        case EnchantmentFocus::FACE:
+            return { AspectProperty::SECONDARY_SIZE, AspectProperty::SCALE_SIZE, AspectProperty::AGILITY_STAT };
+
+        case EnchantmentFocus::EYES:
+            return { AspectProperty::AGILITY_STAT, AspectProperty::ARCANE_STAT, AspectProperty::CORRUPTION_AURA };
+
+        case EnchantmentFocus::EARS:
+            return { AspectProperty::AGILITY_STAT, AspectProperty::SCALE_SIZE, AspectProperty::RACIAL_TRANSFORMATION };
+
+        case EnchantmentFocus::SKIN:
+            return { AspectProperty::ARMOR_RATING, AspectProperty::ELASTICITY, AspectProperty::HEALTH_CEILING, AspectProperty::RACIAL_TRANSFORMATION };
+
+        case EnchantmentFocus::GENITALIA_PRIMARY:
+            return { AspectProperty::SCALE_SIZE, AspectProperty::SECONDARY_SIZE, AspectProperty::VOLUME_CAPACITY, AspectProperty::FLUID_PRODUCTION, AspectProperty::VIRILITY_FACTOR };
+
+        case EnchantmentFocus::GENITALIA_SECONDARY:
+            return { AspectProperty::VOLUME_CAPACITY, AspectProperty::DEPTH, AspectProperty::ELASTICITY, AspectProperty::FLUID_PRODUCTION, AspectProperty::FERTILITY_FACTOR };
+
+        case EnchantmentFocus::HORNS:
+            return { AspectProperty::SCALE_SIZE, AspectProperty::SECONDARY_SIZE, AspectProperty::PART_REMOVAL, AspectProperty::RACIAL_TRANSFORMATION };
+
+        case EnchantmentFocus::WINGS:
+            return { AspectProperty::SCALE_SIZE, AspectProperty::AGILITY_STAT, AspectProperty::PART_REMOVAL, AspectProperty::RACIAL_TRANSFORMATION };
+
+        case EnchantmentFocus::TAIL:
+            return { AspectProperty::SCALE_SIZE, AspectProperty::SECONDARY_SIZE, AspectProperty::AGILITY_STAT, AspectProperty::PART_REMOVAL, AspectProperty::RACIAL_TRANSFORMATION };
 
         default:
             return { AspectProperty::PHYSIQUE_STAT, AspectProperty::ARCANE_STAT, AspectProperty::AGILITY_STAT };
@@ -388,6 +416,14 @@ std::string getPropertyShortLabel(AspectProperty prop)
         case AspectProperty::SOULBOUND_SEAL:      return "Soulbound";
         case AspectProperty::SERVITUDE_INHIBITION: return "Servitude";
         case AspectProperty::SENSORY_VIBRATION:   return "Sensory";
+        case AspectProperty::DAMAGE_PHYSICAL:     return "Damage";
+        case AspectProperty::DAMAGE_ELEMENTAL:    return "Elements";
+        case AspectProperty::CRITICAL_POWER:      return "Critical";
+        case AspectProperty::LIFE_LEECH:          return "Leech";
+        case AspectProperty::ARMOR_RATING:        return "Armor";
+        case AspectProperty::WARD_RESISTANCE:     return "Wards";
+        case AspectProperty::PART_REMOVAL:        return "Shed";
+        case AspectProperty::RACIAL_TRANSFORMATION: return "Awaken";
         default:                                  return "Prop";
     }
 }
