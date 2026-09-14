@@ -16,6 +16,7 @@ class enchantingState : public iGameState
 {
 public:
     int selectedBackpackIndex = -1;
+    std::shared_ptr<item> targetItemPtr = nullptr;
     EnchantmentFocus selectedFocus = EnchantmentFocus::HEAD_FEATURE;
     AspectProperty selectedProperty = AspectProperty::AGILITY_STAT;
     InfusionTier selectedTier = InfusionTier::GREATER_BOON;
@@ -27,7 +28,7 @@ public:
 
     std::unique_ptr<iGameState> previousState;
 
-    explicit enchantingState(int initialBackpackIndex = -1, std::unique_ptr<iGameState> prevState = nullptr);
+    explicit enchantingState(int initialBackpackIndex = -1, std::unique_ptr<iGameState> prevState = nullptr, std::shared_ptr<item> initialItem = nullptr);
     ~enchantingState() override = default;
 
     void initialise(game* gameContext) override;
@@ -40,6 +41,7 @@ public:
     void selectBackpackItem(int index, game* gameContext);
     void cycleBackpackItem(game* gameContext);
     const item* getSelectedBaseItem(const game* gameContext) const;
+    std::shared_ptr<item> getSelectedBaseItemPtr(const game* gameContext) const;
     void setFocus(EnchantmentFocus focus);
     void setProperty(AspectProperty prop);
     void setTier(InfusionTier tier);

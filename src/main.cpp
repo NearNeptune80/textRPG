@@ -520,12 +520,24 @@ int main(int argc, char* argv[])
                 dagger->targetSlot = equipSlot::WEAPON_MAIN;
                 p->inventory.addItem(dagger);
 
+                auto choker = std::make_shared<item>();
+                choker->id = "item_leather_choker";
+                choker->name = "Leather Choker";
+                choker->category = ItemCategory::ACCESSORY;
+                choker->isEquippable = true;
+                choker->targetSlot = equipSlot::NECKWEAR;
+                p->inventory.addItem(choker);
+
                 engine.playerEntity = p;
                 engine.Player = p.get();
             }
 
-            int initIdx = (screenshotState == "enchanting_weapon") ? 1 : 0;
-            auto ench = std::make_unique<enchantingState>(initIdx, std::make_unique<explorationState>());
+            int initIdx = 0;
+            if (screenshotState == "enchanting_weapon") initIdx = 1;
+            else if (screenshotState == "enchanting_choker" || screenshotState == "enchanting_apparel") initIdx = 2;
+
+            auto targetItem = engine.Player->inventory.backpack[initIdx];
+            auto ench = std::make_unique<enchantingState>(initIdx, std::make_unique<explorationState>(), targetItem);
             engine.changeState(std::move(ench));
 
             if (auto activeEnch = dynamic_cast<enchantingState*>(engine.getActiveState()))
@@ -535,6 +547,13 @@ int main(int argc, char* argv[])
                     activeEnch->setFocus(EnchantmentFocus::WEAPON_LETHALITY);
                     activeEnch->setProperty(AspectProperty::DAMAGE_PHYSICAL);
                     activeEnch->setTier(InfusionTier::GREATER_BOON);
+                    activeEnch->stageCurrentEffect();
+                }
+                else if (screenshotState == "enchanting_choker" || screenshotState == "enchanting_apparel")
+                {
+                    activeEnch->setFocus(EnchantmentFocus::ARMOR_REINFORCEMENT);
+                    activeEnch->setProperty(AspectProperty::ARMOR_RATING);
+                    activeEnch->setTier(InfusionTier::BOON);
                     activeEnch->stageCurrentEffect();
                 }
                 else

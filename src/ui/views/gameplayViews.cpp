@@ -2959,12 +2959,7 @@ namespace GameplayViews
         float halfW = (availableW - (16.0f * uiScale)) / 2.0f;
 
         // Base item resolution
-        std::shared_ptr<item> baseItem = nullptr;
-        if (ench && gameContext->Player && ench->selectedBackpackIndex >= 0 &&
-            static_cast<size_t>(ench->selectedBackpackIndex) < gameContext->Player->inventory.backpack.size())
-        {
-            baseItem = gameContext->Player->inventory.backpack[ench->selectedBackpackIndex];
-        }
+        std::shared_ptr<item> baseItem = ench ? ench->getSelectedBaseItemPtr(gameContext) : nullptr;
 
         // 1. Primary Focus & Secondary Property Headers
         std::string focusTitle = ench ? std::format("Primary Focus: {}", getFocusDefinition(ench->selectedFocus).displayName) : "Primary Focus";
@@ -3216,12 +3211,13 @@ namespace GameplayViews
         SDL_Color glyphCol = Theme::colors.textDisabled;
         if (baseItem)
         {
-            if (baseItem->category == ItemCategory::WEAPON || baseItem->targetSlot == equipSlot::WEAPON_MAIN || baseItem->targetSlot == equipSlot::WEAPON_OFF)
+            ItemCategory cat = determineItemCategory(*baseItem);
+            if (cat == ItemCategory::WEAPON)
             {
                 slotGlyph = "WEAP";
                 glyphCol = Theme::colors.textGold;
             }
-            else if (baseItem->category == ItemCategory::CLOTHING || baseItem->category == ItemCategory::UNDERWEAR || baseItem->category == ItemCategory::ACCESSORY)
+            else if (cat == ItemCategory::CLOTHING || cat == ItemCategory::UNDERWEAR || cat == ItemCategory::ACCESSORY)
             {
                 slotGlyph = "ARMOR";
                 glyphCol = Theme::colors.textGold;
@@ -3231,7 +3227,7 @@ namespace GameplayViews
                 slotGlyph = "FOOD";
                 glyphCol = Theme::colors.textAccent;
             }
-            else if (baseItem->isConsumable)
+            else if (baseItem->isConsumable || cat == ItemCategory::CONSUMABLE)
             {
                 slotGlyph = "POTION";
                 glyphCol = Theme::colors.lust;
@@ -3342,13 +3338,17 @@ namespace GameplayViews
         UIWidget::drawPanel(renderer, outSlotRect, Theme::colors.bgHeader, Theme::colors.lust);
 
         std::string outGlyph = "POTION";
-        if (baseItem && (baseItem->category == ItemCategory::WEAPON || baseItem->targetSlot == equipSlot::WEAPON_MAIN || baseItem->targetSlot == equipSlot::WEAPON_OFF))
+        if (baseItem)
         {
-            outGlyph = "WEAP";
-        }
-        else if (baseItem && (baseItem->category == ItemCategory::CLOTHING || baseItem->category == ItemCategory::UNDERWEAR || baseItem->category == ItemCategory::ACCESSORY))
-        {
-            outGlyph = "ARMOR";
+            ItemCategory cat = determineItemCategory(*baseItem);
+            if (cat == ItemCategory::WEAPON)
+            {
+                outGlyph = "WEAP";
+            }
+            else if (cat == ItemCategory::CLOTHING || cat == ItemCategory::UNDERWEAR || cat == ItemCategory::ACCESSORY)
+            {
+                outGlyph = "ARMOR";
+            }
         }
         float outGW = UIWidget::getTextWidth(outGlyph, uiScale * 0.65f);
         UIWidget::drawText(renderer, outGlyph, outSlotRect.x + ((outSlotRect.w - outGW) / 2.0f), outSlotRect.y + (16.0f * uiScale), Theme::colors.lust, uiScale * 0.65f);

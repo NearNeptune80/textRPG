@@ -7,8 +7,9 @@
 #include "state/inventoryState.h"
 #include "state/explorationState.h"
 
-enchantingState::enchantingState(int initialBackpackIndex, std::unique_ptr<iGameState> prevState)
+enchantingState::enchantingState(int initialBackpackIndex, std::unique_ptr<iGameState> prevState, std::shared_ptr<item> initialItem)
     : selectedBackpackIndex(initialBackpackIndex),
+      targetItemPtr(initialItem),
       previousState(std::move(prevState))
 {
 }
@@ -17,24 +18,35 @@ void enchantingState::initialise(game* gameContext)
 {
     if (gameContext && gameContext->Player)
     {
-        if (selectedBackpackIndex >= 0 && static_cast<size_t>(selectedBackpackIndex) < gameContext->Player->inventory.backpack.size())
+        if (targetItemPtr)
         {
-            auto itPtr = gameContext->Player->inventory.backpack[selectedBackpackIndex];
-            if (itPtr)
+            for (size_t i = 0; i < gameContext->Player->inventory.backpack.size(); ++i)
             {
-                stagedEffects = itPtr->infusionEffects;
-                customOutputName.clear();
-
-                if (!isFocusCompatibleWithItem(selectedFocus, itPtr.get()))
+                if (gameContext->Player->inventory.backpack[i] == targetItemPtr)
                 {
-                    if (itPtr->category == ItemCategory::WEAPON || itPtr->targetSlot == equipSlot::WEAPON_MAIN || itPtr->targetSlot == equipSlot::WEAPON_OFF)
-                    {
-                        setFocus(EnchantmentFocus::WEAPON_LETHALITY);
-                    }
-                    else if (itPtr->category == ItemCategory::CLOTHING || itPtr->category == ItemCategory::UNDERWEAR || itPtr->category == ItemCategory::ACCESSORY)
-                    {
-                        setFocus(EnchantmentFocus::ARMOR_REINFORCEMENT);
-                    }
+                    selectedBackpackIndex = static_cast<int>(i);
+                    break;
+                }
+            }
+        }
+        if (selectedBackpackIndex >= 0)
+        {
+            selectBackpackItem(selectedBackpackIndex, gameContext);
+            const item* baseItem = getSelectedBaseItem(gameContext);
+            if (baseItem)
+            {
+                ItemCategory cat = determineItemCategory(*baseItem);
+                if (cat == ItemCategory::WEAPON)
+                {
+                    setFocus(EnchantmentFocus::WEAPON_LETHALITY);
+                }
+                else if (cat == ItemCategory::CLOTHING || cat == ItemCategory::UNDERWEAR || cat == ItemCategory::ACCESSORY)
+                {
+                    setFocus(EnchantmentFocus::ARMOR_REINFORCEMENT);
+                }
+                else
+                {
+                    setFocus(EnchantmentFocus::HEAD_FEATURE);
                 }
             }
         }
@@ -69,12 +81,35 @@ const item* enchantingState::getSelectedBaseItem(const game* gameContext) const
     {
         return gameContext->Player->inventory.backpack[selectedBackpackIndex].get();
     }
+    if (targetItemPtr)
+    {
+        return targetItemPtr.get();
+    }
     return nullptr;
+}
+
+std::shared_ptr<item> enchantingState::getSelectedBaseItemPtr(const game* gameContext) const
+{
+    if (gameContext && gameContext->Player && selectedBackpackIndex >= 0 &&
+        static_cast<size_t>(selectedBackpackIndex) < gameContext->Player->inventory.backpack.size())
+    {
+        return gameContext->Player->inventory.backpack[selectedBackpackIndex];
+    }
+    return targetItemPtr;
 }
 
 void enchantingState::selectBackpackItem(int index, game* gameContext)
 {
     selectedBackpackIndex = index;
+    if (gameContext && gameContext->Player && selectedBackpackIndex >= 0 &&
+        static_cast<size_t>(selectedBackpackIndex) < gameContext->Player->inventory.backpack.size())
+    {
+        targetItemPtr = gameContext->Player->inventory.backpack[selectedBackpackIndex];
+    }
+    else
+    {
+        targetItemPtr = nullptr;
+    }
     stagedEffects.clear();
     customOutputName.clear();
 
@@ -86,11 +121,12 @@ void enchantingState::selectBackpackItem(int index, game* gameContext)
 
         if (!isFocusCompatibleWithItem(selectedFocus, baseItem))
         {
-            if (baseItem->category == ItemCategory::WEAPON || baseItem->targetSlot == equipSlot::WEAPON_MAIN || baseItem->targetSlot == equipSlot::WEAPON_OFF)
+            ItemCategory cat = determineItemCategory(*baseItem);
+            if (cat == ItemCategory::WEAPON)
             {
                 setFocus(EnchantmentFocus::WEAPON_LETHALITY);
             }
-            else if (baseItem->category == ItemCategory::CLOTHING || baseItem->category == ItemCategory::UNDERWEAR || baseItem->category == ItemCategory::ACCESSORY)
+            else if (cat == ItemCategory::CLOTHING || cat == ItemCategory::UNDERWEAR || cat == ItemCategory::ACCESSORY)
             {
                 setFocus(EnchantmentFocus::ARMOR_REINFORCEMENT);
             }
@@ -106,14 +142,14 @@ void enchantingState::cycleBackpackItem(game* gameContext)
 {
     if (!gameContext || !gameContext->Player) return;
 
-    const auto& backpack = gameContext->Player->inventory.backpack;
+    auto stackedView = gameContext->Player->inventory.getStackedView();
     std::vector<int> validIndices;
-    for (size_t i = 0; i < backpack.size(); ++i)
+    for (const auto& slot : stackedView)
     {
-        const auto& it = backpack[i];
-        if (it && (it->isConsumable || it->isFood || it->isEquippable))
+        const auto& it = slot.itemPtr;
+        if (it && !it->isKeyItem && (it->isConsumable || it->isFood || it->isEquippable))
         {
-            validIndices.push_back(static_cast<int>(i));
+            validIndices.push_back(slot.firstBackpackIndex);
         }
     }
 

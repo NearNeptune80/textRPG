@@ -904,11 +904,35 @@ void ActionGridManager::refresh(game* gameContext)
                         }, true, false, desc);
                     }
 
-                    if (slotInfo.itemPtr->isConsumable || slotInfo.itemPtr->isEquippable)
+                    if ((slotInfo.itemPtr->isConsumable || slotInfo.itemPtr->isEquippable) && !slotInfo.itemPtr->isKeyItem)
                     {
-                        addBtn(gameContext, "Enchant", [gameContext]() {
-                            int idx = gameContext->selectedInventoryIndex;
-                            gameContext->changeState(std::make_unique<enchantingState>(idx, std::make_unique<inventoryState>()));
+                        addBtn(gameContext, "Enchant", [gameContext, targetItem = slotInfo.itemPtr]() {
+                            int actualBackpackIdx = -1;
+                            if (gameContext && gameContext->Player)
+                            {
+                                int idx = gameContext->selectedInventoryIndex;
+                                auto stackedView = gameContext->Player->inventory.getStackedView();
+                                if (idx >= 0 && static_cast<size_t>(idx) < stackedView.size())
+                                {
+                                    actualBackpackIdx = stackedView[idx].firstBackpackIndex;
+                                }
+                                if (targetItem)
+                                {
+                                    const auto& bp = gameContext->Player->inventory.backpack;
+                                    if (actualBackpackIdx < 0 || static_cast<size_t>(actualBackpackIdx) >= bp.size() || bp[actualBackpackIdx] != targetItem)
+                                    {
+                                        for (size_t i = 0; i < bp.size(); ++i)
+                                        {
+                                            if (bp[i] == targetItem)
+                                            {
+                                                actualBackpackIdx = static_cast<int>(i);
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            gameContext->changeState(std::make_unique<enchantingState>(actualBackpackIdx, std::make_unique<inventoryState>(), targetItem));
                         }, true, false, "Take this item to the infusion altar to imbue it with arcane essences.");
                     }
                 }

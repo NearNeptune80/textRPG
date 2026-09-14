@@ -44,6 +44,7 @@
 #include "items/infusionEffect.h"
 #include "items/enchantingEngine.h"
 #include "state/enchantingState.h"
+#include "state/inventoryState.h"
 #include "ui/widgets/sidebarGeometry.h"
 
 namespace EngineTests
@@ -3749,6 +3750,153 @@ namespace EngineTests
         return allPassed;
     }
 
+    bool testEnchantingItemSelectionAndStackedMapping()
+    {
+        std::cout << "\n--- Running Test 32: Enchanting Item Selection Fidelity & Stacked Inventory Mapping ---\n";
+        bool allPassed = true;
+
+        game engine;
+        engine.playerEntity = std::make_shared<entity>("test_crafter", "TestCrafter");
+        engine.Player = engine.playerEntity.get();
+        engine.Player->stats.setBaseStat("arcaneEssence", 100.0f);
+
+        // Grant starter test kit into empty backpack
+        engine.Player->inventory.backpack.clear();
+        saveManager::grantStarterTestKit(engine.Player);
+
+        auto stacked = engine.Player->inventory.getStackedView();
+        int chokerStackedIdx = -1;
+        int daggerStackedIdx = -1;
+        int elixirStackedIdx = -1;
+
+        for (size_t i = 0; i < stacked.size(); ++i)
+        {
+            if (stacked[i].itemPtr)
+            {
+                if (stacked[i].itemPtr->id == "item_leather_choker") chokerStackedIdx = static_cast<int>(i);
+                else if (stacked[i].itemPtr->id == "item_dagger_iron") daggerStackedIdx = static_cast<int>(i);
+                else if (stacked[i].itemPtr->id == "item_plain_elixir") elixirStackedIdx = static_cast<int>(i);
+            }
+        }
+
+        bool itemsFoundInStacked = (chokerStackedIdx >= 0 && daggerStackedIdx >= 0 && elixirStackedIdx >= 0);
+        logResult("All target test items discovered in stacked inventory view", itemsFoundInStacked);
+        allPassed &= itemsFoundInStacked;
+
+        // Verify that alphabetical stacked indices deviate from raw arrival backpack indices
+        int chokerRawIdx = stacked[chokerStackedIdx].firstBackpackIndex;
+        int daggerRawIdx = stacked[daggerStackedIdx].firstBackpackIndex;
+        bool indicesDeviate = (chokerStackedIdx != chokerRawIdx) || (daggerStackedIdx != daggerRawIdx);
+        logResult("Stacked inventory indices deviate from raw backpack indices due to sorting", indicesDeviate);
+        allPassed &= indicesDeviate;
+
+        // 1. Select Leather Choker in Inventory & transition to EnchantingState
+        engine.selectedInventorySide = 0;
+        engine.selectedInventoryIndex = chokerStackedIdx;
+        auto chokerSlotInfo = engine.getInventorySlotItem(0, chokerStackedIdx);
+        bool chokerSlotCorrect = (chokerSlotInfo.isValid && chokerSlotInfo.itemPtr && chokerSlotInfo.itemPtr->name == "Leather Choker");
+        logResult("Inventory selection retrieves Leather Choker correctly from stacked slot", chokerSlotCorrect);
+        allPassed &= chokerSlotCorrect;
+
+        auto chokerAltar = std::make_unique<enchantingState>(chokerSlotInfo.itemPtr ? chokerRawIdx : -1, std::make_unique<inventoryState>(), chokerSlotInfo.itemPtr);
+        chokerAltar->initialise(&engine);
+
+        const item* baseChoker = chokerAltar->getSelectedBaseItem(&engine);
+        bool chokerSelectedAtAltar = (baseChoker && baseChoker->name == "Leather Choker" && baseChoker->id == "item_leather_choker");
+        logResult("Altar selects Leather Choker with 100% fidelity (NOT Iron Dagger or Plain Elixir)", chokerSelectedAtAltar);
+        allPassed &= chokerSelectedAtAltar;
+
+        bool chokerFocusValid = (chokerAltar->selectedFocus == EnchantmentFocus::ARMOR_REINFORCEMENT);
+        logResult("Apparel automatically initializes with ARMOR_REINFORCEMENT focus", chokerFocusValid);
+        allPassed &= chokerFocusValid;
+
+        // 2. Select Iron Dagger in Inventory & transition to EnchantingState
+        engine.selectedInventoryIndex = daggerStackedIdx;
+        auto daggerSlotInfo = engine.getInventorySlotItem(0, daggerStackedIdx);
+        bool daggerSlotCorrect = (daggerSlotInfo.isValid && daggerSlotInfo.itemPtr && daggerSlotInfo.itemPtr->name == "Iron Dagger");
+        logResult("Inventory selection retrieves Iron Dagger correctly from stacked slot", daggerSlotCorrect);
+        allPassed &= daggerSlotCorrect;
+
+        auto daggerAltar = std::make_unique<enchantingState>(daggerSlotInfo.itemPtr ? daggerRawIdx : -1, std::make_unique<inventoryState>(), daggerSlotInfo.itemPtr);
+        daggerAltar->initialise(&engine);
+
+        const item* baseDagger = daggerAltar->getSelectedBaseItem(&engine);
+        bool daggerSelectedAtAltar = (baseDagger && baseDagger->name == "Iron Dagger" && baseDagger->id == "item_dagger_iron");
+        logResult("Altar selects Iron Dagger with 100% fidelity (NOT Plain Elixir)", daggerSelectedAtAltar);
+        allPassed &= daggerSelectedAtAltar;
+
+        bool daggerFocusValid = (daggerAltar->selectedFocus == EnchantmentFocus::WEAPON_LETHALITY);
+        logResult("Weapon automatically initializes with WEAPON_LETHALITY focus", daggerFocusValid);
+        allPassed &= daggerFocusValid;
+
+        // 3. Cycle items at the Altar through stacked order & Blank Tonic Base
+        bool reachedBlank = false;
+        bool wrappedToFirst = false;
+        std::string firstItemName = "";
+
+        const item* initialItem = daggerAltar->getSelectedBaseItem(&engine);
+        if (initialItem) firstItemName = initialItem->name;
+
+        for (int cycle = 0; cycle < 30; ++cycle)
+        {
+            daggerAltar->cycleBackpackItem(&engine);
+            const item* curItem = daggerAltar->getSelectedBaseItem(&engine);
+            if (!curItem)
+            {
+                reachedBlank = true;
+            }
+            else if (reachedBlank && !curItem->name.empty())
+            {
+                wrappedToFirst = true;
+                break;
+            }
+        }
+
+        bool cycleSuccess = reachedBlank && wrappedToFirst;
+        logResult("Cycling backpack items visits all distinct items, reaches blank tonic, and wraps cleanly", cycleSuccess);
+        allPassed &= cycleSuccess;
+
+        // 4. Crafting Leather Choker consumes base item and deducts essence
+        chokerAltar->setFocus(EnchantmentFocus::ARMOR_REINFORCEMENT);
+        chokerAltar->setProperty(AspectProperty::ARMOR_RATING);
+        chokerAltar->setTier(InfusionTier::BOON);
+        chokerAltar->stageCurrentEffect();
+
+        size_t bpSizeBefore = engine.Player->inventory.backpack.size();
+        float essenceBefore = engine.Player->getStat("arcaneEssence");
+        int cost = chokerAltar->getTotalCost(&engine);
+
+        chokerAltar->craft(&engine);
+
+        float essenceAfter = engine.Player->getStat("arcaneEssence");
+        bool essenceDeducted = (std::abs(essenceBefore - cost - essenceAfter) < 0.01f);
+        logResult("Crafting Leather Choker deducts exact arcane essence cost", essenceDeducted);
+        allPassed &= essenceDeducted;
+
+        bool hasInfusedChoker = false;
+        bool originalChokerRemoved = true;
+        for (const auto& it : engine.Player->inventory.backpack)
+        {
+            if (it)
+            {
+                if (it->name.find("Leather Choker") != std::string::npos && !it->infusionEffects.empty())
+                {
+                    hasInfusedChoker = true;
+                }
+                if (it->id == "item_leather_choker" && it->infusionEffects.empty())
+                {
+                    originalChokerRemoved = false;
+                }
+            }
+        }
+
+        bool craftIntegrity = hasInfusedChoker && originalChokerRemoved;
+        logResult("Crafting consumed uninfused Leather Choker and placed infused version into backpack", craftIntegrity);
+        allPassed &= craftIntegrity;
+
+        return allPassed;
+    }
+
     bool runAllTests()
     {
         g_passCount = 0;
@@ -3788,6 +3936,7 @@ namespace EngineTests
         bool t29 = testEnchantingEngineAndStatusEffects();
         bool t30 = testUnifiedToolbarAndStarterTestKit();
         bool t31 = testEnchantingCompatibilityAndRacialGating();
+        bool t32 = testEnchantingItemSelectionAndStackedMapping();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";
