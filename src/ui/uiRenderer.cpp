@@ -22,6 +22,7 @@
 #include "state/sexState.h"
 #include "state/shopState.h"
 #include "state/transformationState.h"
+#include "state/enchantingState.h"
 
 #include "ui/actionGridManager.h"
 #include "ui/fontManager.h"
@@ -512,6 +513,10 @@ float uiRenderer::renderCenterPane(SDL_Renderer* renderer, game* gameContext, co
     else if (dynamic_cast<transformationState*>(state))
     {
         return GameplayViews::renderTransformationView(renderer, gameContext, rect, curY, uiScale);
+    }
+    else if (dynamic_cast<enchantingState*>(state))
+    {
+        return GameplayViews::renderEnchantingView(renderer, gameContext, rect, curY, uiScale);
     }
     else if (dynamic_cast<phoneAppsState*>(state))
     {

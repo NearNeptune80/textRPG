@@ -8,6 +8,7 @@
 #include "entities/statusEffect.h"
 #include "items/clothingDisplacement.h"
 #include "items/enchantment.h"
+#include "items/infusionEffect.h"
 
 enum class ItemCategory
 {
@@ -89,7 +90,13 @@ struct item
 
     std::string baseRace;
     std::vector<enchantment> enchantments;
+    std::vector<InfusionEffect> infusionEffects;
     std::vector<StatModifier> statModifiers;
+
+    bool hasInfusions() const
+    {
+        return !infusionEffects.empty() || !enchantments.empty();
+    }
 
     std::vector<std::string> requiredTags;
     std::vector<std::string> forbiddenTags;

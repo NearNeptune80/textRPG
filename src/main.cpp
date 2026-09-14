@@ -13,6 +13,7 @@
 #include "state/phoneAppsState.h"
 #include "state/shopState.h"
 #include "state/transformationState.h"
+#include "state/enchantingState.h"
 #include "items/itemDatabase.h"
 #include "save/saveManager.h"
 #include "ui/theme.h"
@@ -198,7 +199,7 @@ int main(int argc, char* argv[])
                 p->stats.setBaseStat("arcaneEssence", 20.0f);
                 engine.playerEntity = p;
             }
-            if (screenshotState == "exploration_companion" || screenshotState == "exploration_status" || screenshotState == "tooltip_action" || screenshotState == "tooltip_vitals")
+            if (screenshotState == "exploration_companion" || screenshotState == "exploration_status" || screenshotState == "exploration_infused_status" || screenshotState == "tooltip_action" || screenshotState == "tooltip_vitals")
             {
                 auto lyra = std::make_shared<entity>("companion_lyra", "Lyra");
                 lyra->stats.level = 5;
@@ -218,6 +219,16 @@ int main(int argc, char* argv[])
                     engine.getPlayer()->addStatusEffect(StatusEffect{ "debuff_pois", "Poisoned", "Taking 5 nature damage per turn", 5, true, 180 });
                     engine.getPlayer()->addStatusEffect(StatusEffect{ "buff_regen", "Regeneration", "Restores 10 HP every turn", 12, false, 60 });
                     engine.getPlayer()->addStatusEffect(StatusEffect{ "buff_haste", "Haste", "Action speed doubled", 3, false, 25 });
+                }
+            }
+            else if (screenshotState == "exploration_infused_status")
+            {
+                if (engine.getPlayer())
+                {
+                    engine.getPlayer()->addStatusEffect(StatusEffect{ "predator_instinct", "Predator's Instinct", "Sharpened senses grant agility bonus (+3 Agility)", 4, false, 240, 1440, "AGI" });
+                    engine.getPlayer()->addStatusEffect(StatusEffect{ "colossus_might", "Colossus Might", "Immense physical power radiates (+3 Strength)", 4, false, 240, 1440, "STR" });
+                    engine.getPlayer()->addStatusEffect(StatusEffect{ "primal_surge", "Primal Surge", "Primal vigor courses through veins (+45 Vitality)", 24, false, 1440, 1440, "VIT" });
+                    engine.getPlayer()->addStatusEffect(StatusEffect{ "eldritch_clarity", "Eldritch Clarity", "Arcane intuition heightens focus (+3 Intelligence)", 4, false, 180, 1440, "INT" });
                 }
             }
             if (screenshotState == "exploration_overworld") engine.loadMap("overworld", 1, 1);
@@ -478,6 +489,39 @@ int main(int argc, char* argv[])
             else if (mode == PhoneAppMode::FETISHES) phState->setFetishDesire("Exhibitionism", FetishDesireLevel::LOVE);
             else if (mode == PhoneAppMode::ELEMENTAL) { phState->setElementalSummoned(true); phState->setElementalActiveForm(true); }
             engine.changeState(std::move(phState));
+        }
+        else if (screenshotState.starts_with("enchanting"))
+        {
+            if (!engine.getPlayer())
+            {
+                auto p = std::make_shared<entity>("hero_player", "Aria Vesper");
+                p->genderArchetype = GenderArchetype::FEMALE;
+                p->stats.level = 1;
+                p->stats.setBaseStat("health", 100.0f);
+                p->stats.setBaseStat("max_health", 100.0f);
+                p->stats.setBaseStat("mana", 80.0f);
+                p->stats.setBaseStat("max_mana", 80.0f);
+                p->stats.setBaseStat("currency", 500.0f);
+                p->stats.setBaseStat("arcaneEssence", 40.0f);
+
+                auto basePotion = std::make_shared<item>();
+                basePotion->id = "item_plain_elixir";
+                basePotion->name = "Plain Elixir";
+                basePotion->description = "An uninfused tonic ready to absorb arcane essence.";
+                basePotion->isConsumable = true;
+                basePotion->baseValue = 10;
+                p->inventory.addItem(basePotion);
+
+                engine.playerEntity = p;
+                engine.Player = p.get();
+            }
+
+            auto ench = std::make_unique<enchantingState>(0, std::make_unique<explorationState>());
+            ench->selectedFocus = EnchantmentFocus::TORSO;
+            ench->selectedProperty = AspectProperty::PHYSIQUE_STAT;
+            ench->selectedTier = InfusionTier::BOON;
+            ench->stageCurrentEffect();
+            engine.changeState(std::move(ench));
         }
 
         engine.refreshActionGrid();

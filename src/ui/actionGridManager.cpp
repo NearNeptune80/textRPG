@@ -26,6 +26,7 @@
 #include "state/sexState.h"
 #include "state/shopState.h"
 #include "state/transformationState.h"
+#include "state/enchantingState.h"
 #include "quest/questDatabase.h"
 #include "items/merchantValuation.h"
 #include "ui/theme.h"
@@ -408,6 +409,34 @@ void ActionGridManager::refresh(game* gameContext)
         addBtn(gameContext, "11. Presets", [gameContext, tf]() { tf->setTab(TransformationTab::INSPECT_PRESETS, gameContext); }, true, tf->currentTab == TransformationTab::INSPECT_PRESETS);
         addBackBtn(gameContext, "Apply & Return", [gameContext, tf]() {
             tf->returnToPreviousOrExploration(gameContext);
+        });
+        return;
+    }
+
+    // Enchanting & Infusion Altar State
+    if (auto ench = dynamic_cast<enchantingState*>(currentState))
+    {
+        // Button 1: Stage Effect
+        addBtn(gameContext, "Stage Effect", [ench]() {
+            ench->stageCurrentEffect();
+        }, true, false, "Stage the currently configured focus, property, and tier into the recipe.");
+
+        // Button 2: Craft Infusion
+        bool canCraft = ench->canAffordCraft(gameContext);
+        int cost = ench->getTotalCost(gameContext);
+        std::string craftLabel = std::format("Craft ({})", cost);
+        addBtn(gameContext, craftLabel, [gameContext, ench]() {
+            ench->craft(gameContext);
+        }, canCraft, false, std::format("Perform the alchemical infusion (Costs {} Arcane Essence).", cost));
+
+        // Button 3: Clear Staged
+        addBtn(gameContext, "Clear Staged", [ench]() {
+            ench->clearStagedEffects();
+        }, !ench->stagedEffects.empty(), false, "Clear all currently staged infusion effects.");
+
+        // Button 12: Leave Altar
+        addBackBtn(gameContext, "Leave Altar", [gameContext, ench]() {
+            ench->exitAltar(gameContext);
         });
         return;
     }
@@ -873,6 +902,14 @@ void ActionGridManager::refresh(game* gameContext)
                         addBtn(gameContext, "Use", [gameContext]() {
                             gameContext->handleUseItemAction(gameContext->selectedInventoryIndex);
                         }, true, false, desc);
+                    }
+
+                    if (slotInfo.itemPtr->isConsumable || slotInfo.itemPtr->isEquippable)
+                    {
+                        addBtn(gameContext, "Enchant", [gameContext]() {
+                            int idx = gameContext->selectedInventoryIndex;
+                            gameContext->changeState(std::make_unique<enchantingState>(idx, std::make_unique<inventoryState>()));
+                        }, true, false, "Take this item to the infusion altar to imbue it with arcane essences.");
                     }
                 }
 

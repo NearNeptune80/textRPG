@@ -39,6 +39,11 @@
 #include "ui/layoutEngine.h"
 #include "core/contentFilterManager.h"
 #include "ui/widgets/entityListWidgets.h"
+#include "items/enchantmentAspects.h"
+#include "items/infusionTier.h"
+#include "items/infusionEffect.h"
+#include "items/enchantingEngine.h"
+#include "state/enchantingState.h"
 
 namespace EngineTests
 {
@@ -3331,6 +3336,163 @@ namespace EngineTests
         return allPassed;
     }
 
+    bool testEnchantingEngineAndStatusEffects()
+    {
+        std::cout << "\n--- Running Test 29: Enchanting Engine, Infusion Costing & Status Effect Generation ---\n";
+        bool allPassed = true;
+
+        // 1. Validate Aspect Essence Weighting & Cost Calculation Formula
+        InfusionEffect effPredator{
+            InfusionTargetType::CONSUMABLE_TONIC,
+            EnchantmentFocus::HEAD_FEATURE,     // UNCOMMON: weight 2
+            AspectProperty::AGILITY_STAT,       // RARE: weight 4
+            InfusionTier::GREATER_BOON,         // weight 8
+            -1
+        };
+        int costPredator = effPredator.calculateCost(); // 1 + 2 + 4 + 8 = 15
+        bool costFormulaOk = (costPredator == 15);
+        logResult("InfusionEffect cost formula correctly computes 1 + focus + property + tier (15 essence)", costFormulaOk);
+        allPassed &= costFormulaOk;
+
+        // 2. Validate Delta Costing & Free Attribute Removal
+        auto baseTonic = std::make_shared<item>();
+        baseTonic->id = "elixir_base";
+        baseTonic->name = "Elixir Base";
+        baseTonic->isConsumable = true;
+
+        int initialCost = EnchantingEngine::calculateInfusionCost(baseTonic.get(), { effPredator });
+        bool deltaInitialOk = (initialCost == 15);
+        logResult("Staging new effect onto empty base tonic costs full delta essence (15)", deltaInitialOk);
+        allPassed &= deltaInitialOk;
+
+        baseTonic->infusionEffects.push_back(effPredator);
+        int maintainCost = EnchantingEngine::calculateInfusionCost(baseTonic.get(), { effPredator });
+        int removeBeneficialCost = EnchantingEngine::calculateInfusionCost(baseTonic.get(), {});
+        bool freeRemovalOk = (maintainCost == 0 && removeBeneficialCost == 0);
+        logResult("Maintaining existing effects costs 0, and cleansing beneficial attributes is free (0)", freeRemovalOk);
+        allPassed &= freeRemovalOk;
+
+        // 3. Validate Procedural Compound Item Naming
+        std::string compNamePredator = EnchantingEngine::composeItemName(baseTonic.get(), { effPredator });
+        bool namePredatorOk = (compNamePredator.find("Predator's Instinct") != std::string::npos);
+        logResult("Item naming engine composes compound title ('Elixir of Predator's Instinct')", namePredatorOk);
+        allPassed &= namePredatorOk;
+
+        InfusionEffect effColossus{
+            InfusionTargetType::CONSUMABLE_TONIC,
+            EnchantmentFocus::TORSO,
+            AspectProperty::PHYSIQUE_STAT,
+            InfusionTier::BOON,
+            -1
+        };
+        std::string compNameColossus = EnchantingEngine::composeItemName(baseTonic.get(), { effColossus });
+        bool nameColossusOk = (compNameColossus.find("Colossus Might") != std::string::npos);
+        logResult("Item naming engine detects physique domain ('Elixir of Colossus Might')", nameColossusOk);
+        allPassed &= nameColossusOk;
+
+        // 4. Validate Altar State & Crafting Lifecycle
+        game testGame;
+        testGame.init();
+        auto player = std::make_shared<entity>("stat_tester", "Valeria");
+        testGame.playerEntity = player;
+        testGame.Player = player.get();
+
+        testGame.Player->stats.setBaseStat("arcaneEssence", 40.0f);
+
+        auto craftIngredient = std::make_shared<item>();
+        craftIngredient->id = "test_elixir";
+        craftIngredient->name = "Plain Elixir";
+        craftIngredient->isConsumable = true;
+        craftIngredient->count = 1;
+        testGame.Player->inventory.backpack.clear();
+        testGame.Player->inventory.backpack.push_back(craftIngredient);
+
+        auto altarState = std::make_unique<enchantingState>(0);
+        altarState->initialise(&testGame);
+        altarState->setFocus(EnchantmentFocus::HEAD_FEATURE);
+        altarState->setProperty(AspectProperty::AGILITY_STAT);
+        altarState->setTier(InfusionTier::GREATER_BOON);
+        altarState->stageCurrentEffect();
+
+        bool canAfford = altarState->canAffordCraft(&testGame);
+        int altarTotalCost = altarState->getTotalCost(&testGame);
+        bool altarStateOk = (canAfford && altarTotalCost == 15);
+        logResult("EnchantingState correctly stages effect and validates player essence affordability", altarStateOk);
+        allPassed &= altarStateOk;
+
+        // Execute Craft
+        altarState->craft(&testGame);
+        float remainingEssence = testGame.Player->getStat("arcaneEssence");
+        bool essenceDeducted = (remainingEssence == 25.0f); // 40 - 15 = 25
+        bool backpackUpdated = (testGame.Player->inventory.backpack.size() == 1 &&
+                                testGame.Player->inventory.backpack[0]->hasInfusions() &&
+                                testGame.Player->inventory.backpack[0]->infusionEffects.size() == 1);
+        bool craftSuccess = (essenceDeducted && backpackUpdated);
+        logResult("Altar craft deducts 15 Arcane Essence (40 -> 25) and populates backpack with infused elixir", craftSuccess);
+        allPassed &= craftSuccess;
+
+        // 5. Validate Consuming Infused Potion & Status Effect Generation
+        testGame.Player->clearStatusEffects();
+        testGame.Player->stats.setBaseStat("agility", 10.0f);
+        float baseAgility = testGame.Player->getStat("agility");
+
+        // Consume the crafted potion
+        testGame.handleUseItemAction(0);
+
+        bool hasPredatorBuff = testGame.Player->hasStatusEffect("predator_instinct");
+        float boostedAgility = testGame.Player->getStat("agility");
+        bool agilityBoosted = (boostedAgility == baseAgility + 3.0f); // Greater Boon = +3
+        bool potionConsumedOk = (hasPredatorBuff && agilityBoosted);
+        logResult("Consuming infused potion adds 'Predator's Instinct' status effect (+3 Agility, 4h duration)", potionConsumedOk);
+        allPassed &= potionConsumedOk;
+
+        // 6. Validate 24-Hour Primal Surge Infusion
+        InfusionEffect effPrimal{
+            InfusionTargetType::CONSUMABLE_TONIC,
+            EnchantmentFocus::GENITALIA_PRIMARY,
+            AspectProperty::VIRILITY_FACTOR,
+            InfusionTier::GREATER_BOON,
+            -1
+        };
+        auto primalPotion = EnchantingEngine::craftInfusedItem(nullptr, { effPrimal });
+        testGame.Player->inventory.backpack.push_back(primalPotion);
+        testGame.handleUseItemAction(0);
+
+        bool hasPrimalBuff = testGame.Player->hasStatusEffect("primal_surge");
+        int primalRemainingMins = 0;
+        for (const auto& fx : testGame.Player->statusEffects)
+        {
+            if (fx.id == "primal_surge") primalRemainingMins = fx.durationMinutes;
+        }
+        bool primalOk = (hasPrimalBuff && primalRemainingMins == 1440);
+        logResult("Consuming primal surge elixir awards 24-hour (1440m) full-day status effect", primalOk);
+        allPassed &= primalOk;
+
+        // 7. Validate Status Decay & Expiration
+        // Advance time by 60 minutes
+        testGame.Player->updateStatusEffectsOnTime(60);
+        int predMinsAfter60 = 0, primMinsAfter60 = 0;
+        for (const auto& fx : testGame.Player->statusEffects)
+        {
+            if (fx.id == "predator_instinct") predMinsAfter60 = fx.durationMinutes;
+            if (fx.id == "primal_surge") primMinsAfter60 = fx.durationMinutes;
+        }
+        bool decay60Ok = (predMinsAfter60 == 180 && primMinsAfter60 == 1380);
+        logResult("Advancing 60 minutes decays predator instinct (240 -> 180m) and primal surge (1440 -> 1380m)", decay60Ok);
+        allPassed &= decay60Ok;
+
+        // Advance time by 180 more minutes (predator instinct expires at 0)
+        testGame.Player->updateStatusEffectsOnTime(180);
+        bool predExpired = !testGame.Player->hasStatusEffect("predator_instinct");
+        bool primStillActive = testGame.Player->hasStatusEffect("primal_surge");
+        float agilityReverted = testGame.Player->getStat("agility");
+        bool expirationOk = (predExpired && primStillActive && agilityReverted == baseAgility);
+        logResult("Predator's Instinct expires at 0 minutes, reverts agility stat, and leaves Primal Surge active", expirationOk);
+        allPassed &= expirationOk;
+
+        return allPassed;
+    }
+
     bool runAllTests()
     {
         g_passCount = 0;
@@ -3367,6 +3529,7 @@ namespace EngineTests
         bool t26 = testExpandedContentOptionsAndSceneGating();
         bool t27 = testDataDrivenMapTitlesAndNPCCards();
         bool t28 = testStatusEffectLifecycleAndGrid();
+        bool t29 = testEnchantingEngineAndStatusEffects();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";

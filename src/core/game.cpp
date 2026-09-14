@@ -774,6 +774,16 @@ void game::handleUseItemAction(int backpackIndex)
         std::cout << std::format("[Inventory] You consumed {} and restored {:.0f} MP.\n", targetItem->name, mpRestore);
     }
 
+    // Apply active infusion effects
+    for (auto& eff : targetItem->infusionEffects)
+    {
+        std::string res = eff.applyToEntity(Player, Player);
+        if (!res.empty())
+        {
+            std::cout << "[Infusion] " << res;
+        }
+    }
+
     // Decrement item count or remove
     if (targetItem->isStackable && targetItem->count > 1)
     {
