@@ -281,6 +281,77 @@
       "forbiddenTags": [],
       "statModifiers": [],
       "supportedDisplacements": {}
+    },
+    {
+      "id": "item_plain_elixir",
+      "name": "Plain Elixir",
+      "description": "A purified, crystal-clear phial filled with an uninfused alchemical base tonic. Its balanced magical viscosity allows it to effortlessly absorb focus aspects and arcane essence at an enchanting altar.",
+      "tooltip": "Blank alchemical tonic. Ready to be infused with enchanting aspects at an altar.",
+      "baseValue": 20,
+      "isConsumable": true,
+      "isEquippable": false,
+      "isStackable": true,
+      "count": 1,
+      "targetSlot": "NONE",
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [],
+      "supportedDisplacements": {}
+    },
+    {
+      "id": "item_potion_health",
+      "name": "Health Potion",
+      "description": "A vibrant crimson vial of soothing alchemical medicine. Restores 50 health upon consumption.",
+      "tooltip": "Consumable medicine. Restores 50 HP.",
+      "baseValue": 35,
+      "isConsumable": true,
+      "isEquippable": false,
+      "isStackable": true,
+      "count": 1,
+      "targetSlot": "NONE",
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        { "statName": "health", "flatValue": 50.0, "percentValue": 0.0 }
+      ],
+      "supportedDisplacements": {}
+    },
+    {
+      "id": "item_potion_mana",
+      "name": "Mana Potion",
+      "description": "A glowing azure potion humming with concentrated arcane energy. Restores 40 mana upon consumption.",
+      "tooltip": "Consumable elixir. Restores 40 MP.",
+      "baseValue": 40,
+      "isConsumable": true,
+      "isEquippable": false,
+      "isStackable": true,
+      "count": 1,
+      "targetSlot": "NONE",
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        { "statName": "mana", "flatValue": 40.0, "percentValue": 0.0 }
+      ],
+      "supportedDisplacements": {}
+    },
+    {
+      "id": "item_dagger_iron",
+      "name": "Iron Dagger",
+      "description": "A sharp, reliable utility dagger forged from folded iron with a leather-wrapped hilt.",
+      "tooltip": "Balanced iron dagger (+2 Physique). Primary or offhand weapon.",
+      "baseValue": 50,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "WEAPON_MAIN",
+      "validSlots": ["WEAPON_MAIN", "WEAPON_OFF"],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        { "statName": "physique", "flatValue": 2.0, "percentValue": 0.0 }
+      ],
+      "supportedDisplacements": {}
     }
   ]
 }

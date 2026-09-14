@@ -44,6 +44,7 @@
 #include "items/infusionEffect.h"
 #include "items/enchantingEngine.h"
 #include "state/enchantingState.h"
+#include "ui/widgets/sidebarGeometry.h"
 
 namespace EngineTests
 {
@@ -3493,6 +3494,129 @@ namespace EngineTests
         return allPassed;
     }
 
+    bool testUnifiedToolbarAndStarterTestKit()
+    {
+        std::cout << "\n--- Running Test 30: Unified Toolbar Positioning & Starter Test Kit Inventory Delivery ---\n";
+        bool allPassed = true;
+
+        // 1. Validate SidebarGeometry Positioning Consistency
+        SDL_FRect panelRect = { 0.0f, 0.0f, 204.8f, 720.0f };
+        float uiScale = 1.0f;
+        float cardTopY = 400.0f;
+
+        float boxSize = SidebarGeometry::getBoxSize(panelRect, uiScale);
+        float gridStartX = SidebarGeometry::getGridStartX(panelRect, uiScale);
+        float toolH = SidebarGeometry::getToolbarH(uiScale);
+        float gap = 4.0f * uiScale;
+        float toolW = (boxSize - (2.0f * gap)) / 3.0f;
+        float toolbarY = cardTopY + (18.0f * uiScale) + boxSize + (5.0f * uiScale);
+
+        // Verify mathematical symmetry
+        float availableW = SidebarGeometry::getAvailableW(panelRect, uiScale);
+        float leftMargin = gridStartX - SidebarGeometry::getPadX(panelRect, uiScale);
+        float totalToolbarWidth = (3.0f * toolW) + (2.0f * gap);
+        float expectedMargin = (availableW - boxSize) / 2.0f;
+        bool symmetricOk = (std::abs(totalToolbarWidth - boxSize) < 0.01f && std::abs(leftMargin - expectedMargin) < 0.01f);
+        logResult("Sidebar toolbar buttons span exact boxSize and align with grid container borders", symmetricOk);
+        allPassed &= symmetricOk;
+
+        // Verify card bottom padding below toolbar
+        float cardH = SidebarGeometry::getSquareCardH(panelRect, uiScale);
+        float bottomSpace = (cardTopY + cardH) - (toolbarY + toolH);
+        bool bottomPaddingOk = (std::abs(bottomSpace - 5.0f * uiScale) < 0.01f);
+        logResult("Toolbar leaves exact 5px bottom padding inside both equipment and radar cards", bottomPaddingOk);
+        allPassed &= bottomPaddingOk;
+
+        // 2. Validate grantStarterTestKit Delivery
+        auto testPlayer = std::make_shared<entity>("hero_starter", "Test Hero");
+        testPlayer->stats.setBaseStat("agility", 10.0f);
+        testPlayer->stats.setBaseStat("health", 100.0f);
+        testPlayer->stats.setBaseStat("max_health", 100.0f);
+        testPlayer->stats.setBaseStat("arcaneEssence", 0.0f);
+        testPlayer->stats.setBaseStat("currency", 0.0f);
+
+        saveManager::grantStarterTestKit(testPlayer.get());
+
+        bool hasPlainElixir = false;
+        int plainElixirCount = 0;
+        bool hasCanis = false;
+        bool hasDagger = false;
+        bool hasHealthPot = false;
+        bool hasManaPot = false;
+        bool hasPendant = false;
+        bool hasPredator = false;
+        bool hasPrimal = false;
+
+        for (const auto& it : testPlayer->inventory.backpack)
+        {
+            if (!it) continue;
+            if (it->id == "item_plain_elixir") { hasPlainElixir = true; plainElixirCount = it->count; }
+            if (it->id == "item_canis_root") hasCanis = true;
+            if (it->id == "item_dagger_iron") hasDagger = true;
+            if (it->id == "item_potion_health") hasHealthPot = true;
+            if (it->id == "item_potion_mana") hasManaPot = true;
+            if (it->id == "item_golden_pendant") hasPendant = true;
+            if (it->id == "item_infused_predator") hasPredator = true;
+            if (it->id == "item_infused_primal") hasPrimal = true;
+        }
+
+        bool starterItemsOk = (hasPlainElixir && plainElixirCount >= 3 && hasCanis && hasDagger && hasHealthPot && hasManaPot && hasPendant);
+        logResult("Starter test kit awards 3x Plain Elixirs, health/mana potions, weapons, and accessories", starterItemsOk);
+        allPassed &= starterItemsOk;
+
+        bool infusedPotionsOk = (hasPredator && hasPrimal);
+        logResult("Starter test kit awards pre-infused sample elixirs (Predator's Instinct, Primal Surge)", infusedPotionsOk);
+        allPassed &= infusedPotionsOk;
+
+        bool resourcesOk = (testPlayer->getStat("arcaneEssence") >= 50.0f && testPlayer->getStat("currency") >= 500.0f);
+        logResult("Starter test kit ensures at least 50 Arcane Essence and 500 Gold for immediate enchanting", resourcesOk);
+        allPassed &= resourcesOk;
+
+        // 3. Validate Live Consumption of Starter Infused Potion
+        game testGame;
+        testGame.init();
+        testGame.playerEntity = testPlayer;
+        testGame.Player = testPlayer.get();
+
+        // Locate predator elixir in stacked view and consume it
+        auto stacked = testPlayer->inventory.getStackedView();
+        int predStackedIdx = -1;
+        for (size_t i = 0; i < stacked.size(); ++i)
+        {
+            if (stacked[i].itemPtr && stacked[i].itemPtr->id == "item_infused_predator")
+            {
+                predStackedIdx = static_cast<int>(i);
+                break;
+            }
+        }
+        if (predStackedIdx >= 0)
+        {
+            testGame.handleUseItemAction(predStackedIdx);
+        }
+        bool statusAppliedOk = testPlayer->hasStatusEffect("predator_instinct") && testPlayer->getStat("agility") == 13.0f;
+        logResult("Consuming starter infused elixir immediately applies Predator's Instinct (+3 Agility, 4h)", statusAppliedOk);
+        allPassed &= statusAppliedOk;
+
+        // 4. Validate Character Creation finalizeCharacter Integration
+        characterCreationState cc;
+        game newGameContext;
+        newGameContext.init();
+        cc.finalizeCharacter(&newGameContext);
+
+        bool newGameHasKit = false;
+        if (newGameContext.Player)
+        {
+            for (const auto& it : newGameContext.Player->inventory.backpack)
+            {
+                if (it && it->id == "item_plain_elixir") { newGameHasKit = true; break; }
+            }
+        }
+        logResult("Character Creation finalizeCharacter populates new game inventory with starter test kit", newGameHasKit);
+        allPassed &= newGameHasKit;
+
+        return allPassed;
+    }
+
     bool runAllTests()
     {
         g_passCount = 0;
@@ -3530,6 +3654,7 @@ namespace EngineTests
         bool t27 = testDataDrivenMapTitlesAndNPCCards();
         bool t28 = testStatusEffectLifecycleAndGrid();
         bool t29 = testEnchantingEngineAndStatusEffects();
+        bool t30 = testUnifiedToolbarAndStarterTestKit();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";

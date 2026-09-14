@@ -116,16 +116,15 @@ namespace RadarWidgets
         std::string mapTitle = map ? map->getName() : "Local Area";
         UIWidget::drawHeader(renderer, headerRect, mapTitle, Theme::colors.bgHeader, Theme::colors.textAccent, uiScale * 0.72f);
 
-        curY += headerH + (4.0f * uiScale);
+        float cardCurY = curY + headerH;
+        float boxSize = SidebarGeometry::getBoxSize(rect, uiScale);
+        float gridStartX = SidebarGeometry::getGridStartX(rect, uiScale);
 
-        float cardCurY = curY;
-        float innerPad = 8.0f * uiScale;
-        float innerX = padX + innerPad;
-        float innerW = availableW - (innerPad * 2.0f);
+        // Centered 5x5 Grid Container Box matching Mini-Map Radar & Equipment Grid
+        SDL_FRect gridBox = { gridStartX - (1.0f * uiScale), cardCurY - (1.0f * uiScale), boxSize + (2.0f * uiScale), boxSize + (2.0f * uiScale) };
+        UIWidget::drawPanel(renderer, gridBox, Theme::colors.bgDark, Theme::colors.borderButton);
 
         // Render 5x5 Local Radar Grid
-        float toolH = 20.0f * uiScale;
-        float boxSize = availableW - (innerPad * 2.0f);
         float tileSize = (boxSize - (4 * 2.0f * uiScale)) / 5.0f;
 
         for (int dy = -2; dy <= 2; ++dy)
@@ -135,7 +134,7 @@ namespace RadarWidgets
                 int targetX = pX + dx;
                 int targetY = pY + dy;
 
-                float tileX = innerX + ((dx + 2) * (tileSize + (2.0f * uiScale)));
+                float tileX = gridStartX + ((dx + 2) * (tileSize + (2.0f * uiScale)));
                 float tileY = cardCurY + ((dy + 2) * (tileSize + (2.0f * uiScale)));
 
                 SDL_FRect tileRect = {
@@ -284,39 +283,8 @@ namespace RadarWidgets
             }
         }
 
-        cardCurY += boxSize + (5.0f * uiScale);
-
         // Quick Navigation Toolbar (Inv, Phone, Main Menu)
-        static const std::vector<std::pair<std::string, CommandType>> tools = {
-            { "Inv", CommandType::OPEN_INVENTORY },
-            { "Phone", CommandType::OPEN_PHONE },
-            { "Main Menu", CommandType::OPEN_MAIN_MENU }
-        };
-
-        float toolW = (boxSize - (2 * 4.0f * uiScale)) / 3.0f;
-
-        for (size_t i = 0; i < tools.size(); ++i)
-        {
-            SDL_FRect tRect = { innerX + (i * (toolW + (4.0f * uiScale))), cardCurY, toolW, toolH };
-            bool hov = (mousePos.x >= tRect.x && mousePos.x <= tRect.x + tRect.w &&
-                        mousePos.y >= tRect.y && mousePos.y <= tRect.y + tRect.h);
-            bool isActive = false;
-            if (i == 0 && dynamic_cast<inventoryState*>(gameContext->getActiveState())) isActive = true;
-            else if (i == 1 && dynamic_cast<phoneAppsState*>(gameContext->getActiveState())) isActive = true;
-            else if (i == 2 && dynamic_cast<mainMenuState*>(gameContext->getActiveState())) isActive = true;
-
-            UIWidget::drawButton(renderer, tRect, tools[i].first, hov, true, isActive, uiScale * 0.70f);
-
-            if (i == 0) TooltipManager::setHoverTooltip(tRect, mousePos, "Inventory & Storage", "Opens dual 5x4 player inventory and ground loot storage.", "Storage", "[ I ]");
-            else if (i == 1) TooltipManager::setHoverTooltip(tRect, mousePos, "Phone & In-Game Actions", "Access smartphone apps, transformations, resting, and regional map.", "Communication", "[ P ]");
-            else if (i == 2) TooltipManager::setHoverTooltip(tRect, mousePos, "Main Menu", "Open main menu, save/load, settings, and game options.", "System", "[ ESC ]");
-
-            if (hov && clicked)
-            {
-                gameContext->handleCommand(UICommand{ tools[i].second });
-                gameContext->input.consumeMouseClick();
-            }
-        }
+        SidebarGeometry::renderNavigationToolbar(renderer, gameContext, rect, startY, uiScale);
 
         curY += cardH;
         return (curY - startY);

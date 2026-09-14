@@ -11,6 +11,8 @@
 
 #include "core/game.h"
 #include "entities/namedCharacter.h"
+#include "items/itemDatabase.h"
+#include "items/infusionEffect.h"
 
 namespace fs = std::filesystem;
 using json = nlohmann::json;
@@ -402,6 +404,22 @@ bool saveManager::loadFromFile(game* g, const std::string& fileName)
         }
 
         g->Player = g->playerEntity.get();
+        if (g->Player)
+        {
+            bool hasEnchantingSupplies = false;
+            for (const auto& it : g->Player->inventory.backpack)
+            {
+                if (it && it->id == "item_plain_elixir") { hasEnchantingSupplies = true; break; }
+            }
+            if (!hasEnchantingSupplies || g->Player->inventory.backpack.size() <= 1)
+            {
+                grantStarterTestKit(g->Player);
+            }
+            else if (g->Player->getStat("arcaneEssence") < 40.0f)
+            {
+                g->Player->stats.setBaseStat("arcaneEssence", 50.0f);
+            }
+        }
         g->refreshActionGrid();
         return true;
     }
@@ -409,5 +427,89 @@ bool saveManager::loadFromFile(game* g, const std::string& fileName)
     {
         std::cerr << "[SaveManager] Error loading save file " << path << ": " << e.what() << "\n";
         return false;
+    }
+}
+
+void saveManager::grantStarterTestKit(entity* player)
+{
+    if (!player) return;
+
+    auto addIfMissing = [&](const std::string& itemId, int count = 1) {
+        for (const auto& it : player->inventory.backpack)
+        {
+            if (it && it->id == itemId) return;
+        }
+        auto itemPtr = itemDatabase::getItem(itemId);
+        if (itemPtr)
+        {
+            itemPtr->count = count;
+            player->inventory.addItem(itemPtr);
+        }
+    };
+
+    // 1. Uninfused Tonics for Enchanting at the Altar
+    addIfMissing("item_plain_elixir", 3);
+
+    // 2. Consumable Potions for Testing Vitals & Status Effects
+    addIfMissing("item_canis_root", 2);
+    addIfMissing("item_potion_health", 2);
+    addIfMissing("item_potion_mana", 2);
+
+    // 3. Equippable Garments & Weapons across slots
+    addIfMissing("item_golden_pendant", 1);
+    addIfMissing("item_dagger_iron", 1);
+    addIfMissing("item_cloth_gloves", 1);
+    addIfMissing("item_leather_choker", 1);
+    addIfMissing("item_leather_boots", 1);
+    addIfMissing("item_leather_skirt", 1);
+    addIfMissing("item_ancient_tome", 1);
+
+    // 4. Pre-infused sample potions for live status effect testing
+    bool hasPredator = false;
+    bool hasPrimal = false;
+    for (const auto& it : player->inventory.backpack)
+    {
+        if (it && it->id == "item_infused_predator") hasPredator = true;
+        if (it && it->id == "item_infused_primal") hasPrimal = true;
+    }
+
+    if (!hasPredator)
+    {
+        auto infusedPredator = std::make_shared<item>();
+        infusedPredator->id = "item_infused_predator";
+        infusedPredator->name = "Elixir of Predator's Instinct";
+        infusedPredator->description = "A shimmering amber tonic imbued with acute predatory senses. Drinking this elixir grants +3 Agility for 4 hours.";
+        infusedPredator->tooltip = "Infused Elixir (+3 Agility for 4h).";
+        infusedPredator->baseValue = 75;
+        infusedPredator->isConsumable = true;
+        infusedPredator->count = 1;
+        InfusionEffect effPredator{ InfusionTargetType::CONSUMABLE_TONIC, EnchantmentFocus::HAIR, AspectProperty::AGILITY_STAT, InfusionTier::GREATER_BOON };
+        infusedPredator->infusionEffects.push_back(effPredator);
+        player->inventory.addItem(infusedPredator);
+    }
+
+    if (!hasPrimal)
+    {
+        auto infusedPrimal = std::make_shared<item>();
+        infusedPrimal->id = "item_infused_primal";
+        infusedPrimal->name = "Elixir of Primal Surge";
+        infusedPrimal->description = "A deep crimson elixir radiating primordial warmth. Drinking this elixir grants +45 Vitality for 24 hours.";
+        infusedPrimal->tooltip = "Infused Elixir (+45 Vitality for 24h).";
+        infusedPrimal->baseValue = 90;
+        infusedPrimal->isConsumable = true;
+        infusedPrimal->count = 1;
+        InfusionEffect effPrimal{ InfusionTargetType::CONSUMABLE_TONIC, EnchantmentFocus::TORSO, AspectProperty::HEALTH_CEILING, InfusionTier::BOON };
+        infusedPrimal->infusionEffects.push_back(effPrimal);
+        player->inventory.addItem(infusedPrimal);
+    }
+
+    // 5. Arcane Essence and Gold for Crafting
+    if (player->getStat("arcaneEssence") < 50.0f)
+    {
+        player->stats.setBaseStat("arcaneEssence", 50.0f);
+    }
+    if (player->getStat("currency") < 250.0f)
+    {
+        player->stats.setBaseStat("currency", 500.0f);
     }
 }

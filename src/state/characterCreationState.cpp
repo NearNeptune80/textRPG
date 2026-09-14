@@ -6,6 +6,7 @@
 #include "items/itemDatabase.h"
 #include "state/explorationState.h"
 #include "state/mainMenuState.h"
+#include "save/saveManager.h"
 
 static constexpr std::string_view MASC_NAMES[] = {
     "Arthur", "James", "Thomas", "William", "Alexander", "Edward",
@@ -919,19 +920,8 @@ void characterCreationState::finalizeCharacter(game* gameContext)
         // Clear all ground clothes
         availableWardrobe.clear();
 
-        // Strip any unequipped clothes from backpack to prevent selling boost exploitation
-        std::erase_if(player->inventory.backpack, [](const auto& it) {
-            return it && it->isEquippable;
-        });
-
-        // Ensure player retains their starting quest pendant
-        auto pendant = itemDatabase::getItem("item_golden_pendant");
-        bool hasPendant = false;
-        for (const auto& it : player->inventory.backpack)
-        {
-            if (it && it->id == "item_golden_pendant") { hasPendant = true; break; }
-        }
-        if (pendant && !hasPendant) player->inventory.addItem(pendant);
+        // Ensure player receives starter test kit (elixirs, tonics, garments, weapons, essence)
+        saveManager::grantStarterTestKit(player);
 
         // Grant starting quests (Main Quest + Side Quests)
         if (!player->quests.hasQuest("root_delivery"))

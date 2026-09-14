@@ -6,6 +6,7 @@
 #include <nlohmann/json.hpp>
 
 class game;
+class entity;
 
 struct SaveMetaData
 {
@@ -41,6 +42,8 @@ public:
     static SaveMetaData readMetadata(const std::string& filePath);
 
     static std::string getSavesDirectory();
+
+    static void grantStarterTestKit(entity* player);
 
 private:
     static std::string sanitizeFilename(const std::string& input);

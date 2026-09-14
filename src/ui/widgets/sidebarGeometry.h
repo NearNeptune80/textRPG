@@ -2,6 +2,8 @@
 #include <SDL3/SDL.h>
 #include <cmath>
 
+class game;
+
 namespace SidebarGeometry
 {
     inline float getPadX(const SDL_FRect& panelRect, float uiScale)
@@ -57,4 +59,6 @@ namespace SidebarGeometry
         float boxSize = getBoxSize(panelRect, uiScale);
         return padX + ((availableW - boxSize) / 2.0f);
     }
+
+    float renderNavigationToolbar(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& panelRect, float cardTopY, float uiScale);
 }
