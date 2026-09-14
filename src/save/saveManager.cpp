@@ -450,10 +450,12 @@ void saveManager::grantStarterTestKit(entity* player)
     // 1. Uninfused Tonics for Enchanting at the Altar
     addIfMissing("item_plain_elixir", 3);
 
-    // 2. Consumable Potions for Testing Vitals & Status Effects
+    // 2. Consumable Potions & Foods for Testing Vitals, Status Effects & Transmutation
     addIfMissing("item_canis_root", 2);
     addIfMissing("item_potion_health", 2);
     addIfMissing("item_potion_mana", 2);
+    addIfMissing("item_apple_crisp", 2);
+    addIfMissing("item_feline_mint", 2);
 
     // 3. Equippable Garments & Weapons across slots
     addIfMissing("item_golden_pendant", 1);

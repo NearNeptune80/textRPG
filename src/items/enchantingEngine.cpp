@@ -114,9 +114,9 @@ namespace EnchantingEngine
             suffix = std::format("of {} {}", getPropertyDefinition(primEff.property).affixDescriptor, getFocusDefinition(primEff.focus).displayName);
         }
 
-        if (baseItem && baseItem->isConsumable)
+        if (baseItem && (baseItem->isConsumable || baseItem->isFood))
         {
-            std::string prefix = "Elixir";
+            std::string prefix = baseItem->isFood ? "Potion" : "Elixir";
             if (baseName.find("Draught") != std::string::npos) prefix = "Draught";
             else if (baseName.find("Philter") != std::string::npos) prefix = "Philter";
             else if (baseName.find("Tincture") != std::string::npos) prefix = "Tincture";
@@ -148,6 +148,50 @@ namespace EnchantingEngine
             crafted->isConsumable = true;
             crafted->isStackable = false;
             crafted->baseValue = 50;
+        }
+
+        // If base item was food, transmute it into a pure alchemical potion
+        if (baseItem && baseItem->isFood)
+        {
+            crafted->isFood = false;
+            crafted->isConsumable = true;
+            crafted->category = ItemCategory::CONSUMABLE;
+            crafted->targetSlot = equipSlot::NONE;
+            crafted->description = std::format("An alchemical potion brewed at an enchanting altar by infusing {} with arcane essence. Drinking it activates its imbued enchantments.", baseItem->name);
+            crafted->tooltip = "Alchemically brewed potion. Consumable.";
+        }
+
+        // Attach passive stat modifiers if crafting or modifying equippable gear
+        if (crafted->isEquippable)
+        {
+            for (const auto& eff : effects)
+            {
+                int bonus = getTierStatBonus(eff.tier);
+                if (eff.property == AspectProperty::PHYSIQUE_STAT)
+                {
+                    crafted->statModifiers.push_back({ "physique", static_cast<float>(bonus), 0.0f });
+                }
+                else if (eff.property == AspectProperty::AGILITY_STAT)
+                {
+                    crafted->statModifiers.push_back({ "agility", static_cast<float>(bonus), 0.0f });
+                }
+                else if (eff.property == AspectProperty::ARCANE_STAT)
+                {
+                    crafted->statModifiers.push_back({ "arcane", static_cast<float>(bonus), 0.0f });
+                }
+                else if (eff.property == AspectProperty::HEALTH_CEILING)
+                {
+                    crafted->statModifiers.push_back({ "max_health", static_cast<float>(bonus * 15), 0.0f });
+                }
+                else if (eff.property == AspectProperty::MANA_CEILING)
+                {
+                    crafted->statModifiers.push_back({ "max_mana", static_cast<float>(bonus * 15), 0.0f });
+                }
+                else if (eff.property == AspectProperty::CORRUPTION_AURA)
+                {
+                    crafted->statModifiers.push_back({ "corruption", static_cast<float>(bonus * 5), 0.0f });
+                }
+            }
         }
 
         crafted->infusionEffects = effects;

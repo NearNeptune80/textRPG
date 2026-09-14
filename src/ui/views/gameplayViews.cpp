@@ -2956,98 +2956,199 @@ namespace GameplayViews
 
         auto ench = dynamic_cast<enchantingState*>(gameContext->getActiveState());
 
-        float halfW = (availableW - (12.0f * uiScale)) / 2.0f;
+        float halfW = (availableW - (16.0f * uiScale)) / 2.0f;
 
-        // 1. Primary Focus & Secondary Property Headers & Grids
+        // Base item resolution
+        std::shared_ptr<item> baseItem = nullptr;
+        if (ench && gameContext->Player && ench->selectedBackpackIndex >= 0 &&
+            static_cast<size_t>(ench->selectedBackpackIndex) < gameContext->Player->inventory.backpack.size())
+        {
+            baseItem = gameContext->Player->inventory.backpack[ench->selectedBackpackIndex];
+        }
+
+        // 1. Primary Focus & Secondary Property Headers
         std::string focusTitle = ench ? std::format("Primary Focus: {}", getFocusDefinition(ench->selectedFocus).displayName) : "Primary Focus";
         std::string propTitle = ench ? std::format("Secondary Property: {}", getPropertyDefinition(ench->selectedProperty).displayName) : "Secondary Property";
 
         UIWidget::drawText(renderer, focusTitle, padX, curY, Theme::colors.textGold, uiScale * 0.90f);
-        UIWidget::drawText(renderer, propTitle, padX + halfW + (12.0f * uiScale), curY, Theme::colors.textAccent, uiScale * 0.90f);
+        UIWidget::drawText(renderer, propTitle, padX + halfW + (16.0f * uiScale), curY, Theme::colors.textAccent, uiScale * 0.90f);
         curY += (18.0f * uiScale);
 
-        // Primary Focus Matrix (Left)
-        float btnSize = 22.0f * uiScale;
-        float gap = 4.0f * uiScale;
-        auto allFocuses = getAllEnchantmentFocuses();
+        float gridStartY = curY;
+        float btnSize = 54.0f * uiScale;
+        float gap = 6.0f * uiScale;
 
-        for (size_t i = 0; i < 21; ++i)
+        // Primary Focus Matrix (Left: 5 columns x 4 rows)
+        static constexpr EnchantmentFocus s_gridFocuses[20] = {
+            EnchantmentFocus::HEAD_FEATURE,
+            EnchantmentFocus::HORNS,
+            EnchantmentFocus::HAIR,
+            EnchantmentFocus::EYES,
+            EnchantmentFocus::EARS,
+
+            EnchantmentFocus::FACE,
+            EnchantmentFocus::SKIN,
+            EnchantmentFocus::ARMS,
+            EnchantmentFocus::TORSO,
+            EnchantmentFocus::BREASTS,
+
+            EnchantmentFocus::WINGS,
+            EnchantmentFocus::TAIL,
+            EnchantmentFocus::GENITALIA_PRIMARY,
+            EnchantmentFocus::GENITALIA_SECONDARY,
+            EnchantmentFocus::HIPS_ASS,
+
+            EnchantmentFocus::WEAPON_LETHALITY,
+            EnchantmentFocus::ARMOR_REINFORCEMENT,
+            EnchantmentFocus::ARCANE_AMPLIFICATION,
+            EnchantmentFocus::RESISTANCE_WARDING,
+            EnchantmentFocus::BINDING_SPECIAL
+        };
+
+        for (size_t i = 0; i < 20; ++i)
         {
-            int r = i / 7;
-            int c = i % 7;
-            SDL_FRect mRect = { padX + (c * (btnSize + gap)), curY + (r * (btnSize + gap)), btnSize, btnSize };
+            int r = static_cast<int>(i / 5);
+            int c = static_cast<int>(i % 5);
+            SDL_FRect mRect = { padX + (c * (btnSize + gap)), gridStartY + (r * (btnSize + gap)), btnSize, btnSize };
 
-            if (i < allFocuses.size())
+            EnchantmentFocus f = s_gridFocuses[i];
+            const auto& def = getFocusDefinition(f);
+            bool isSelected = ench && (ench->selectedFocus == f);
+            bool isCompatible = isFocusCompatibleWithItem(f, baseItem.get());
+            bool isHov = (mousePos.x >= mRect.x && mousePos.x <= mRect.x + mRect.w &&
+                          mousePos.y >= mRect.y && mousePos.y <= mRect.y + mRect.h);
+
+            // Frame and fill colors
+            SDL_Color fill = !isCompatible ? SDL_Color{ 18, 18, 22, 255 } :
+                             (isSelected ? Theme::colors.bgHeader : (isHov ? Theme::colors.bgSlot : Theme::colors.bgDark));
+            SDL_Color bd = !isCompatible ? SDL_Color{ 50, 50, 60, 255 } :
+                           (isSelected ? Theme::colors.textGold : (isHov ? Theme::colors.borderSelected : Theme::colors.borderNormal));
+            UIWidget::drawPanel(renderer, mRect, fill, bd);
+
+            // Dedicated Inner Icon Frame (Top Area)
+            SDL_FRect iconFrame = { mRect.x + (11.0f * uiScale), mRect.y + (5.0f * uiScale), 32.0f * uiScale, 26.0f * uiScale };
+            SDL_Color iconBg = !isCompatible ? SDL_Color{ 12, 12, 16, 255 } : Theme::colors.bgDark;
+            SDL_Color iconBd = !isCompatible ? SDL_Color{ 40, 40, 48, 255 } : (isSelected ? Theme::colors.textGold : Theme::colors.borderButton);
+            UIWidget::drawPanel(renderer, iconFrame, iconBg, iconBd);
+
+            if (!isCompatible)
             {
-                EnchantmentFocus f = allFocuses[i];
-                const auto& def = getFocusDefinition(f);
-                bool isSelected = ench && (ench->selectedFocus == f);
-                bool isHov = (mousePos.x >= mRect.x && mousePos.x <= mRect.x + mRect.w &&
-                              mousePos.y >= mRect.y && mousePos.y <= mRect.y + mRect.h);
+                UIWidget::drawText(renderer, "LOCK", iconFrame.x + (2.0f * uiScale), iconFrame.y + (6.0f * uiScale), SDL_Color{ 160, 70, 70, 255 }, uiScale * 0.65f);
+            }
+            else
+            {
+                std::string glyph = getFocusIconGlyph(f);
+                SDL_Color glyphCol = isCombatEquipmentFocus(f) ? Theme::colors.textGold : (isAnatomicalRacialFocus(f) ? Theme::colors.arcane : Theme::colors.lust);
+                UIWidget::drawText(renderer, glyph, iconFrame.x + (6.0f * uiScale), iconFrame.y + (5.0f * uiScale), glyphCol, uiScale * 0.75f);
+            }
 
-                SDL_Color fill = isSelected ? Theme::colors.lust : (isHov ? Theme::colors.bgHeader : Theme::colors.bgSlot);
-                SDL_Color bd = isSelected ? Theme::colors.borderSelected : Theme::colors.borderNormal;
-                UIWidget::drawPanel(renderer, mRect, fill, bd);
+            // Readable Short Label (Bottom Area)
+            std::string label = getFocusShortLabel(f);
+            SDL_Color txtCol = !isCompatible ? SDL_Color{ 80, 80, 90, 255 } : (isSelected ? Theme::colors.textGold : Theme::colors.textPrimary);
+            UIWidget::drawText(renderer, label, mRect.x + (5.0f * uiScale), mRect.y + (35.0f * uiScale), txtCol, uiScale * 0.68f);
 
-                std::string label = def.displayName.substr(0, 2);
-                UIWidget::drawText(renderer, label, mRect.x + (3.0f * uiScale), mRect.y + (3.0f * uiScale), isSelected ? Theme::colors.textGold : Theme::colors.textPrimary, uiScale * 0.65f);
-
+            // Tooltips & Interaction
+            if (!isCompatible)
+            {
+                std::string reason = getFocusLockReason(f, baseItem.get());
+                TooltipManager::setHoverTooltip(mRect, mousePos, def.displayName + " [LOCKED]", reason, "Essence Weight: " + std::to_string(def.getEssenceWeight()));
+            }
+            else
+            {
                 TooltipManager::setHoverTooltip(mRect, mousePos, def.displayName, def.description, std::format("Essence Weight: {}", def.getEssenceWeight()));
-
                 if (isHov && clicked && ench)
                 {
                     ench->setFocus(f);
                 }
             }
-            else
-            {
-                UIWidget::drawPanel(renderer, mRect, Theme::colors.bgDark, Theme::colors.borderNormal);
-            }
         }
 
-        // Secondary Property Matrix (Right)
-        float secX = padX + halfW + (12.0f * uiScale);
+        // Secondary Property Matrix (Right: Matching 54px boxes + Inspector Panel)
+        float secX = padX + halfW + (16.0f * uiScale);
         std::vector<AspectProperty> availProps;
         if (ench)
         {
             availProps = getAvailablePropertiesForFocus(ench->selectedFocus);
         }
 
-        for (size_t i = 0; i < 21; ++i)
+        int numPropRows = (availProps.size() > 5) ? 2 : (availProps.empty() ? 0 : 1);
+        for (size_t i = 0; i < availProps.size() && i < 10; ++i)
         {
-            int r = i / 7;
-            int c = i % 7;
-            SDL_FRect mRect = { secX + (c * (btnSize + gap)), curY + (r * (btnSize + gap)), btnSize, btnSize };
+            int r = static_cast<int>(i / 5);
+            int c = static_cast<int>(i % 5);
+            SDL_FRect pRect = { secX + (c * (btnSize + gap)), gridStartY + (r * (btnSize + gap)), btnSize, btnSize };
 
-            if (i < availProps.size())
+            AspectProperty p = availProps[i];
+            const auto& def = getPropertyDefinition(p);
+            bool isSelected = ench && (ench->selectedProperty == p);
+            bool isHov = (mousePos.x >= pRect.x && mousePos.x <= pRect.x + pRect.w &&
+                          mousePos.y >= pRect.y && mousePos.y <= pRect.y + pRect.h);
+
+            SDL_Color fill = isSelected ? Theme::colors.bgHeader : (isHov ? Theme::colors.bgSlot : Theme::colors.bgDark);
+            SDL_Color bd = isSelected ? Theme::colors.textGold : (isHov ? Theme::colors.borderSelected : Theme::colors.borderNormal);
+            UIWidget::drawPanel(renderer, pRect, fill, bd);
+
+            // Icon Frame
+            SDL_FRect pIconFrame = { pRect.x + (11.0f * uiScale), pRect.y + (5.0f * uiScale), 32.0f * uiScale, 26.0f * uiScale };
+            UIWidget::drawPanel(renderer, pIconFrame, Theme::colors.bgDark, isSelected ? Theme::colors.textGold : Theme::colors.borderButton);
+            std::string pGlyph = def.displayName.substr(0, 2);
+            UIWidget::drawText(renderer, pGlyph, pIconFrame.x + (7.0f * uiScale), pIconFrame.y + (5.0f * uiScale), Theme::colors.textAccent, uiScale * 0.75f);
+
+            // Label
+            std::string pLabel = getPropertyShortLabel(p);
+            UIWidget::drawText(renderer, pLabel, pRect.x + (4.0f * uiScale), pRect.y + (35.0f * uiScale), isSelected ? Theme::colors.textGold : Theme::colors.textPrimary, uiScale * 0.68f);
+
+            TooltipManager::setHoverTooltip(pRect, mousePos, def.displayName, def.description, std::format("Essence Weight: {}", def.getEssenceWeight()));
+
+            if (isHov && clicked && ench)
             {
-                AspectProperty p = availProps[i];
-                const auto& def = getPropertyDefinition(p);
-                bool isSelected = ench && (ench->selectedProperty == p);
-                bool isHov = (mousePos.x >= mRect.x && mousePos.x <= mRect.x + mRect.w &&
-                              mousePos.y >= mRect.y && mousePos.y <= mRect.y + mRect.h);
-
-                SDL_Color fill = isSelected ? Theme::colors.arcane : (isHov ? Theme::colors.bgHeader : Theme::colors.bgSlot);
-                SDL_Color bd = isSelected ? Theme::colors.textGold : Theme::colors.borderNormal;
-                UIWidget::drawPanel(renderer, mRect, fill, bd);
-
-                std::string label = def.displayName.substr(0, 2);
-                UIWidget::drawText(renderer, label, mRect.x + (3.0f * uiScale), mRect.y + (3.0f * uiScale), isSelected ? Theme::colors.textGold : Theme::colors.textPrimary, uiScale * 0.65f);
-
-                TooltipManager::setHoverTooltip(mRect, mousePos, def.displayName, def.description, std::format("Essence Weight: {}", def.getEssenceWeight()));
-
-                if (isHov && clicked && ench)
-                {
-                    ench->setProperty(p);
-                }
-            }
-            else
-            {
-                UIWidget::drawPanel(renderer, mRect, Theme::colors.bgDark, Theme::colors.borderNormal);
+                ench->setProperty(p);
             }
         }
 
-        curY += (3 * (btnSize + gap)) + (12.0f * uiScale);
+        // Integrated Aspect Inspector Panel (Fills remainder of right half)
+        float propsH = (numPropRows > 0) ? (numPropRows * (btnSize + gap)) : 0.0f;
+        float totalLeftH = (4 * (btnSize + gap));
+        float inspY = gridStartY + propsH + (4.0f * uiScale);
+        float inspH = totalLeftH - propsH - (4.0f * uiScale);
+
+        SDL_FRect inspRect = { secX, inspY, halfW, inspH };
+        UIWidget::drawPanel(renderer, inspRect, Theme::colors.bgDark, Theme::colors.borderNormal);
+
+        if (ench)
+        {
+            const auto& selPropDef = getPropertyDefinition(ench->selectedProperty);
+            const auto& selFocDef = getFocusDefinition(ench->selectedFocus);
+
+            float iTextY = inspY + (8.0f * uiScale);
+            UIWidget::drawText(renderer, std::format("{} — {}", selPropDef.displayName, selFocDef.displayName), inspRect.x + (10.0f * uiScale), iTextY, Theme::colors.textGold, uiScale * 0.85f);
+            iTextY += (18.0f * uiScale);
+
+            UIWidget::drawText(renderer, selPropDef.description, inspRect.x + (10.0f * uiScale), iTextY, Theme::colors.textPrimary, uiScale * 0.75f);
+            iTextY += (24.0f * uiScale);
+
+            // Contextual Guidance / Time Mechanics / Resonance
+            if (baseItem && (baseItem->category == ItemCategory::CLOTHING || baseItem->category == ItemCategory::UNDERWEAR || baseItem->category == ItemCategory::ACCESSORY)
+                && isAnatomicalSizingFocus(ench->selectedFocus))
+            {
+                UIWidget::drawText(renderer, std::format("• Gradual Sizing: {}", getGradualTimeInterval(ench->selectedTier)), inspRect.x + (10.0f * uiScale), iTextY, Theme::colors.textAccent, uiScale * 0.74f);
+                iTextY += (16.0f * uiScale);
+            }
+            else if (baseItem && baseItem->isFood)
+            {
+                UIWidget::drawText(renderer, "• Alchemical Transmutation: Food item will be brewed into a consumable Potion.", inspRect.x + (10.0f * uiScale), iTextY, Theme::colors.textGold, uiScale * 0.74f);
+                iTextY += (16.0f * uiScale);
+            }
+            else if (baseItem && !baseItem->baseRace.empty())
+            {
+                UIWidget::drawText(renderer, std::format("• Racial Resonance Active: {} Reagent Awakened.", baseItem->baseRace), inspRect.x + (10.0f * uiScale), iTextY, Theme::colors.lust, uiScale * 0.74f);
+                iTextY += (16.0f * uiScale);
+            }
+
+            UIWidget::drawText(renderer, std::format("Focus Essence: {}* | Property Essence: {}*", selFocDef.getEssenceWeight(), selPropDef.getEssenceWeight()), inspRect.x + (10.0f * uiScale), iTextY, Theme::colors.textSecondary, uiScale * 0.72f);
+        }
+
+        curY += totalLeftH + (12.0f * uiScale);
 
         // 2. Infusion Tier Selector Row
         static constexpr InfusionTier allTiers[] = {
@@ -3109,21 +3210,31 @@ namespace GameplayViews
         SDL_FRect recipeRect = { padX, curY, availableW, 114.0f * uiScale };
         UIWidget::drawPanel(renderer, recipeRect, Theme::colors.bgDark, Theme::colors.borderButton);
 
-        // Input Slot
-        std::shared_ptr<item> baseItem = nullptr;
-        if (ench && gameContext->Player && ench->selectedBackpackIndex >= 0 &&
-            static_cast<size_t>(ench->selectedBackpackIndex) < gameContext->Player->inventory.backpack.size())
-        {
-            baseItem = gameContext->Player->inventory.backpack[ench->selectedBackpackIndex];
-        }
-
-        std::string inName = baseItem ? baseItem->name : "ELIXIR";
+        // Input Slot with Click-to-Cycle Support
+        std::string inName = baseItem ? baseItem->name : "PLAIN";
         if (inName.length() > 8) inName = inName.substr(0, 7) + ".";
 
-        UIWidget::drawText(renderer, "Input (x1)", padX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.82f);
+        UIWidget::drawText(renderer, "Input", padX + (12.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textAccent, uiScale * 0.80f);
         SDL_FRect inSlotRect = { padX + (10.0f * uiScale), curY + (24.0f * uiScale), 48.0f * uiScale, 48.0f * uiScale };
-        UIWidget::drawPanel(renderer, inSlotRect, Theme::colors.bgHeader, Theme::colors.borderButton);
+        bool inHov = (mousePos.x >= inSlotRect.x && mousePos.x <= inSlotRect.x + inSlotRect.w &&
+                      mousePos.y >= inSlotRect.y && mousePos.y <= inSlotRect.y + inSlotRect.h);
+        UIWidget::drawPanel(renderer, inSlotRect, inHov ? Theme::colors.bgSlot : Theme::colors.bgHeader, inHov ? Theme::colors.borderSelected : Theme::colors.borderButton);
         UIWidget::drawText(renderer, inName, inSlotRect.x + (4.0f * uiScale), inSlotRect.y + (16.0f * uiScale), Theme::colors.textGold, uiScale * 0.72f);
+
+        SDL_FRect cycleBtnRect = { padX + (8.0f * uiScale), curY + (78.0f * uiScale), 52.0f * uiScale, 22.0f * uiScale };
+        bool cycleHov = (mousePos.x >= cycleBtnRect.x && mousePos.x <= cycleBtnRect.x + cycleBtnRect.w &&
+                         mousePos.y >= cycleBtnRect.y && mousePos.y <= cycleBtnRect.y + cycleBtnRect.h);
+        UIWidget::drawButton(renderer, cycleBtnRect, "CYCLE", cycleHov, true, false, uiScale * 0.72f);
+
+        TooltipManager::setHoverTooltip(inSlotRect, mousePos, baseItem ? baseItem->name : "Alchemical Tonic Base",
+                                        "Click slot or CYCLE button to cycle through available items in your backpack (or select none for blank alchemy).",
+                                        baseItem ? ("Category: " + itemCategoryToString(determineItemCategory(*baseItem))) : "");
+        TooltipManager::setHoverTooltip(cycleBtnRect, mousePos, "Cycle Backpack Item", "Cycle to the next enchantable item in your inventory.");
+
+        if ((inHov || cycleHov) && clicked && ench)
+        {
+            ench->cycleBackpackItem(gameContext);
+        }
 
         // Effects Middle List
         float midX = padX + (70.0f * uiScale);

@@ -12,6 +12,8 @@
 #include "entities/perkDatabase.h"
 #include "events/gameEvents.h"
 #include "items/itemDatabase.h"
+#include "items/enchantmentAspects.h"
+#include "items/infusionTier.h"
 #include "items/merchantValuation.h"
 #include "map/encounterResolver.h"
 #include "quest/questDatabase.h"
@@ -148,6 +150,61 @@ void game::init()
             if (mutationMins > 0)
             {
                 this->Player->anatomy.processMutations(mutationMins);
+            }
+
+            // Milestone 9b: Process Gradual Sizing Ticks on Equipped Apparel with Infusions
+            for (const auto& eqItem : this->Player->inventory.equipped)
+            {
+                if (!eqItem || !eqItem->hasInfusions()) continue;
+                for (const auto& eff : eqItem->infusionEffects)
+                {
+                    if (!isAnatomicalSizingFocus(eff.focus)) continue;
+
+                    // Gradual growth rate based on infusion tier
+                    float tickMultiplier = 0.0f;
+                    if (eff.tier == InfusionTier::GREATER_BOON) tickMultiplier = static_cast<float>(mins) / 60.0f; // Hourly
+                    else if (eff.tier == InfusionTier::BOON) tickMultiplier = static_cast<float>(mins) / 1440.0f;  // Daily
+                    else if (eff.tier == InfusionTier::MINOR_BOON) tickMultiplier = static_cast<float>(mins) / 10080.0f; // Weekly
+                    else if (eff.tier == InfusionTier::MAJOR_HEX) tickMultiplier = -static_cast<float>(mins) / 60.0f;
+                    else if (eff.tier == InfusionTier::HEX) tickMultiplier = -static_cast<float>(mins) / 1440.0f;
+                    else if (eff.tier == InfusionTier::MINOR_HEX) tickMultiplier = -static_cast<float>(mins) / 10080.0f;
+
+                    if (std::abs(tickMultiplier) < 0.0001f) continue;
+
+                    if (eff.focus == EnchantmentFocus::HAIR && (eff.property == AspectProperty::HAIR_GROWTH || eff.property == AspectProperty::SCALE_SIZE))
+                    {
+                        bodyPart* hair = this->Player->anatomy.getPart(bodySlot::HAIR);
+                        if (hair)
+                        {
+                            hair->length = std::max(0.0f, hair->length + (0.5f * tickMultiplier));
+                        }
+                    }
+                    else if (eff.focus == EnchantmentFocus::BREASTS && (eff.property == AspectProperty::SCALE_SIZE || eff.property == AspectProperty::VOLUME_CAPACITY))
+                    {
+                        bodyPart* breasts = this->Player->anatomy.getPart(bodySlot::BREASTS);
+                        if (breasts)
+                        {
+                            breasts->diameter = std::max(0.0f, breasts->diameter + (0.3f * tickMultiplier));
+                            if (tickMultiplier > 0.0f && breasts->cupSize < 13 && breasts->diameter > (breasts->cupSize + 1) * 2.5f)
+                            {
+                                breasts->cupSize++;
+                            }
+                            else if (tickMultiplier < 0.0f && breasts->cupSize > 0 && breasts->diameter < breasts->cupSize * 2.5f)
+                            {
+                                breasts->cupSize--;
+                            }
+                        }
+                    }
+                    else if (eff.focus == EnchantmentFocus::GENITALIA_PRIMARY && (eff.property == AspectProperty::SCALE_SIZE || eff.property == AspectProperty::SECONDARY_SIZE))
+                    {
+                        bodyPart* cock = this->Player->anatomy.getPart(bodySlot::GROIN);
+                        if (cock)
+                        {
+                            cock->length = std::max(0.0f, cock->length + (0.4f * tickMultiplier));
+                            cock->diameter = std::max(0.0f, cock->diameter + (0.1f * tickMultiplier));
+                        }
+                    }
+                }
             }
 
             // Regenerate bodily fluids (milk, cum, girlcum) & recover orifice stretch

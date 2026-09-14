@@ -1,6 +1,8 @@
 #include "items/enchantmentAspects.h"
 
 #include <unordered_map>
+#include "items/item.h"
+#include "items/infusionTier.h"
 
 static const AspectDefinition s_noneDef = { "none", "None", "No modifier selected.", "", ItemRarity::COMMON };
 
@@ -171,3 +173,239 @@ AspectProperty stringToAspectProperty(std::string_view str)
     }
     return AspectProperty::NONE;
 }
+
+bool isAnatomicalRacialFocus(EnchantmentFocus focus)
+{
+    switch (focus)
+    {
+        case EnchantmentFocus::HORNS:
+        case EnchantmentFocus::WINGS:
+        case EnchantmentFocus::TAIL:
+            return true;
+        default:
+            return false;
+    }
+}
+
+bool isAnatomicalSizingFocus(EnchantmentFocus focus)
+{
+    switch (focus)
+    {
+        case EnchantmentFocus::HEAD_FEATURE:
+        case EnchantmentFocus::HAIR:
+        case EnchantmentFocus::EYES:
+        case EnchantmentFocus::EARS:
+        case EnchantmentFocus::FACE:
+        case EnchantmentFocus::SKIN:
+        case EnchantmentFocus::ARMS:
+        case EnchantmentFocus::TORSO:
+        case EnchantmentFocus::BREASTS:
+        case EnchantmentFocus::GENITALIA_PRIMARY:
+        case EnchantmentFocus::GENITALIA_SECONDARY:
+        case EnchantmentFocus::HIPS_ASS:
+            return true;
+        default:
+            return false;
+    }
+}
+
+bool isCombatEquipmentFocus(EnchantmentFocus focus)
+{
+    switch (focus)
+    {
+        case EnchantmentFocus::WEAPON_LETHALITY:
+        case EnchantmentFocus::ARMOR_REINFORCEMENT:
+        case EnchantmentFocus::ARCANE_AMPLIFICATION:
+        case EnchantmentFocus::RESISTANCE_WARDING:
+        case EnchantmentFocus::BINDING_SPECIAL:
+            return true;
+        default:
+            return false;
+    }
+}
+
+bool isFocusCompatibleWithItem(EnchantmentFocus focus, const item* baseItem)
+{
+    if (!baseItem)
+    {
+        return !isAnatomicalRacialFocus(focus);
+    }
+
+    bool isWeapon = (baseItem->category == ItemCategory::WEAPON ||
+                     baseItem->targetSlot == equipSlot::WEAPON_MAIN ||
+                     baseItem->targetSlot == equipSlot::WEAPON_OFF);
+
+    bool isApparel = (baseItem->category == ItemCategory::CLOTHING ||
+                      baseItem->category == ItemCategory::UNDERWEAR ||
+                      baseItem->category == ItemCategory::ACCESSORY ||
+                      (baseItem->isEquippable && !isWeapon));
+
+    if (isWeapon)
+    {
+        // Weapons can ONLY receive combat equipment focuses (excluding armor reinforcement)
+        return (focus == EnchantmentFocus::WEAPON_LETHALITY ||
+                focus == EnchantmentFocus::ARCANE_AMPLIFICATION ||
+                focus == EnchantmentFocus::RESISTANCE_WARDING ||
+                focus == EnchantmentFocus::BINDING_SPECIAL);
+    }
+
+    if (isApparel)
+    {
+        // Apparel cannot receive racial transformations (horns, wings, tails)
+        if (isAnatomicalRacialFocus(focus)) return false;
+        // Apparel cannot receive weapon lethality
+        if (focus == EnchantmentFocus::WEAPON_LETHALITY) return false;
+        // Apparel can receive defensive/warding/special and anatomical sizing/modifiers
+        return (isCombatEquipmentFocus(focus) || isAnatomicalSizingFocus(focus));
+    }
+
+    if (baseItem->isConsumable || baseItem->isFood)
+    {
+        // Racial transformations on consumables require a racial reagent/food
+        if (isAnatomicalRacialFocus(focus))
+        {
+            return baseItem->isRacialReagent();
+        }
+        return true;
+    }
+
+    return !isAnatomicalRacialFocus(focus) || baseItem->isRacialReagent();
+}
+
+std::string getFocusLockReason(EnchantmentFocus focus, const item* baseItem)
+{
+    if (baseItem)
+    {
+        bool isWeapon = (baseItem->category == ItemCategory::WEAPON ||
+                         baseItem->targetSlot == equipSlot::WEAPON_MAIN ||
+                         baseItem->targetSlot == equipSlot::WEAPON_OFF);
+
+        bool isApparel = (baseItem->category == ItemCategory::CLOTHING ||
+                          baseItem->category == ItemCategory::UNDERWEAR ||
+                          baseItem->category == ItemCategory::ACCESSORY ||
+                          (baseItem->isEquippable && !isWeapon));
+
+        if (isWeapon)
+        {
+            return "Weapons cannot receive bodily transformatives. Weapons focus strictly on combat lethality, wards, and combat stats.";
+        }
+
+        if (isApparel && isAnatomicalRacialFocus(focus))
+        {
+            return "Apparel cannot hold racial body transformations (horns, wings, tails). Use for gradual part sizing, modifiers, or defense.";
+        }
+
+        if (isApparel && focus == EnchantmentFocus::WEAPON_LETHALITY)
+        {
+            return "Weapon lethality can only be applied to weapons.";
+        }
+    }
+
+    if (isAnatomicalRacialFocus(focus))
+    {
+        return "Racial Transformation Locked: Requires a race-specific food or reagent (found in racial settlements or from vendors) to awaken racial resonance.";
+    }
+
+    return "";
+}
+
+std::string getFocusShortLabel(EnchantmentFocus focus)
+{
+    switch (focus)
+    {
+        case EnchantmentFocus::HEAD_FEATURE:        return "Head";
+        case EnchantmentFocus::HORNS:               return "Horns";
+        case EnchantmentFocus::HAIR:                return "Hair";
+        case EnchantmentFocus::EYES:                return "Eyes";
+        case EnchantmentFocus::EARS:                return "Ears";
+        case EnchantmentFocus::FACE:                return "Face";
+        case EnchantmentFocus::SKIN:                return "Skin";
+        case EnchantmentFocus::ARMS:                return "Arms";
+        case EnchantmentFocus::TORSO:               return "Torso";
+        case EnchantmentFocus::BREASTS:             return "Chest";
+        case EnchantmentFocus::WINGS:               return "Wings";
+        case EnchantmentFocus::TAIL:                return "Tail";
+        case EnchantmentFocus::GENITALIA_PRIMARY:   return "Phallus";
+        case EnchantmentFocus::GENITALIA_SECONDARY: return "Yoni";
+        case EnchantmentFocus::HIPS_ASS:            return "Hips";
+        case EnchantmentFocus::ARMOR_REINFORCEMENT: return "Armor";
+        case EnchantmentFocus::WEAPON_LETHALITY:    return "Weapon";
+        case EnchantmentFocus::ARCANE_AMPLIFICATION:return "Arcane";
+        case EnchantmentFocus::RESISTANCE_WARDING:  return "Wards";
+        case EnchantmentFocus::BINDING_SPECIAL:     return "Seals";
+        default:                                    return "Focus";
+    }
+}
+
+std::string getFocusIconGlyph(EnchantmentFocus focus)
+{
+    switch (focus)
+    {
+        case EnchantmentFocus::HEAD_FEATURE:        return "HD";
+        case EnchantmentFocus::HORNS:               return "HN";
+        case EnchantmentFocus::HAIR:                return "HR";
+        case EnchantmentFocus::EYES:                return "EY";
+        case EnchantmentFocus::EARS:                return "ER";
+        case EnchantmentFocus::FACE:                return "FC";
+        case EnchantmentFocus::SKIN:                return "SK";
+        case EnchantmentFocus::ARMS:                return "AM";
+        case EnchantmentFocus::TORSO:               return "TR";
+        case EnchantmentFocus::BREASTS:             return "BS";
+        case EnchantmentFocus::WINGS:               return "WG";
+        case EnchantmentFocus::TAIL:                return "TL";
+        case EnchantmentFocus::GENITALIA_PRIMARY:   return "PH";
+        case EnchantmentFocus::GENITALIA_SECONDARY: return "YN";
+        case EnchantmentFocus::HIPS_ASS:            return "HP";
+        case EnchantmentFocus::ARMOR_REINFORCEMENT: return "SH";
+        case EnchantmentFocus::WEAPON_LETHALITY:    return "SW";
+        case EnchantmentFocus::ARCANE_AMPLIFICATION:return "MG";
+        case EnchantmentFocus::RESISTANCE_WARDING:  return "WD";
+        case EnchantmentFocus::BINDING_SPECIAL:     return "SL";
+        default:                                    return "??";
+    }
+}
+
+std::string getPropertyShortLabel(AspectProperty prop)
+{
+    switch (prop)
+    {
+        case AspectProperty::SCALE_SIZE:          return "Scale";
+        case AspectProperty::SECONDARY_SIZE:      return "Width";
+        case AspectProperty::VOLUME_CAPACITY:     return "Volume";
+        case AspectProperty::DEPTH:               return "Depth";
+        case AspectProperty::ELASTICITY:          return "Elastic";
+        case AspectProperty::FLUID_PRODUCTION:    return "Fluids";
+        case AspectProperty::REGENERATION_RATE:   return "Regen";
+        case AspectProperty::HAIR_GROWTH:         return "Growth";
+        case AspectProperty::PHYSIQUE_STAT:       return "Physique";
+        case AspectProperty::ARCANE_STAT:         return "Arcane";
+        case AspectProperty::AGILITY_STAT:        return "Agility";
+        case AspectProperty::HEALTH_CEILING:      return "Health";
+        case AspectProperty::MANA_CEILING:        return "Mana";
+        case AspectProperty::VIRILITY_FACTOR:     return "Virility";
+        case AspectProperty::FERTILITY_FACTOR:    return "Fertility";
+        case AspectProperty::CORRUPTION_AURA:     return "Corrupt";
+        case AspectProperty::SOULBOUND_SEAL:      return "Soulbound";
+        case AspectProperty::SERVITUDE_INHIBITION: return "Servitude";
+        case AspectProperty::SENSORY_VIBRATION:   return "Sensory";
+        default:                                  return "Prop";
+    }
+}
+
+std::string getGradualTimeInterval(InfusionTier tier)
+{
+    switch (tier)
+    {
+        case InfusionTier::GREATER_BOON:
+        case InfusionTier::MAJOR_HEX:
+            return "Hourly gradual shift (Ticks every hour worn)";
+        case InfusionTier::BOON:
+        case InfusionTier::HEX:
+            return "Daily gradual shift (Ticks every day worn)";
+        case InfusionTier::MINOR_BOON:
+        case InfusionTier::MINOR_HEX:
+        default:
+            return "Weekly gradual shift (Ticks every week worn)";
+    }
+}
+

@@ -512,15 +512,34 @@ int main(int argc, char* argv[])
                 basePotion->baseValue = 10;
                 p->inventory.addItem(basePotion);
 
+                auto dagger = std::make_shared<item>();
+                dagger->id = "item_dagger_iron";
+                dagger->name = "Iron Dagger";
+                dagger->category = ItemCategory::WEAPON;
+                dagger->isEquippable = true;
+                dagger->targetSlot = equipSlot::WEAPON_MAIN;
+                p->inventory.addItem(dagger);
+
                 engine.playerEntity = p;
                 engine.Player = p.get();
             }
 
-            auto ench = std::make_unique<enchantingState>(0, std::make_unique<explorationState>());
-            ench->selectedFocus = EnchantmentFocus::TORSO;
-            ench->selectedProperty = AspectProperty::PHYSIQUE_STAT;
-            ench->selectedTier = InfusionTier::BOON;
-            ench->stageCurrentEffect();
+            int initIdx = (screenshotState == "enchanting_weapon") ? 1 : 0;
+            auto ench = std::make_unique<enchantingState>(initIdx, std::make_unique<explorationState>());
+            if (screenshotState == "enchanting_weapon")
+            {
+                ench->selectedFocus = EnchantmentFocus::WEAPON_LETHALITY;
+                ench->selectedProperty = AspectProperty::PHYSIQUE_STAT;
+                ench->selectedTier = InfusionTier::GREATER_BOON;
+                ench->stageCurrentEffect();
+            }
+            else
+            {
+                ench->selectedFocus = EnchantmentFocus::TORSO;
+                ench->selectedProperty = AspectProperty::PHYSIQUE_STAT;
+                ench->selectedTier = InfusionTier::BOON;
+                ench->stageCurrentEffect();
+            }
             engine.changeState(std::move(ench));
         }
 

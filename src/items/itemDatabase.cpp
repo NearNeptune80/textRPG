@@ -20,6 +20,7 @@ void from_json(const json& j, item& itemObj)
     itemObj.baseValue = j.value("baseValue", 0);
 
     itemObj.isConsumable = j.value("isConsumable", false);
+    itemObj.isFood = j.value("isFood", false);
     itemObj.isEquippable = j.value("isEquippable", false);
     itemObj.isStackable = j.value("isStackable", false);
     itemObj.isKeyItem = j.value("isKeyItem", false);

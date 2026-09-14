@@ -66,6 +66,7 @@ struct item
     ItemCategory category = ItemCategory::MISC;
 
     bool isConsumable = false;
+    bool isFood = false;
     bool isEquippable = false;
     bool isStackable = false;
     bool isKeyItem = false;
@@ -96,6 +97,11 @@ struct item
     bool hasInfusions() const
     {
         return !infusionEffects.empty() || !enchantments.empty();
+    }
+
+    bool isRacialReagent() const
+    {
+        return !baseRace.empty();
     }
 
     std::vector<std::string> requiredTags;
@@ -135,7 +141,7 @@ inline ItemCategory determineItemCategory(const item& it)
         }
         return ItemCategory::CLOTHING;
     }
-    if (it.isConsumable)
+    if (it.isConsumable || it.isFood)
     {
         return ItemCategory::CONSUMABLE;
     }

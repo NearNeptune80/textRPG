@@ -148,6 +148,7 @@
       "name": "Canis Root Potion",
       "description": "A thick, pungent potion brewed from boiled Canis Root extracts, cave moss, and distilled spring water. Drinking this pungent liquid restores 45 vitality instantly while coating the drinker's veins with temporary physical resilience against incoming blunt strikes.",
       "baseValue": 35,
+      "baseRace": "canine",
       "isConsumable": true,
       "isEquippable": false,
       "isStackable": true,
@@ -350,6 +351,82 @@
       "forbiddenTags": [],
       "statModifiers": [
         { "statName": "physique", "flatValue": 2.0, "percentValue": 0.0 }
+      ],
+      "supportedDisplacements": {}
+    },
+    {
+      "id": "item_apple_crisp",
+      "name": "Crisp Red Apple",
+      "description": "A sweet, freshly harvested orchard apple. Delicious to eat, or can be distilled into an alchemical potion at an enchanting altar.",
+      "tooltip": "Fresh orchard food. Restores 15 HP, or converts to potion at altar.",
+      "baseValue": 10,
+      "isFood": true,
+      "isConsumable": true,
+      "isEquippable": false,
+      "isStackable": true,
+      "count": 1,
+      "targetSlot": "NONE",
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        { "statName": "health", "flatValue": 15.0, "percentValue": 0.0 }
+      ],
+      "supportedDisplacements": {}
+    },
+    {
+      "id": "item_travel_bread",
+      "name": "Hearth Travel Bread",
+      "description": "Dense, nourishing wholewheat loaf baked for long journeys across the wild lands.",
+      "tooltip": "Nourishing food. Restores 25 HP, or converts to potion at altar.",
+      "baseValue": 15,
+      "isFood": true,
+      "isConsumable": true,
+      "isEquippable": false,
+      "isStackable": true,
+      "count": 1,
+      "targetSlot": "NONE",
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        { "statName": "health", "flatValue": 25.0, "percentValue": 0.0 }
+      ],
+      "supportedDisplacements": {}
+    },
+    {
+      "id": "item_feline_mint",
+      "name": "Silvervine Catmint",
+      "description": "A fragrant bundle of silver-tipped catmint harvested from highland feline glades. Infused with potent feline morphic resonance.",
+      "tooltip": "Feline racial reagent & food. Unlocks feline racial transformations at altar.",
+      "baseValue": 25,
+      "baseRace": "feline",
+      "isFood": true,
+      "isConsumable": true,
+      "isEquippable": false,
+      "isStackable": true,
+      "count": 1,
+      "targetSlot": "NONE",
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [],
+      "supportedDisplacements": {}
+    },
+    {
+      "id": "item_bovine_milk",
+      "name": "Fresh Farm Milk",
+      "description": "Rich, creamy milk freshly drawn from rural dairy farms. Radiates wholesome bovine fertility resonance.",
+      "tooltip": "Bovine racial reagent & drink. Unlocks bovine racial transformations at altar.",
+      "baseValue": 20,
+      "baseRace": "bovine",
+      "isFood": true,
+      "isConsumable": true,
+      "isEquippable": false,
+      "isStackable": true,
+      "count": 1,
+      "targetSlot": "NONE",
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        { "statName": "health", "flatValue": 20.0, "percentValue": 0.0 }
       ],
       "supportedDisplacements": {}
     }

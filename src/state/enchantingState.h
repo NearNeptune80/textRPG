@@ -38,6 +38,8 @@ public:
     void onExit(game* gameContext) override;
 
     void selectBackpackItem(int index, game* gameContext);
+    void cycleBackpackItem(game* gameContext);
+    const item* getSelectedBaseItem(const game* gameContext) const;
     void setFocus(EnchantmentFocus focus);
     void setProperty(AspectProperty prop);
     void setTier(InfusionTier tier);

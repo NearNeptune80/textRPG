@@ -3617,6 +3617,138 @@ namespace EngineTests
         return allPassed;
     }
 
+    bool testEnchantingCompatibilityAndRacialGating()
+    {
+        std::cout << "\n--- Running Test 31: Altar Compatibility Matrix, Apparel Gradual Sizing & Racial Reagent Gating ---\n";
+        bool allPassed = true;
+
+        // 1. Weapon Enchantment Compatibility (Combat only, no transformatives)
+        auto testDagger = itemDatabase::getItem("item_dagger_iron");
+        if (!testDagger)
+        {
+            testDagger = std::make_shared<item>();
+            testDagger->id = "test_dagger";
+            testDagger->category = ItemCategory::WEAPON;
+            testDagger->targetSlot = equipSlot::WEAPON_MAIN;
+        }
+
+        bool daggerRejectsAnatomy = !isFocusCompatibleWithItem(EnchantmentFocus::HEAD_FEATURE, testDagger.get()) &&
+                                    !isFocusCompatibleWithItem(EnchantmentFocus::BREASTS, testDagger.get()) &&
+                                    !isFocusCompatibleWithItem(EnchantmentFocus::HORNS, testDagger.get()) &&
+                                    !isFocusCompatibleWithItem(EnchantmentFocus::WINGS, testDagger.get()) &&
+                                    !isFocusCompatibleWithItem(EnchantmentFocus::TAIL, testDagger.get());
+        logResult("Weapons reject bodily transformatives (head, breasts, horns, wings, tail)", daggerRejectsAnatomy);
+        allPassed &= daggerRejectsAnatomy;
+
+        bool daggerAcceptsCombat = isFocusCompatibleWithItem(EnchantmentFocus::WEAPON_LETHALITY, testDagger.get()) &&
+                                   isFocusCompatibleWithItem(EnchantmentFocus::ARCANE_AMPLIFICATION, testDagger.get()) &&
+                                   isFocusCompatibleWithItem(EnchantmentFocus::RESISTANCE_WARDING, testDagger.get()) &&
+                                   isFocusCompatibleWithItem(EnchantmentFocus::BINDING_SPECIAL, testDagger.get());
+        logResult("Weapons accept combat lethality, arcane scaling, deflection wards, and soulbound seals", daggerAcceptsCombat);
+        allPassed &= daggerAcceptsCombat;
+
+        // 2. Apparel Enchantment Compatibility (Sizing/modifiers allowed, racial TFs disallowed)
+        auto testSkirt = std::make_shared<item>();
+        testSkirt->id = "test_skirt";
+        testSkirt->category = ItemCategory::CLOTHING;
+        testSkirt->isEquippable = true;
+        testSkirt->targetSlot = equipSlot::LEGS_OUTER;
+
+        bool apparelRejectsRacialTf = !isFocusCompatibleWithItem(EnchantmentFocus::HORNS, testSkirt.get()) &&
+                                      !isFocusCompatibleWithItem(EnchantmentFocus::WINGS, testSkirt.get()) &&
+                                      !isFocusCompatibleWithItem(EnchantmentFocus::TAIL, testSkirt.get());
+        logResult("Apparel rejects racial body transformations (horns, wings, tail)", apparelRejectsRacialTf);
+        allPassed &= apparelRejectsRacialTf;
+
+        bool apparelAcceptsSizing = isFocusCompatibleWithItem(EnchantmentFocus::BREASTS, testSkirt.get()) &&
+                                    isFocusCompatibleWithItem(EnchantmentFocus::HIPS_ASS, testSkirt.get()) &&
+                                    isFocusCompatibleWithItem(EnchantmentFocus::HAIR, testSkirt.get()) &&
+                                    isFocusCompatibleWithItem(EnchantmentFocus::ARMOR_REINFORCEMENT, testSkirt.get());
+        logResult("Apparel accepts anatomical sizing/modifiers (breasts, hips, hair) and armor reinforcement", apparelAcceptsSizing);
+        allPassed &= apparelAcceptsSizing;
+
+        // 3. Equipped Apparel Gradual Sizing Ticks in Biological Pipeline
+        game testGame;
+        testGame.init();
+        auto player = std::make_shared<entity>("hero_tester", "Hero");
+        player->stats.setBaseStat("health", 100.0f);
+        player->stats.setBaseStat("max_health", 100.0f);
+        testGame.playerEntity = player;
+        testGame.Player = player.get();
+
+        bodyPart hairPart;
+        hairPart.id = "hair";
+        hairPart.length = 15.0f;
+        player->anatomy.setPart(bodySlot::HAIR, hairPart);
+
+        auto magicHat = std::make_shared<item>();
+        magicHat->id = "magic_hat";
+        magicHat->name = "Circlet of Growth";
+        magicHat->category = ItemCategory::CLOTHING;
+        magicHat->isEquippable = true;
+        magicHat->targetSlot = equipSlot::HEADWEAR;
+        InfusionEffect effHairGrowth{ InfusionTargetType::APPAREL, EnchantmentFocus::HAIR, AspectProperty::HAIR_GROWTH, InfusionTier::GREATER_BOON };
+        magicHat->infusionEffects.push_back(effHairGrowth);
+
+        player->inventory.equipped[static_cast<size_t>(equipSlot::HEADWEAR)] = magicHat;
+
+        // Advance time by 60 minutes (Hourly tick rate for GREATER_BOON)
+        eventBus::getInstance().publishEvent({ gameEvent::timeAdvanced, 60, "", nullptr });
+
+        auto updatedHair = player->anatomy.getPart(bodySlot::HAIR);
+        bool hairGrew = (updatedHair && updatedHair->length > 15.0f);
+        logResult("Equipped apparel with HAIR_GROWTH gradually increases hair length over time advancement", hairGrew);
+        allPassed &= hairGrew;
+
+        // 4. Racial Reagent Gating (Generic base blocks racial TFs, racial reagents unlock them)
+        auto plainElixir = std::make_shared<item>();
+        plainElixir->id = "plain_elixir";
+        plainElixir->isConsumable = true;
+
+        bool plainBlocksRacial = !isFocusCompatibleWithItem(EnchantmentFocus::HORNS, plainElixir.get()) &&
+                                 !isFocusCompatibleWithItem(EnchantmentFocus::TAIL, plainElixir.get());
+        logResult("Generic uninfused elixir blocks racial transformations without a racial reagent", plainBlocksRacial);
+        allPassed &= plainBlocksRacial;
+
+        auto canisRoot = std::make_shared<item>();
+        canisRoot->id = "item_canis_root";
+        canisRoot->baseRace = "canine";
+        canisRoot->isConsumable = true;
+
+        bool canineUnlocksRacial = isFocusCompatibleWithItem(EnchantmentFocus::TAIL, canisRoot.get()) &&
+                                   isFocusCompatibleWithItem(EnchantmentFocus::HORNS, canisRoot.get());
+        logResult("Canis Root with baseRace=canine awakens racial resonance and unlocks racial transformations", canineUnlocksRacial);
+        allPassed &= canineUnlocksRacial;
+
+        // 5. Food to Potion Alchemical Transmutation
+        auto testApple = std::make_shared<item>();
+        testApple->id = "test_apple";
+        testApple->name = "Crisp Red Apple";
+        testApple->isFood = true;
+        testApple->isConsumable = true;
+
+        InfusionEffect effVitality{ InfusionTargetType::CONSUMABLE_TONIC, EnchantmentFocus::TORSO, AspectProperty::PHYSIQUE_STAT, InfusionTier::BOON };
+        auto craftedPotion = EnchantingEngine::craftInfusedItem(testApple.get(), { effVitality });
+
+        bool convertedToPotion = (craftedPotion &&
+                                  craftedPotion->isFood == false &&
+                                  craftedPotion->isConsumable == true &&
+                                  craftedPotion->category == ItemCategory::CONSUMABLE &&
+                                  craftedPotion->name.find("Potion") != std::string::npos);
+        logResult("Enchanting a food item at the altar transmutes it into a consumable Potion", convertedToPotion);
+        allPassed &= convertedToPotion;
+
+        // 6. Altar Grid Geometry & Labels
+        bool labelsValid = (getFocusShortLabel(EnchantmentFocus::WEAPON_LETHALITY) == "Weapon" &&
+                            getFocusShortLabel(EnchantmentFocus::HEAD_FEATURE) == "Head" &&
+                            getFocusIconGlyph(EnchantmentFocus::WEAPON_LETHALITY) == "SW" &&
+                            getPropertyShortLabel(AspectProperty::SCALE_SIZE) == "Scale");
+        logResult("Altar short labels and icon glyphs format cleanly for 54px square icon boxes", labelsValid);
+        allPassed &= labelsValid;
+
+        return allPassed;
+    }
+
     bool runAllTests()
     {
         g_passCount = 0;
@@ -3655,6 +3787,7 @@ namespace EngineTests
         bool t28 = testStatusEffectLifecycleAndGrid();
         bool t29 = testEnchantingEngineAndStatusEffects();
         bool t30 = testUnifiedToolbarAndStarterTestKit();
+        bool t31 = testEnchantingCompatibilityAndRacialGating();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";

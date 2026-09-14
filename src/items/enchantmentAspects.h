@@ -99,6 +99,9 @@ struct AspectDefinition
     }
 };
 
+struct item;
+enum class InfusionTier;
+
 const AspectDefinition& getFocusDefinition(EnchantmentFocus focus);
 const AspectDefinition& getPropertyDefinition(AspectProperty prop);
 
@@ -110,3 +113,16 @@ EnchantmentFocus stringToEnchantmentFocus(std::string_view str);
 
 std::string aspectPropertyToString(AspectProperty prop);
 AspectProperty stringToAspectProperty(std::string_view str);
+
+// Categorization & Item Compatibility
+bool isAnatomicalRacialFocus(EnchantmentFocus focus);
+bool isAnatomicalSizingFocus(EnchantmentFocus focus);
+bool isCombatEquipmentFocus(EnchantmentFocus focus);
+
+bool isFocusCompatibleWithItem(EnchantmentFocus focus, const item* baseItem);
+std::string getFocusLockReason(EnchantmentFocus focus, const item* baseItem);
+
+std::string getFocusShortLabel(EnchantmentFocus focus);
+std::string getFocusIconGlyph(EnchantmentFocus focus);
+std::string getPropertyShortLabel(AspectProperty prop);
+std::string getGradualTimeInterval(InfusionTier tier);
