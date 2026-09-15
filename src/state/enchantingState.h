@@ -50,7 +50,10 @@ public:
     void setTier(InfusionTier tier);
     void setLimitIndex(int index);
 
-    void stageCurrentEffect();
+    int getEnchantmentLimit(const game* gameContext = nullptr) const;
+    bool canAddMoreEffects(const game* gameContext = nullptr) const;
+
+    void stageCurrentEffect(game* gameContext = nullptr);
     void removeStagedEffect(size_t index);
     void clearStagedEffects();
 

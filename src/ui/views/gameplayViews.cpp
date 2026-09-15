@@ -3205,14 +3205,16 @@ namespace GameplayViews
         SDL_FRect addBtnRect = { padX + availableW - addBtnW - (4.0f * uiScale), curY + (2.0f * uiScale), addBtnW, 22.0f * uiScale };
         bool addHov = (mousePos.x >= addBtnRect.x && mousePos.x <= addBtnRect.x + addBtnRect.w &&
                        mousePos.y >= addBtnRect.y && mousePos.y <= addBtnRect.y + addBtnRect.h);
-        std::string addBtnStr = "+ Add Effect";
-        UIWidget::drawButton(renderer, addBtnRect, addBtnStr, addHov, true, false, uiScale * 0.78f);
+        bool canAddEffect = ench ? ench->canAddMoreEffects(gameContext) : true;
+        std::string addBtnStr = canAddEffect ? "+ Add Effect" : "Limit Reached";
+        UIWidget::drawButton(renderer, addBtnRect, addBtnStr, addHov, canAddEffect, false, uiScale * 0.78f);
         TooltipManager::setHoverTooltip(addBtnRect, mousePos, "Add Effect to Recipe",
-                                        std::format("Adds this configured enchantment (+{}* essence weight) into the recipe. You can add as many effects as you like before crafting.", addCost));
+                                        canAddEffect ? std::format("Adds this configured enchantment (+{}* essence weight) into the recipe. You can add as many effects as you like before crafting.", addCost)
+                                                     : "Maximum enchantment capacity reached for this item.");
 
-        if (addHov && clicked && ench)
+        if (addHov && clicked && ench && canAddEffect)
         {
-            ench->stageCurrentEffect();
+            ench->stageCurrentEffect(gameContext);
         }
         curY += addBarRect.h + (12.0f * uiScale);
 
@@ -3307,7 +3309,10 @@ namespace GameplayViews
         size_t effCount = ench ? ench->stagedEffects.size() : 0;
         float curEssence = gameContext->Player ? gameContext->Player->getStat("arcaneEssence") : 0.0f;
 
-        UIWidget::drawText(renderer, std::format("Staged Effects ({})  |  Cost: {}* Essences", effCount, totalCost), midX, curY + (6.0f * uiScale), Theme::colors.textGold, uiScale * 0.80f);
+        int limit = ench ? ench->getEnchantmentLimit(gameContext) : 999;
+        std::string capStr = (limit < 900) ? std::format("Staged Effects ({}/{})  |  Cost: {}* Essences", effCount, limit, totalCost)
+                                           : std::format("Staged Effects ({})  |  Cost: {}* Essences", effCount, totalCost);
+        UIWidget::drawText(renderer, capStr, midX, curY + (6.0f * uiScale), Theme::colors.textGold, uiScale * 0.80f);
         UIWidget::drawText(renderer, std::format("Available: {:.0f}*", curEssence), midX + midW - (90.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textAccent, uiScale * 0.78f);
 
         // Resulting Item Name Bar
@@ -3375,7 +3380,7 @@ namespace GameplayViews
             UIWidget::drawText(renderer, "• No infusions staged. Select focus and property above and click [+ Add Effect].", midX, effY, Theme::colors.textSecondary, uiScale * 0.74f);
         }
 
-        // --- Column 3: Output Preview & Craft (Right, ~125px) ---
+        // --- Column 3: Output Preview & Status (Right, ~125px) ---
         float outX = padX + availableW - (125.0f * uiScale);
         UIWidget::drawText(renderer, "Result Preview", outX + (4.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textAccent, uiScale * 0.80f);
 
@@ -3398,38 +3403,23 @@ namespace GameplayViews
         float outGW = UIWidget::getTextWidth(outGlyph, uiScale * 0.65f);
         UIWidget::drawText(renderer, outGlyph, outSlotRect.x + ((outSlotRect.w - outGW) / 2.0f), outSlotRect.y + (16.0f * uiScale), Theme::colors.lust, uiScale * 0.65f);
 
-        // Dynamic Craft Button
-        float craftBtnY = curY + recipeH - (30.0f * uiScale);
-        SDL_FRect craftBtnRect = { outX + (8.0f * uiScale), craftBtnY, 108.0f * uiScale, 24.0f * uiScale };
-        bool canCraft = ench && ench->canAffordCraft(gameContext);
-        bool hasChanges = ench && (!ench->stagedEffects.empty() || (baseItem && !baseItem->infusionEffects.empty()));
-        std::string craftLabel = "CRAFT";
+        // Output Preview Info Panel (Crafting is performed via the dedicated Action Grid [Craft] button below)
+        float outBadgeY = curY + recipeH - (30.0f * uiScale);
+        SDL_FRect outBadgeRect = { outX + (8.0f * uiScale), outBadgeY, 108.0f * uiScale, 24.0f * uiScale };
+        UIWidget::drawPanel(renderer, outBadgeRect, Theme::colors.bgDark, Theme::colors.borderNormal);
+        std::string outStatus = (totalCost > 0) ? std::format("{}* Essence", totalCost) : "No Cost";
         if (isTargetEquipped)
         {
-            craftLabel = "UNEQUIP FIRST";
+            outStatus = "Unequip First";
         }
-        else if (totalCost > 0)
-        {
-            craftLabel = std::format("CRAFT ({}*)", totalCost);
-        }
-        else if (!hasChanges)
-        {
-            craftLabel = "NO CHANGES";
-        }
-        else if (!canCraft)
-        {
-            craftLabel = "NEED ESSENCE";
-        }
+        float osW = UIWidget::getTextWidth(outStatus, uiScale * 0.70f);
+        SDL_Color osCol = isTargetEquipped ? Theme::colors.lust : (totalCost > 0 ? Theme::colors.textGold : Theme::colors.textSecondary);
+        UIWidget::drawText(renderer, outStatus, outBadgeRect.x + ((outBadgeRect.w - osW) / 2.0f), outBadgeRect.y + (5.0f * uiScale), osCol, uiScale * 0.70f);
 
-        bool craftHov = (mousePos.x >= craftBtnRect.x && mousePos.x <= craftBtnRect.x + craftBtnRect.w &&
-                         mousePos.y >= craftBtnRect.y && mousePos.y <= craftBtnRect.y + craftBtnRect.h);
-        UIWidget::drawButton(renderer, craftBtnRect, craftLabel, craftHov, canCraft, false, uiScale * 0.74f);
-        TooltipManager::setHoverTooltip(craftBtnRect, mousePos, "Craft Item",
-                                        std::format("Craft this item with all staged enchantments (Uses {} Arcane Essence).", totalCost));
-        if (craftHov && clicked && ench && canCraft)
-        {
-            ench->craft(gameContext);
-        }
+        TooltipManager::setHoverTooltip(outBadgeRect, mousePos, "Resulting Infusion",
+                                        "Preview of the item after crafting. Press the [Craft] button in the action grid below to apply all staged enchantments.");
+        TooltipManager::setHoverTooltip(outSlotRect, mousePos, dispName,
+                                        "Output preview slot. Use the [Craft] command in the action grid below to complete crafting.");
 
         curY += recipeRect.h + (8.0f * uiScale);
         return (curY - startY);

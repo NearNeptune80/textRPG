@@ -4266,6 +4266,63 @@ namespace EngineTests
             allPassed &= tipHasEnchantments;
         }
 
+        // 8. Custom Item Enchantment Limit & Action Grid Deduplication
+        auto limitedItem = std::make_shared<item>();
+        limitedItem->id = "test_limited_ring";
+        limitedItem->name = "Restricted Ring";
+        limitedItem->maxEnchantments = 2;
+        limitedItem->enchantmentGroup = "apparel";
+        engine.Player->inventory.backpack.push_back(limitedItem);
+
+        int limIdx = static_cast<int>(engine.Player->inventory.backpack.size()) - 1;
+        auto limitedAltar = std::make_unique<enchantingState>(limIdx, std::make_unique<inventoryState>(), limitedItem);
+        limitedAltar->initialise(&engine);
+
+        bool initialCapacityOk = limitedAltar->canAddMoreEffects(&engine) && (limitedAltar->getEnchantmentLimit(&engine) == 2);
+        logResult("Enchanting altar respects custom item enchantment limit (limit = 2)", initialCapacityOk);
+        allPassed &= initialCapacityOk;
+
+        limitedAltar->setFocus(EnchantmentFocus::CORE_ATTRIBUTES);
+        limitedAltar->setProperty(AspectProperty::CORE_PHYSIQUE);
+        limitedAltar->setTier(InfusionTier::BOON);
+        limitedAltar->stageCurrentEffect(&engine);
+
+        limitedAltar->setFocus(EnchantmentFocus::CORE_ATTRIBUTES);
+        limitedAltar->setProperty(AspectProperty::CORE_ARCANE);
+        limitedAltar->setTier(InfusionTier::BOON);
+        limitedAltar->stageCurrentEffect(&engine);
+
+        bool atCapacity = !limitedAltar->canAddMoreEffects(&engine);
+        logResult("Enchanting altar flags when capacity limit is reached", atCapacity);
+        allPassed &= atCapacity;
+
+        // Trying to stage beyond limit should be blocked
+        limitedAltar->stageCurrentEffect(&engine);
+        bool stagedCapped = (limitedAltar->stagedEffects.size() == 2);
+        logResult("Enchanting altar blocks staging beyond maxEnchantments limit", stagedCapped);
+        allPassed &= stagedCapped;
+
+        // Test Action Grid for enchantingState: no "+ Add Effect", Button 1 is Craft, Button 2 is Clear Staged, Button 12 is Leave Altar
+        engine.changeState(std::move(limitedAltar));
+        engine.refreshActionGrid();
+
+        bool hasAddEffectInGrid = false;
+        bool hasCraftInGrid = false;
+        bool hasClearInGrid = false;
+        bool hasLeaveInGrid = false;
+
+        for (const auto& btn : engine.activeButtons)
+        {
+            if (btn.label.find("+ Add Effect") != std::string::npos) hasAddEffectInGrid = true;
+            if (btn.label.find("Craft (") != std::string::npos) hasCraftInGrid = true;
+            if (btn.label.find("Clear Staged") != std::string::npos) hasClearInGrid = true;
+            if (btn.label.find("Leave Altar") != std::string::npos) hasLeaveInGrid = true;
+        }
+
+        bool gridClean = (!hasAddEffectInGrid && hasCraftInGrid && hasClearInGrid && hasLeaveInGrid);
+        logResult("Action Grid excludes duplicate '+ Add Effect' and includes 'Craft', 'Clear Staged', 'Leave Altar'", gridClean);
+        allPassed &= gridClean;
+
         return allPassed;
     }
 

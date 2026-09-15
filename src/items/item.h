@@ -90,6 +90,8 @@ struct item
     }
 
     std::string baseRace;
+    std::string enchantmentGroup;
+    int maxEnchantments = 999;
     std::vector<enchantment> enchantments;
     std::vector<InfusionEffect> infusionEffects;
     std::vector<StatModifier> statModifiers;
@@ -97,6 +99,11 @@ struct item
     bool hasInfusions() const
     {
         return !infusionEffects.empty() || !enchantments.empty();
+    }
+
+    int getEnchantmentLimit() const
+    {
+        return maxEnchantments;
     }
 
     bool isRacialReagent() const

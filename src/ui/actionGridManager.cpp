@@ -416,12 +416,7 @@ void ActionGridManager::refresh(game* gameContext)
     // Enchanting & Infusion Altar State
     if (auto ench = dynamic_cast<enchantingState*>(currentState))
     {
-        // Button 1: Add Effect
-        addBtn(gameContext, "+ Add Effect", [ench]() {
-            ench->stageCurrentEffect();
-        }, true, false, "Add the currently configured focus, property, and tier into the recipe. You can add as many effects as you like before crafting.");
-
-        // Button 2: Craft Item
+        // Button 1: Craft Item
         bool canCraft = ench->canAffordCraft(gameContext);
         int cost = ench->getTotalCost(gameContext);
         std::string craftLabel = std::format("Craft ({})", cost);
@@ -429,7 +424,7 @@ void ActionGridManager::refresh(game* gameContext)
             ench->craft(gameContext);
         }, canCraft, false, std::format("Perform crafting and imbue all staged enchantments into the item (Costs {} Arcane Essence).", cost));
 
-        // Button 3: Clear Staged
+        // Button 2: Clear Staged
         addBtn(gameContext, "Clear Staged", [ench]() {
             ench->clearStagedEffects();
         }, !ench->stagedEffects.empty(), false, "Clear all currently staged infusion effects.");

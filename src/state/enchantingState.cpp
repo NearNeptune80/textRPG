@@ -255,8 +255,24 @@ void enchantingState::setLimitIndex(int index)
     limitValue = selectedLimitIndex;
 }
 
-void enchantingState::stageCurrentEffect()
+int enchantingState::getEnchantmentLimit(const game* gameContext) const
 {
+    const item* base = getSelectedBaseItem(gameContext);
+    return base ? base->getEnchantmentLimit() : 999;
+}
+
+bool enchantingState::canAddMoreEffects(const game* gameContext) const
+{
+    return stagedEffects.size() < static_cast<size_t>(getEnchantmentLimit(gameContext));
+}
+
+void enchantingState::stageCurrentEffect(game* gameContext)
+{
+    if (!canAddMoreEffects(gameContext))
+    {
+        statusMessage = "Maximum enchantment limit reached.";
+        return;
+    }
     InfusionEffect eff = getCurrentPreviewEffect();
     for (const auto& exist : stagedEffects)
     {
