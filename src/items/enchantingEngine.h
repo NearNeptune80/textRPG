@@ -15,5 +15,11 @@ namespace EnchantingEngine
 
     std::string composeItemName(const item* baseItem, const std::vector<InfusionEffect>& effects);
 
+    std::string composeItemDescription(const item* baseItem, const std::vector<InfusionEffect>& effects);
+
+    std::string composeItemTooltip(const item* baseItem, const std::vector<InfusionEffect>& effects);
+
+    void updateItemInfusionDescriptions(item* it);
+
     std::shared_ptr<item> craftInfusedItem(const item* baseItem, const std::vector<InfusionEffect>& effects, const std::string& customName = "");
 }

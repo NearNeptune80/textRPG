@@ -4204,6 +4204,68 @@ namespace EngineTests
         logResult("All new LT enchantment categories expose valid, non-empty property sets", propSetsValid);
         allPassed &= propSetsValid;
 
+        // 7. Verification of Enchantment Effects in Item Description & Tooltip After Crafting
+        engine.Player->inventory.unequipItem(equipSlot::FINGER_PRIMARY);
+        ringAltar->clearStagedEffects();
+
+        // Stage multiple effects (as many as desired)
+        ringAltar->setFocus(EnchantmentFocus::CORE_ATTRIBUTES);
+        ringAltar->setProperty(AspectProperty::CORE_PHYSIQUE);
+        ringAltar->setTier(InfusionTier::BOON);
+        ringAltar->stageCurrentEffect();
+
+        ringAltar->setFocus(EnchantmentFocus::SPECIAL_EFFECTS);
+        ringAltar->setProperty(AspectProperty::SOULBOUND_SEAL);
+        ringAltar->setTier(InfusionTier::MINOR_BOON);
+        ringAltar->stageCurrentEffect();
+
+        ringAltar->setFocus(EnchantmentFocus::BREASTS);
+        ringAltar->setProperty(AspectProperty::BREAST_SIZE);
+        ringAltar->setTier(InfusionTier::BOON);
+        ringAltar->setLimitIndex(0); // flat
+        ringAltar->stageCurrentEffect();
+
+        bool multipleStagedOk = (ringAltar->stagedEffects.size() == 3);
+        logResult("Multiple effects (3+) staged into recipe cleanly without artificial caps", multipleStagedOk);
+        allPassed &= multipleStagedOk;
+
+        float essencePriorCraft = engine.Player->getStat("arcaneEssence");
+        int craftCost = ringAltar->getTotalCost(&engine);
+        ringAltar->craft(&engine);
+
+        float essenceAfterCraft = engine.Player->getStat("arcaneEssence");
+        bool essenceSpentOk = (std::abs(essencePriorCraft - craftCost - essenceAfterCraft) < 0.01f);
+        logResult("Crafting multiple staged effects uses essences only upon pressing craft", essenceSpentOk);
+        allPassed &= essenceSpentOk;
+
+        // Retrieve the newly crafted item from player backpack
+        std::shared_ptr<item> craftedItem = nullptr;
+        for (const auto& it : engine.Player->inventory.backpack)
+        {
+            if (it && it->id == "test_ward_ring" && !it->infusionEffects.empty())
+            {
+                craftedItem = it;
+                break;
+            }
+        }
+        bool craftedItemFound = (craftedItem != nullptr);
+        logResult("Crafted enchanted item retrieved from backpack", craftedItemFound);
+        allPassed &= craftedItemFound;
+
+        if (craftedItem)
+        {
+            bool descHasEnchantments = (craftedItem->description.find("Enchantments:") != std::string::npos &&
+                                        craftedItem->description.find("Daily Breast Size increase. (Limit: flat)") != std::string::npos &&
+                                        craftedItem->description.find("Soulbound Seal") != std::string::npos);
+            logResult("Enchanted item description clearly lists all imbued effects", descHasEnchantments);
+            allPassed &= descHasEnchantments;
+
+            bool tipHasEnchantments = (craftedItem->tooltip.find("Enchantments:") != std::string::npos &&
+                                       craftedItem->tooltip.find("Daily Breast Size increase. (Limit: flat)") != std::string::npos);
+            logResult("Enchanted item tooltip clearly displays the imbued effects", tipHasEnchantments);
+            allPassed &= tipHasEnchantments;
+        }
+
         return allPassed;
     }
 

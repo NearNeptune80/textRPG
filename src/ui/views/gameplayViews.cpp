@@ -3201,11 +3201,14 @@ namespace GameplayViews
         UIWidget::drawText(renderer, std::format("Effect to be added: {}", previewDesc), padX + (8.0f * uiScale), curY + (5.0f * uiScale), Theme::colors.lust, uiScale * 0.82f);
 
         int addCost = curPreview.calculateCost();
-        SDL_FRect addBtnRect = { padX + availableW - (88.0f * uiScale), curY + (2.0f * uiScale), 84.0f * uiScale, 22.0f * uiScale };
+        float addBtnW = 106.0f * uiScale;
+        SDL_FRect addBtnRect = { padX + availableW - addBtnW - (4.0f * uiScale), curY + (2.0f * uiScale), addBtnW, 22.0f * uiScale };
         bool addHov = (mousePos.x >= addBtnRect.x && mousePos.x <= addBtnRect.x + addBtnRect.w &&
                        mousePos.y >= addBtnRect.y && mousePos.y <= addBtnRect.y + addBtnRect.h);
-        std::string addBtnStr = std::format("Add | {}*", addCost);
+        std::string addBtnStr = "+ Add Effect";
         UIWidget::drawButton(renderer, addBtnRect, addBtnStr, addHov, true, false, uiScale * 0.78f);
+        TooltipManager::setHoverTooltip(addBtnRect, mousePos, "Add Effect to Recipe",
+                                        std::format("Adds this configured enchantment (+{}* essence weight) into the recipe. You can add as many effects as you like before crafting.", addCost));
 
         if (addHov && clicked && ench)
         {
@@ -3213,8 +3216,10 @@ namespace GameplayViews
         }
         curY += addBarRect.h + (12.0f * uiScale);
 
-        // 4. Recipe Craft Container (Input Item Column, Infusion Staging Column, Output Item Column)
-        SDL_FRect recipeRect = { padX, curY, availableW, 114.0f * uiScale };
+        // 4. Recipe Craft Container (Input Item Column, Staging Column, Output Item Column)
+        float extraRows = (ench && ench->stagedEffects.size() > 4) ? (static_cast<float>(ench->stagedEffects.size() - 4) * (16.0f * uiScale)) : 0.0f;
+        float recipeH = (114.0f * uiScale) + extraRows;
+        SDL_FRect recipeRect = { padX, curY, availableW, recipeH };
         UIWidget::drawPanel(renderer, recipeRect, Theme::colors.bgDark, Theme::colors.borderButton);
 
         // --- Column 1: Input Item & Dedicated Target Status (Left, ~185px) ---
@@ -3268,7 +3273,8 @@ namespace GameplayViews
         UIWidget::drawText(renderer, subCatStr, inTextX, curY + (40.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.68f);
 
         // Dedicated Target / Unequipped Status Panel
-        SDL_FRect statusBadgeRect = { col1X, curY + (76.0f * uiScale), 170.0f * uiScale, 24.0f * uiScale };
+        float statusBadgeY = curY + recipeH - (30.0f * uiScale);
+        SDL_FRect statusBadgeRect = { col1X, statusBadgeY, 170.0f * uiScale, 24.0f * uiScale };
         bool isTargetEquipped = ench && ench->isTargetItemEquipped(gameContext);
         if (isTargetEquipped)
         {
@@ -3301,7 +3307,7 @@ namespace GameplayViews
         size_t effCount = ench ? ench->stagedEffects.size() : 0;
         float curEssence = gameContext->Player ? gameContext->Player->getStat("arcaneEssence") : 0.0f;
 
-        UIWidget::drawText(renderer, std::format("Infusions ({}/10)  |  Cost: {}* Essences", effCount, totalCost), midX, curY + (6.0f * uiScale), Theme::colors.textGold, uiScale * 0.80f);
+        UIWidget::drawText(renderer, std::format("Staged Effects ({})  |  Cost: {}* Essences", effCount, totalCost), midX, curY + (6.0f * uiScale), Theme::colors.textGold, uiScale * 0.80f);
         UIWidget::drawText(renderer, std::format("Available: {:.0f}*", curEssence), midX + midW - (90.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textAccent, uiScale * 0.78f);
 
         // Resulting Item Name Bar
@@ -3314,7 +3320,7 @@ namespace GameplayViews
         float effY = curY + (48.0f * uiScale);
         if (ench && !ench->stagedEffects.empty())
         {
-            for (size_t it = 0; it < std::min<size_t>(ench->stagedEffects.size(), 4); ++it)
+            for (size_t it = 0; it < ench->stagedEffects.size(); ++it)
             {
                 const auto& eff = ench->stagedEffects[it];
                 auto dList = eff.getEffectDescriptions();
@@ -3361,15 +3367,15 @@ namespace GameplayViews
                     break;
                 }
 
-                effY += (15.0f * uiScale);
+                effY += (16.0f * uiScale);
             }
         }
         else
         {
-            UIWidget::drawText(renderer, "• No infusions staged. Select focus and property above and click [+ Add].", midX, effY, Theme::colors.textSecondary, uiScale * 0.74f);
+            UIWidget::drawText(renderer, "• No infusions staged. Select focus and property above and click [+ Add Effect].", midX, effY, Theme::colors.textSecondary, uiScale * 0.74f);
         }
 
-        // --- Column 3: Output Preview & Infusion (Right, ~125px) ---
+        // --- Column 3: Output Preview & Craft (Right, ~125px) ---
         float outX = padX + availableW - (125.0f * uiScale);
         UIWidget::drawText(renderer, "Result Preview", outX + (4.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textAccent, uiScale * 0.80f);
 
@@ -3392,18 +3398,19 @@ namespace GameplayViews
         float outGW = UIWidget::getTextWidth(outGlyph, uiScale * 0.65f);
         UIWidget::drawText(renderer, outGlyph, outSlotRect.x + ((outSlotRect.w - outGW) / 2.0f), outSlotRect.y + (16.0f * uiScale), Theme::colors.lust, uiScale * 0.65f);
 
-        // Dynamic Craft/Infuse Button
-        SDL_FRect craftBtnRect = { outX + (8.0f * uiScale), curY + (76.0f * uiScale), 108.0f * uiScale, 24.0f * uiScale };
+        // Dynamic Craft Button
+        float craftBtnY = curY + recipeH - (30.0f * uiScale);
+        SDL_FRect craftBtnRect = { outX + (8.0f * uiScale), craftBtnY, 108.0f * uiScale, 24.0f * uiScale };
         bool canCraft = ench && ench->canAffordCraft(gameContext);
         bool hasChanges = ench && (!ench->stagedEffects.empty() || (baseItem && !baseItem->infusionEffects.empty()));
-        std::string craftLabel = "INFUSE";
+        std::string craftLabel = "CRAFT";
         if (isTargetEquipped)
         {
             craftLabel = "UNEQUIP FIRST";
         }
         else if (totalCost > 0)
         {
-            craftLabel = std::format("INFUSE ({}*)", totalCost);
+            craftLabel = std::format("CRAFT ({}*)", totalCost);
         }
         else if (!hasChanges)
         {
@@ -3417,6 +3424,8 @@ namespace GameplayViews
         bool craftHov = (mousePos.x >= craftBtnRect.x && mousePos.x <= craftBtnRect.x + craftBtnRect.w &&
                          mousePos.y >= craftBtnRect.y && mousePos.y <= craftBtnRect.y + craftBtnRect.h);
         UIWidget::drawButton(renderer, craftBtnRect, craftLabel, craftHov, canCraft, false, uiScale * 0.74f);
+        TooltipManager::setHoverTooltip(craftBtnRect, mousePos, "Craft Item",
+                                        std::format("Craft this item with all staged enchantments (Uses {} Arcane Essence).", totalCost));
         if (craftHov && clicked && ench && canCraft)
         {
             ench->craft(gameContext);

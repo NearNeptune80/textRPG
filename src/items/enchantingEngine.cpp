@@ -182,6 +182,109 @@ namespace EnchantingEngine
         return std::format("{} {}", baseName, suffix);
     }
 
+    std::string composeItemDescription(const item* baseItem, const std::vector<InfusionEffect>& effects)
+    {
+        std::string desc = "";
+        if (baseItem && !baseItem->description.empty())
+        {
+            desc = baseItem->description;
+            size_t pos = desc.find("\n\nEnchantments:");
+            if (pos != std::string::npos)
+            {
+                desc = desc.substr(0, pos);
+            }
+        }
+        else if (baseItem && baseItem->isFood)
+        {
+            desc = std::format("An alchemical potion brewed at an enchanting altar by infusing {} with arcane essence. Drinking it activates its imbued enchantments.", baseItem->name);
+        }
+        else
+        {
+            desc = "A specialized item crafted at the enchanting altar with arcane essences.";
+        }
+
+        if (!effects.empty())
+        {
+            desc += "\n\nEnchantments:";
+            for (const auto& eff : effects)
+            {
+                auto dList = eff.getEffectDescriptions();
+                std::string sText = dList.empty() ? getPropertyDisplayName(eff.property, baseItem) : dList.front();
+                if (baseItem && baseItem->isRacialReagent())
+                {
+                    std::string raceDisp = getPropertyDisplayName(eff.property, baseItem);
+                    if (raceDisp != getPropertyDefinition(eff.property).displayName)
+                    {
+                        int bonus = getTierStatBonus(eff.tier);
+                        std::string sign = bonus >= 0 ? std::format("+{}", bonus) : std::format("{}", bonus);
+                        sText = std::format("{} {}", sign, raceDisp);
+                    }
+                }
+                desc += "\n• " + sText;
+            }
+        }
+        return desc;
+    }
+
+    std::string composeItemTooltip(const item* baseItem, const std::vector<InfusionEffect>& effects)
+    {
+        std::string tip = "";
+        if (baseItem && !baseItem->tooltip.empty())
+        {
+            tip = baseItem->tooltip;
+            size_t pos = tip.find("\nEnchantments:");
+            if (pos != std::string::npos)
+            {
+                tip = tip.substr(0, pos);
+            }
+        }
+        else if (baseItem && !baseItem->description.empty())
+        {
+            tip = baseItem->description;
+            size_t pos = tip.find("\n\nEnchantments:");
+            if (pos != std::string::npos)
+            {
+                tip = tip.substr(0, pos);
+            }
+        }
+        else
+        {
+            tip = "Infused Item";
+        }
+
+        if (!effects.empty())
+        {
+            tip += "\nEnchantments:";
+            for (const auto& eff : effects)
+            {
+                auto dList = eff.getEffectDescriptions();
+                std::string sText = dList.empty() ? getPropertyDisplayName(eff.property, baseItem) : dList.front();
+                if (baseItem && baseItem->isRacialReagent())
+                {
+                    std::string raceDisp = getPropertyDisplayName(eff.property, baseItem);
+                    if (raceDisp != getPropertyDefinition(eff.property).displayName)
+                    {
+                        int bonus = getTierStatBonus(eff.tier);
+                        std::string sign = bonus >= 0 ? std::format("+{}", bonus) : std::format("{}", bonus);
+                        sText = std::format("{} {}", sign, raceDisp);
+                    }
+                }
+                tip += "\n• " + sText;
+            }
+        }
+        return tip;
+    }
+
+    void updateItemInfusionDescriptions(item* it)
+    {
+        if (!it) return;
+        if (!it->infusionEffects.empty())
+        {
+            it->description = composeItemDescription(it, it->infusionEffects);
+            it->tooltip = composeItemTooltip(it, it->infusionEffects);
+        }
+    }
+
     std::shared_ptr<item> craftInfusedItem(const item* baseItem, const std::vector<InfusionEffect>& effects, const std::string& customName)
     {
         auto crafted = std::make_shared<item>();
@@ -205,8 +308,6 @@ namespace EnchantingEngine
             crafted->isConsumable = true;
             crafted->category = ItemCategory::CONSUMABLE;
             crafted->targetSlot = equipSlot::NONE;
-            crafted->description = std::format("An alchemical potion brewed at an enchanting altar by infusing {} with arcane essence. Drinking it activates its imbued enchantments.", baseItem->name);
-            crafted->tooltip = "Alchemically brewed potion. Consumable.";
         }
 
         // Attach passive stat modifiers if crafting or modifying equippable gear
@@ -284,6 +385,8 @@ namespace EnchantingEngine
 
         crafted->infusionEffects = effects;
         crafted->name = !customName.empty() ? customName : composeItemName(baseItem, effects);
+        crafted->description = composeItemDescription(baseItem, effects);
+        crafted->tooltip = composeItemTooltip(baseItem, effects);
         crafted->count = 1;
         crafted->baseValue += calculateInfusionCost(baseItem, effects) * 8;
 
