@@ -4367,7 +4367,37 @@ namespace EngineTests
         logResult("Custom item 'jewelry' enchantmentGroup strictly restricts focus selection per groups.json", jewelFilterOk);
         allPassed &= jewelFilterOk;
 
-        // 2. Transformation Interrupt Scenes Database Verification
+        // 2. Validate Reagent Category Consolidation & Fixed Seals Focus
+        auto canisItem = std::make_shared<item>();
+        canisItem->id = "canis_root";
+        canisItem->name = "Canis Root";
+        canisItem->category = ItemCategory::CONSUMABLE;
+        canisItem->baseRace = "canine";
+
+        auto canineFocuses = getCompatibleFocuses(canisItem.get());
+        bool focusCountOk = (canineFocuses.size() == 20);
+        logResult("Canine racial reagent receives exactly 20 consolidated categories (balanced 4x5 grid)", focusCountOk);
+        allPassed &= focusCountOk;
+
+        // Validate Seals (BINDING_SPECIAL) only exposes 4 binding properties and zero racial morphs
+        auto sealsProps = getAvailablePropertiesForFocus(EnchantmentFocus::BINDING_SPECIAL, canisItem.get());
+        bool sealsCountOk = (sealsProps.size() == 4);
+        bool sealsHasOnlyBindings = true;
+        for (auto p : sealsProps)
+        {
+            if (p != AspectProperty::SOULBOUND_SEAL &&
+                p != AspectProperty::SERVITUDE_INHIBITION &&
+                p != AspectProperty::SENSORY_VIBRATION &&
+                p != AspectProperty::CONCEAL_IDENTITY)
+            {
+                sealsHasOnlyBindings = false;
+            }
+        }
+        bool sealsIntact = sealsCountOk && sealsHasOnlyBindings;
+        logResult("Seals category is fixed: exposes strictly 4 binding/seal properties with zero morph bleed", sealsIntact);
+        allPassed &= sealsIntact;
+
+        // 3. Transformation Interrupt Scenes Database Verification
         questDatabase::loadDatabase("data/quests");
         bool sceneBreasts = questDatabase::exists("trans_breasts_grow");
         bool sceneHair = questDatabase::exists("trans_hair_grow");

@@ -10,8 +10,8 @@
 static const AspectDefinition s_noneDef = { "none", "None", "No modifier selected.", "", ItemRarity::COMMON };
 
 static const std::unordered_map<EnchantmentFocus, AspectDefinition> s_focusDefs = {
-    { EnchantmentFocus::HEAD_FEATURE,        { "focus_head", "Head Feature", "Focuses infusion upon the head, facial contours, or predatory senses.", "Predator's", ItemRarity::UNCOMMON } },
-    { EnchantmentFocus::HORNS,               { "focus_horns", "Horns & Crown", "Focuses infusion upon cranial horn growths and demonic crests.", "Curved", ItemRarity::UNCOMMON } },
+    { EnchantmentFocus::HEAD_FEATURE,        { "focus_head", "Head & Visage", "Focuses infusion upon cranial contours, facial features, muzzle, or predatory senses.", "Predator's", ItemRarity::UNCOMMON } },
+    { EnchantmentFocus::HORNS,               { "focus_horns", "Horns & Antennae", "Focuses infusion upon cranial horn growths, demonic crests, and antennae.", "Curved", ItemRarity::UNCOMMON } },
     { EnchantmentFocus::HAIR,                { "focus_hair", "Mane & Follicles", "Focuses infusion upon hair volume, length, and coloration.", "Flowing", ItemRarity::COMMON } },
     { EnchantmentFocus::EYES,                { "focus_eyes", "Ocular Senses", "Focuses infusion upon eye hue, pupil configuration, and darkvision.", "Piercing", ItemRarity::UNCOMMON } },
     { EnchantmentFocus::EARS,                { "focus_ears", "Auditory Organ", "Focuses infusion upon ear morphology and heightened auditory perception.", "Keen", ItemRarity::COMMON } },
@@ -20,7 +20,7 @@ static const std::unordered_map<EnchantmentFocus, AspectDefinition> s_focusDefs 
     { EnchantmentFocus::SKIN,                { "focus_skin", "Dermis & Scales", "Focuses infusion upon epidermal texture, skin sheen, scales, or fur.", "Silken", ItemRarity::UNCOMMON } },
     { EnchantmentFocus::ARMS,                { "focus_arms", "Upper Limbs & Claws", "Focuses infusion upon forearm power, claws, and grip strength.", "Mighty", ItemRarity::COMMON } },
     { EnchantmentFocus::TORSO,               { "focus_torso", "Torso & Core", "Focuses infusion upon the torso, abdominal wall, and muscular stature.", "Titan's", ItemRarity::RARE } },
-    { EnchantmentFocus::BREASTS,             { "focus_breasts", "Mammary Glands", "Focuses infusion upon chest volume, areolae, and lactation capacity.", "Voluptuous", ItemRarity::RARE } },
+    { EnchantmentFocus::BREASTS,             { "focus_breasts", "Mammaries & Chest", "Focuses infusion upon breasts, nipples, udders, teats, and lactation.", "Voluptuous", ItemRarity::RARE } },
     { EnchantmentFocus::WINGS,               { "focus_wings", "Wings & Membrane", "Focuses infusion upon bat or feather wing structures.", "Soaring", ItemRarity::EPIC } },
     { EnchantmentFocus::TAIL,                { "focus_tail", "Caudal Tail", "Focuses infusion upon tail morphology, fur tufts, or prehensile grace.", "Sinewy", ItemRarity::UNCOMMON } },
     { EnchantmentFocus::GENITALIA_PRIMARY,   { "focus_genitalia_primary", "Phallus & Seed", "Focuses infusion upon virile member length, girth, and fluid emission.", "Stallion's", ItemRarity::RARE } },
@@ -415,28 +415,21 @@ std::vector<EnchantmentFocus> getCompatibleFocuses(const item* baseItem)
             EnchantmentFocus::RACE_AWAKENING,
             EnchantmentFocus::HEAD_FEATURE,
             EnchantmentFocus::HORNS,
-            EnchantmentFocus::ANTENNAE,
             EnchantmentFocus::HAIR,
             EnchantmentFocus::EYES,
             EnchantmentFocus::EARS,
             EnchantmentFocus::MOUTH,
-            EnchantmentFocus::FACE,
             EnchantmentFocus::SKIN,
             EnchantmentFocus::ARMS,
             EnchantmentFocus::TORSO,
             EnchantmentFocus::BREASTS,
-            EnchantmentFocus::CROTCH_MAMMARIES,
             EnchantmentFocus::WINGS,
             EnchantmentFocus::TAIL,
-            EnchantmentFocus::GENITALIA_PRIMARY,
-            EnchantmentFocus::GENITALIA_SECONDARY,
             EnchantmentFocus::HIPS_ASS,
             EnchantmentFocus::LEGS_FEET,
-            EnchantmentFocus::FLUIDS_CUM,
-            EnchantmentFocus::FLUIDS_MILK,
-            EnchantmentFocus::FLUIDS_GIRLCUM,
+            EnchantmentFocus::GENITALIA_PRIMARY,
+            EnchantmentFocus::GENITALIA_SECONDARY,
             EnchantmentFocus::CORE_ATTRIBUTES,
-            EnchantmentFocus::SPECIAL_EFFECTS,
             EnchantmentFocus::ARCANE_AMPLIFICATION,
             EnchantmentFocus::BINDING_SPECIAL
         };
@@ -557,7 +550,12 @@ std::vector<AspectProperty> getAvailablePropertiesForFocus(EnchantmentFocus focu
                 AspectProperty::LACTATION_VOLUME,
                 AspectProperty::LACTATION_REGEN,
                 AspectProperty::FLUID_TYPE,
-                AspectProperty::MILK_FLAVOR
+                AspectProperty::MILK_FLAVOR,
+                AspectProperty::UDDER_SIZE,
+                AspectProperty::TEAT_LENGTH,
+                AspectProperty::TEAT_COUNT,
+                AspectProperty::UDDER_CAPACITY,
+                AspectProperty::UDDER_REGEN
             };
             if (isRacial)
             {
@@ -641,7 +639,10 @@ std::vector<AspectProperty> getAvailablePropertiesForFocus(EnchantmentFocus focu
         case EnchantmentFocus::HEAD_FEATURE:
         {
             std::vector<AspectProperty> props = {
-                AspectProperty::FACE_SHAPE
+                AspectProperty::FACE_SHAPE,
+                AspectProperty::NOSE_SIZE,
+                AspectProperty::FACIAL_BEARD,
+                AspectProperty::EYEBROW_SHAPE
             };
             if (isRacial)
             {
@@ -649,6 +650,7 @@ std::vector<AspectProperty> getAvailablePropertiesForFocus(EnchantmentFocus focu
                 props.push_back(AspectProperty::RACIAL_MUZZLE_MORPH);
             }
             props.push_back(AspectProperty::PREDATORY_PERCEPTION);
+            props.push_back(AspectProperty::ALLURING_GAZE);
             return props;
         }
 
@@ -765,7 +767,10 @@ std::vector<AspectProperty> getAvailablePropertiesForFocus(EnchantmentFocus focu
             {
                 props.push_back(AspectProperty::RACIAL_HORN_PRIMARY);
                 props.push_back(AspectProperty::RACIAL_HORN_VARIANT);
+                props.push_back(AspectProperty::ANTENNAE_MORPH);
             }
+            props.push_back(AspectProperty::ANTENNAE_LENGTH);
+            props.push_back(AspectProperty::ANTENNAE_TYPE);
             props.push_back(AspectProperty::PART_REMOVAL);
             return props;
         }
@@ -879,7 +884,8 @@ std::vector<AspectProperty> getAvailablePropertiesForFocus(EnchantmentFocus focu
             return {
                 AspectProperty::SOULBOUND_SEAL,
                 AspectProperty::SERVITUDE_INHIBITION,
-                AspectProperty::SENSORY_VIBRATION
+                AspectProperty::SENSORY_VIBRATION,
+                AspectProperty::CONCEAL_IDENTITY
             };
 
         default:

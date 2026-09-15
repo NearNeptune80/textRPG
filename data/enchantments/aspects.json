@@ -3,8 +3,8 @@
     {
       "id": "focus_head",
       "enum": "HEAD_FEATURE",
-      "name": "Head Feature",
-      "description": "Focuses infusion upon the head, facial contours, or predatory senses.",
+      "name": "Head & Visage",
+      "description": "Focuses infusion upon cranial contours, facial features, muzzle, or predatory senses.",
       "affix": "Predator's",
       "rarity": "UNCOMMON",
       "properties": []
@@ -12,8 +12,8 @@
     {
       "id": "focus_horns",
       "enum": "HORNS",
-      "name": "Horns & Crown",
-      "description": "Focuses infusion upon cranial horn growths and demonic crests.",
+      "name": "Horns & Antennae",
+      "description": "Focuses infusion upon cranial horns, crests, and sensory antennae.",
       "affix": "Curved",
       "rarity": "UNCOMMON",
       "properties": []
@@ -93,8 +93,8 @@
     {
       "id": "focus_breasts",
       "enum": "BREASTS",
-      "name": "Mammary Glands",
-      "description": "Focuses infusion upon chest volume, areolae, and lactation capacity.",
+      "name": "Mammaries & Chest",
+      "description": "Focuses infusion upon breasts, nipples, udders, teats, and lactation.",
       "affix": "Voluptuous",
       "rarity": "RARE",
       "properties": []
@@ -197,177 +197,10 @@
       "affix": "Runic",
       "rarity": "LEGENDARY",
       "properties": [
-        "prop_racial_legs_biped",
-        "prop_racial_stance",
-        "prop_racial_body_config",
-        "prop_racial_phallus",
-        "prop_racial_sheath",
-        "prop_racial_yoni",
-        "prop_racial_face",
-        "prop_racial_muzzle",
-        "prop_racial_dentition",
-        "prop_racial_tongue",
-        "prop_racial_mane",
-        "prop_racial_ears",
-        "prop_racial_covering",
-        "prop_racial_pattern",
-        "prop_racial_horn_primary",
-        "prop_racial_horn_variant",
-        "prop_antennae_morph",
-        "prop_racial_wing_primary",
-        "prop_racial_wing_variant",
-        "prop_racial_tail_primary",
-        "prop_racial_tail_variant",
-        "prop_crotch_mammary",
-        "prop_foot_morph",
-        "prop_core_health",
-        "prop_core_mana",
-        "prop_core_stamina",
-        "prop_core_physique",
-        "prop_core_arcane",
-        "prop_core_corruption",
-        "prop_attr_phys_dmg",
-        "prop_attr_spell_pwr",
-        "prop_attr_armor",
-        "prop_attr_warding",
-        "prop_attr_fertility",
-        "prop_attr_virility",
-        "prop_attr_critical",
-        "prop_attr_agility",
-        "prop_conceal_identity",
-        "prop_retention_stomach",
-        "prop_retention_mammary",
-        "prop_retention_yoni",
-        "prop_retention_anal",
-        "prop_desire_anal",
-        "prop_desire_mammary",
-        "prop_desire_phallic",
-        "prop_desire_yoni",
-        "prop_desire_feet",
-        "prop_desire_dominant",
-        "prop_desire_submissive",
-        "prop_desire_bondage",
-        "prop_desire_exhibitionism",
-        "prop_desire_chastity",
-        "prop_desire_masochism",
-        "prop_desire_sadism",
-        "prop_breast_size",
-        "prop_breast_shape",
-        "prop_nipple_length",
-        "prop_nipple_girth",
-        "prop_nipple_type",
-        "prop_nipple_capacity",
-        "prop_areola_size",
-        "prop_lactation_volume",
-        "prop_lactation_regen",
-        "prop_fluid_type",
-        "prop_milk_flavor",
-        "prop_udder_size",
-        "prop_teat_length",
-        "prop_teat_count",
-        "prop_udder_capacity",
-        "prop_udder_regen",
-        "prop_penis_length",
-        "prop_penis_girth",
-        "prop_knot_size",
-        "prop_testes_size",
-        "prop_cum_volume",
-        "prop_cum_regen",
-        "prop_virility_potency",
-        "prop_vagina_depth",
-        "prop_vagina_tightness",
-        "prop_clit_size",
-        "prop_labia_size",
-        "prop_lube_wetness",
-        "prop_fertility_receptivity",
-        "prop_butt_size",
-        "prop_hip_width",
-        "prop_anus_capacity",
-        "prop_anus_depth",
-        "prop_anus_elasticity",
-        "prop_anus_wetness",
-        "prop_leg_length",
-        "prop_thigh_fullness",
-        "prop_leg_hair",
-        "prop_sprint_agility",
-        "prop_face_shape",
-        "prop_nose_size",
-        "prop_facial_beard",
-        "prop_eyebrow_shape",
-        "prop_predatory_perception",
-        "prop_lip_fullness",
-        "prop_throat_depth",
-        "prop_saliva_prod",
-        "prop_hair_growth_rate",
-        "prop_hair_length",
-        "prop_hair_volume",
-        "prop_hair_style",
-        "prop_hair_color",
-        "prop_eye_pupils",
-        "prop_eye_color",
-        "prop_darkvision",
-        "prop_alluring_gaze",
-        "prop_ear_size",
-        "prop_keen_hearing",
-        "prop_height",
-        "prop_muscle_physique",
-        "prop_waist_taper",
-        "prop_fem_masc",
-        "prop_body_hair",
-        "prop_stomach_tone",
-        "prop_health_vitality",
-        "prop_dermis_elasticity",
-        "prop_natural_armor",
-        "prop_arm_muscle",
-        "prop_underarm_hair",
-        "prop_grip_strength",
-        "prop_claws_nails",
-        "prop_manual_dexterity",
-        "prop_horn_size",
-        "prop_horn_shape",
-        "prop_horn_texture",
-        "prop_antennae_length",
-        "prop_antennae_type",
-        "prop_wing_size",
-        "prop_wing_type",
-        "prop_gliding_flight",
-        "prop_tail_length",
-        "prop_tail_girth",
-        "prop_tail_type",
-        "prop_part_removal",
-        "prop_attack_power",
-        "prop_strike_velocity",
-        "prop_damage_physical",
-        "prop_damage_elemental",
-        "prop_critical_power",
-        "prop_life_leech",
-        "prop_armor_piercing",
-        "prop_weapon_bleed",
-        "prop_armor_rating",
-        "prop_fortitude",
-        "prop_ward_resistance",
-        "prop_mind_ward",
-        "prop_arcane",
-        "prop_mana_ceiling",
-        "prop_mana_regen",
         "prop_soulbound",
         "prop_servitude",
         "prop_vibration",
-        "prop_scale_size",
-        "prop_secondary_size",
-        "prop_volume_capacity",
-        "prop_depth",
-        "prop_elasticity",
-        "prop_fluid_production",
-        "prop_regeneration",
-        "prop_hair_growth",
-        "prop_physique",
-        "prop_agility",
-        "prop_health_ceiling",
-        "prop_virility",
-        "prop_fertility",
-        "prop_corruption",
-        "prop_racial_tf"
+        "prop_conceal_identity"
       ]
     },
     {
@@ -1150,7 +983,7 @@
         "full",
         "huge"
       ],
-      "focus": "FACE"
+      "focus": "MOUTH"
     },
     {
       "id": "prop_racial_dentition",
@@ -1332,7 +1165,7 @@
       "shortLabel": "Allure",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "FACE"
+      "focus": "HEAD_FEATURE"
     },
     {
       "id": "prop_ear_size",
@@ -1935,7 +1768,7 @@
       "shortLabel": "Soulbound",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "SPECIAL_EFFECTS"
+      "focus": "BINDING_SPECIAL"
     },
     {
       "id": "prop_servitude",
@@ -1947,7 +1780,7 @@
       "shortLabel": "Servitude",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "SPECIAL_EFFECTS"
+      "focus": "BINDING_SPECIAL"
     },
     {
       "id": "prop_vibration",
@@ -1959,7 +1792,7 @@
       "shortLabel": "Sensory",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "SPECIAL_EFFECTS"
+      "focus": "BINDING_SPECIAL"
     },
     {
       "id": "prop_scale_size",
@@ -1971,7 +1804,7 @@
       "shortLabel": "Scale",
       "isContinuous": true,
       "limitSteps": [],
-      "focus": "BINDING_SPECIAL"
+      "focus": "NONE"
     },
     {
       "id": "prop_secondary_size",
@@ -1983,7 +1816,7 @@
       "shortLabel": "Width",
       "isContinuous": true,
       "limitSteps": [],
-      "focus": "BINDING_SPECIAL"
+      "focus": "NONE"
     },
     {
       "id": "prop_volume_capacity",
@@ -1995,7 +1828,7 @@
       "shortLabel": "Volume",
       "isContinuous": true,
       "limitSteps": [],
-      "focus": "BINDING_SPECIAL"
+      "focus": "NONE"
     },
     {
       "id": "prop_depth",
@@ -2007,7 +1840,7 @@
       "shortLabel": "Depth",
       "isContinuous": true,
       "limitSteps": [],
-      "focus": "BINDING_SPECIAL"
+      "focus": "NONE"
     },
     {
       "id": "prop_elasticity",
@@ -2019,7 +1852,7 @@
       "shortLabel": "Elastic",
       "isContinuous": true,
       "limitSteps": [],
-      "focus": "BINDING_SPECIAL"
+      "focus": "NONE"
     },
     {
       "id": "prop_fluid_production",
@@ -2031,7 +1864,7 @@
       "shortLabel": "Fluids",
       "isContinuous": true,
       "limitSteps": [],
-      "focus": "BINDING_SPECIAL"
+      "focus": "NONE"
     },
     {
       "id": "prop_regeneration",
@@ -2043,7 +1876,7 @@
       "shortLabel": "Regen",
       "isContinuous": true,
       "limitSteps": [],
-      "focus": "BINDING_SPECIAL"
+      "focus": "NONE"
     },
     {
       "id": "prop_hair_growth",
@@ -2055,7 +1888,7 @@
       "shortLabel": "Growth",
       "isContinuous": true,
       "limitSteps": [],
-      "focus": "BINDING_SPECIAL"
+      "focus": "NONE"
     },
     {
       "id": "prop_physique",
@@ -2067,7 +1900,7 @@
       "shortLabel": "Physique",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "BINDING_SPECIAL"
+      "focus": "NONE"
     },
     {
       "id": "prop_agility",
@@ -2079,7 +1912,7 @@
       "shortLabel": "Agility",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "BINDING_SPECIAL"
+      "focus": "NONE"
     },
     {
       "id": "prop_health_ceiling",
@@ -2091,7 +1924,7 @@
       "shortLabel": "Health",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "BINDING_SPECIAL"
+      "focus": "NONE"
     },
     {
       "id": "prop_virility",
@@ -2103,7 +1936,7 @@
       "shortLabel": "Virility",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "BINDING_SPECIAL"
+      "focus": "NONE"
     },
     {
       "id": "prop_fertility",
@@ -2115,7 +1948,7 @@
       "shortLabel": "Fertility",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "BINDING_SPECIAL"
+      "focus": "NONE"
     },
     {
       "id": "prop_corruption",
@@ -2127,7 +1960,7 @@
       "shortLabel": "Corrupt",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "BINDING_SPECIAL"
+      "focus": "NONE"
     },
     {
       "id": "prop_racial_tf",
@@ -2319,7 +2152,7 @@
       "shortLabel": "Shroud",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "SPECIAL_EFFECTS"
+      "focus": "BINDING_SPECIAL"
     },
     {
       "id": "prop_retention_stomach",
@@ -2530,7 +2363,7 @@
         "huge",
         "massive"
       ],
-      "focus": "FACE"
+      "focus": "HEAD_FEATURE"
     },
     {
       "id": "prop_facial_beard",
@@ -2549,7 +2382,7 @@
         "long",
         "wizard"
       ],
-      "focus": "FACE"
+      "focus": "HEAD_FEATURE"
     },
     {
       "id": "prop_eyebrow_shape",
@@ -2568,7 +2401,7 @@
         "bushy",
         "wild"
       ],
-      "focus": "FACE"
+      "focus": "HEAD_FEATURE"
     },
     {
       "id": "prop_fem_masc",
@@ -2699,7 +2532,7 @@
         "heavy",
         "gargantuan"
       ],
-      "focus": "CROTCH_MAMMARIES"
+      "focus": "BREASTS"
     },
     {
       "id": "prop_teat_length",
@@ -2718,7 +2551,7 @@
         "dangling",
         "hyper"
       ],
-      "focus": "CROTCH_MAMMARIES"
+      "focus": "BREASTS"
     },
     {
       "id": "prop_teat_count",
@@ -2730,7 +2563,7 @@
       "shortLabel": "Teats",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "CROTCH_MAMMARIES"
+      "focus": "BREASTS"
     },
     {
       "id": "prop_udder_capacity",
@@ -2749,7 +2582,7 @@
         "deluging",
         "endless"
       ],
-      "focus": "CROTCH_MAMMARIES"
+      "focus": "BREASTS"
     },
     {
       "id": "prop_udder_regen",
@@ -2761,7 +2594,7 @@
       "shortLabel": "UddrReg",
       "isContinuous": true,
       "limitSteps": [],
-      "focus": "CROTCH_MAMMARIES"
+      "focus": "BREASTS"
     },
     {
       "id": "prop_antennae_morph",
@@ -2773,7 +2606,7 @@
       "shortLabel": "Antenna",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "ANTENNAE"
+      "focus": "HORNS"
     },
     {
       "id": "prop_antennae_length",
@@ -2792,7 +2625,7 @@
         "arching",
         "giant"
       ],
-      "focus": "ANTENNAE"
+      "focus": "HORNS"
     },
     {
       "id": "prop_antennae_type",
@@ -2804,7 +2637,7 @@
       "shortLabel": "Ant Type",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "ANTENNAE"
+      "focus": "HORNS"
     },
     {
       "id": "prop_foot_morph",
