@@ -16,6 +16,11 @@ void explorationState::onEnter(game* gameContext)
 {
     if (gameContext)
     {
+        if (gameContext->hasPendingTransformationInterrupt())
+        {
+            gameContext->triggerNextPendingTransformationInterrupt();
+            return;
+        }
         gameContext->refreshActionGrid();
     }
 }

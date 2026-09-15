@@ -14,6 +14,7 @@ public:
     static std::vector<QuestNPCRelocation> globalRelocations;
 
     static bool loadDatabase(const std::string& directoryPath);
+    static bool appendDirectory(const std::string& directoryPath);
     static bool exists(const std::string& id);
     static questScene getScene(const std::string& id);
     static std::vector<MapTrigger> getTriggersForLocation(const std::string& mapId, int x, int y);

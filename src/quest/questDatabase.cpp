@@ -237,6 +237,108 @@ bool questDatabase::loadDatabase(const std::string& pathStr)
     {
         loadSingleFile(p);
     }
+
+    // Automatically load data/transformations directory if it exists
+    fs::path transPath("data/transformations");
+    if (fs::exists(transPath) && transPath != p)
+    {
+        appendDirectory("data/transformations");
+    }
+
+    return true;
+}
+
+bool questDatabase::appendDirectory(const std::string& pathStr)
+{
+    fs::path p(pathStr);
+    if (!fs::exists(p)) return false;
+
+    auto loadSingleFile = [](const fs::path& filePath)
+    {
+        std::ifstream file(filePath);
+        if (!file.is_open()) return;
+
+        try
+        {
+            json data;
+            file >> data;
+
+            if (data.contains("scenes"))
+            {
+                for (const auto& sJson : data.at("scenes"))
+                {
+                    questScene scene;
+                    scene.id = sJson.at("id").get<std::string>();
+                    scene.speakerName = sJson.value("speakerName", "Unknown");
+                    scene.bodyText = sJson.value("bodyText", "");
+
+                    if (sJson.contains("contentTags") && sJson["contentTags"].is_array())
+                    {
+                        for (const auto& tagVal : sJson["contentTags"])
+                        {
+                            scene.contentTags.push_back(tagVal.get<std::string>());
+                        }
+                    }
+
+                    if (sJson.contains("choices"))
+                    {
+                        for (const auto& cJson : sJson.at("choices"))
+                        {
+                            dialogueChoice choice;
+                            choice.label = cJson.value("label", "Continue");
+                            choice.tooltip = cJson.value("tooltip", "");
+                            choice.nextSceneId = cJson.value("nextSceneId", "EXIT");
+
+                            if (cJson.contains("contentTags") && cJson["contentTags"].is_array())
+                            {
+                                for (const auto& tagVal : cJson["contentTags"])
+                                {
+                                    choice.contentTags.push_back(tagVal.get<std::string>());
+                                }
+                            }
+
+                            if (cJson.contains("requirements"))
+                            {
+                                for (const auto& req : cJson.at("requirements"))
+                                {
+                                    choice.requirements.push_back(parseConditionNode(req));
+                                }
+                            }
+
+                            if (cJson.contains("results"))
+                            {
+                                for (const auto& res : cJson.at("results"))
+                                {
+                                    choice.results.push_back(parseGameEffect(res));
+                                }
+                            }
+                            scene.choices.push_back(choice);
+                        }
+                    }
+                    registry[scene.id] = scene;
+                }
+            }
+        }
+        catch (const json::exception& e)
+        {
+            std::cerr << "JSON Parsing Error (" << filePath.string() << "): " << e.what() << "\n";
+        }
+    };
+
+    if (fs::is_directory(p))
+    {
+        for (const auto& entry : fs::recursive_directory_iterator(p))
+        {
+            if (entry.is_regular_file() && entry.path().extension() == ".json")
+            {
+                loadSingleFile(entry.path());
+            }
+        }
+    }
+    else
+    {
+        loadSingleFile(p);
+    }
     return true;
 }
 

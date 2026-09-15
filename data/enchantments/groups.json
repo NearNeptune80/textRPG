@@ -1,0 +1,118 @@
+{
+  "apparel": {
+    "name": "Standard Apparel",
+    "defaultMaxEnchantments": 999,
+    "allowedFocuses": [
+      "CORE_ATTRIBUTES",
+      "GENERAL_ATTRIBUTES",
+      "SPECIAL_EFFECTS",
+      "RETENTION_FLUIDS",
+      "BODY_DESIRES",
+      "BEHAVIORAL_DESIRES",
+      "FACE",
+      "TORSO",
+      "ARMS",
+      "HAIR",
+      "HIPS_ASS",
+      "BREASTS",
+      "CROTCH_MAMMARIES",
+      "GENITALIA_PRIMARY",
+      "GENITALIA_SECONDARY",
+      "LEGS_FEET",
+      "ARMOR_REINFORCEMENT",
+      "RESISTANCE_WARDING",
+      "ARCANE_AMPLIFICATION",
+      "BINDING_SPECIAL"
+    ]
+  },
+  "weapon": {
+    "name": "Combat Weaponry",
+    "defaultMaxEnchantments": 999,
+    "allowedFocuses": [
+      "WEAPON_LETHALITY",
+      "ARCANE_AMPLIFICATION",
+      "RESISTANCE_WARDING",
+      "BINDING_SPECIAL"
+    ]
+  },
+  "jewelry": {
+    "name": "Jewelry & Accessories",
+    "defaultMaxEnchantments": 999,
+    "allowedFocuses": [
+      "CORE_ATTRIBUTES",
+      "GENERAL_ATTRIBUTES",
+      "SPECIAL_EFFECTS",
+      "RETENTION_FLUIDS",
+      "BODY_DESIRES",
+      "BEHAVIORAL_DESIRES",
+      "RESISTANCE_WARDING",
+      "ARCANE_AMPLIFICATION",
+      "BINDING_SPECIAL"
+    ]
+  },
+  "consumable_plain": {
+    "name": "Plain Consumables & Elixirs",
+    "defaultMaxEnchantments": 999,
+    "allowedFocuses": [
+      "CORE_ATTRIBUTES",
+      "GENERAL_ATTRIBUTES",
+      "SPECIAL_EFFECTS",
+      "RETENTION_FLUIDS",
+      "BODY_DESIRES",
+      "BEHAVIORAL_DESIRES",
+      "HEAD_FEATURE",
+      "HAIR",
+      "EYES",
+      "EARS",
+      "MOUTH",
+      "FACE",
+      "SKIN",
+      "ARMS",
+      "TORSO",
+      "BREASTS",
+      "CROTCH_MAMMARIES",
+      "GENITALIA_PRIMARY",
+      "GENITALIA_SECONDARY",
+      "HIPS_ASS",
+      "LEGS_FEET",
+      "FLUIDS_CUM",
+      "FLUIDS_MILK",
+      "FLUIDS_GIRLCUM",
+      "ARCANE_AMPLIFICATION",
+      "BINDING_SPECIAL"
+    ]
+  },
+  "consumable_reagent_canine": {
+    "name": "Canine Racial Reagent",
+    "defaultMaxEnchantments": 999,
+    "allowedFocuses": [
+      "RACE_AWAKENING",
+      "HEAD_FEATURE",
+      "HORNS",
+      "ANTENNAE",
+      "HAIR",
+      "EYES",
+      "EARS",
+      "MOUTH",
+      "FACE",
+      "SKIN",
+      "ARMS",
+      "TORSO",
+      "BREASTS",
+      "CROTCH_MAMMARIES",
+      "WINGS",
+      "TAIL",
+      "GENITALIA_PRIMARY",
+      "GENITALIA_SECONDARY",
+      "HIPS_ASS",
+      "LEGS_FEET",
+      "FLUIDS_CUM",
+      "FLUIDS_MILK",
+      "FLUIDS_GIRLCUM",
+      "CORE_ATTRIBUTES",
+      "SPECIAL_EFFECTS",
+      "ARCANE_AMPLIFICATION",
+      "BINDING_SPECIAL"
+    ]
+  }
+}

@@ -1,0 +1,160 @@
+{
+  "scenes": [
+    {
+      "id": "trans_breasts_grow",
+      "trigger": "BREASTS_GROW",
+      "speakerName": "Bodily Sensation",
+      "bodyText": "A deep, tingling warmth spreads across your chest as tissue swells and firms. You feel a gentle, pleasant heaviness pulling against your ribcage as your breasts expand noticeably larger.",
+      "choices": [
+        {
+          "label": "Continue",
+          "tooltip": "Acknowledge the bodily changes and proceed.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "trans_breasts_shrink",
+      "trigger": "BREASTS_SHRINK",
+      "speakerName": "Bodily Sensation",
+      "bodyText": "A cool tightening sensation ripples across your chest. Your breasts feel lighter and more compact as excess volume recedes, settling into a smaller contour.",
+      "choices": [
+        {
+          "label": "Continue",
+          "tooltip": "Acknowledge the bodily changes and proceed.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "trans_hair_grow",
+      "trigger": "HAIR_GROW",
+      "speakerName": "Bodily Sensation",
+      "bodyText": "An energetic itching prickles across your scalp. Before your eyes, silky strands of hair tumble downward past your shoulders, visibly growing with unnatural vigor.",
+      "choices": [
+        {
+          "label": "Continue",
+          "tooltip": "Acknowledge the bodily changes and proceed.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "trans_hair_shrink",
+      "trigger": "HAIR_SHRINK",
+      "speakerName": "Bodily Sensation",
+      "bodyText": "A subtle tingling washes through your follicles. The ends of your hair wither slightly and retract, settling into a noticeably shorter style.",
+      "choices": [
+        {
+          "label": "Continue",
+          "tooltip": "Acknowledge the bodily changes and proceed.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "trans_penis_grow",
+      "trigger": "PENIS_GROW",
+      "speakerName": "Bodily Sensation",
+      "bodyText": "A heavy, throbbing heat rushes directly into your groin. Your member swells with intense fullness, stretching longer and thickening with virile weight against your clothing.",
+      "choices": [
+        {
+          "label": "Continue",
+          "tooltip": "Acknowledge the bodily changes and proceed.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "trans_penis_shrink",
+      "trigger": "PENIS_SHRINK",
+      "speakerName": "Bodily Sensation",
+      "bodyText": "A sudden numbness washes through your pelvis. The heat in your crotch ebbs away as your member contracts into a smaller, lighter form.",
+      "choices": [
+        {
+          "label": "Continue",
+          "tooltip": "Acknowledge the bodily changes and proceed.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "trans_hips_grow",
+      "trigger": "HIPS_GROW",
+      "speakerName": "Bodily Sensation",
+      "bodyText": "A deep, sweet ache radiates through your pelvic bones and thighs. Your hips flare outward and your rear swells with soft, voluptuous curves.",
+      "choices": [
+        {
+          "label": "Continue",
+          "tooltip": "Acknowledge the bodily changes and proceed.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "trans_hips_shrink",
+      "trigger": "HIPS_SHRINK",
+      "speakerName": "Bodily Sensation",
+      "bodyText": "Your hips creak and tighten as your curves compress inward, settling into a narrower, leaner silhouette.",
+      "choices": [
+        {
+          "label": "Continue",
+          "tooltip": "Acknowledge the bodily changes and proceed.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "trans_height_grow",
+      "trigger": "HEIGHT_GROW",
+      "speakerName": "Bodily Sensation",
+      "bodyText": "A strong stretching sensation ripples up your spine and through your limbs. Your perspective shifts upward as your stature elongates taller.",
+      "choices": [
+        {
+          "label": "Continue",
+          "tooltip": "Acknowledge the bodily changes and proceed.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "trans_height_shrink",
+      "trigger": "HEIGHT_SHRINK",
+      "speakerName": "Bodily Sensation",
+      "bodyText": "Your joints pop softly as your frame contracts downward. The surrounding world seems slightly larger as you settle into a more compact height.",
+      "choices": [
+        {
+          "label": "Continue",
+          "tooltip": "Acknowledge the bodily changes and proceed.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "trans_lactation_grow",
+      "trigger": "LACTATION_GROW",
+      "speakerName": "Bodily Sensation",
+      "bodyText": "An ache of sweet fullness swells within your chest. Your milk ducts expand, and a droplet of warm milk beads upon your sensitized nipple.",
+      "choices": [
+        {
+          "label": "Continue",
+          "tooltip": "Acknowledge the bodily changes and proceed.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "trans_generic_change",
+      "trigger": "GENERIC_CHANGE",
+      "speakerName": "Bodily Sensation",
+      "bodyText": "You feel a strange magical vibration course throughout your body, subtly altering your physical form.",
+      "choices": [
+        {
+          "label": "Continue",
+          "tooltip": "Acknowledge the bodily changes and proceed.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    }
+  ]
+}

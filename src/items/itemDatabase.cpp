@@ -26,6 +26,8 @@ void from_json(const json& j, item& itemObj)
     itemObj.isKeyItem = j.value("isKeyItem", false);
     itemObj.count = j.value("count", 1);
     itemObj.baseRace = j.value("baseRace", "");
+    itemObj.enchantmentGroup = j.value("enchantmentGroup", "");
+    itemObj.maxEnchantments = j.value("maxEnchantments", 999);
 
     if (j.contains("targetSlot"))
     {

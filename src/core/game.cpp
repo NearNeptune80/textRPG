@@ -144,6 +144,17 @@ void game::init()
         // 2. Player Biological Pipeline
         if (this->Player)
         {
+            // Snapshot body measurements before ticks
+            float preHair = 0.0f;
+            float preBreastDiam = 0.0f;
+            int preBreastCup = 0;
+            float preCockLen = 0.0f;
+            float preCockDiam = 0.0f;
+
+            if (auto* hair = this->Player->anatomy.getPart(bodySlot::HAIR)) preHair = hair->length;
+            if (auto* br = this->Player->anatomy.getPart(bodySlot::BREASTS)) { preBreastDiam = br->diameter; preBreastCup = br->cupSize; }
+            if (auto* ck = this->Player->anatomy.getPart(bodySlot::GROIN)) { preCockLen = ck->length; preCockDiam = ck->diameter; }
+
             // Advance active mutations scaled by transformationSpeedMultiplier
             float tfSpeed = this->settings.content.transformationSpeedMultiplier;
             int mutationMins = (tfSpeed > 0.0f) ? std::max(1, static_cast<int>(mins * tfSpeed)) : 0;
@@ -171,7 +182,7 @@ void game::init()
 
                     if (std::abs(tickMultiplier) < 0.0001f) continue;
 
-                    if (eff.focus == EnchantmentFocus::HAIR && (eff.property == AspectProperty::HAIR_GROWTH || eff.property == AspectProperty::SCALE_SIZE))
+                    if (eff.focus == EnchantmentFocus::HAIR && (eff.property == AspectProperty::HAIR_GROWTH || eff.property == AspectProperty::HAIR_LENGTH || eff.property == AspectProperty::SCALE_SIZE))
                     {
                         bodyPart* hair = this->Player->anatomy.getPart(bodySlot::HAIR);
                         if (hair)
@@ -179,7 +190,7 @@ void game::init()
                             hair->length = std::max(0.0f, hair->length + (0.5f * tickMultiplier));
                         }
                     }
-                    else if (eff.focus == EnchantmentFocus::BREASTS && (eff.property == AspectProperty::SCALE_SIZE || eff.property == AspectProperty::VOLUME_CAPACITY))
+                    else if (eff.focus == EnchantmentFocus::BREASTS && (eff.property == AspectProperty::BREAST_SIZE || eff.property == AspectProperty::SCALE_SIZE || eff.property == AspectProperty::VOLUME_CAPACITY))
                     {
                         bodyPart* breasts = this->Player->anatomy.getPart(bodySlot::BREASTS);
                         if (breasts)
@@ -195,7 +206,7 @@ void game::init()
                             }
                         }
                     }
-                    else if (eff.focus == EnchantmentFocus::GENITALIA_PRIMARY && (eff.property == AspectProperty::SCALE_SIZE || eff.property == AspectProperty::SECONDARY_SIZE))
+                    else if (eff.focus == EnchantmentFocus::GENITALIA_PRIMARY && (eff.property == AspectProperty::PENIS_LENGTH || eff.property == AspectProperty::PENIS_GIRTH || eff.property == AspectProperty::SCALE_SIZE || eff.property == AspectProperty::SECONDARY_SIZE))
                     {
                         bodyPart* cock = this->Player->anatomy.getPart(bodySlot::GROIN);
                         if (cock)
@@ -204,6 +215,36 @@ void game::init()
                             cock->diameter = std::max(0.0f, cock->diameter + (0.1f * tickMultiplier));
                         }
                     }
+                }
+            }
+
+            // Detect transformation changes and queue or trigger interrupt scenes
+            std::vector<std::string> detectedTriggers;
+            if (auto* br = this->Player->anatomy.getPart(bodySlot::BREASTS))
+            {
+                if (br->cupSize > preBreastCup || br->diameter > preBreastDiam + 0.05f) detectedTriggers.push_back("BREASTS_GROW");
+                else if (br->cupSize < preBreastCup || br->diameter < preBreastDiam - 0.05f) detectedTriggers.push_back("BREASTS_SHRINK");
+            }
+            if (auto* hair = this->Player->anatomy.getPart(bodySlot::HAIR))
+            {
+                if (hair->length > preHair + 0.05f) detectedTriggers.push_back("HAIR_GROW");
+                else if (hair->length < preHair - 0.05f) detectedTriggers.push_back("HAIR_SHRINK");
+            }
+            if (auto* ck = this->Player->anatomy.getPart(bodySlot::GROIN))
+            {
+                if (ck->length > preCockLen + 0.05f || ck->diameter > preCockDiam + 0.05f) detectedTriggers.push_back("PENIS_GROW");
+                else if (ck->length < preCockLen - 0.05f || ck->diameter < preCockDiam - 0.05f) detectedTriggers.push_back("PENIS_SHRINK");
+            }
+
+            for (const auto& trig : detectedTriggers)
+            {
+                if (!isPlayerOccupied() && pendingTransformationScenes.empty())
+                {
+                    triggerTransformationInterrupt(trig);
+                }
+                else
+                {
+                    queueTransformationInterrupt(trig);
                 }
             }
 
@@ -1815,4 +1856,63 @@ std::vector<InventorySlot> game::getTileInventoryStacked() const
         return compareItemsNatural(*a.itemPtr, *b.itemPtr);
     });
     return view;
+}
+
+bool game::isPlayerOccupied() const
+{
+    if (!activeGameState) return true;
+    return (dynamic_cast<explorationState*>(activeGameState.get()) == nullptr);
+}
+
+void game::triggerTransformationInterrupt(const std::string& triggerKey)
+{
+    std::string sceneId = "trans_generic_change";
+    if (triggerKey.rfind("trans_", 0) == 0)
+    {
+        sceneId = triggerKey;
+    }
+    else if (triggerKey == "BREASTS_GROW") sceneId = "trans_breasts_grow";
+    else if (triggerKey == "BREASTS_SHRINK") sceneId = "trans_breasts_shrink";
+    else if (triggerKey == "HAIR_GROW") sceneId = "trans_hair_grow";
+    else if (triggerKey == "HAIR_SHRINK") sceneId = "trans_hair_shrink";
+    else if (triggerKey == "PENIS_GROW") sceneId = "trans_penis_grow";
+    else if (triggerKey == "PENIS_SHRINK") sceneId = "trans_penis_shrink";
+    else if (triggerKey == "HIPS_GROW") sceneId = "trans_hips_grow";
+    else if (triggerKey == "HIPS_SHRINK") sceneId = "trans_hips_shrink";
+    else if (triggerKey == "HEIGHT_GROW") sceneId = "trans_height_grow";
+    else if (triggerKey == "HEIGHT_SHRINK") sceneId = "trans_height_shrink";
+    else if (triggerKey == "LACTATION_GROW") sceneId = "trans_lactation_grow";
+
+    if (questDatabase::exists(sceneId))
+    {
+        loadScene(sceneId);
+    }
+    else
+    {
+        questScene fallback;
+        fallback.id = sceneId;
+        fallback.speakerName = "Bodily Sensation";
+        fallback.bodyText = "You feel a strange magical vibration course throughout your body, subtly altering your physical form.";
+        dialogueChoice cont;
+        cont.label = "Continue";
+        cont.tooltip = "Acknowledge the transformation and proceed.";
+        cont.nextSceneId = "EXIT";
+        fallback.choices.push_back(cont);
+        currentScene = fallback;
+        changeState(std::make_unique<eventState>());
+        refreshActionGrid();
+    }
+}
+
+void game::queueTransformationInterrupt(const std::string& triggerKey)
+{
+    pendingTransformationScenes.push_back(triggerKey);
+}
+
+void game::triggerNextPendingTransformationInterrupt()
+{
+    if (pendingTransformationScenes.empty()) return;
+    std::string nextTrigger = pendingTransformationScenes.front();
+    pendingTransformationScenes.erase(pendingTransformationScenes.begin());
+    triggerTransformationInterrupt(nextTrigger);
 }

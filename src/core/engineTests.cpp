@@ -46,6 +46,7 @@
 #include "state/enchantingState.h"
 #include "state/inventoryState.h"
 #include "ui/widgets/sidebarGeometry.h"
+#include "items/enchantmentRegistry.h"
 
 namespace EngineTests
 {
@@ -4326,6 +4327,145 @@ namespace EngineTests
         return allPassed;
     }
 
+    bool testDataDrivenEnchantmentsAndTransformationInterrupts()
+    {
+        std::cout << "\n--- Running Test 35: Data-Driven JSON Enchantments & Transformation Interrupt Scenes ---\n";
+        bool allPassed = true;
+
+        // 1. JSON Enchantment Database Verification
+        auto& reg = EnchantmentRegistry::getInstance();
+        bool regLoaded = reg.isLoaded();
+        logResult("EnchantmentRegistry successfully loads aspects.json and groups.json from disk", regLoaded);
+        allPassed &= regLoaded;
+
+        const auto* headFocus = reg.getFocusDef("HEAD_FEATURE");
+        const auto* breastProp = reg.getPropertyDef("BREAST_SIZE");
+        bool defsFound = (headFocus != nullptr && breastProp != nullptr && propertySupportsLimits(AspectProperty::BREAST_SIZE, nullptr));
+        logResult("EnchantmentRegistry parses focus and continuous property definitions", defsFound);
+        allPassed &= defsFound;
+
+        const auto* jewelGroup = reg.getGroup("jewelry");
+        bool groupFound = (jewelGroup != nullptr && jewelGroup->defaultMaxEnchantments == 999);
+        logResult("EnchantmentRegistry parses custom group definitions with default capacity", groupFound);
+        allPassed &= groupFound;
+
+        // Test custom enchantmentGroup tag on an item
+        auto ringItem = std::make_shared<item>();
+        ringItem->id = "custom_jewel_ring";
+        ringItem->name = "Custom Jewel Ring";
+        ringItem->enchantmentGroup = "jewelry";
+
+        auto jewelFocuses = getCompatibleFocuses(ringItem.get());
+        bool hasBreasts = false, hasCore = false, hasWards = false;
+        for (auto f : jewelFocuses)
+        {
+            if (f == EnchantmentFocus::BREASTS) hasBreasts = true;
+            if (f == EnchantmentFocus::CORE_ATTRIBUTES) hasCore = true;
+            if (f == EnchantmentFocus::RESISTANCE_WARDING) hasWards = true;
+        }
+        bool jewelFilterOk = (!hasBreasts && hasCore && hasWards);
+        logResult("Custom item 'jewelry' enchantmentGroup strictly restricts focus selection per groups.json", jewelFilterOk);
+        allPassed &= jewelFilterOk;
+
+        // 2. Transformation Interrupt Scenes Database Verification
+        questDatabase::loadDatabase("data/quests");
+        bool sceneBreasts = questDatabase::exists("trans_breasts_grow");
+        bool sceneHair = questDatabase::exists("trans_hair_grow");
+        bool scenePenis = questDatabase::exists("trans_penis_grow");
+        bool scenesFound = sceneBreasts && sceneHair && scenePenis;
+        logResult("QuestDatabase automatically discovers and registers transformation_interrupts.json scenes", scenesFound);
+        allPassed &= scenesFound;
+
+        if (sceneBreasts)
+        {
+            auto sc = questDatabase::getScene("trans_breasts_grow");
+            bool choiceOk = (sc.choices.size() == 1 && sc.choices[0].label == "Continue" && sc.choices[0].nextSceneId == "EXIT");
+            logResult("Transformation interrupt scene formats with a single 'Continue' choice leading to 'EXIT'", choiceOk);
+            allPassed &= choiceOk;
+        }
+
+        // 3. Hourly Transformation Trigger & Interrupt Flow
+        game g;
+        g.init();
+        g.playerEntity = std::make_shared<entity>("test_morpher", "TestMorpher");
+        g.Player = g.playerEntity.get();
+
+        bodyPart br;
+        br.id = "breasts";
+        br.name = "Breasts";
+        br.diameter = 5.0f;
+        br.cupSize = 1;
+        g.Player->anatomy.setPart(bodySlot::BREASTS, br);
+
+        auto morphCorset = std::make_shared<item>();
+        morphCorset->id = "morph_corset";
+        morphCorset->name = "Corset of Voluptuous Swell";
+        morphCorset->targetSlot = equipSlot::CHEST_WEAR;
+        morphCorset->isEquippable = true;
+        morphCorset->infusionEffects.push_back({
+            InfusionTargetType::APPAREL,
+            EnchantmentFocus::BREASTS,
+            AspectProperty::BREAST_SIZE,
+            InfusionTier::GREATER_BOON
+        });
+        g.Player->inventory.equipped[static_cast<size_t>(equipSlot::CHEST_WEAR)] = morphCorset;
+
+        g.changeState(std::make_unique<explorationState>());
+        bool isOccupiedBefore = g.isPlayerOccupied();
+        logResult("Player in explorationState is recognized as not occupied (isPlayerOccupied == false)", !isOccupiedBefore);
+        allPassed &= !isOccupiedBefore;
+
+        // Advance 60 minutes -> should trigger breasts grow interrupt immediately!
+        g.gameTime.advanceTime(60);
+        bool inInterrupt = (dynamic_cast<eventState*>(g.getActiveState()) != nullptr) &&
+                           (g.getCurrentScene().id == "trans_breasts_grow");
+        logResult("Hourly apparel sizing tick triggers immediate transformation interrupt scene in exploration", inInterrupt);
+        allPassed &= inInterrupt;
+
+        // Click Continue -> returns to explorationState
+        if (inInterrupt && !g.getCurrentScene().choices.empty())
+        {
+            g.processChoice(g.getCurrentScene().choices[0]);
+        }
+        bool returnedToExploration = (dynamic_cast<explorationState*>(g.getActiveState()) != nullptr);
+        logResult("Clicking 'Continue' on transformation interrupt returns cleanly to explorationState", returnedToExploration);
+        allPassed &= returnedToExploration;
+
+        // 4. Occupied State Queuing & Resuming on Enter
+        // Enter CombatState -> player is occupied
+        g.changeState(std::make_unique<CombatState>(std::vector<std::shared_ptr<entity>>{ g.playerEntity }, std::vector<std::shared_ptr<entity>>{}));
+        bool isOccupiedCombat = g.isPlayerOccupied();
+        logResult("Player in CombatState is recognized as occupied (isPlayerOccupied == true)", isOccupiedCombat);
+        allPassed &= isOccupiedCombat;
+
+        // Advance 60 minutes -> must NOT interrupt combat, but queue the scene
+        g.gameTime.advanceTime(60);
+        bool stillInCombat = (dynamic_cast<CombatState*>(g.getActiveState()) != nullptr);
+        bool hasQueuedInterrupt = g.hasPendingTransformationInterrupt();
+        bool combatNotInterrupted = (stillInCombat && hasQueuedInterrupt);
+        logResult("Transformation during occupied CombatState is deferred and queued without interrupting combat", combatNotInterrupted);
+        allPassed &= combatNotInterrupted;
+
+        // Return to explorationState -> should immediately trigger the deferred scene!
+        g.changeState(std::make_unique<explorationState>());
+        bool deferredTriggered = (dynamic_cast<eventState*>(g.getActiveState()) != nullptr) &&
+                                 (g.getCurrentScene().id == "trans_breasts_grow");
+        logResult("Entering explorationState automatically triggers the deferred queued transformation scene", deferredTriggered);
+        allPassed &= deferredTriggered;
+
+        // Complete the scene
+        if (deferredTriggered && !g.getCurrentScene().choices.empty())
+        {
+            g.processChoice(g.getCurrentScene().choices[0]);
+        }
+        bool queueCleared = (dynamic_cast<explorationState*>(g.getActiveState()) != nullptr) &&
+                            !g.hasPendingTransformationInterrupt();
+        logResult("Pending transformation interrupt queue is fully cleared after acknowledging scene", queueCleared);
+        allPassed &= queueCleared;
+
+        return allPassed;
+    }
+
     bool runAllTests()
     {
         g_passCount = 0;
@@ -4368,6 +4508,7 @@ namespace EngineTests
         bool t32 = testEnchantingItemSelectionAndStackedMapping();
         bool t33 = testGranularDomainPropertiesAndZeroLockedButtons();
         bool t34 = testEnchantingAltarParityAndLimits();
+        bool t35 = testDataDrivenEnchantmentsAndTransformationInterrupts();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";

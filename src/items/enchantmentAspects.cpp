@@ -1,4 +1,5 @@
 #include "items/enchantmentAspects.h"
+#include "items/enchantmentRegistry.h"
 
 #include <algorithm>
 #include <cctype>
@@ -326,6 +327,13 @@ std::vector<EnchantmentFocus> getAllEnchantmentFocuses()
 
 std::vector<EnchantmentFocus> getCompatibleFocuses(const item* baseItem)
 {
+    auto& reg = EnchantmentRegistry::getInstance();
+    if (reg.isLoaded())
+    {
+        auto jsonFocuses = reg.getCompatibleFocuses(baseItem);
+        if (!jsonFocuses.empty()) return jsonFocuses;
+    }
+
     if (!baseItem)
     {
         return {
@@ -467,6 +475,13 @@ std::vector<EnchantmentFocus> getCompatibleFocuses(const item* baseItem)
 
 std::vector<AspectProperty> getAvailablePropertiesForFocus(EnchantmentFocus focus, const item* baseItem)
 {
+    auto& reg = EnchantmentRegistry::getInstance();
+    if (reg.isLoaded())
+    {
+        auto jsonProps = reg.getAvailablePropertiesForFocus(focus, baseItem);
+        if (!jsonProps.empty()) return jsonProps;
+    }
+
     bool isRacial = baseItem && baseItem->isRacialReagent();
 
     switch (focus)

@@ -168,6 +168,14 @@ public:
     void addLogEntry(const std::string& tag, const std::string& text, LogColor color = { 220, 220, 220, 255 });
     void clearEventLog() { eventLog.clear(); }
 
+    // Transformation Interrupt Scenes
+    std::vector<std::string> pendingTransformationScenes;
+    bool isPlayerOccupied() const;
+    void triggerTransformationInterrupt(const std::string& triggerKey);
+    void queueTransformationInterrupt(const std::string& triggerKey);
+    bool hasPendingTransformationInterrupt() const { return !pendingTransformationScenes.empty(); }
+    void triggerNextPendingTransformationInterrupt();
+
 private:
     std::unique_ptr<iGameState> activeGameState;
     std::vector<std::pair<gameEvent, callbackID>> eventSubscriptions;
