@@ -5,6 +5,7 @@
 #include <memory>
 #include <cassert>
 #include <filesystem>
+#include <unordered_set>
 
 #include "core/game.h"
 #include "state/mainMenuState.h"
@@ -47,6 +48,9 @@
 #include "state/inventoryState.h"
 #include "ui/widgets/sidebarGeometry.h"
 #include "items/enchantmentRegistry.h"
+#include "combat/weaponSkillDatabase.h"
+#include "core/actionSlot.h"
+#include "core/uiCommand.h"
 
 namespace EngineTests
 {
@@ -85,11 +89,11 @@ namespace EngineTests
 
         // Check Action Grid for Main Menu
         g.refreshActionGrid();
-        bool hasNewGame = (!g.activeButtons.empty() && g.activeButtons[0].label == "New Game");
+        bool hasNewGame = (!g.activeActionSlots.empty() && g.activeActionSlots[0].label == "New Game");
         logResult("Main Menu has 'New Game' button at Slot 0", hasNewGame);
         allPassed &= hasNewGame;
 
-        bool hasOptions = (g.activeButtons.size() > 5 && g.activeButtons[5].label == "Options");
+        bool hasOptions = (g.activeActionSlots.size() > 5 && g.activeActionSlots[5].label == "Options");
         logResult("Main Menu has 'Options' button at Slot 5", hasOptions);
         allPassed &= hasOptions;
 
@@ -346,9 +350,9 @@ namespace EngineTests
         g.refreshActionGrid();
 
         // Click "Options" in Action Grid (Slot 5)
-        if (g.activeButtons.size() > 5 && g.activeButtons[5].onClick)
+        if (g.activeActionSlots.size() > 5 && g.activeActionSlots[5].onClick)
         {
-            g.activeButtons[5].onClick();
+            g.activeActionSlots[5].onClick();
             bool isOptions = (dynamic_cast<optionsState*>(g.getActiveState()) != nullptr);
             logResult("Main Menu 'Options' button launches optionsState", isOptions);
             allPassed &= isOptions;
@@ -361,9 +365,9 @@ namespace EngineTests
             g.refreshActionGrid();
 
             // Keybinds (Slot 0)
-            if (!g.activeButtons.empty() && g.activeButtons[0].onClick)
+            if (!g.activeActionSlots.empty() && g.activeActionSlots[0].onClick)
             {
-                g.activeButtons[0].onClick();
+                g.activeActionSlots[0].onClick();
                 bool keybindsOpen = opt->isKeybindsOpen;
                 logResult("Options 'Keybinds' button opens keybindings overlay", keybindsOpen);
                 allPassed &= keybindsOpen;
@@ -378,18 +382,18 @@ namespace EngineTests
             logResult("FontManager dynamically scales point size to 28pt", fontScaled);
             allPassed &= fontScaled;
 
-            if (g.activeButtons.size() > 10 && g.activeButtons[10].onClick)
+            if (g.activeActionSlots.size() > 10 && g.activeActionSlots[10].onClick)
             {
-                g.activeButtons[10].onClick(); // Defaults
+                g.activeActionSlots[10].onClick(); // Defaults
                 bool defaultsRestored = (g.settings.display.fontSize == 18);
                 logResult("Options 'Defaults' button restores default settings", defaultsRestored);
                 allPassed &= defaultsRestored;
             }
 
             // Back button returns to Main Menu (Slot 14)
-            if (g.activeButtons.size() > 14 && g.activeButtons[14].onClick)
+            if (g.activeActionSlots.size() > 14 && g.activeActionSlots[14].onClick)
             {
-                g.activeButtons[14].onClick();
+                g.activeActionSlots[14].onClick();
                 bool backToMenu = (dynamic_cast<mainMenuState*>(g.getActiveState()) != nullptr);
                 logResult("Options 'Back' button returns to Main Menu", backToMenu);
                 allPassed &= backToMenu;
@@ -405,18 +409,18 @@ namespace EngineTests
 
             // Toggle confirmations (Slot 0)
             bool initConfirm = loadState->confirmationsEnabled;
-            if (!g.activeButtons.empty() && g.activeButtons[0].onClick)
+            if (!g.activeActionSlots.empty() && g.activeActionSlots[0].onClick)
             {
-                g.activeButtons[0].onClick();
+                g.activeActionSlots[0].onClick();
                 bool confirmToggled = (loadState->confirmationsEnabled != initConfirm);
                 logResult("Save/Load 'Confirmations' toggle functions", confirmToggled);
                 allPassed &= confirmToggled;
             }
 
             // Toggle Sort Name (Slot 2)
-            if (g.activeButtons.size() > 2 && g.activeButtons[2].onClick)
+            if (g.activeActionSlots.size() > 2 && g.activeActionSlots[2].onClick)
             {
-                g.activeButtons[2].onClick();
+                g.activeActionSlots[2].onClick();
                 bool sortNameSet = (loadState->sortMode == 1);
                 logResult("Save/Load 'Sort: Name' activates name sorting", sortNameSet);
                 allPassed &= sortNameSet;
@@ -969,7 +973,7 @@ namespace EngineTests
         g.refreshActionGrid();
         bool foundDisabledChoice = false;
         bool foundDataTooltip = false;
-        for (const auto& btn : g.activeButtons)
+        for (const auto& btn : g.activeActionSlots)
         {
             if (btn.label.find("Canis Root") != std::string::npos)
             {
@@ -1283,7 +1287,7 @@ namespace EngineTests
             bool slots0To13Empty = true;
             for (int i = 0; i < 14; ++i)
             {
-                if (i < static_cast<int>(g.activeButtons.size()) && !g.activeButtons[i].label.empty())
+                if (i < static_cast<int>(g.activeActionSlots.size()) && !g.activeActionSlots[i].label.empty())
                 {
                     slots0To13Empty = false;
                 }
@@ -1291,7 +1295,7 @@ namespace EngineTests
             logResult("Action Grid Slots 0-13 are completely empty (clean layout)", slots0To13Empty);
             allPassed &= slots0To13Empty;
 
-            bool slot14IsBack = (g.activeButtons.size() > 14 && g.activeButtons[14].label == "Back");
+            bool slot14IsBack = (g.activeActionSlots.size() > 14 && g.activeActionSlots[14].label == "Back");
             logResult("Action Grid Slot 14 is 'Back' button", slot14IsBack);
             allPassed &= slot14IsBack;
 
@@ -1369,7 +1373,7 @@ namespace EngineTests
         if (phone)
         {
             // 1. Check all 14 Apps in Home Action Grid (slots 0..13) + Slot 14 Back
-            const auto& grid = g.activeButtons;
+            const auto& grid = g.activeActionSlots;
             bool has14Apps = (grid.size() == 15);
             std::vector<std::string> expectedApps = {
                 "Quests", "Perk Tree", "Spells", "Fetishes", "Stats",
@@ -1506,7 +1510,7 @@ namespace EngineTests
             // Return Home
             phone->setAppMode(PhoneAppMode::HOME);
             g.refreshActionGrid();
-            bool finalHome = (g.activeButtons[14].label == "Back");
+            bool finalHome = (g.activeActionSlots[14].label == "Back");
             logResult("Universal Slot 14 [Back] button maintained across all menus", finalHome);
             allPassed &= finalHome;
         }
@@ -1593,12 +1597,12 @@ namespace EngineTests
         // 4. Action Grid Navigation in Shop
         // Initially nothing selected:
         g.refreshActionGrid();
-        bool slot0Guide = (g.activeButtons[0].label == "Select Item to Trade" && !g.activeButtons[0].isEnabled);
-        bool slot14Leave = (g.activeButtons[14].label == "Leave Shop" && g.activeButtons[14].isEnabled);
+        bool slot0Guide = (g.activeActionSlots[0].label == "Select Item to Trade" && !g.activeActionSlots[0].isEnabled);
+        bool slot14Leave = (g.activeActionSlots[14].label == "Leave Shop" && g.activeActionSlots[14].isEnabled);
         bool slotsClean = true;
         for (int s = 1; s < 14; ++s)
         {
-            if (!g.activeButtons[s].label.empty() || g.activeButtons[s].isEnabled)
+            if (!g.activeActionSlots[s].label.empty() || g.activeActionSlots[s].isEnabled)
             {
                 slotsClean = false;
                 break;
@@ -1611,9 +1615,9 @@ namespace EngineTests
         // 5. Selecting Merchant Item for BUYING
         // Side 1 (Merchant), Stack index 0
         g.handleCommand({ CommandType::SELECT_INVENTORY_SLOT, 1, 0, "" });
-        bool buyButton1 = (g.activeButtons[0].label == "Buy 1 (120¤)" && g.activeButtons[0].isEnabled);
-        bool buyAllButton = (g.activeButtons[1].label == "Buy All (600¤)");
-        bool deselectBtn = (g.activeButtons[2].label == "Deselect Item");
+        bool buyButton1 = (g.activeActionSlots[0].label == "Buy 1 (120¤)" && g.activeActionSlots[0].isEnabled);
+        bool buyAllButton = (g.activeActionSlots[1].label == "Buy All (600¤)");
+        bool deselectBtn = (g.activeActionSlots[2].label == "Deselect Item");
         bool buyActionGridOk = (buyButton1 && buyAllButton && deselectBtn);
         logResult("Selecting merchant item configures Buy 1, Buy All, and Deselect on Action Grid", buyActionGridOk);
         allPassed &= buyActionGridOk;
@@ -1639,8 +1643,8 @@ namespace EngineTests
         // 7. Selecting Player Item for SELLING
         // Side 0 (Player), Stack index 0 (the bought Canis Root)
         g.handleCommand({ CommandType::SELECT_INVENTORY_SLOT, 0, 0, "" });
-        bool sellButton1 = (g.activeButtons[0].label == "Sell 1 (55¤)" && g.activeButtons[0].isEnabled);
-        bool sellAllButton = (g.activeButtons[1].label == "Sell All (110¤)");
+        bool sellButton1 = (g.activeActionSlots[0].label == "Sell 1 (55¤)" && g.activeActionSlots[0].isEnabled);
+        bool sellAllButton = (g.activeActionSlots[1].label == "Sell All (110¤)");
         bool sellActionGridOk = (sellButton1 && sellAllButton);
         logResult("Selecting player item configures Sell 1 and Sell All with calculated resale price", sellActionGridOk);
         allPassed &= sellActionGridOk;
@@ -1680,7 +1684,7 @@ namespace EngineTests
         }
 
         g.handleCommand({ CommandType::SELECT_INVENTORY_SLOT, 0, keyIndex, "" });
-        bool keySellDisabled = (!g.activeButtons[0].isEnabled);
+        bool keySellDisabled = (!g.activeActionSlots[0].isEnabled);
         float preKeyGold = player->getStat("currency");
         g.handleCommand({ CommandType::SELL_SHOP_ITEM, keyIndex, 1, "" });
         float postKeyGold = player->getStat("currency");
@@ -2476,7 +2480,7 @@ namespace EngineTests
 
         // Verify Perks screen Action Grid: Tier buttons removed, Slot 13 Reset Perks, Slot 14 Back
         testGame.changeState(std::make_unique<phoneAppsState>(PhoneAppMode::PERKS));
-        const auto& perkButtons = testGame.getActiveActionButtons();
+        const auto& perkButtons = testGame.getActiveActionSlots();
         bool slot13Reset = (perkButtons.size() >= 15 && perkButtons[13].label == "Reset Perks" && perkButtons[13].isEnabled);
         bool slot14Back = (perkButtons.size() >= 15 && perkButtons[14].label == "Back" && perkButtons[14].isEnabled);
         bool tierButtonsRemoved = true;
@@ -2962,18 +2966,18 @@ namespace EngineTests
         g.settings.content.forcedTfEnabled = false;
         g.settings.content.contentFilterMode = ContentFilterMode::BLOCK_AND_SKIP;
         g.loadScene(choiceTestScene.id);
-        bool choiceLocked = (!g.activeButtons.empty() &&
-                             g.activeButtons[0].label.find("[Locked: Forced Transformation]") != std::string::npos &&
-                             !g.activeButtons[0].isEnabled);
+        bool choiceLocked = (!g.activeActionSlots.empty() &&
+                             g.activeActionSlots[0].label.find("[Locked: Forced Transformation]") != std::string::npos &&
+                             !g.activeActionSlots[0].isEnabled);
         logResult("Choice with disabled content tag under BLOCK_AND_SKIP is locked and disabled", choiceLocked);
         allPassed &= choiceLocked;
 
         // 6b. Choice with disabled tag under WARN_CONFIRM: [!] label prefix & warning scene
         g.settings.content.contentFilterMode = ContentFilterMode::WARN_CONFIRM;
         g.loadScene(choiceTestScene.id);
-        bool choiceWarningPrefix = (!g.activeButtons.empty() &&
-                                    g.activeButtons[0].label == "[!] Transform Involuntarily" &&
-                                    g.activeButtons[0].isEnabled);
+        bool choiceWarningPrefix = (!g.activeActionSlots.empty() &&
+                                    g.activeActionSlots[0].label == "[!] Transform Involuntarily" &&
+                                    g.activeActionSlots[0].isEnabled);
         logResult("Choice with disabled content tag under WARN_CONFIRM displays [!] warning prefix", choiceWarningPrefix);
         allPassed &= choiceWarningPrefix;
 
@@ -4312,7 +4316,7 @@ namespace EngineTests
         bool hasClearInGrid = false;
         bool hasLeaveInGrid = false;
 
-        for (const auto& btn : engine.activeButtons)
+        for (const auto& btn : engine.activeActionSlots)
         {
             if (btn.label.find("+ Add Effect") != std::string::npos) hasAddEffectInGrid = true;
             if (btn.label.find("Craft (") != std::string::npos) hasCraftInGrid = true;
@@ -4496,6 +4500,502 @@ namespace EngineTests
         return allPassed;
     }
 
+    bool testFocusCombatElementalReactionsAndDecoupling()
+    {
+        std::cout << "\n--- Running Test 36: Focus Combat Engine, Elemental Reactions, Persistent Merchants & Headless Decoupling ---\n";
+        bool allPassed = true;
+
+        // 1. ActionSlot Grid Headless Operation & UI Decoupling
+        ActionSlot slot;
+        slot.label = "Heavy Cleave";
+        slot.description = "Devastating downward strike";
+        slot.slotIndex = 0;
+        slot.isEnabled = true;
+        slot.pinnedAllPages = false;
+        bool callbackFired = false;
+        slot.onClick = [&callbackFired]() { callbackFired = true; };
+
+        game g;
+        g.init();
+        g.activeActionSlots[0] = slot;
+        if (g.activeActionSlots[0].onClick)
+        {
+            g.activeActionSlots[0].onClick();
+        }
+        bool slotConfigOk = (g.activeActionSlots[0].label == "Heavy Cleave" &&
+                             g.activeActionSlots[0].slotIndex == 0 &&
+                             g.activeActionSlots[0].isEnabled &&
+                             callbackFired);
+        logResult("ActionSlot grid operates headlessly without UI rendering dependencies", slotConfigOk);
+        allPassed &= slotConfigOk;
+
+        // 2. Data-Driven Weapon Skills & Elements Database Loading
+        bool skillsLoaded = WeaponSkillDatabase::loadFromFile("data/weapon_skills.json");
+        bool hasSkills = (skillsLoaded && WeaponSkillDatabase::getAllSkills().size() >= 9);
+        const WeaponSkill* slashSkill = WeaponSkillDatabase::getSkill("skill_slash");
+        const WeaponSkill* shieldBash = WeaponSkillDatabase::getSkill("skill_shield_bash");
+        const WeaponSkill* pommel = WeaponSkillDatabase::getSkill("skill_pommel_strike");
+        bool skillsValid = (slashSkill != nullptr && shieldBash != nullptr && pommel != nullptr &&
+                            slashSkill->staminaCost == 20.0f && slashSkill->damageType == "slashing" &&
+                            shieldBash->staminaCost == 25.0f && shieldBash->damageType == "bludgeoning");
+        logResult("WeaponSkillDatabase parses master techniques from 'data/weapon_skills.json'", hasSkills && skillsValid);
+        allPassed &= (hasSkills && skillsValid);
+
+        if (slashSkill)
+        {
+            CombatAction slashAction = slashSkill->toCombatAction("fire");
+            bool actionConverted = (slashAction.id == "skill_slash" && slashAction.staminaCost == 20.0f &&
+                                    !slashAction.effectNodes.empty() && slashAction.effectNodes[0].element == "fire");
+            logResult("WeaponSkill converts to CombatAction preserving stamina cost and applying weapon element", actionConverted);
+            allPassed &= actionConverted;
+        }
+
+        // 3. Elemental Advantage, Disadvantage & Reaction Combos
+        combatEngine cEngine;
+        cEngine.loadElements("data/elements.json");
+
+        float waterVsFire = cEngine.getElementalMultiplier("water", "fire");
+        float fireVsWater = cEngine.getElementalMultiplier("fire", "water");
+        float fireVsAir = cEngine.getElementalMultiplier("fire", "air");
+        float lustVsArcane = cEngine.getElementalMultiplier("lust", "arcane");
+        float physicalVsEarth = cEngine.getElementalMultiplier("physical", "earth");
+
+        bool elementalMathOk = (waterVsFire == 1.5f && fireVsWater == 0.5f &&
+                                fireVsAir == 1.5f && lustVsArcane == 1.25f && physicalVsEarth == 0.75f);
+        logResult("Elemental matchup matrix evaluates advantages and disadvantages accurately", elementalMathOk);
+        allPassed &= elementalMathOk;
+
+        // Test Reaction Combos (e.g. Vaporize: water + fire -> 1.5x)
+        auto reactionUser = std::make_shared<entity>("elemental_hero", "Hero");
+        reactionUser->stats.setBaseStat("physique", 20.0f);
+        reactionUser->stats.setBaseStat("health", 100.0f);
+        reactionUser->stats.setBaseStat("mana", 100.0f);
+
+        auto reactionTarget = std::make_shared<entity>("target_dummy", "Dummy");
+        reactionTarget->stats.setBaseStat("health", 200.0f);
+        reactionTarget->elementalType = "physical";
+
+        cEngine.initialiseCombat({ reactionUser }, { reactionTarget });
+        auto& targetPart = cEngine.getEnemyParty()[0];
+        targetPart.currentElementStatus = "water"; // Target is soaked
+
+        CombatAction fireStrike;
+        fireStrike.id = "fire_strike";
+        fireStrike.name = "Fire Strike";
+        fireStrike.damageMultiplier = 1.0f;
+        SpellEffectNode fNode;
+        fNode.effectType = "DAMAGE";
+        fNode.element = "fire";
+        fNode.baseMagnitude = 20.0f;
+        fireStrike.effectNodes.push_back(fNode);
+
+        QueuedAction qFire;
+        qFire.action = fireStrike;
+        qFire.user = reactionUser.get();
+        qFire.target = reactionTarget.get();
+
+        float hpBeforeReaction = reactionTarget->getStat("health");
+        cEngine.executeAction(qFire, &g);
+        float hpAfterReaction = reactionTarget->getStat("health");
+        float actualDamage = hpBeforeReaction - hpAfterReaction;
+        // Base: 20 * 1.0 = 20. Target defensive element is physical (mult=1.0).
+        // Vaporize reaction triggers: damage * 1.5 = 30.0!
+        bool reactionTriggered = (actualDamage == 30.0f && targetPart.currentElementStatus == "fire");
+        logResult("Elemental reaction combo (Water + Fire -> Vaporize 1.5x) triggers and updates element status", reactionTriggered);
+        allPassed &= reactionTriggered;
+
+        // 4. Focus-Based Combat Transitions, Action Queueing & Queue Refund on Focus Switch
+        auto cHero = std::make_shared<entity>("c_hero", "CombatHero");
+        cHero->stats.setBaseStat("health", 100.0f);
+        cHero->stats.setBaseStat("stamina", 100.0f);
+        cHero->stats.setBaseStat("mana", 50.0f);
+        cHero->stats.setBaseStat("physique", 15.0f);
+
+        auto cEnemy = std::make_shared<entity>("c_enemy", "CombatEnemy");
+        cEnemy->stats.setBaseStat("health", 100.0f);
+        cEnemy->stats.setBaseStat("stamina", 100.0f);
+
+        g.playerEntity = cHero;
+        g.Player = cHero.get();
+        g.activeTargetNPC = cEnemy;
+        g.changeState(std::make_unique<CombatState>(std::vector<std::shared_ptr<entity>>{ cHero },
+                                                    std::vector<std::shared_ptr<entity>>{ cEnemy }));
+
+        auto* cState = dynamic_cast<CombatState*>(g.getActiveState());
+        bool inCombat = (cState != nullptr && cState->getCombatFocus() == CombatFocus::ROOT);
+        logResult("CombatState initializes in CombatFocus::ROOT", inCombat);
+        allPassed &= inCombat;
+
+        // Switch Focus to WEAPON
+        g.handleCommand(UICommand::selectCombatFocus("WEAPON"));
+        bool weaponFocusOk = (cState->getCombatFocus() == CombatFocus::WEAPON);
+        logResult("Command SELECT_COMBAT_FOCUS switches focus cleanly to CombatFocus::WEAPON", weaponFocusOk);
+        allPassed &= weaponFocusOk;
+
+        // Queue a weapon action (skill_slash: staminaCost = 20.0f, apCost = 1)
+        float staminaBeforeQueue = cState->getEngine().getPlayerParty()[0].currentStamina;
+        int apBeforeQueue = cState->getEngine().getPlayerParty()[0].currentAp;
+
+        g.handleCommand(UICommand::queueCombatAction("skill_slash"));
+
+        const auto& playerPart = cState->getEngine().getPlayerParty()[0];
+        bool actionQueued = (playerPart.turnQueue.size() == 1 &&
+                             playerPart.turnQueue[0].action.id == "skill_slash" &&
+                             playerPart.currentStamina == staminaBeforeQueue - 20.0f &&
+                             playerPart.currentAp == apBeforeQueue - 1);
+        logResult("QUEUE_COMBAT_ACTION adds action to turn queue and deducts stamina and AP", actionQueued);
+        allPassed &= actionQueued;
+
+        // Queue another action: DEFENSE_GUARD (baseApCost = 1, staminaCost = 15.0f)
+        g.handleCommand(UICommand::queueCombatAction("DEFENSE_GUARD"));
+        bool secondQueued = (playerPart.turnQueue.size() == 2 && playerPart.currentStamina == staminaBeforeQueue - 35.0f);
+        logResult("Chaining additional moves in turn queue deducts stamina incrementally", secondQueued);
+        allPassed &= secondQueued;
+
+        // Switch Focus to MAGIC -> MUST RESET QUEUE AND REFUND STAMINA!
+        g.handleCommand(UICommand::selectCombatFocus("MAGIC"));
+        const auto& playerPartAfterSwitch = cState->getEngine().getPlayerParty()[0];
+        bool queueReset = (cState->getCombatFocus() == CombatFocus::MAGIC &&
+                           playerPartAfterSwitch.turnQueue.empty() &&
+                           playerPartAfterSwitch.currentStamina == staminaBeforeQueue &&
+                           playerPartAfterSwitch.currentAp == apBeforeQueue);
+        logResult("Switching combat focus resets turn queue and refunds stamina and AP completely", queueReset);
+        allPassed &= queueReset;
+
+        // 5. Dual Defeat / Victory Resolution
+        // Case A: Physical Defeat (Enemy HP <= 0)
+        combatEngine engPhysical;
+        auto pUser = std::make_shared<entity>("p_user", "Player");
+        pUser->stats.setBaseStat("health", 100.0f);
+        auto pTarget = std::make_shared<entity>("p_target", "Physical Target");
+        pTarget->stats.setBaseStat("health", 10.0f);
+        pTarget->stats.setBaseStat("lust", 0.0f);
+        engPhysical.initialiseCombat({ pUser }, { pTarget });
+
+        pTarget->stats.setBaseStat("health", 0.0f);
+        bool physOver = engPhysical.isCombatOver();
+        bool physVict = engPhysical.isPlayerVictory();
+        bool physSurrender = engPhysical.isLustSurrender();
+        bool physOk = (physOver && physVict && !physSurrender);
+        logResult("Dual defeat: Physical KO (Enemy HP <= 0) yields victory without lust surrender", physOk);
+        allPassed &= physOk;
+
+        // Case B: Erotic Surrender (Enemy Lust >= 100)
+        combatEngine engLust;
+        auto lUser = std::make_shared<entity>("l_user", "Player");
+        lUser->stats.setBaseStat("health", 100.0f);
+        auto lTarget = std::make_shared<entity>("l_target", "Lust Target");
+        lTarget->stats.setBaseStat("health", 100.0f);
+        lTarget->stats.setBaseStat("lust", 80.0f);
+        engLust.initialiseCombat({ lUser }, { lTarget });
+
+        CombatAction seduceAct;
+        seduceAct.id = "seduce_kiss";
+        seduceAct.name = "Sensual Kiss";
+        seduceAct.lustDamage = 25.0f;
+
+        QueuedAction qSeduce;
+        qSeduce.action = seduceAct;
+        qSeduce.user = lUser.get();
+        qSeduce.target = lTarget.get();
+
+        engLust.executeAction(qSeduce, &g);
+        bool lustOver = engLust.isCombatOver();
+        bool lustVict = engLust.isPlayerVictory();
+        bool lustSurrender = engLust.isLustSurrender();
+        bool lustOk = (lustOver && lustVict && lustSurrender && lTarget->getStat("lust") >= 100.0f);
+        logResult("Dual defeat: Erotic Surrender (Enemy Lust >= 100) triggers surrender victory cleanly", lustOk);
+        allPassed &= lustOk;
+
+        // 6. Persistent Marcus Shop Loading from JSON (Zero C++ Fallback)
+        NamedCharacterManager::loadFromDirectory("data/characters");
+        auto marcusChar = NamedCharacterManager::getCharacter("marcus");
+        bool marcusJsonOk = (marcusChar != nullptr && marcusChar->characterEntity != nullptr &&
+                             marcusChar->isMerchant &&
+                             marcusChar->characterEntity->getStat("currency") >= 1000.0f &&
+                             !marcusChar->characterEntity->inventory.backpack.empty());
+        logResult("Marcus loaded from 'data/characters/marcus.json' with persistent purse and inventory", marcusJsonOk);
+        allPassed &= marcusJsonOk;
+
+        game gShop;
+        gShop.init();
+        auto shopObj = std::make_unique<shopState>(nullptr);
+        gShop.changeState(std::move(shopObj));
+
+        auto* loadedShop = dynamic_cast<shopState*>(gShop.getActiveState());
+        bool shopLoadedMarcus = (loadedShop != nullptr && gShop.getActiveTargetNPC() != nullptr &&
+                                 gShop.getActiveTargetNPC()->id == "marcus" &&
+                                 gShop.getActiveTargetNPC()->getStat("currency") >= 1000.0f);
+        logResult("shopState automatically resolves and binds Marcus from JSON with zero hardcoded C++ fallback", shopLoadedMarcus);
+        allPassed &= shopLoadedMarcus;
+
+        // 7. Decoupled Intimacy & Familiar Actions via Command System
+        game gSim;
+        gSim.init();
+        auto simPlayer = std::make_shared<entity>("sim_player", "SimPlayer");
+        simPlayer->stats.setBaseStat("arousal", 10.0f);
+        simPlayer->stats.setBaseStat("lust", 20.0f);
+        simPlayer->stats.setBaseStat("mana", 20.0f);
+        simPlayer->stats.setBaseStat("max_mana", 100.0f);
+        gSim.playerEntity = simPlayer;
+        gSim.Player = simPlayer.get();
+        gSim.gameTime.hour = 10;
+        gSim.gameTime.minute = 0;
+
+        // Masturbation command: FONDLE_GROIN for 15 minutes
+        gSim.handleCommand(UICommand::masturbateAction("FONDLE_GROIN", 15));
+        bool intimacyOk = (simPlayer->getStat("arousal") >= 40.0f &&
+                           gSim.gameTime.hour == 10 && gSim.gameTime.minute == 15);
+        logResult("MASTURBATE_ACTION command updates arousal and advances gameTime by dynamic base duration", intimacyOk);
+        allPassed &= intimacyOk;
+
+        // Familiar command: PET for 20 minutes
+        int bondBefore = simPlayer->bondLevel;
+        float manaBefore = simPlayer->getStat("mana");
+        gSim.handleCommand(UICommand::familiarAction("PET", 20));
+        bool familiarOk = (simPlayer->bondLevel == bondBefore + 2 &&
+                           simPlayer->getStat("mana") == manaBefore + 8.0f &&
+                           gSim.gameTime.hour == 10 && gSim.gameTime.minute == 35);
+        logResult("FAMILIAR_ACTION command updates bond, restores mana, and advances gameTime without UI modals", familiarOk);
+        allPassed &= familiarOk;
+
+        // 8. Procedural Encounter to CombatState Transition (No Premature Victory)
+        game gCombat;
+        gCombat.init();
+        gCombat.loadMap("overworld", 1, 2);
+        gCombat.playerEntity = std::make_shared<entity>("fight_tester", "FightTester");
+        gCombat.Player = gCombat.playerEntity.get();
+        gCombat.Player->stats.setBaseStat("health", 100.0f);
+
+        auto enemyBandit = npcGenerator::generateFromTemplate("tpl_alley_bandit", &gCombat.settings);
+        bool banditStatsOk = (enemyBandit != nullptr &&
+                              enemyBandit->getStat("health") > 0.0f &&
+                              enemyBandit->getStat("lust") == 0.0f);
+        logResult("Template enemy initializes with positive health and zero lust (not pre-defeated)", banditStatsOk);
+        allPassed &= banditStatsOk;
+
+        gCombat.triggerEncounter(enemyBandit);
+        bool inEncounterScene = (dynamic_cast<eventState*>(gCombat.getActiveState()) != nullptr &&
+                                 !gCombat.getCurrentScene().choices.empty() &&
+                                 gCombat.getCurrentScene().choices[0].label == "Fight");
+        logResult("triggerEncounter presents encounter dialogue with 'Fight' option", inEncounterScene);
+        allPassed &= inEncounterScene;
+
+        // Process 'Fight'
+        dialogueChoice fightChoice;
+        fightChoice.nextSceneId = "ENCOUNTER_FIGHT";
+        gCombat.processChoice(fightChoice);
+
+        auto* activeCombat = dynamic_cast<CombatState*>(gCombat.getActiveState());
+        bool inCombatProper = (activeCombat != nullptr);
+        logResult("Clicking 'Fight' transitions smoothly into CombatState", inCombatProper);
+        allPassed &= inCombatProper;
+
+        if (activeCombat)
+        {
+            activeCombat->update(&gCombat, 0.016f);
+            bool stillInCombat = (dynamic_cast<CombatState*>(gCombat.getActiveState()) != nullptr);
+            bool notInstantVictory = (!activeCombat->getEngine().isCombatOver() &&
+                                      !activeCombat->getEngine().isPlayerVictory());
+            bool combatActive = (stillInCombat && notInstantVictory);
+            logResult("CombatState remains actively engaged (zero premature victory resolution)", combatActive);
+            allPassed &= combatActive;
+        }
+
+        return allPassed;
+    }
+
+    bool testModularScreensAndWidgetCatalog()
+    {
+        std::cout << "\n--- Running Test 37: Modular Screen Layouts & UI Widget Catalog Integrity ---\n";
+        bool allPassed = true;
+
+        // 1. Validate data/widgets.json completeness & integrity
+        std::ifstream widgetFile("data/widgets.json");
+        bool widgetFileOpen = widgetFile.is_open();
+        logResult("Widget catalog file 'data/widgets.json' exists and is readable", widgetFileOpen);
+        allPassed &= widgetFileOpen;
+
+        nlohmann::json widgetDoc;
+        bool widgetJsonParsed = false;
+        if (widgetFileOpen)
+        {
+            try
+            {
+                widgetFile >> widgetDoc;
+                widgetJsonParsed = true;
+            }
+            catch (const std::exception& e)
+            {
+                std::cerr << "JSON parse error in data/widgets.json: " << e.what() << "\n";
+            }
+        }
+        logResult("Widget catalog parses valid JSON", widgetJsonParsed);
+        allPassed &= widgetJsonParsed;
+
+        std::unordered_set<std::string> catalogWidgetIds;
+        if (widgetJsonParsed && widgetDoc.contains("widgets") && widgetDoc["widgets"].is_array())
+        {
+            bool allFieldsPresent = true;
+            for (const auto& w : widgetDoc["widgets"])
+            {
+                if (!w.contains("id") || !w.contains("name") || !w.contains("category") ||
+                    !w.contains("description") || !w.contains("recommendedAnchor"))
+                {
+                    allFieldsPresent = false;
+                    break;
+                }
+                std::string wid = w["id"].get<std::string>();
+                catalogWidgetIds.insert(wid);
+            }
+            bool countOk = (catalogWidgetIds.size() >= 29);
+            logResult("Widget catalog contains >= 29 unique widgets with all required schema fields", countOk && allFieldsPresent);
+            allPassed &= (countOk && allFieldsPresent);
+        }
+        else
+        {
+            logResult("Widget catalog contains >= 29 unique widgets with all required schema fields", false);
+            allPassed = false;
+        }
+
+        // 2. Validate layoutEngine::loadFromDirectory("data/layouts/screens")
+        layoutEngine modularEngine;
+        bool dirLoaded = modularEngine.loadFromDirectory("data/layouts/screens");
+        logResult("layoutEngine::loadFromDirectory('data/layouts/screens') loads screen layouts", dirLoaded);
+        allPassed &= dirLoaded;
+
+        const std::vector<std::string> expectedStates = {
+            "CHARACTER_CREATION",
+            "COMBAT",
+            "ENCHANTING",
+            "ENCOUNTER_RESOLUTION",
+            "EVENT",
+            "EXPLORATION",
+            "INVENTORY",
+            "LOAD_GAME",
+            "MAIN_MENU",
+            "PHONE_APP",
+            "SETTINGS",
+            "SEX",
+            "SHOP",
+            "TRANSFORMATION"
+        };
+
+        bool allStatesPresent = true;
+        for (const auto& st : expectedStates)
+        {
+            if (!modularEngine.hasStateOverride(st))
+            {
+                std::cerr << "Missing expected screen state override: " << st << "\n";
+                allStatesPresent = false;
+            }
+        }
+        bool totalOverridesOk = (modularEngine.getStateOverrides().size() >= 14);
+        logResult("All 14 active game states have dedicated screen layout definitions loaded", allStatesPresent && totalOverridesOk);
+        allPassed &= (allStatesPresent && totalOverridesOk);
+
+        // 3. Multi-resolution geometry calculation across all 14 states (1080p, 720p, 768p)
+        struct ResTest { float w; float h; float scale; };
+        std::vector<ResTest> testResolutions = {
+            { 1920.0f, 1080.0f, 1.0f },
+            { 1280.0f, 720.0f, 1.0f },
+            { 1024.0f, 768.0f, 0.85f }
+        };
+
+        bool allGeomValid = true;
+        bool allWidgetsRecognized = true;
+
+        for (const auto& res : testResolutions)
+        {
+            for (const auto& st : expectedStates)
+            {
+                auto bounds = modularEngine.computeLayout(res.w, res.h, res.scale, st);
+                if (bounds.empty())
+                {
+                    allGeomValid = false;
+                    continue;
+                }
+
+                for (const auto& panel : bounds)
+                {
+                    // Positive dimensions within window bounds
+                    if (panel.rect.w <= 0.0f || panel.rect.h <= 0.0f ||
+                        panel.rect.x < -1.0f || panel.rect.y < -1.0f ||
+                        (panel.rect.x + panel.rect.w) > (res.w + 2.0f) ||
+                        (panel.rect.y + panel.rect.h) > (res.h + 2.0f))
+                    {
+                        allGeomValid = false;
+                        std::cerr << "Geometry error in state " << st << " panel " << panel.id
+                                  << ": x=" << panel.rect.x << " y=" << panel.rect.y
+                                  << " w=" << panel.rect.w << " h=" << panel.rect.h << "\n";
+                    }
+
+                    // Check that any bound widgets exist in the catalog
+                    for (const auto& widgetId : panel.widgets)
+                    {
+                        if (!catalogWidgetIds.contains(widgetId))
+                        {
+                            allWidgetsRecognized = false;
+                            std::cerr << "Unrecognized widget '" << widgetId << "' bound in panel '" << panel.id
+                                      << "' of state " << st << "\n";
+                        }
+                    }
+                }
+            }
+        }
+
+        logResult("Multi-resolution geometry bounds (1080p, 720p, 768p) compute positive dimensions without clipping", allGeomValid);
+        allPassed &= allGeomValid;
+
+        logResult("All widgets referenced by modular screen layouts exist in data/widgets.json", allWidgetsRecognized);
+        allPassed &= allWidgetsRecognized;
+
+        // 4. Verify specific modular screen structures
+        auto combatBounds = modularEngine.computeLayout(1920.0f, 1080.0f, 1.0f, "COMBAT");
+        bool hasCombatArena = false;
+        bool hasCombatActions = false;
+        for (const auto& p : combatBounds)
+        {
+            if (p.id == "combat_center_arena") hasCombatArena = true;
+            if (p.id == "combat_bottom_actions") hasCombatActions = true;
+        }
+        logResult("Tactical Combat screen layout correctly provisions center arena and bottom action grid", hasCombatArena && hasCombatActions);
+        allPassed &= (hasCombatArena && hasCombatActions);
+
+        auto enchBounds = modularEngine.computeLayout(1920.0f, 1080.0f, 1.0f, "ENCHANTING");
+        bool hasEnchAltar = false;
+        for (const auto& p : enchBounds)
+        {
+            if (p.id == "ench_center_pane") hasEnchAltar = true;
+        }
+        logResult("Enchanting screen layout correctly provisions altar center pane", hasEnchAltar);
+        allPassed &= hasEnchAltar;
+
+        auto evBounds = modularEngine.computeLayout(1920.0f, 1080.0f, 1.0f, "EVENT");
+        bool hasEvCenter = false;
+        bool hasEvActions = false;
+        for (const auto& p : evBounds)
+        {
+            if (p.id == "event_center_pane") hasEvCenter = true;
+            if (p.id == "event_bottom_actions") hasEvActions = true;
+        }
+        logResult("Story Event screen layout provisions center dialogue pane and bottom choice actions", hasEvCenter && hasEvActions);
+        allPassed &= (hasEvCenter && hasEvActions);
+
+        auto resBounds = modularEngine.computeLayout(1920.0f, 1080.0f, 1.0f, "ENCOUNTER_RESOLUTION");
+        bool hasResCenter = false;
+        bool hasResActions = false;
+        for (const auto& p : resBounds)
+        {
+            if (p.id == "res_center_pane") hasResCenter = true;
+            if (p.id == "res_bottom_actions") hasResActions = true;
+        }
+        logResult("Encounter Resolution screen layout provisions resolution pane and action grid", hasResCenter && hasResActions);
+        allPassed &= (hasResCenter && hasResActions);
+
+        return allPassed;
+    }
+
     bool runAllTests()
     {
         g_passCount = 0;
@@ -4539,6 +5039,8 @@ namespace EngineTests
         bool t33 = testGranularDomainPropertiesAndZeroLockedButtons();
         bool t34 = testEnchantingAltarParityAndLimits();
         bool t35 = testDataDrivenEnchantmentsAndTransformationInterrupts();
+        bool t36 = testFocusCombatElementalReactionsAndDecoupling();
+        bool t37 = testModularScreensAndWidgetCatalog();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";

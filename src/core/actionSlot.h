@@ -3,7 +3,7 @@
 #include <functional>
 #include <string>
 
-struct actionButton
+struct ActionSlot
 {
     std::string label;
     std::string description;

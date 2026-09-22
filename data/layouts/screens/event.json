@@ -1,0 +1,55 @@
+{
+  "state": "EVENT",
+  "name": "Scene Narrative & Event Dialogue Layout",
+  "rootNode": {
+    "id": "event_root_row",
+    "type": "CONTAINER",
+    "direction": "ROW",
+    "sizes": [16.0, 68.0, 16.0],
+    "children": [
+      {
+        "id": "event_left_column",
+        "type": "LEAF",
+        "name": "Navigation & Status Sidebar",
+        "widgets": [
+          "widget_lt_character_card",
+          "widget_lt_dpad_radar"
+        ]
+      },
+      {
+        "id": "event_center_column",
+        "type": "CONTAINER",
+        "direction": "COLUMN",
+        "sizes": [78.0, 22.0],
+        "children": [
+          {
+            "id": "event_center_pane",
+            "type": "LEAF",
+            "name": "Story Narrative & Scene Choices",
+            "widgets": [
+              "widget_narrative_story"
+            ]
+          },
+          {
+            "id": "event_bottom_actions",
+            "type": "LEAF",
+            "name": "Event Actions",
+            "widgets": [
+              "widget_action_commands"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "event_right_column",
+        "type": "LEAF",
+        "name": "Entities & Activity Sidebar",
+        "widgets": [
+          "widget_lt_characters_present",
+          "widget_lt_items_present",
+          "widget_lt_event_log"
+        ]
+      }
+    ]
+  }
+}

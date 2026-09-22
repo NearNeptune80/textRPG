@@ -1,0 +1,209 @@
+{
+  "version": "1.0",
+  "description": "textRPG UI Widget Catalog for layout design and visual editors",
+  "widgets": [
+    {
+      "id": "widget_top_bar_full",
+      "name": "Top Header Bar",
+      "category": "Header",
+      "description": "Universal header bar with game title, currency tracker, location badge, and settings button.",
+      "recommendedAnchor": "TOP"
+    },
+    {
+      "id": "widget_action_commands",
+      "name": "Action Commands Grid",
+      "category": "Controls",
+      "description": "15-button interactive command grid (3 rows x 5 columns) with hotkey shortcuts and pagination.",
+      "recommendedAnchor": "BOTTOM"
+    },
+    {
+      "id": "widget_lt_character_card",
+      "name": "Character Profile Card",
+      "category": "Sidebar",
+      "description": "Compact player summary displaying name, level, race, gender archetype, and vital meters.",
+      "recommendedAnchor": "SIDEBAR"
+    },
+    {
+      "id": "widget_lt_dpad_radar",
+      "name": "D-Pad Navigation Radar",
+      "category": "Navigation",
+      "description": "5x5 area minimap with cardinal direction buttons (North, South, East, West) and wait button.",
+      "recommendedAnchor": "SIDEBAR"
+    },
+    {
+      "id": "widget_paperdoll_equipment",
+      "name": "Player Equipment Paperdoll",
+      "category": "Sidebar",
+      "description": "Anatomical paperdoll equipment slots displaying equipped weapons, armor, apparel, and jewelry.",
+      "recommendedAnchor": "SIDEBAR"
+    },
+    {
+      "id": "widget_partner_paperdoll",
+      "name": "Target / Partner Paperdoll",
+      "category": "Sidebar",
+      "description": "Anatomical paperdoll showing currently targeted NPC's equipped gear and clothing.",
+      "recommendedAnchor": "SIDEBAR"
+    },
+    {
+      "id": "widget_item_details_inspector",
+      "name": "Item Details Inspector",
+      "category": "Inspection",
+      "description": "Detailed view of selected item attributes, enchantment runes, value, and description.",
+      "recommendedAnchor": "SIDEBAR"
+    },
+    {
+      "id": "widget_target_inspector",
+      "name": "Target NPC Inspector",
+      "category": "Inspection",
+      "description": "Detailed inspection card showing targeted entity's stats, level, orientation, and relationship.",
+      "recommendedAnchor": "SIDEBAR"
+    },
+    {
+      "id": "widget_lt_characters_present",
+      "name": "Characters Present List",
+      "category": "Sidebar",
+      "description": "List of NPCs currently sharing the player's tile with direct interaction triggers.",
+      "recommendedAnchor": "SIDEBAR"
+    },
+    {
+      "id": "widget_lt_npc_card",
+      "name": "Active NPC Portrait Card",
+      "category": "Sidebar",
+      "description": "Prominent status and vital card for combat opponent, dialogue speaker, or companion.",
+      "recommendedAnchor": "SIDEBAR"
+    },
+    {
+      "id": "widget_lt_items_present",
+      "name": "Items Present on Tile",
+      "category": "Sidebar",
+      "description": "List of dropped or scavengeable items on the current tile with quick pick-up buttons.",
+      "recommendedAnchor": "SIDEBAR"
+    },
+    {
+      "id": "widget_lt_event_log",
+      "name": "Chronicle Event Log",
+      "category": "Chronicle",
+      "description": "Scrolling history of game messages, combat logs, stat changes, and environmental alerts.",
+      "recommendedAnchor": "SIDEBAR"
+    },
+    {
+      "id": "widget_lt_time_bar",
+      "name": "Time & Calendar Bar",
+      "category": "Header",
+      "description": "In-game calendar, current day, month, year, time of day phase, and season.",
+      "recommendedAnchor": "HEADER"
+    },
+    {
+      "id": "widget_lt_options_toolbar",
+      "name": "Quick Options Toolbar",
+      "category": "Header",
+      "description": "5-button quick navigation toolbar (Save, Load, Options, Inventory, Phone).",
+      "recommendedAnchor": "HEADER"
+    },
+    {
+      "id": "widget_narrative_story",
+      "name": "Story Narrative & Scene",
+      "category": "Central Workspace",
+      "description": "Primary dialogue and scene text viewport with speaker name, portrait, and rich narrative.",
+      "recommendedAnchor": "CENTER"
+    },
+    {
+      "id": "widget_tactical_combat",
+      "name": "Tactical Combat Arena",
+      "category": "Central Workspace",
+      "description": "Turn-based combat arena displaying combatant queues, focus stances, resources, and action log.",
+      "recommendedAnchor": "CENTER"
+    },
+    {
+      "id": "widget_inventory_dual",
+      "name": "Dual Inventory Grid",
+      "category": "Central Workspace",
+      "description": "Dual-pane inventory manager with categorical filtering (Weapons, Apparel, Consumables, Key Items).",
+      "recommendedAnchor": "CENTER"
+    },
+    {
+      "id": "widget_shop_dual",
+      "name": "Merchant Trading Catalog",
+      "category": "Central Workspace",
+      "description": "Trading interface comparing player and merchant goods with price calculations and bargaining.",
+      "recommendedAnchor": "CENTER"
+    },
+    {
+      "id": "widget_enchanting_altar",
+      "name": "Enchanting Altar",
+      "category": "Central Workspace",
+      "description": "Arcane altar for infusing items with runic aspects, continuous body sizing, and racial resonance.",
+      "recommendedAnchor": "CENTER"
+    },
+    {
+      "id": "widget_body_mutations_tree",
+      "name": "Transformation Studio",
+      "category": "Central Workspace",
+      "description": "Comprehensive 3-tab body transformation studio (Core attributes, Anatomy parts, Presentation).",
+      "recommendedAnchor": "CENTER"
+    },
+    {
+      "id": "widget_phone_menu",
+      "name": "Smartphone Apps Hub",
+      "category": "Central Workspace",
+      "description": "Diagnostic smartphone hub hosting Diagnose, Contacts, Quest Journal, Intimacy, Spells, and Perks.",
+      "recommendedAnchor": "CENTER"
+    },
+    {
+      "id": "widget_character_creation",
+      "name": "Character Creation Wizard",
+      "category": "Central Workspace",
+      "description": "Multi-step character creator for gender archetypes, demographic settings, and initial stats.",
+      "recommendedAnchor": "CENTER"
+    },
+    {
+      "id": "widget_options_content",
+      "name": "Settings & Options Content",
+      "category": "Central Workspace",
+      "description": "Configuration manager for gameplay settings, content toggles, themes, audio, and controls.",
+      "recommendedAnchor": "CENTER"
+    },
+    {
+      "id": "widget_load_game",
+      "name": "Save / Load Game Profiles",
+      "category": "Central Workspace",
+      "description": "Save file browser displaying character metadata, timestamp, location, and playthrough summary.",
+      "recommendedAnchor": "CENTER"
+    },
+    {
+      "id": "widget_main_menu_hero",
+      "name": "Main Menu Title Screen",
+      "category": "Fullscreen",
+      "description": "Title screen hero artwork, game logo, campaign start, and profiles list.",
+      "recommendedAnchor": "CENTER"
+    },
+    {
+      "id": "widget_erotic_encounter",
+      "name": "Intimate Sex Encounter",
+      "category": "Central Workspace",
+      "description": "Turn-based sexual encounter interface with stances, fluid dynamics, arousal, and orgasm checks.",
+      "recommendedAnchor": "CENTER"
+    },
+    {
+      "id": "widget_char_overview",
+      "name": "Compact Character Overview",
+      "category": "Sidebar",
+      "description": "Single-line summary of player name, race, level, and currency.",
+      "recommendedAnchor": "SIDEBAR"
+    },
+    {
+      "id": "widget_vitals_gauges",
+      "name": "Vitals Gauges",
+      "category": "Sidebar",
+      "description": "Standalone health, mana, stamina, and arousal progress bars.",
+      "recommendedAnchor": "SIDEBAR"
+    },
+    {
+      "id": "widget_attributes_table",
+      "name": "Attributes Table",
+      "category": "Sidebar",
+      "description": "Grid display of core attributes: Physique, Agility, Arcane, Willpower, and Charm.",
+      "recommendedAnchor": "SIDEBAR"
+    }
+  ]
+}

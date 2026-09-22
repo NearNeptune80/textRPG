@@ -1,0 +1,54 @@
+{
+  "state": "COMBAT",
+  "name": "Tactical Combat Arena Layout",
+  "rootNode": {
+    "id": "combat_root_row",
+    "type": "CONTAINER",
+    "direction": "ROW",
+    "sizes": [16.0, 68.0, 16.0],
+    "children": [
+      {
+        "id": "combat_left_column",
+        "type": "LEAF",
+        "name": "Navigation & Status Sidebar",
+        "widgets": [
+          "widget_lt_character_card",
+          "widget_lt_dpad_radar"
+        ]
+      },
+      {
+        "id": "combat_center_column",
+        "type": "CONTAINER",
+        "direction": "COLUMN",
+        "sizes": [78.0, 22.0],
+        "children": [
+          {
+            "id": "combat_center_arena",
+            "type": "LEAF",
+            "name": "Combat Arena",
+            "widgets": [
+              "widget_tactical_combat"
+            ]
+          },
+          {
+            "id": "combat_bottom_actions",
+            "type": "LEAF",
+            "name": "Action Commands Grid",
+            "widgets": [
+              "widget_action_commands"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "combat_right_column",
+        "type": "LEAF",
+        "name": "Entities & Activity Sidebar",
+        "widgets": [
+          "widget_lt_npc_card",
+          "widget_lt_event_log"
+        ]
+      }
+    ]
+  }
+}

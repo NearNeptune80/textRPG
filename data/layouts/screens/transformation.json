@@ -1,0 +1,55 @@
+{
+  "state": "TRANSFORMATION",
+  "name": "Body Transformations Suite Layout",
+  "rootNode": {
+    "id": "tf_root_row",
+    "type": "CONTAINER",
+    "direction": "ROW",
+    "sizes": [16.0, 68.0, 16.0],
+    "children": [
+      {
+        "id": "tf_left_column",
+        "type": "LEAF",
+        "name": "Player Status & Paperdoll",
+        "widgets": [
+          "widget_lt_character_card",
+          "widget_paperdoll_equipment"
+        ]
+      },
+      {
+        "id": "tf_center_column",
+        "type": "CONTAINER",
+        "direction": "COLUMN",
+        "sizes": [78.0, 22.0],
+        "children": [
+          {
+            "id": "tf_center_pane",
+            "type": "LEAF",
+            "name": "Body Transformations Suite",
+            "widgets": [
+              "widget_body_mutations_tree"
+            ]
+          },
+          {
+            "id": "tf_bottom_actions",
+            "type": "LEAF",
+            "name": "Actions",
+            "widgets": [
+              "widget_action_commands"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "tf_right_column",
+        "type": "LEAF",
+        "name": "Entities & Activity Sidebar",
+        "widgets": [
+          "widget_lt_characters_present",
+          "widget_lt_items_present",
+          "widget_lt_event_log"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "state": "SETTINGS",
+  "name": "Game Settings & Options Layout",
+  "rootNode": {
+    "id": "opt_root_row",
+    "type": "CONTAINER",
+    "direction": "ROW",
+    "sizes": [16.0, 68.0, 16.0],
+    "children": [
+      {
+        "id": "opt_left_sidebar",
+        "type": "LEAF",
+        "name": "Player Status & Paperdoll",
+        "widgets": [
+          "widget_lt_character_card",
+          "widget_paperdoll_equipment"
+        ]
+      },
+      {
+        "id": "opt_center_column",
+        "type": "CONTAINER",
+        "direction": "COLUMN",
+        "sizes": [78.0, 22.0],
+        "children": [
+          {
+            "id": "opt_center_pane",
+            "type": "LEAF",
+            "name": "Settings Page Content",
+            "widgets": [
+              "widget_options_content"
+            ]
+          },
+          {
+            "id": "opt_bottom_actions",
+            "type": "LEAF",
+            "name": "Settings Actions",
+            "widgets": [
+              "widget_action_commands"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "opt_right_sidebar",
+        "type": "LEAF",
+        "name": "Entities & Activity Sidebar",
+        "widgets": [
+          "widget_lt_event_log"
+        ]
+      }
+    ]
+  }
+}

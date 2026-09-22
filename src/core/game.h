@@ -14,7 +14,7 @@
 #include "quest/questDatabase.h"
 #include "settings/gameSettings.h"
 #include "state/iGameState.h"
-#include "ui/actionButton.h"
+#include "core/actionSlot.h"
 
 enum class TargetMode
 {
@@ -82,7 +82,7 @@ public:
     int gridX = 1, gridY = 1;
 
     std::unordered_map<std::string, gameMap> mapCache;
-    std::vector<actionButton> activeButtons;
+    std::vector<ActionSlot> activeActionSlots;
     questScene currentScene;
     bool isPhoneMenuOpen = false;
 
@@ -113,7 +113,7 @@ public:
         std::erase_if(partyCompanions, [&](const auto& c){ return c && c->id == compId; });
     }
     const gameMap* getActiveMap() const { return map; }
-    const std::vector<actionButton>& getActiveActionButtons() const { return activeButtons; }
+    const std::vector<ActionSlot>& getActiveActionSlots() const { return activeActionSlots; }
     const timeManager& getTime() const { return gameTime; }
     std::vector<InventorySlot> getPlayerInventoryStacked() const;
     std::vector<InventorySlot> getTileInventoryStacked() const;

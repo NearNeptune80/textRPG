@@ -1,6 +1,7 @@
 #include "ui/layoutEngine.h"
 
 #include <algorithm>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 
@@ -193,6 +194,64 @@ bool layoutEngine::loadFromFile(const std::string& filePath)
         std::cerr << "[LayoutEngine] Error parsing " << filePath << ": " << e.what() << "\n";
         return false;
     }
+}
+
+bool layoutEngine::loadScreenFile(const std::string& filePath)
+{
+    std::ifstream file(filePath);
+    if (!file.is_open()) return false;
+
+    try
+    {
+        json j;
+        file >> j;
+
+        std::string state = j.value("state", "");
+        if (state.empty())
+        {
+            std::filesystem::path p(filePath);
+            state = p.stem().string();
+            std::transform(state.begin(), state.end(), state.begin(), ::toupper);
+        }
+
+        if (j.contains("rootNode") && j["rootNode"].is_object())
+        {
+            StudioLayoutNode node;
+            parseStudioNode(j["rootNode"], node);
+            m_stateOverrides[state] = node;
+            m_cachedWidth = 0.0f;
+            m_cachedResults.clear();
+            return true;
+        }
+        return false;
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << "[LayoutEngine] Error parsing screen " << filePath << ": " << e.what() << "\n";
+        return false;
+    }
+}
+
+bool layoutEngine::loadFromDirectory(const std::string& dirPath)
+{
+    namespace fs = std::filesystem;
+    if (!fs::exists(dirPath) || !fs::is_directory(dirPath))
+    {
+        return false;
+    }
+
+    bool anyLoaded = false;
+    for (const auto& entry : fs::directory_iterator(dirPath))
+    {
+        if (entry.is_regular_file() && entry.path().extension() == ".json")
+        {
+            if (loadScreenFile(entry.path().string()))
+            {
+                anyLoaded = true;
+            }
+        }
+    }
+    return anyLoaded;
 }
 
 const PanelConfig* layoutEngine::getPanelConfig(const std::string& id) const

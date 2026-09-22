@@ -1,0 +1,28 @@
+{
+  "state": "MAIN_MENU",
+  "name": "Main Menu Title Screen Layout",
+  "rootNode": {
+    "id": "mm_root_column",
+    "type": "CONTAINER",
+    "direction": "COLUMN",
+    "sizes": [78.0, 22.0],
+    "children": [
+      {
+        "id": "mm_center_hero",
+        "type": "LEAF",
+        "name": "Main Menu Hero & Profiles",
+        "widgets": [
+          "widget_main_menu_hero"
+        ]
+      },
+      {
+        "id": "mm_bottom_actions",
+        "type": "LEAF",
+        "name": "Menu Actions",
+        "widgets": [
+          "widget_action_commands"
+        ]
+      }
+    ]
+  }
+}

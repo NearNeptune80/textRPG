@@ -335,16 +335,17 @@ namespace GameplayViews
                 bool enabled;
             };
             std::vector<MasturbateAct> mActs = {
-                { "Caress Chest", [=]() { if (p) p->stats.setBaseStat("arousal", std::min(100.0f, p->getStat("arousal") + 15.0f)); app->setFeedbackText("Gently stroked sensitive chest (+15% Arousal)."); }, true },
-                { "Fondle Groin", [=]() { if (p) p->stats.setBaseStat("arousal", std::min(100.0f, p->getStat("arousal") + 25.0f)); app->setFeedbackText("Directly stimulated intimate areas (+25% Arousal)."); }, true },
-                { "Tease Climax", [=]() { if (p) p->stats.setBaseStat("arousal", std::max(85.0f, p->getStat("arousal") + 20.0f)); app->setFeedbackText("Edged close to orgasm (Arousal 85%+)."); }, true },
+                { "Caress Chest", [=]() {
+                    gameContext->handleCommand({ CommandType::MASTURBATE_ACTION, 10, 0, "CARESS_CHEST" });
+                }, true },
+                { "Fondle Groin", [=]() {
+                    gameContext->handleCommand({ CommandType::MASTURBATE_ACTION, 15, 0, "FONDLE_GROIN" });
+                }, true },
+                { "Tease Climax", [=]() {
+                    gameContext->handleCommand({ CommandType::MASTURBATE_ACTION, 15, 0, "TEASE_CLIMAX" });
+                }, true },
                 { "Climax & Relief", [=]() {
-                    if (p) {
-                        p->stats.setBaseStat("arousal", 0.0f);
-                        p->stats.setBaseStat("lust", 0.0f);
-                        p->stats.setBaseStat("mana", std::min(p->getStat("max_mana"), p->getStat("mana") + 20.0f));
-                    }
-                    app->setFeedbackText("Overwhelming wave of climax crashes through you! Lust and Arousal reset to 0% (+20 MP).");
+                    gameContext->handleCommand({ CommandType::MASTURBATE_ACTION, 20, 0, "CLIMAX_RELIEF" });
                 }, curArousal >= 60.0f }
             };
 
@@ -1181,20 +1182,9 @@ namespace GameplayViews
                                         mousePos.y >= castBtnRect.y && mousePos.y <= castBtnRect.y + castBtnRect.h);
                         if (castHov && clicked && canCast)
                         {
-                            p->stats.setBaseStat("mana", curMp - mp);
-                            if (heal > 0.0f)
-                            {
-                                float curHp = p->getStat("health");
-                                float maxHp = std::max(100.0f, p->getStat("max_health"));
-                                p->stats.setBaseStat("health", std::min(maxHp, curHp + heal));
-                                app->setFeedbackText(std::format("Channeled {}! Restored {:.0f} HP (-{} MP).", sName, heal, mp));
-                            }
-                            else
-                            {
-                                app->setFeedbackText(std::format("Channeled {}! Arcane energies surge forth (-{} MP).", sName, mp));
-                            }
+                            gameContext->handleCommand({ CommandType::CAST_SPELL, static_cast<int>(mp), static_cast<int>(heal), sName });
+                            app->setFeedbackText(std::format("Channeled {}! (-{} MP)", sName, mp));
                             gameContext->input.consumeMouseClick();
-                            gameContext->refreshActionGrid();
                         }
                         UIWidget::drawButton(renderer, castBtnRect, "Cast Spell", castHov, canCast, false, uiScale * 0.75f);
                     }
@@ -1494,11 +1484,8 @@ namespace GameplayViews
                     // Click to unlock connected talent
                     if (hovered && clicked && canLearn)
                     {
-                        p->stats.setBaseStat("perk_points", perkPts - cost);
-                        p->unlockPerk(nId);
-                        gameContext->addLogEntry("[TALENT]", std::format("Unlocked {} (-{} Pt{})", nName, cost, cost > 1 ? "s" : ""), { 220, 180, 80, 255 });
+                        gameContext->handleCommand({ CommandType::UNLOCK_PERK, cost, 0, nId });
                         gameContext->input.consumeMouseClick();
-                        gameContext->refreshActionGrid();
                     }
                 }
 
@@ -2029,10 +2016,8 @@ namespace GameplayViews
                                mousePos.y >= assignBtnRect.y && mousePos.y <= assignBtnRect.y + assignBtnRect.h);
                 if (asgHov && clicked && p && !isEquippedInCurSlot)
                 {
-                    p->preparedCombatSlots[selectedSlot] = tech.name;
-                    app->setFeedbackText(std::format("Assigned '{}' to Deck Slot #{}.", tech.name, selectedSlot + 1));
+                    gameContext->handleCommand({ CommandType::ASSIGN_COMBAT_SLOT, selectedSlot, 0, tech.name });
                     gameContext->input.consumeMouseClick();
-                    gameContext->refreshActionGrid();
                 }
                 std::string asgLabel = isEquippedInCurSlot ? std::format("[ In Slot {} ]", selectedSlot + 1) : std::format("Assign to #{}", selectedSlot + 1);
                 UIWidget::drawButton(renderer, assignBtnRect, asgLabel, asgHov, !isEquippedInCurSlot, isEquippedInCurSlot, uiScale * 0.70f);
@@ -2102,16 +2087,14 @@ namespace GameplayViews
                 {
                     "Commune",
                     [=]() {
-                        app->setFeedbackText("You commune telepathically with the elemental. It transmits feelings of warmth and unwavering loyalty.");
+                        gameContext->handleCommand({ CommandType::FAMILIAR_ACTION, 10, 0, "COMMUNE" });
                     },
                     isSummoned
                 },
                 {
                     "Pet Familiar",
                     [=]() {
-                        entity* p = gameContext->getPlayer();
-                        if (p) p->stats.setBaseStat("mana", std::min(p->getStat("max_mana"), p->getStat("mana") + 10.0f));
-                        app->setFeedbackText("You gently stroke the elemental's warm, shimmering aura. It purrs softly (+10 Mana).");
+                        gameContext->handleCommand({ CommandType::FAMILIAR_ACTION, 5, 0, "PET" });
                     },
                     isSummoned
                 }

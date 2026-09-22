@@ -1,0 +1,115 @@
+{
+  "version": "1.0",
+  "elements": [
+    "physical",
+    "fire",
+    "water",
+    "air",
+    "earth",
+    "arcane",
+    "lust"
+  ],
+  "matchups": {
+    "fire": {
+      "advantages": {
+        "air": 1.5,
+        "earth": 1.5
+      },
+      "disadvantages": {
+        "water": 0.5,
+        "fire": 0.5
+      }
+    },
+    "water": {
+      "advantages": {
+        "fire": 1.5,
+        "earth": 1.5
+      },
+      "disadvantages": {
+        "air": 0.5,
+        "water": 0.5
+      }
+    },
+    "air": {
+      "advantages": {
+        "water": 1.5,
+        "earth": 1.5
+      },
+      "disadvantages": {
+        "fire": 0.5,
+        "air": 0.5
+      }
+    },
+    "earth": {
+      "advantages": {
+        "fire": 1.5,
+        "air": 1.5
+      },
+      "disadvantages": {
+        "water": 0.5,
+        "earth": 0.5
+      }
+    },
+    "arcane": {
+      "advantages": {
+        "physical": 1.25
+      },
+      "disadvantages": {
+        "lust": 0.8
+      }
+    },
+    "lust": {
+      "advantages": {
+        "arcane": 1.25,
+        "physical": 1.25
+      },
+      "disadvantages": {
+        "earth": 0.75
+      }
+    },
+    "physical": {
+      "advantages": {},
+      "disadvantages": {
+        "earth": 0.75
+      }
+    }
+  },
+  "reactions": {
+    "fire+water": {
+      "name": "Vaporize",
+      "damageMultiplier": 1.5,
+      "effect": "ACCURACY_DOWN",
+      "description": "Explosive steam bursts forth, scorching the target and obstructing their vision."
+    },
+    "water+air": {
+      "name": "Freeze",
+      "damageMultiplier": 1.3,
+      "effect": "STUN",
+      "description": "Frigid winds flash-freeze the soaked target, encasing them in solid ice and skipping their turn."
+    },
+    "fire+air": {
+      "name": "Conflagration",
+      "damageMultiplier": 1.6,
+      "effect": "BURN_DOT",
+      "description": "Violent air currents fan roaring flames into a raging inferno, inflicting severe burn over time."
+    },
+    "earth+fire": {
+      "name": "Magma Melt",
+      "damageMultiplier": 1.4,
+      "effect": "ARMOR_SHRED",
+      "description": "Scorching magma liquifies defensive carapaces and armor, drastically reducing damage mitigation."
+    },
+    "water+earth": {
+      "name": "Mire",
+      "damageMultiplier": 1.2,
+      "effect": "STAMINA_DRAIN",
+      "description": "Churning mud and quagmire weigh down the target, heavily penalizing their stamina regeneration."
+    },
+    "lust+arcane": {
+      "name": "Enthrall",
+      "damageMultiplier": 1.3,
+      "effect": "CHARMED",
+      "description": "Lustful psychic resonance captivates the target's psyche, leaving them flustered and disoriented."
+    }
+  }
+}

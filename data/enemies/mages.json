@@ -8,7 +8,8 @@
       "baseStats": {
         "health": 40.0,
         "mana": 90.0,
-        "lust": 100.0,
+        "lust": 0.0,
+        "max_lust": 100.0,
         "physique": 8.0,
         "arcane": 18.0,
         "corruption": 25.0

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <format>
 #include <memory>
+#include "combat/weaponSkillDatabase.h"
 
 #include "common/randomEngine.h"
 #include "core/eventBus.h"
@@ -75,279 +76,348 @@ void CombatState::onExit(game* gameContext)
     }
 }
 
+void CombatState::setCombatFocus(CombatFocus focus)
+{
+    if (m_currentFocus != focus)
+    {
+        if (!m_engine.getPlayerParty().empty())
+        {
+            m_engine.clearPlayerQueue(0);
+        }
+        m_currentFocus = focus;
+    }
+}
+
 void CombatState::handleCommand(game* gameContext, const UICommand& cmd)
 {
     if (!gameContext) return;
 
-    if (cmd.type == CommandType::EXECUTE_COMBAT_ACTION)
+    if (cmd.type == CommandType::SELECT_COMBAT_FOCUS)
     {
-        if (cmd.stringPayload == "WIN")
+        std::string fStr = cmd.stringPayload;
+        std::transform(fStr.begin(), fStr.end(), fStr.begin(), ::toupper);
+        CombatFocus nextFocus = CombatFocus::ROOT;
+        if (fStr == "WEAPON") nextFocus = CombatFocus::WEAPON;
+        else if (fStr == "MAGIC") nextFocus = CombatFocus::MAGIC;
+        else if (fStr == "DEFENSE") nextFocus = CombatFocus::DEFENSE;
+        else if (fStr == "SEDUCTION") nextFocus = CombatFocus::SEDUCTION;
+        else if (fStr == "COMPANION") nextFocus = CombatFocus::COMPANION;
+        else if (fStr == "ITEM") nextFocus = CombatFocus::ITEM;
+
+        setCombatFocus(nextFocus);
+        gameContext->refreshActionGrid();
+        return;
+    }
+    else if (cmd.type == CommandType::CLEAR_COMBAT_QUEUE ||
+            (cmd.type == CommandType::EXECUTE_COMBAT_ACTION && cmd.stringPayload == "CLEAR_QUEUE"))
+    {
+        handleClearQueue(gameContext);
+        return;
+    }
+    else if (cmd.type == CommandType::EXECUTE_COMBAT_TURN || cmd.type == CommandType::END_TURN ||
+            (cmd.type == CommandType::EXECUTE_COMBAT_ACTION && cmd.stringPayload == "END_TURN"))
+    {
+        handleEndTurn(gameContext);
+        return;
+    }
+    else if (cmd.type == CommandType::SURRENDER ||
+            (cmd.type == CommandType::EXECUTE_COMBAT_ACTION && cmd.stringPayload == "SURRENDER"))
+    {
+        handleSurrender(gameContext);
+        return;
+    }
+    else if (cmd.type == CommandType::RUN_ATTEMPT ||
+            (cmd.type == CommandType::EXECUTE_COMBAT_ACTION && cmd.stringPayload == "ESCAPE"))
+    {
+        handleRunAttempt(gameContext);
+        return;
+    }
+    else if (cmd.type == CommandType::EXECUTE_COMBAT_ACTION && cmd.stringPayload == "WIN")
+    {
+        std::vector<std::shared_ptr<entity>> defeatedEnemies;
+        for (auto& enemyP : m_engine.getEnemyParty())
         {
-            std::vector<std::shared_ptr<entity>> defeatedEnemies;
-            for (auto& enemyP : m_engine.getEnemyParty())
+            if (enemyP.character)
             {
-                if (enemyP.character)
+                enemyP.character->stats.setBaseStat("health", 0.0f);
+                defeatedEnemies.push_back(enemyP.character);
+            }
+        }
+        if (defeatedEnemies.empty())
+        {
+            defeatedEnemies.push_back(std::make_shared<entity>("npc_bandit", "Rogue Bandit"));
+        }
+
+        if (gameContext->map)
+        {
+            TileRuntimeData& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
+            tileData.persistentNPC = nullptr;
+        }
+
+        m_engine.appendLog("[Debug] Simulated Combat Victory!");
+        int outcomeVal = static_cast<int>(CombatOutcome::VICTORY);
+        eventBus::getInstance().publishEvent({ gameEvent::combatEnded, outcomeVal, "VICTORY", nullptr });
+        gameContext->changeState(std::make_unique<encounterResolutionState>(defeatedEnemies));
+        return;
+    }
+    else if (cmd.type == CommandType::EXECUTE_COMBAT_ACTION && cmd.stringPayload == "DEFEAT")
+    {
+        for (auto& playerP : m_engine.getPlayerParty())
+        {
+            if (playerP.character)
+            {
+                playerP.character->stats.setBaseStat("health", 0.0f);
+            }
+        }
+        m_engine.appendLog("[Debug] Simulated Combat Defeat!");
+        resolveDefeat(gameContext);
+        return;
+    }
+    else if (cmd.type == CommandType::QUEUE_COMBAT_ACTION || cmd.type == CommandType::EXECUTE_COMBAT_ACTION)
+    {
+        auto& players = m_engine.getPlayerParty();
+        if (players.empty() || !players[0].character) return;
+        auto& p = players[0];
+        entity* player = p.character.get();
+
+        entity* target = gameContext->getActiveTargetNPC();
+        if (!target || target->getStat("health") <= 0.0f || target->getStat("lust") >= 100.0f)
+        {
+            for (const auto& ep : m_engine.getEnemyParty())
+            {
+                if (ep.character && ep.character->getStat("health") > 0.0f && ep.character->getStat("lust") < 100.0f)
                 {
-                    enemyP.character->stats.setBaseStat("health", 0.0f);
-                    defeatedEnemies.push_back(enemyP.character);
+                    target = ep.character.get();
+                    gameContext->activeTargetNPC = ep.character;
+                    break;
                 }
             }
-            if (defeatedEnemies.empty())
-            {
-                defeatedEnemies.push_back(std::make_shared<entity>("npc_bandit", "Rogue Bandit"));
-            }
-
-            if (gameContext->map)
-            {
-                TileRuntimeData& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
-                tileData.persistentNPC = nullptr;
-            }
-
-            m_engine.appendLog("[Debug] Simulated Combat Victory!");
-            int outcomeVal = static_cast<int>(CombatOutcome::VICTORY);
-            eventBus::getInstance().publishEvent({ gameEvent::combatEnded, outcomeVal, "VICTORY", nullptr });
-            gameContext->changeState(std::make_unique<encounterResolutionState>(defeatedEnemies));
-            return;
         }
-        else if (cmd.stringPayload == "DEFEAT")
+        if (!target) return;
+
+        CombatAction act;
+        const WeaponSkill* wSkill = WeaponSkillDatabase::getSkill(cmd.stringPayload);
+        if (wSkill)
         {
-            for (auto& playerP : m_engine.getPlayerParty())
+            std::string elem = "physical";
+            auto eqWep = player->inventory.getEquippedItem(equipSlot::WEAPON_MAIN);
+            if (eqWep)
             {
-                if (playerP.character)
+                for (const auto& inf : eqWep->infusionEffects)
                 {
-                    playerP.character->stats.setBaseStat("health", 0.0f);
-                }
-            }
-            m_engine.appendLog("[Debug] Simulated Combat Defeat!");
-            resolveDefeat(gameContext);
-            return;
-        }
-        else if (cmd.stringPayload == "ESCAPE")
-        {
-            m_engine.appendLog("[Debug] Simulated Combat Escape!");
-            int outcomeVal = static_cast<int>(CombatOutcome::ESCAPE);
-            eventBus::getInstance().publishEvent({ gameEvent::combatEnded, outcomeVal, "ESCAPE", nullptr });
-            gameContext->changeState(std::make_unique<explorationState>());
-            return;
-        }
-        else if (cmd.stringPayload == "SURRENDER")
-        {
-            m_engine.appendLog("[Debug] Simulated Combat Surrender!");
-            handleSurrender(gameContext);
-            return;
-        }
-        else if (cmd.stringPayload == "CLEAR_QUEUE")
-        {
-            handleClearQueue(gameContext);
-            return;
-        }
-        else if (cmd.stringPayload == "END_TURN")
-        {
-            handleEndTurn(gameContext);
-            return;
-        }
-        else if (cmd.stringPayload == "STRIKE" || cmd.stringPayload == "HEAVY_STRIKE" ||
-                 cmd.stringPayload == "DEFEND" || cmd.stringPayload == "DISARM" ||
-                 cmd.stringPayload == "SPELL_DART" || cmd.stringPayload == "SPELL_FIREBALL" ||
-                 cmd.stringPayload == "SPELL_SHIELD" || cmd.stringPayload == "SPELL_CLEANSE" ||
-                 cmd.stringPayload == "SPELL_BLINK" || cmd.stringPayload == "ITEM_POTION" ||
-                 cmd.stringPayload == "ITEM_MANA")
-        {
-            auto& players = m_engine.getPlayerParty();
-            if (players.empty() || !players[0].character) return;
-            auto& p = players[0];
-            entity* player = p.character.get();
-
-            // Target the enemy selected when added to queue ("targeting the enemy selected when they are added to the queue")
-            entity* target = gameContext->getActiveTargetNPC();
-            if (!target || target->getStat("health") <= 0.0f)
-            {
-                for (const auto& ep : m_engine.getEnemyParty())
-                {
-                    if (ep.character && ep.character->getStat("health") > 0.0f)
+                    if (inf.focus == EnchantmentFocus::WEAPON_LETHALITY && !eqWep->baseRace.empty())
                     {
-                        target = ep.character.get();
-                        gameContext->activeTargetNPC = ep.character;
-                        break;
+                        elem = eqWep->baseRace;
                     }
                 }
             }
-            if (!target) return;
+            act = wSkill->toCombatAction(elem);
+        }
+        else if (cmd.stringPayload == "DEFENSE_GUARD" || cmd.stringPayload == "DEFEND")
+        {
+            act.id = "action_guard";
+            act.name = "Guard Stance";
+            act.baseApCost = 1;
+            act.staminaCost = 15.0f;
+            act.isGuarding = true;
+        }
+        else if (cmd.stringPayload == "DEFENSE_DODGE")
+        {
+            act.id = "action_dodge";
+            act.name = "Evasive Dodge";
+            act.baseApCost = 1;
+            act.staminaCost = 20.0f;
+            act.isDodging = true;
+        }
+        else if (cmd.stringPayload == "DEFENSE_PARRY")
+        {
+            act.id = "action_parry";
+            act.name = "Counter Parry";
+            act.baseApCost = 1;
+            act.staminaCost = 25.0f;
+            act.isParrying = true;
+        }
+        else if (cmd.stringPayload == "SEDUCE_TEASE")
+        {
+            act.id = "action_seduce_tease";
+            act.name = "Tease";
+            act.baseApCost = 1;
+            act.staminaCost = 10.0f;
+            act.lustDamage = 15.0f;
+        }
+        else if (cmd.stringPayload == "SEDUCE_FLIRT")
+        {
+            act.id = "action_seduce_flirt";
+            act.name = "Flirtatious Whisper";
+            act.baseApCost = 1;
+            act.staminaCost = 15.0f;
+            act.lustDamage = 25.0f;
+        }
+        else if (cmd.stringPayload == "SEDUCE_EXPOSE")
+        {
+            act.id = "action_seduce_expose";
+            act.name = "Sensual Exposure";
+            act.baseApCost = 1;
+            act.staminaCost = 20.0f;
+            act.lustDamage = 35.0f;
+        }
+        else if (cmd.stringPayload == "COMPANION_ATTACK")
+        {
+            act.id = "action_companion_attack";
+            act.name = "Familiar Strike";
+            act.baseApCost = 1;
+            act.staminaCost = 15.0f;
+            SpellEffectNode node;
+            node.effectType = "DAMAGE";
+            std::string cElem = "air";
+            if (m_engine.getPlayerParty().size() > 1 && m_engine.getPlayerParty()[1].character)
+            {
+                cElem = m_engine.getPlayerParty()[1].character->elementalType.empty() ? "air" : m_engine.getPlayerParty()[1].character->elementalType;
+            }
+            else if (gameContext && !gameContext->getCompanions().empty() && gameContext->getCompanions()[0])
+            {
+                cElem = gameContext->getCompanions()[0]->elementalType.empty() ? "air" : gameContext->getCompanions()[0]->elementalType;
+            }
+            node.element = cElem;
+            node.baseMagnitude = 30.0f;
+            act.effectNodes.push_back(node);
+        }
+        else if (cmd.stringPayload == "STRIKE")
+        {
+            act.id = "action_strike";
+            act.name = "Strike";
+            act.baseApCost = 1;
+            act.staminaCost = 15.0f;
+            SpellEffectNode node;
+            node.effectType = "DAMAGE";
+            node.element = "physical";
+            node.baseMagnitude = std::max(8.0f, player->getStat("physique") * 0.8f);
+            act.effectNodes.push_back(node);
+        }
+        else if (cmd.stringPayload == "HEAVY_STRIKE")
+        {
+            act.id = "action_heavy_strike";
+            act.name = "Heavy Strike";
+            act.baseApCost = 2;
+            act.staminaCost = 35.0f;
+            SpellEffectNode node;
+            node.effectType = "DAMAGE";
+            node.element = "physical";
+            node.baseMagnitude = std::max(18.0f, player->getStat("physique") * 1.8f);
+            act.effectNodes.push_back(node);
+        }
+        else if (cmd.stringPayload == "DISARM")
+        {
+            act.id = "action_disarm";
+            act.name = "Disarm";
+            act.baseApCost = 2;
+            act.staminaCost = 30.0f;
+            SpellEffectNode node;
+            node.effectType = "DAMAGE";
+            node.element = "physical";
+            node.baseMagnitude = 14.0f;
+            act.effectNodes.push_back(node);
+        }
+        else if (cmd.stringPayload == "SPELL_DART")
+        {
+            act.id = "spell_arcane_dart";
+            act.name = "Arcane Dart";
+            act.baseApCost = 1;
+            act.staminaCost = 10.0f;
+            act.manaCost = 10.0f;
+            SpellEffectNode node;
+            node.effectType = "DAMAGE";
+            node.element = "arcane";
+            node.baseMagnitude = 25.0f;
+            act.effectNodes.push_back(node);
+        }
+        else if (cmd.stringPayload == "SPELL_FIREBALL")
+        {
+            act.id = "spell_fireball";
+            act.name = "Fireball";
+            act.baseApCost = 2;
+            act.staminaCost = 15.0f;
+            act.manaCost = 25.0f;
+            SpellEffectNode node;
+            node.effectType = "DAMAGE";
+            node.element = "fire";
+            node.baseMagnitude = 55.0f;
+            act.effectNodes.push_back(node);
+        }
+        else if (cmd.stringPayload == "SPELL_SHIELD")
+        {
+            act.id = "spell_arcane_shield";
+            act.name = "Arcane Shield";
+            act.baseApCost = 1;
+            act.staminaCost = 10.0f;
+            act.manaCost = 15.0f;
+            act.customExecute = [this](entity* user, entity* target, game* g) {
+                if (!user) return;
+                user->stats.modifyBaseStat("health", 35.0f);
+                m_engine.appendLog(std::format("{} conjures an Arcane Shield, absorbing 35 HP damage!", user->name));
+            };
+        }
+        else if (cmd.stringPayload == "SPELL_CLEANSE")
+        {
+            act.id = "spell_cleanse";
+            act.name = "Cleanse";
+            act.baseApCost = 1;
+            act.staminaCost = 10.0f;
+            act.manaCost = 20.0f;
+            act.customExecute = [this](entity* user, entity* target, game* g) {
+                if (!user) return;
+                user->stats.modifyBaseStat("health", 40.0f);
+                user->statusEffects.clear();
+                m_engine.appendLog(std::format("[Spell] {} cast Cleanse, purged debuffs and restored 40 HP!", user->name));
+            };
+        }
+        else if (cmd.stringPayload == "SPELL_BLINK")
+        {
+            act.id = "spell_blink";
+            act.name = "Blink";
+            act.baseApCost = 1;
+            act.staminaCost = 10.0f;
+            act.manaCost = 30.0f;
+            act.customExecute = [this](entity* user, entity* target, game* g) {
+                if (!user) return;
+                user->stats.modifyBaseStat("agility", 15.0f);
+                m_engine.appendLog(std::format("[Spell] {} cast Blink, evading enemy strikes!", user->name));
+            };
+        }
+        else if (cmd.stringPayload == "ITEM_POTION")
+        {
+            act.id = "item_potion";
+            act.name = "Health Potion";
+            act.baseApCost = 1;
+            act.customExecute = [this](entity* user, entity* target, game* g) {
+                if (!user) return;
+                user->stats.modifyBaseStat("health", 50.0f);
+                m_engine.appendLog(std::format("[Item] {} consumed a Health Potion and recovered 50 HP!", user->name));
+            };
+        }
+        else if (cmd.stringPayload == "ITEM_MANA")
+        {
+            act.id = "item_mana";
+            act.name = "Mana Crystal";
+            act.baseApCost = 1;
+            act.customExecute = [this](entity* user, entity* target, game* g) {
+                if (!user) return;
+                user->stats.modifyBaseStat("mana", 50.0f);
+                m_engine.appendLog(std::format("[Item] {} consumed a Mana Crystal and recovered 50 MP!", user->name));
+            };
+        }
 
-            CombatAction act;
-            if (cmd.stringPayload == "STRIKE")
-            {
-                act.id = "action_strike";
-                act.name = "Strike";
-                act.baseApCost = 1;
-                SpellEffectNode node;
-                node.effectType = "DAMAGE";
-                node.element = "Physical";
-                node.baseMagnitude = std::max(8.0f, player->getStat("physique") * 0.8f);
-                act.effectNodes.push_back(node);
-            }
-            else if (cmd.stringPayload == "HEAVY_STRIKE")
-            {
-                act.id = "action_heavy_strike";
-                act.name = "Heavy Strike";
-                act.baseApCost = 2;
-                SpellEffectNode node;
-                node.effectType = "DAMAGE";
-                node.element = "Physical";
-                node.baseMagnitude = std::max(18.0f, player->getStat("physique") * 1.8f);
-                act.effectNodes.push_back(node);
-            }
-            else if (cmd.stringPayload == "DEFEND")
-            {
-                act.id = "action_defend";
-                act.name = "Defensive Stance";
-                act.baseApCost = 1;
-                act.customExecute = [this](entity* user, entity* target, game* g) {
-                    if (!user) return;
-                    user->stats.modifyBaseStat("health", 15.0f);
-                    m_engine.appendLog(std::format("{} assumes a Defensive Stance and bolsters 15 HP barrier!", user->name));
-                };
-            }
-            else if (cmd.stringPayload == "DISARM")
-            {
-                act.id = "action_disarm";
-                act.name = "Disarm";
-                act.baseApCost = 2;
-                SpellEffectNode node;
-                node.effectType = "DAMAGE";
-                node.element = "Physical";
-                node.baseMagnitude = 14.0f;
-                act.effectNodes.push_back(node);
-            }
-            else if (cmd.stringPayload == "SPELL_DART")
-            {
-                act.id = "spell_arcane_dart";
-                act.name = "Arcane Dart";
-                act.baseApCost = 1;
-                act.manaCost = 10.0f;
-                SpellEffectNode node;
-                node.effectType = "DAMAGE";
-                node.element = "Arcane";
-                node.baseMagnitude = 25.0f;
-                act.effectNodes.push_back(node);
-            }
-            else if (cmd.stringPayload == "SPELL_FIREBALL")
-            {
-                act.id = "spell_fireball";
-                act.name = "Fireball";
-                act.baseApCost = 2;
-                act.manaCost = 25.0f;
-                SpellEffectNode node;
-                node.effectType = "DAMAGE";
-                node.element = "Fire";
-                node.baseMagnitude = 55.0f;
-                act.effectNodes.push_back(node);
-            }
-            else if (cmd.stringPayload == "SPELL_SHIELD")
-            {
-                act.id = "spell_arcane_shield";
-                act.name = "Arcane Shield";
-                act.baseApCost = 1;
-                act.manaCost = 15.0f;
-                act.customExecute = [this](entity* user, entity* target, game* g) {
-                    if (!user) return;
-                    user->stats.modifyBaseStat("health", 35.0f);
-                    m_engine.appendLog(std::format("{} conjures an Arcane Shield, absorbing 35 HP damage!", user->name));
-                };
-            }
-            else if (cmd.stringPayload == "SPELL_CLEANSE")
-            {
-                act.id = "spell_cleanse";
-                act.name = "Cleanse";
-                act.baseApCost = 1;
-                act.manaCost = 20.0f;
-                act.customExecute = [this](entity* user, entity* target, game* g) {
-                    if (!user) return;
-                    user->stats.modifyBaseStat("health", 40.0f);
-                    user->statusEffects.clear();
-                    m_engine.appendLog(std::format("[Spell] {} cast Cleanse, purged debuffs and restored 40 HP!", user->name));
-                };
-            }
-            else if (cmd.stringPayload == "SPELL_BLINK")
-            {
-                act.id = "spell_blink";
-                act.name = "Blink";
-                act.baseApCost = 1;
-                act.manaCost = 30.0f;
-                act.customExecute = [this](entity* user, entity* target, game* g) {
-                    if (!user) return;
-                    user->stats.modifyBaseStat("agility", 15.0f);
-                    m_engine.appendLog(std::format("[Spell] {} cast Blink, evading enemy strikes!", user->name));
-                };
-            }
-            else if (cmd.stringPayload == "ITEM_POTION")
-            {
-                act.id = "item_potion";
-                act.name = "Health Potion";
-                act.baseApCost = 1;
-                act.customExecute = [this](entity* user, entity* target, game* g) {
-                    if (!user) return;
-                    user->stats.modifyBaseStat("health", 50.0f);
-                    m_engine.appendLog(std::format("[Item] {} consumed a Health Potion and recovered 50 HP!", user->name));
-                };
-            }
-            else if (cmd.stringPayload == "ITEM_MANA")
-            {
-                act.id = "item_mana";
-                act.name = "Mana Crystal";
-                act.baseApCost = 1;
-                act.customExecute = [this](entity* user, entity* target, game* g) {
-                    if (!user) return;
-                    user->stats.modifyBaseStat("mana", 50.0f);
-                    m_engine.appendLog(std::format("[Item] {} consumed a Mana Crystal and recovered 50 MP!", user->name));
-                };
-            }
-
-            // Validate AP
-            if (p.currentAp < act.baseApCost)
-            {
-                m_engine.appendLog(std::format("[Combat] Not enough AP for {} (Requires {} AP, {} remaining)!", act.name, act.baseApCost, p.currentAp));
-                return;
-            }
-
-            // Validate and deduct Mana
-            if (act.manaCost > 0.0f)
-            {
-                if (player->getStat("mana") < act.manaCost)
-                {
-                    m_engine.appendLog(std::format("[Combat] Not enough Mana for {} (Requires {:.0f} MP)!", act.name, act.manaCost));
-                    return;
-                }
-                player->stats.modifyBaseStat("mana", -act.manaCost);
-            }
-
-            // Deduct item if potion
+        if (m_engine.queuePlayerAction(0, act, target))
+        {
             if (cmd.stringPayload == "ITEM_POTION")
             {
                 player->inventory.removeItem("item_health_potion", 1);
             }
-
-            // Queue action targeting the enemy selected at this moment
-            if (m_engine.queuePlayerAction(0, act, target))
-            {
-                m_engine.appendLog(std::format("[Queued #{}] {} -> {} ({} AP, {} AP remaining)",
-                    p.turnQueue.size(), act.name, target->name, act.baseApCost, p.currentAp));
-                gameContext->refreshActionGrid();
-            }
-            return;
+            m_engine.appendLog(std::format("[Queued #{}] {} -> {} ({:.0f} Sta, {:.0f} MP, {:.0f} Sta left)",
+                p.turnQueue.size(), act.name, target->name, act.staminaCost, act.manaCost, p.currentStamina));
+            gameContext->refreshActionGrid();
         }
-    }
-    else if (cmd.type == CommandType::END_TURN)
-    {
-        handleEndTurn(gameContext);
-    }
-    else if (cmd.type == CommandType::RUN_ATTEMPT)
-    {
-        handleRunAttempt(gameContext);
-    }
-    else if (cmd.type == CommandType::SURRENDER)
-    {
-        handleSurrender(gameContext);
+        return;
     }
 }
 

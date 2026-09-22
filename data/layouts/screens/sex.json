@@ -1,0 +1,54 @@
+{
+  "state": "SEX",
+  "name": "Intimate Sex Encounter Layout",
+  "rootNode": {
+    "id": "sex_root_row",
+    "type": "CONTAINER",
+    "direction": "ROW",
+    "sizes": [16.0, 68.0, 16.0],
+    "children": [
+      {
+        "id": "sex_left_column",
+        "type": "LEAF",
+        "name": "Player Status & Paperdoll",
+        "widgets": [
+          "widget_lt_character_card",
+          "widget_paperdoll_equipment"
+        ]
+      },
+      {
+        "id": "sex_center_column",
+        "type": "CONTAINER",
+        "direction": "COLUMN",
+        "sizes": [78.0, 22.0],
+        "children": [
+          {
+            "id": "sex_encounter_box",
+            "type": "LEAF",
+            "name": "Intimate Scene Narrative",
+            "widgets": [
+              "widget_erotic_encounter"
+            ]
+          },
+          {
+            "id": "sex_bottom_actions",
+            "type": "LEAF",
+            "name": "Action Commands Grid",
+            "widgets": [
+              "widget_action_commands"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "sex_right_column",
+        "type": "LEAF",
+        "name": "Partner Status & Paperdoll",
+        "widgets": [
+          "widget_target_inspector",
+          "widget_partner_paperdoll"
+        ]
+      }
+    ]
+  }
+}

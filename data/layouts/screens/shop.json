@@ -1,0 +1,55 @@
+{
+  "state": "SHOP",
+  "name": "Merchant Trading Layout",
+  "rootNode": {
+    "id": "shop_root_row",
+    "type": "CONTAINER",
+    "direction": "ROW",
+    "sizes": [16.0, 68.0, 16.0],
+    "children": [
+      {
+        "id": "shop_left_column",
+        "type": "LEAF",
+        "name": "Player Status & Paperdoll",
+        "widgets": [
+          "widget_lt_character_card",
+          "widget_paperdoll_equipment"
+        ]
+      },
+      {
+        "id": "shop_center_column",
+        "type": "CONTAINER",
+        "direction": "COLUMN",
+        "sizes": [78.0, 22.0],
+        "children": [
+          {
+            "id": "shop_center_pane",
+            "type": "LEAF",
+            "name": "Merchant Trading & Catalog",
+            "widgets": [
+              "widget_shop_dual",
+              "widget_item_details_inspector"
+            ]
+          },
+          {
+            "id": "shop_bottom_actions",
+            "type": "LEAF",
+            "name": "Action Commands Grid",
+            "widgets": [
+              "widget_action_commands"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "shop_right_column",
+        "type": "LEAF",
+        "name": "Merchant Status & Paperdoll",
+        "widgets": [
+          "widget_target_inspector",
+          "widget_partner_paperdoll"
+        ]
+      }
+    ]
+  }
+}

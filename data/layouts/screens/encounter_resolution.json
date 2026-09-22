@@ -1,0 +1,54 @@
+{
+  "state": "ENCOUNTER_RESOLUTION",
+  "name": "Encounter Resolution Hub Layout",
+  "rootNode": {
+    "id": "res_root_row",
+    "type": "CONTAINER",
+    "direction": "ROW",
+    "sizes": [16.0, 68.0, 16.0],
+    "children": [
+      {
+        "id": "res_left_column",
+        "type": "LEAF",
+        "name": "Navigation & Status Sidebar",
+        "widgets": [
+          "widget_lt_character_card",
+          "widget_lt_dpad_radar"
+        ]
+      },
+      {
+        "id": "res_center_column",
+        "type": "CONTAINER",
+        "direction": "COLUMN",
+        "sizes": [78.0, 22.0],
+        "children": [
+          {
+            "id": "res_center_pane",
+            "type": "LEAF",
+            "name": "Victory / Defeat Resolution",
+            "widgets": [
+              "widget_narrative_story"
+            ]
+          },
+          {
+            "id": "res_bottom_actions",
+            "type": "LEAF",
+            "name": "Resolution Actions",
+            "widgets": [
+              "widget_action_commands"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "res_right_column",
+        "type": "LEAF",
+        "name": "Entities & Activity Sidebar",
+        "widgets": [
+          "widget_lt_npc_card",
+          "widget_lt_event_log"
+        ]
+      }
+    ]
+  }
+}

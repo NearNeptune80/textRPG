@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "core/game.h"
+#include "entities/namedCharacter.h"
 #include "items/itemDatabase.h"
 #include "items/merchantValuation.h"
 #include "state/explorationState.h"
@@ -28,32 +29,15 @@ void shopState::onEnter(game* gameContext)
         }
         else
         {
-            m_merchant = std::make_shared<entity>("marcus", "Marcus");
-            m_merchant->stats.setBaseStat("currency", 1500.0f);
-            m_merchant->baseMerchantGold = 1500.0f;
-            m_merchant->buyMarkup = 1.20f;   // 20% markup on wares sold to player
-            m_merchant->sellMarkdown = 0.55f;// 55% markdown on items bought from player
-            m_merchant->merchantAffinity = 1.0f;
-
-            static const std::vector<std::pair<std::string, int>> defaultStock = {
-                { "item_canis_root", 5 },
-                { "item_linen_shirt", 2 },
-                { "item_leather_trousers", 2 },
-                { "item_leather_boots", 1 },
-                { "item_cloth_gloves", 2 },
-                { "item_leather_choker", 1 },
-                { "item_silk_bra", 1 },
-                { "item_silk_panties", 1 },
-                { "item_ancient_tome", 1 }
-            };
-
-            for (const auto& [itemId, count] : defaultStock)
+            auto namedMarcus = NamedCharacterManager::getCharacter("marcus");
+            if (!namedMarcus || !namedMarcus->characterEntity)
             {
-                for (int i = 0; i < count; ++i)
-                {
-                    auto it = itemDatabase::getItem(itemId);
-                    if (it) m_merchant->inventory.addItem(it);
-                }
+                NamedCharacterManager::loadFromDirectory("data/characters");
+                namedMarcus = NamedCharacterManager::getCharacter("marcus");
+            }
+            if (namedMarcus && namedMarcus->characterEntity)
+            {
+                m_merchant = namedMarcus->characterEntity;
             }
         }
     }

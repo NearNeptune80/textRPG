@@ -33,16 +33,22 @@ public:
 	void handleRunAttempt(game* gameContext);
 	void handleSurrender(game* gameContext);
 
+	// Focus-based Combat
+	CombatFocus getCombatFocus() const { return m_currentFocus; }
+	void setCombatFocus(CombatFocus focus);
+
 	// Defeat Resolution
 	void resolveDefeat(game* gameContext);
 
 	// Snapshot APIs for UI View Layer
 	const combatEngine& getEngine() const { return m_engine; }
+	combatEngine& getEngineMutable() { return m_engine; }
 	int getSelectedTargetIndex() const { return m_selectedTargetIndex; }
 	bool isTargetEnemy() const { return m_targetIsEnemy; }
 
 private:
 	combatEngine m_engine;
+	CombatFocus m_currentFocus = CombatFocus::ROOT;
 
 	int m_selectedTargetIndex = 0;
 	bool m_targetIsEnemy = true;

@@ -69,6 +69,12 @@ uiRenderer::uiRenderer()
         }
     }
 
+    if (m_layoutEngine.loadFromDirectory("data/layouts/screens"))
+    {
+        std::cout << "[uiRenderer] Loaded modular screen layouts from: data/layouts/screens\n";
+        loaded = true;
+    }
+
     if (!loaded)
     {
         m_layoutEngine.loadDefaultLayout();
@@ -87,9 +93,6 @@ uiRenderer::~uiRenderer() = default;
 void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
 {
     if (!renderer || !gameContext) return;
-
-    // Refresh action buttons based on current state
-    ActionGridManager::refresh(gameContext);
 
     // Query native screen/window render output size for non-stretched pixel-perfect drawing
     int winW = 1280, winH = 720;
@@ -137,6 +140,9 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
     else if (dynamic_cast<shopState*>(curState)) stateKey = "SHOP";
     else if (dynamic_cast<transformationState*>(curState)) stateKey = "TRANSFORMATION";
     else if (dynamic_cast<phoneAppsState*>(curState)) stateKey = "PHONE_APP";
+    else if (dynamic_cast<enchantingState*>(curState)) stateKey = "ENCHANTING";
+    else if (dynamic_cast<encounterResolutionState*>(curState)) stateKey = "ENCOUNTER_RESOLUTION";
+    else if (dynamic_cast<eventState*>(curState)) stateKey = "EVENT";
     else if (dynamic_cast<explorationState*>(curState)) stateKey = "EXPLORATION";
 
     auto panels = m_layoutEngine.computeLayout(static_cast<float>(winW), static_cast<float>(winH), uiScale, stateKey);
@@ -374,7 +380,7 @@ void uiRenderer::renderBottomActionGrid(SDL_Renderer* renderer, game* gameContex
 {
     UIWidget::drawPanel(renderer, rect);
 
-    const auto& buttons = gameContext->getActiveActionButtons();
+    const auto& buttons = gameContext->getActiveActionSlots();
     int totalButtons = static_cast<int>(buttons.size());
 
     int totalPages = (totalButtons > 0) ? ((totalButtons - 1) / BUTTONS_PER_PAGE) + 1 : 1;

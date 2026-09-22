@@ -30,4 +30,6 @@ namespace EngineTests
     bool testEnchantingCompatibilityAndRacialGating();
     bool testGranularDomainPropertiesAndZeroLockedButtons();
     bool testEnchantingAltarParityAndLimits();
+    bool testFocusCombatElementalReactionsAndDecoupling();
+    bool testModularScreensAndWidgetCatalog();
 }

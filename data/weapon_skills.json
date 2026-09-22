@@ -1,0 +1,89 @@
+{
+  "version": "1.0",
+  "skills": [
+    {
+      "id": "skill_slash",
+      "name": "Slash",
+      "staminaCost": 20,
+      "damageType": "slashing",
+      "damageMult": 1.0,
+      "statusEffect": "",
+      "description": "A swift, disciplined blade slash dealing clean physical damage."
+    },
+    {
+      "id": "skill_thrust",
+      "name": "Precision Thrust",
+      "staminaCost": 20,
+      "damageType": "piercing",
+      "damageMult": 0.95,
+      "critBonus": 0.25,
+      "armorBypass": 0.30,
+      "statusEffect": "",
+      "description": "A pinpoint lunging thrust targeting weak points in enemy armor."
+    },
+    {
+      "id": "skill_heavy_cleave",
+      "name": "Heavy Cleave",
+      "staminaCost": 45,
+      "damageType": "slashing",
+      "damageMult": 2.1,
+      "staggerBonus": 30.0,
+      "statusEffect": "",
+      "description": "A crushing, two-handed overhead chop delivering devastating impact."
+    },
+    {
+      "id": "skill_pommel_strike",
+      "name": "Pommel Strike",
+      "staminaCost": 25,
+      "damageType": "bludgeoning",
+      "damageMult": 0.7,
+      "statusEffect": "stun",
+      "description": "A sharp strike using the heavy pommel, dazing and stunning the foe."
+    },
+    {
+      "id": "skill_quick_flurry",
+      "name": "Quick Flurry",
+      "staminaCost": 25,
+      "damageType": "piercing",
+      "damageMult": 1.25,
+      "statusEffect": "bleed",
+      "description": "A rapid succession of lacerating cuts that inflicts bleeding."
+    },
+    {
+      "id": "skill_crush",
+      "name": "Crush",
+      "staminaCost": 35,
+      "damageType": "bludgeoning",
+      "damageMult": 1.45,
+      "armorShred": 0.40,
+      "description": "A brutal blunt impact that fractures bone and shatters heavy armor."
+    },
+    {
+      "id": "skill_sweeping_strike",
+      "name": "Sweeping Strike",
+      "staminaCost": 35,
+      "damageType": "slashing",
+      "damageMult": 1.2,
+      "isAoe": true,
+      "description": "A wide horizontal swing cleaving through the enemy ranks."
+    },
+    {
+      "id": "skill_parry_riposte",
+      "name": "Parry & Riposte",
+      "staminaCost": 30,
+      "damageType": "piercing",
+      "damageMult": 1.15,
+      "counterGuard": true,
+      "description": "Deflects incoming melee strikes and instantly delivers a lethal counter-thrust."
+    },
+    {
+      "id": "skill_shield_bash",
+      "name": "Shield Bash",
+      "staminaCost": 25,
+      "damageType": "bludgeoning",
+      "damageMult": 0.85,
+      "statusEffect": "stun",
+      "description": "Slams a reinforced shield into the target's face, staggering their stance."
+    }
+  ]
+}

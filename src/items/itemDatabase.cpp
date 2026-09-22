@@ -75,6 +75,11 @@ void from_json(const json& j, item& itemObj)
         itemObj.forbiddenTags = j.at("forbiddenTags").get<std::vector<std::string>>();
     }
 
+    if (j.contains("weaponSkills") && j["weaponSkills"].is_array())
+    {
+        itemObj.weaponSkills = j.at("weaponSkills").get<std::vector<std::string>>();
+    }
+
     if (j.contains("statModifiers"))
     {
         itemObj.statModifiers.clear();

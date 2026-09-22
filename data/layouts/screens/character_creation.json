@@ -1,0 +1,53 @@
+{
+  "state": "CHARACTER_CREATION",
+  "name": "Character Creation Wizard Layout",
+  "rootNode": {
+    "id": "cc_root_row",
+    "type": "CONTAINER",
+    "direction": "ROW",
+    "sizes": [16.0, 68.0, 16.0],
+    "children": [
+      {
+        "id": "cc_left_sidebar",
+        "type": "LEAF",
+        "name": "Player Status & Paperdoll",
+        "widgets": [
+          "widget_lt_character_card",
+          "widget_paperdoll_equipment"
+        ]
+      },
+      {
+        "id": "cc_center_column",
+        "type": "CONTAINER",
+        "direction": "COLUMN",
+        "sizes": [78.0, 22.0],
+        "children": [
+          {
+            "id": "cc_center_pane",
+            "type": "LEAF",
+            "name": "Character Customization Options",
+            "widgets": [
+              "widget_character_creation"
+            ]
+          },
+          {
+            "id": "cc_bottom_actions",
+            "type": "LEAF",
+            "name": "Step Navigation & Creation Actions",
+            "widgets": [
+              "widget_action_commands"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "cc_right_sidebar",
+        "type": "LEAF",
+        "name": "Entities & Activity Sidebar",
+        "widgets": [
+          "widget_lt_event_log"
+        ]
+      }
+    ]
+  }
+}
