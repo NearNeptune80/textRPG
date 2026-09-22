@@ -59,7 +59,7 @@ void printStateDetails(game& engine)
 
         std::cout << " Narrative Log:\n" << sex->getNarrativeLog() << "\n\n";
 
-        const auto& buttons = engine.getActiveActionButtons();
+        const auto& buttons = engine.getActiveActionSlots();
         if (!buttons.empty())
         {
             std::cout << " Sex Actions & Commands:\n";
@@ -135,7 +135,7 @@ void printStateDetails(game& engine)
     else if (dynamic_cast<explorationState*>(state))
     {
         std::cout << " [EXPLORATION]\n";
-        const auto& buttons = engine.getActiveActionButtons();
+        const auto& buttons = engine.getActiveActionSlots();
         if (!buttons.empty())
         {
             std::cout << " Actions:\n";
@@ -355,7 +355,7 @@ int main(int argc, char* argv[])
             }
             else
             {
-                const auto& btns = engine.getActiveActionButtons();
+                const auto& btns = engine.getActiveActionSlots();
                 if (choiceIdx >= 0 && static_cast<size_t>(choiceIdx) < btns.size() && btns[choiceIdx].onClick)
                 {
                     btns[choiceIdx].onClick();

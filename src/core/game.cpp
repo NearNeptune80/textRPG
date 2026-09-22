@@ -31,7 +31,6 @@
 #include "state/shopState.h"
 #include "state/transformationState.h"
 #include "ui/actionGridManager.h"
-#include "ui/theme.h"
 
 game::game() : isRunning(false), map(nullptr), playerEntity(nullptr), Player(nullptr), gridX(1), gridY(1) {}
 
@@ -64,11 +63,11 @@ void game::triggerActionButton(int slotIndex)
 {
     if (slotIndex < 0 || slotIndex >= 15) return;
     int targetIdx = (currentActionPage * 15) + slotIndex;
-    if (targetIdx >= 0 && static_cast<size_t>(targetIdx) < activeButtons.size())
+    if (targetIdx >= 0 && static_cast<size_t>(targetIdx) < activeActionSlots.size())
     {
-        if (activeButtons[targetIdx].isEnabled && activeButtons[targetIdx].onClick)
+        if (activeActionSlots[targetIdx].isEnabled && activeActionSlots[targetIdx].onClick)
         {
-            auto cb = activeButtons[targetIdx].onClick;
+            auto cb = activeActionSlots[targetIdx].onClick;
             cb();
         }
     }
@@ -84,7 +83,7 @@ void game::previousActionPage()
 
 void game::nextActionPage()
 {
-    int totalButtons = static_cast<int>(activeButtons.size());
+    int totalButtons = static_cast<int>(activeActionSlots.size());
     int totalPages = (totalButtons > 0) ? ((totalButtons - 1) / 15) + 1 : 1;
     if (currentActionPage < totalPages - 1)
     {
@@ -105,7 +104,6 @@ void game::addLogEntry(const std::string& tag, const std::string& text, LogColor
 void game::init()
 {
     settingsManager::loadFromFile(settings, "data/settings.json");
-    Theme::applyTheme(settings.display.activeTheme);
 
     clearEventLog();
     addLogEntry("[ZONE]", "Sanctuary Manor F1", { 80, 160, 220, 255 });
@@ -1203,17 +1201,39 @@ void game::processChoice(const dialogueChoice& choice)
         std::vector<std::shared_ptr<entity>> enemyParty;
         TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
 
-        if (tileData.ambushState.npc)
+        std::shared_ptr<entity> targetEnemy = nullptr;
+        if (activeTargetNPC && activeTargetNPC->getStat("health") > 0.0f && activeTargetNPC->getStat("lust") < 100.0f)
         {
-            enemyParty.push_back(tileData.ambushState.npc);
+            targetEnemy = activeTargetNPC;
         }
-        else if (tileData.persistentNPC)
+        else if (tileData.ambushState.npc && tileData.ambushState.npc->getStat("health") > 0.0f && tileData.ambushState.npc->getStat("lust") < 100.0f)
         {
-            enemyParty.push_back(tileData.persistentNPC);
+            targetEnemy = tileData.ambushState.npc;
         }
-        else if (activeTargetNPC)
+        else if (tileData.persistentNPC && tileData.persistentNPC->getStat("health") > 0.0f && tileData.persistentNPC->getStat("lust") < 100.0f)
         {
-            enemyParty.push_back(activeTargetNPC);
+            targetEnemy = tileData.persistentNPC;
+        }
+        else
+        {
+            targetEnemy = encounterResolver::createEncounterNPC(std::max(1, tileData.getEffectiveDangerLevel()), settings);
+            tileData.ambushState.npc = targetEnemy;
+            tileData.ambushState.isDefeated = false;
+        }
+
+        if (targetEnemy)
+        {
+            if (targetEnemy->getStat("health") <= 0.0f)
+            {
+                targetEnemy->stats.setBaseStat("health", 50.0f);
+            }
+            if (targetEnemy->getStat("lust") >= 100.0f)
+            {
+                targetEnemy->stats.setBaseStat("lust", 0.0f);
+            }
+            activeTargetNPC = targetEnemy;
+            activeTargetMode = TargetMode::COMBAT_ENEMY;
+            enemyParty.push_back(targetEnemy);
         }
 
         changeState(std::make_unique<CombatState>(playerParty, enemyParty));
@@ -1796,6 +1816,105 @@ void game::handleCommand(const UICommand& cmd)
     else if (cmd.type == CommandType::QUIT_GAME)
     {
         isRunning = false;
+        return;
+    }
+    else if (cmd.type == CommandType::SAVE_SETTINGS)
+    {
+        settingsManager::saveToFile(settings, "data/settings.json");
+        return;
+    }
+    else if (cmd.type == CommandType::UNLOCK_PERK)
+    {
+        entity* p = getPlayer();
+        std::string perkId = cmd.stringPayload;
+        int cost = cmd.intPayload1;
+        if (p)
+        {
+            float perkPts = p->getStat("perk_points");
+            if (perkPts >= cost && !p->hasPerk(perkId))
+            {
+                p->stats.setBaseStat("perk_points", perkPts - cost);
+                p->unlockPerk(perkId);
+                addLogEntry("[TALENT]", std::format("Unlocked {} (-{} Pt{})", perkId, cost, cost > 1 ? "s" : ""), { 220, 180, 80, 255 });
+                refreshActionGrid();
+            }
+        }
+        return;
+    }
+    else if (cmd.type == CommandType::CAST_SPELL)
+    {
+        entity* p = getPlayer();
+        std::string spellId = cmd.stringPayload;
+        float mpCost = static_cast<float>(cmd.intPayload1);
+        float healAmount = static_cast<float>(cmd.intPayload2);
+        if (p)
+        {
+            float curMp = p->getStat("mana");
+            if (curMp >= mpCost)
+            {
+                p->stats.modifyBaseStat("mana", -mpCost);
+                if (healAmount > 0.0f)
+                {
+                    float curHp = p->getStat("health");
+                    float maxHp = p->getStat("max_health");
+                    p->stats.setBaseStat("health", std::min(maxHp, curHp + healAmount));
+                    addLogEntry("[MAGIC]", std::format("Channeled {}! Restored {:.0f} HP (-{:.0f} MP).", spellId, healAmount, mpCost), { 80, 200, 120, 255 });
+                }
+                else
+                {
+                    addLogEntry("[MAGIC]", std::format("Channeled {}! (-{:.0f} MP).", spellId, mpCost), { 140, 180, 255, 255 });
+                }
+                refreshActionGrid();
+            }
+        }
+        return;
+    }
+    else if (cmd.type == CommandType::MASTURBATE_ACTION)
+    {
+        entity* p = getPlayer();
+        if (p)
+        {
+            int duration = (cmd.intPayload1 > 0) ? cmd.intPayload1 : 10;
+            std::string feedback = p->handleMasturbation(cmd.stringPayload, duration, &gameTime);
+            if (auto phone = dynamic_cast<phoneAppsState*>(activeGameState.get()))
+            {
+                phone->setFeedbackText(feedback);
+            }
+            addLogEntry("[INTIMACY]", feedback, { 255, 150, 200, 255 });
+            refreshActionGrid();
+        }
+        return;
+    }
+    else if (cmd.type == CommandType::FAMILIAR_ACTION)
+    {
+        entity* p = getPlayer();
+        if (p)
+        {
+            int duration = (cmd.intPayload1 > 0) ? cmd.intPayload1 : 10;
+            std::string feedback = p->handleFamiliarAction(cmd.stringPayload, duration, &gameTime);
+            if (auto phone = dynamic_cast<phoneAppsState*>(activeGameState.get()))
+            {
+                phone->setFeedbackText(feedback);
+            }
+            addLogEntry("[FAMILIAR]", feedback, { 120, 220, 255, 255 });
+            refreshActionGrid();
+        }
+        return;
+    }
+    else if (cmd.type == CommandType::ASSIGN_COMBAT_SLOT)
+    {
+        entity* p = getPlayer();
+        int slot = cmd.intPayload1;
+        std::string moveId = cmd.stringPayload;
+        if (p && slot >= 0 && slot < static_cast<int>(p->preparedCombatSlots.size()))
+        {
+            p->preparedCombatSlots[slot] = moveId;
+            if (auto phone = dynamic_cast<phoneAppsState*>(activeGameState.get()))
+            {
+                phone->setFeedbackText(std::format("Slot #{}: {}", slot + 1, moveId.empty() ? "Cleared" : moveId));
+            }
+            refreshActionGrid();
+        }
         return;
     }
 

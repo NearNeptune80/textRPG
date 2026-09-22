@@ -76,10 +76,14 @@ public:
     ~layoutEngine() = default;
 
     bool loadFromFile(const std::string& filePath);
+    bool loadFromDirectory(const std::string& dirPath = "data/layouts/screens");
+    bool loadScreenFile(const std::string& filePath);
     void loadDefaultLayout();
 
     [[nodiscard]] std::vector<PanelComputedBounds> computeLayout(float windowWidth, float windowHeight, float uiScale = 1.0f, const std::string& activeState = "") const;
     [[nodiscard]] const PanelConfig* getPanelConfig(const std::string& id) const;
+    const std::unordered_map<std::string, StudioLayoutNode>& getStateOverrides() const { return m_stateOverrides; }
+    bool hasStateOverride(const std::string& state) const { return m_stateOverrides.contains(state); }
 
     float getMargin() const { return m_globalMargin; }
     void setMargin(float margin) { m_globalMargin = margin; m_cachedWidth = 0.0f; }

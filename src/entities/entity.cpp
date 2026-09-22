@@ -5,6 +5,7 @@
 
 #include "entities/perkDatabase.h"
 #include "items/itemDatabase.h"
+#include "core/timeManager.h"
 
 using json = nlohmann::json;
 
@@ -201,6 +202,14 @@ json entity::toJson() const
     j["age"] = age;
     j["fetishDesires"] = fetishDesires;
 
+    j["isElemental"] = isElemental;
+    j["elementalType"] = elementalType;
+    j["bodyMaterial"] = bodyMaterial;
+    j["summonSpellId"] = summonSpellId;
+    j["spiritRank"] = spiritRank;
+    j["bondLevel"] = bondLevel;
+    j["resonance"] = resonance;
+
     json statsJson;
     statsJson["level"] = stats.level;
     statsJson["currentXp"] = stats.currentXp;
@@ -333,6 +342,15 @@ void entity::fromJson(const json& j)
     birthMonth = j.value("birthMonth", 8);
     birthYear = j.value("birthYear", 1);
     age = j.value("age", 24);
+
+    isElemental = j.value("isElemental", false);
+    elementalType = j.value("elementalType", "physical");
+    bodyMaterial = j.value("bodyMaterial", "flesh");
+    summonSpellId = j.value("summonSpellId", "");
+    spiritRank = j.value("spiritRank", 1);
+    bondLevel = j.value("bondLevel", 10);
+    resonance = j.value("resonance", 80.0f);
+
     if (j.contains("fetishDesires") && j["fetishDesires"].is_object())
     {
         fetishDesires = j["fetishDesires"].get<std::unordered_map<std::string, int>>();
@@ -629,4 +647,113 @@ bool entity::hasFetish(const std::string& fetishKey) const
 {
     auto it = fetishDesires.find(fetishKey);
     return (it != fetishDesires.end() && it->second >= 3); // 3=Like, 4=Love
+}
+
+std::string entity::handleMasturbation(const std::string& actionId, int baseDurationMinutes, timeManager* timeMgr)
+{
+    if (timeMgr && baseDurationMinutes > 0)
+    {
+        timeMgr->advanceTime(baseDurationMinutes);
+    }
+
+    float currentArousal = getStat("arousal");
+    float currentLust = getStat("lust");
+    float maxArousal = 100.0f;
+    std::string narrative = "";
+
+    bool hasBreasts = anatomy.hasBreasts();
+    bool hasVagina = anatomy.hasVagina();
+    bool hasPenis = anatomy.hasPenis();
+
+    if (actionId == "CARESS_CHEST")
+    {
+        float gain = 20.0f;
+        stats.setBaseStat("arousal", std::min(maxArousal, currentArousal + gain));
+        if (hasBreasts)
+        {
+            narrative = "Your fingertips trace circular patterns over your tender breasts, squeezing gently as your nipples harden to the sensitive touch.";
+        }
+        else
+        {
+            narrative = "You run your fingers slowly across your firm chest, teasing your sensitive nipples as your breath quickens.";
+        }
+    }
+    else if (actionId == "FONDLE_GROIN")
+    {
+        float gain = 30.0f;
+        stats.setBaseStat("arousal", std::min(maxArousal, currentArousal + gain));
+        if (hasPenis && hasVagina)
+        {
+            narrative = "You slide your hands between your thighs, caressing your throbbing shaft while your fingertips circle your soaking slit.";
+        }
+        else if (hasPenis)
+        {
+            narrative = "You wrap your fingers firmly around your hardening shaft, stroking with deliberate rhythm as pre-cum beads at the tip.";
+        }
+        else if (hasVagina)
+        {
+            narrative = "You slip your slick fingers into your folds, rubbing your swollen clitoris in rhythmic, breathless circles.";
+        }
+        else
+        {
+            narrative = "You explore your sensitive groin, caressing your trembling flesh as a wave of heat spreads through your hips.";
+        }
+    }
+    else if (actionId == "TEASE_CLIMAX")
+    {
+        float gain = 35.0f;
+        stats.setBaseStat("arousal", std::min(maxArousal, currentArousal + gain));
+        narrative = "You accelerate the pace, deliberately teasing right on the brink of ecstasy before pausing, shivering with exquisite frustration.";
+    }
+    else if (actionId == "CLIMAX_RELIEF")
+    {
+        if (currentArousal >= 60.0f || currentLust >= 40.0f)
+        {
+            stats.setBaseStat("arousal", 0.0f);
+            stats.setBaseStat("lust", std::max(0.0f, currentLust - 50.0f));
+            narrative = "A shattering, full-body convulsion ripples through you as you surrender completely to orgasm, panting in blissful, trembling release.";
+        }
+        else
+        {
+            stats.setBaseStat("arousal", std::min(maxArousal, currentArousal + 15.0f));
+            narrative = "You push toward climax, but your desire is not yet fully peaked; your body shivers with unfulfilled anticipation.";
+        }
+    }
+    else
+    {
+        stats.setBaseStat("arousal", std::min(maxArousal, currentArousal + 15.0f));
+        narrative = "You take a quiet moment for yourself, letting your hands explore your changing body.";
+    }
+
+    return narrative;
+}
+
+std::string entity::handleFamiliarAction(const std::string& actionId, int baseDurationMinutes, timeManager* timeMgr)
+{
+    if (timeMgr && baseDurationMinutes > 0)
+    {
+        timeMgr->advanceTime(baseDurationMinutes);
+    }
+
+    std::string narrative = "";
+    if (actionId == "PET")
+    {
+        bondLevel = std::min(100, bondLevel + 2);
+        float currentMana = getStat("mana");
+        float maxMana = getStat("max_mana");
+        stats.setBaseStat("mana", std::min(maxMana, currentMana + 8.0f));
+        narrative = "You gently stroke your elemental familiar. It hums with affectionate magical resonance, restoring your mana.";
+    }
+    else if (actionId == "COMMUNE")
+    {
+        resonance = std::min(100.0f, resonance + 5.0f);
+        bondLevel = std::min(100, bondLevel + 4);
+        narrative = "You sit in deep meditation with your familiar, harmonizing your arcane core with its elemental currents.";
+    }
+    else
+    {
+        narrative = "You spend time interacting with your loyal companion.";
+    }
+
+    return narrative;
 }

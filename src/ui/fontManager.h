@@ -2,6 +2,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <vector>
 #include <SDL3/SDL.h>
 #include <SDL3_ttf/SDL_ttf.h>
 
@@ -54,8 +55,15 @@ private:
         int width = 0;
         int height = 0;
     };
+    struct WrappedTextCache
+    {
+        std::vector<std::string> lines;
+        float totalHeight = 0.0f;
+    };
     std::unordered_map<std::string, CachedGlyph> m_textCache;
     std::unordered_map<std::string, float> m_textWidthCache;
+    mutable std::unordered_map<std::string, WrappedTextCache> m_wrappedTextCache;
 
+    const WrappedTextCache& getOrCreateWrapped(const std::string& text, float maxWidth, float scale) const;
     void drawEmbeddedFallback(SDL_Renderer* renderer, const std::string& text, float x, float y, SDL_Color color, float scale);
 };

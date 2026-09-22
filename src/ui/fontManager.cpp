@@ -214,6 +214,7 @@ void fontManager::clearCache()
     }
     m_textCache.clear();
     m_textWidthCache.clear();
+    m_wrappedTextCache.clear();
 }
 
 void fontManager::drawText(SDL_Renderer* renderer, const std::string& text, float x, float y, SDL_Color color, float scale)
@@ -273,15 +274,20 @@ void fontManager::drawText(SDL_Renderer* renderer, const std::string& text, floa
     SDL_RenderTexture(renderer, texture, nullptr, &dstRect);
 }
 
-float fontManager::drawTextWrapped(SDL_Renderer* renderer, const std::string& text, float x, float y, float maxWidth, SDL_Color color, float scale)
+const fontManager::WrappedTextCache& fontManager::getOrCreateWrapped(const std::string& text, float maxWidth, float scale) const
 {
-    if (!renderer || text.empty()) return 0.0f;
+    std::string key = text + "_" + std::to_string(static_cast<int>(maxWidth)) + "_" + std::to_string(static_cast<int>(scale * 100.0f));
+    auto it = m_wrappedTextCache.find(key);
+    if (it != m_wrappedTextCache.end())
+    {
+        return it->second;
+    }
+
+    WrappedTextCache entry;
+    float lineHeight = const_cast<fontManager*>(this)->getLineHeight(scale);
 
     std::istringstream stream(text);
     std::string line;
-    float curY = y;
-    float lineHeight = getLineHeight(scale);
-
     while (std::getline(stream, line))
     {
         std::istringstream lineStream(line);
@@ -291,10 +297,10 @@ float fontManager::drawTextWrapped(SDL_Renderer* renderer, const std::string& te
         while (lineStream >> word)
         {
             std::string testLine = currentLine.empty() ? word : currentLine + " " + word;
-            if (getTextWidth(testLine, scale) > maxWidth && !currentLine.empty())
+            if (const_cast<fontManager*>(this)->getTextWidth(testLine, scale) > maxWidth && !currentLine.empty())
             {
-                drawText(renderer, currentLine, x, curY, color, scale);
-                curY += lineHeight;
+                entry.lines.push_back(currentLine);
+                entry.totalHeight += lineHeight;
                 currentLine = word;
             }
             else
@@ -305,48 +311,39 @@ float fontManager::drawTextWrapped(SDL_Renderer* renderer, const std::string& te
 
         if (!currentLine.empty())
         {
-            drawText(renderer, currentLine, x, curY, color, scale);
-            curY += lineHeight;
+            entry.lines.push_back(currentLine);
+            entry.totalHeight += lineHeight;
         }
     }
 
-    return (curY - y);
+    if (m_wrappedTextCache.size() > 2000)
+    {
+        m_wrappedTextCache.clear();
+    }
+
+    auto [insertedIt, _] = m_wrappedTextCache.emplace(std::move(key), std::move(entry));
+    return insertedIt->second;
+}
+
+float fontManager::drawTextWrapped(SDL_Renderer* renderer, const std::string& text, float x, float y, float maxWidth, SDL_Color color, float scale)
+{
+    if (!renderer || text.empty()) return 0.0f;
+
+    const auto& wrapped = getOrCreateWrapped(text, maxWidth, scale);
+    float curY = y;
+    float lineHeight = getLineHeight(scale);
+
+    for (const auto& line : wrapped.lines)
+    {
+        drawText(renderer, line, x, curY, color, scale);
+        curY += lineHeight;
+    }
+
+    return wrapped.totalHeight;
 }
 
 float fontManager::getTextWrappedHeight(const std::string& text, float maxWidth, float scale)
 {
     if (text.empty() || maxWidth <= 0.0f) return 0.0f;
-
-    std::istringstream stream(text);
-    std::string line;
-    float totalH = 0.0f;
-    float lineHeight = getLineHeight(scale);
-
-    while (std::getline(stream, line))
-    {
-        std::istringstream lineStream(line);
-        std::string word;
-        std::string currentLine = "";
-
-        while (lineStream >> word)
-        {
-            std::string testLine = currentLine.empty() ? word : currentLine + " " + word;
-            if (getTextWidth(testLine, scale) > maxWidth && !currentLine.empty())
-            {
-                totalH += lineHeight;
-                currentLine = word;
-            }
-            else
-            {
-                currentLine = testLine;
-            }
-        }
-
-        if (!currentLine.empty())
-        {
-            totalH += lineHeight;
-        }
-    }
-
-    return totalH;
+    return getOrCreateWrapped(text, maxWidth, scale).totalHeight;
 }

@@ -44,6 +44,28 @@
       "mpCost": 30,
       "description": "Instantly teleports the caster a short distance across the battlefield or room.",
       "unlocked": false
+    },
+    {
+      "id": "summon_sylph",
+      "name": "Summon Sylph",
+      "school": "Air",
+      "mpCost": 35,
+      "isSummon": true,
+      "summonType": "air",
+      "companionId": "companion_sylph",
+      "description": "Weaves atmospheric currents into a sentient Sylph wind-elemental companion.",
+      "unlocked": true
+    },
+    {
+      "id": "summon_flame",
+      "name": "Summon Ignis",
+      "school": "Fire",
+      "mpCost": 40,
+      "isSummon": true,
+      "summonType": "fire",
+      "companionId": "companion_ignis",
+      "description": "Ignites raw volcanic energy into an Ignis flame-elemental companion.",
+      "unlocked": false
     }
   ]
 }

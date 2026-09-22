@@ -8,7 +8,8 @@
       "baseStats": {
         "health": 50.0,
         "mana": 30.0,
-        "lust": 100.0,
+        "lust": 0.0,
+        "max_lust": 100.0,
         "physique": 14.0,
         "arcane": 8.0,
         "corruption": 10.0
@@ -36,7 +37,8 @@
       "baseStats": {
         "health": 45.0,
         "mana": 20.0,
-        "lust": 100.0,
+        "lust": 0.0,
+        "max_lust": 100.0,
         "physique": 10.0,
         "arcane": 6.0,
         "corruption": 5.0

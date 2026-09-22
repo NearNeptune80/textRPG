@@ -349,8 +349,51 @@
       "validSlots": ["WEAPON_MAIN", "WEAPON_OFF"],
       "requiredTags": [],
       "forbiddenTags": [],
+      "weaponSkills": ["skill_thrust", "skill_quick_flurry", "skill_parry_riposte"],
       "statModifiers": [
         { "statName": "physique", "flatValue": 2.0, "percentValue": 0.0 }
+      ],
+      "supportedDisplacements": {}
+    },
+    {
+      "id": "item_iron_sword",
+      "name": "Iron Longsword",
+      "description": "A well-balanced double-edged arming sword forged from tempered steel.",
+      "tooltip": "Versatile martial longsword (+3 Physique, +1 Agility).",
+      "baseValue": 75,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "WEAPON_MAIN",
+      "validSlots": ["WEAPON_MAIN"],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "weaponSkills": ["skill_slash", "skill_thrust", "skill_pommel_strike"],
+      "statModifiers": [
+        { "statName": "physique", "flatValue": 3.0, "percentValue": 0.0 },
+        { "statName": "agility", "flatValue": 1.0, "percentValue": 0.0 }
+      ],
+      "supportedDisplacements": {}
+    },
+    {
+      "id": "item_war_hammer",
+      "name": "Steel War Hammer",
+      "description": "A brutal war hammer designed to crush armor and fracture shields with heavy kinetic force.",
+      "tooltip": "Devastating blunt hammer (+5 Physique, -1 Agility).",
+      "baseValue": 90,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "WEAPON_MAIN",
+      "validSlots": ["WEAPON_MAIN"],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "weaponSkills": ["skill_crush", "skill_heavy_cleave", "skill_pommel_strike"],
+      "statModifiers": [
+        { "statName": "physique", "flatValue": 5.0, "percentValue": 0.0 },
+        { "statName": "agility", "flatValue": -1.0, "percentValue": 0.0 }
       ],
       "supportedDisplacements": {}
     },

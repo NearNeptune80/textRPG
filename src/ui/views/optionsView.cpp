@@ -102,7 +102,7 @@ namespace OptionsView
                 else cur = "theme_dark_fantasy";
 
                 Theme::applyTheme(cur);
-                settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
                 gameContext->refreshActionGrid();
                 gameContext->input.consumeMouseClick();
             }
@@ -133,7 +133,7 @@ namespace OptionsView
                 {
                     gameContext->settings.display.fontSize -= 2;
                     opt->fontSize = gameContext->settings.display.fontSize;
-                    settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                    gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
                     gameContext->refreshActionGrid();
                 }
                 gameContext->input.consumeMouseClick();
@@ -144,7 +144,7 @@ namespace OptionsView
                 {
                     gameContext->settings.display.fontSize += 2;
                     opt->fontSize = gameContext->settings.display.fontSize;
-                    settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                    gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
                     gameContext->refreshActionGrid();
                 }
                 gameContext->input.consumeMouseClick();
@@ -173,7 +173,7 @@ namespace OptionsView
             {
                 gameContext->settings.display.fadeInEnabled = false;
                 opt->fadeInEnabled = false;
-                settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
                 gameContext->refreshActionGrid();
                 gameContext->input.consumeMouseClick();
             }
@@ -181,7 +181,7 @@ namespace OptionsView
             {
                 gameContext->settings.display.fadeInEnabled = true;
                 opt->fadeInEnabled = true;
-                settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
                 gameContext->refreshActionGrid();
                 gameContext->input.consumeMouseClick();
             }
@@ -211,7 +211,7 @@ namespace OptionsView
             {
                 gameContext->settings.gameplay.genderPronounMode = "Normal";
                 opt->genderPronounMode = "Normal";
-                settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
                 gameContext->refreshActionGrid();
                 gameContext->input.consumeMouseClick();
             }
@@ -219,7 +219,7 @@ namespace OptionsView
             {
                 gameContext->settings.gameplay.genderPronounMode = "Custom";
                 opt->genderPronounMode = "Custom";
-                settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
                 gameContext->refreshActionGrid();
                 gameContext->input.consumeMouseClick();
             }
@@ -249,7 +249,7 @@ namespace OptionsView
             {
                 gameContext->settings.gameplay.unitPreference = "Metric";
                 opt->unitPreference = "Metric";
-                settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
                 gameContext->refreshActionGrid();
                 gameContext->input.consumeMouseClick();
             }
@@ -257,7 +257,7 @@ namespace OptionsView
             {
                 gameContext->settings.gameplay.unitPreference = "Imperial";
                 opt->unitPreference = "Imperial";
-                settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
                 gameContext->refreshActionGrid();
                 gameContext->input.consumeMouseClick();
             }
@@ -302,7 +302,7 @@ namespace OptionsView
                     opt->difficultyLevel = i;
                     static constexpr float diffMults[] = { 1.0f, 1.25f, 2.0f, 2.5f, 4.0f };
                     gameContext->settings.gameplay.difficultyMultiplier = diffMults[i];
-                    settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                    gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
                     gameContext->refreshActionGrid();
                     gameContext->input.consumeMouseClick();
                 }
@@ -525,7 +525,7 @@ namespace OptionsView
                     renderOptionCard(def.title, def.color, def.description, { "OFF", "ON" }, *def.pVal ? 1 : 0,
                                      [&, p = def.pVal](int idx) {
                                          *p = (idx == 1);
-                                         settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                                         gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
                                      });
                 }
             };
@@ -545,7 +545,7 @@ namespace OptionsView
                                      [&, pS = def.pState, pB = def.pBool](int idx) {
                                          *pS = intToContentToggleState(idx);
                                          *pB = (*pS != ContentToggleState::OFF);
-                                         settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                                         gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
                                      });
                 }
             };
@@ -558,7 +558,7 @@ namespace OptionsView
                     renderFrequencyRow(title, col, desc, floatToFreqIdx(*pVal),
                                        [&, p = pVal](int idx) {
                                            *p = freqIdxToFloat(idx);
-                                           settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                                           gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
                                        });
                     segments.push_back({ *pVal, col });
                 }
@@ -572,7 +572,7 @@ namespace OptionsView
                                  gameContext->settings.gameplay.autoSaveFrequency,
                                  [&](int idx) {
                                      gameContext->settings.gameplay.autoSaveFrequency = idx;
-                                     settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                                     gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
                                  });
 
                 renderToggles({
@@ -601,7 +601,7 @@ namespace OptionsView
                                  [&](int idx) {
                                      static constexpr float lossPcts[] = { 0.0f, 0.10f, 0.25f, 0.50f };
                                      gameContext->settings.gameplay.currencyLossOnDefeatPercent = lossPcts[idx];
-                                     settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                                     gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
                                  });
             }
             else if (opt->contentCategory == ContentOptionsCategory::SEX_AND_FETISHES)
@@ -612,7 +612,7 @@ namespace OptionsView
                                  filterIdx,
                                  [&](int idx) {
                                      gameContext->settings.content.contentFilterMode = static_cast<ContentFilterMode>(idx);
-                                     settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                                     gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
                                  });
 
                 renderStateToggles({
@@ -640,7 +640,7 @@ namespace OptionsView
                                  [&](int idx) {
                                      static constexpr float flVals[] = { 0.25f, 0.5f, 1.0f, 2.0f, 4.0f };
                                      gameContext->settings.content.fluidMultiplier = flVals[idx];
-                                     settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                                     gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
                                  });
             }
             else if (opt->contentCategory == ContentOptionsCategory::BODIES)
@@ -660,7 +660,7 @@ namespace OptionsView
                                  [&](int idx) {
                                      static constexpr float tfVals[] = { 10.0f, 2.0f, 1.0f, 0.5f, 0.0f };
                                      gameContext->settings.content.transformationSpeedMultiplier = tfVals[idx];
-                                     settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                                     gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
                                  });
             }
             else if (opt->contentCategory == ContentOptionsCategory::GENDER_PREFS)
@@ -784,7 +784,7 @@ namespace OptionsView
                         if (pHovered && clicked)
                         {
                             gameContext->settings.content.fetishPreferences[fetishes[i]] = static_cast<int>(p);
-                            settingsManager::saveToFile(gameContext->settings, "data/settings.json");
+                            gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
                             gameContext->input.consumeMouseClick();
                         }
                     }

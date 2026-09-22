@@ -92,6 +92,7 @@ struct item
     std::string baseRace;
     std::string enchantmentGroup;
     int maxEnchantments = 999;
+    std::vector<std::string> weaponSkills;
     std::vector<enchantment> enchantments;
     std::vector<InfusionEffect> infusionEffects;
     std::vector<StatModifier> statModifiers;

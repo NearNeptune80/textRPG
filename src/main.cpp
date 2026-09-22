@@ -665,6 +665,9 @@ int main(int argc, char* argv[])
 
         // Step C: Isolated UI View Render
         view.render(renderer, &engine);
+
+        // Frame pacing fallback for low-spec hardware without active VSync
+        SDL_Delay(1);
     }
 
     // 7. Cleanup & Exit

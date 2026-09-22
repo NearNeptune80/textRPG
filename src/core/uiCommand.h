@@ -19,12 +19,25 @@ enum class CommandType
 	PICKUP_ITEM,
 	USE_ITEM,
 	EXECUTE_COMBAT_ACTION,
+	SELECT_COMBAT_FOCUS,
+	QUEUE_COMBAT_ACTION,
+	CLEAR_COMBAT_QUEUE,
+	EXECUTE_COMBAT_TURN,
 	END_TURN,
 	RUN_ATTEMPT,
 	SURRENDER,
 	SELECT_DIALOGUE_CHOICE,
 	TRIGGER_INTERACTION,
 	CLOSE_MENU,
+
+	// Solo Intimacy & Elemental Companions
+	MASTURBATE_ACTION,
+	FAMILIAR_ACTION,
+	ASSIGN_COMBAT_SLOT,
+	CAST_SPELL,
+	UNLOCK_PERK,
+	SAVE_SETTINGS,
+	TOGGLE_DROPDOWN,
 
 	// Action Grid Navigation & Triggers
 	TRIGGER_ACTION_BUTTON,
@@ -115,4 +128,13 @@ struct UICommand
 	static UICommand nextActionPage() { return UICommand(CommandType::NEXT_ACTION_PAGE); }
 	static UICommand triggerActionButton(int slot) { return UICommand(CommandType::TRIGGER_ACTION_BUTTON, slot); }
 	static UICommand selectTab(int tab) { return UICommand(CommandType::SELECT_TAB, tab); }
+	static UICommand selectCombatFocus(std::string focus) { return UICommand(CommandType::SELECT_COMBAT_FOCUS, std::move(focus)); }
+	static UICommand queueCombatAction(std::string actionId) { return UICommand(CommandType::QUEUE_COMBAT_ACTION, std::move(actionId)); }
+	static UICommand clearCombatQueue() { return UICommand(CommandType::CLEAR_COMBAT_QUEUE); }
+	static UICommand executeCombatTurn() { return UICommand(CommandType::EXECUTE_COMBAT_TURN); }
+	static UICommand masturbateAction(std::string actionId, int durationMinutes = 10) { return UICommand(CommandType::MASTURBATE_ACTION, durationMinutes, std::move(actionId)); }
+	static UICommand familiarAction(std::string actionId, int durationMinutes = 10) { return UICommand(CommandType::FAMILIAR_ACTION, durationMinutes, std::move(actionId)); }
+	static UICommand castSpell(std::string spellId, int mpCost, int healAmount = 0) { return UICommand(CommandType::CAST_SPELL, mpCost, healAmount, std::move(spellId)); }
+	static UICommand unlockPerk(std::string perkId, int cost = 1) { return UICommand(CommandType::UNLOCK_PERK, cost, std::move(perkId)); }
+	static UICommand saveSettings() { return UICommand(CommandType::SAVE_SETTINGS); }
 };

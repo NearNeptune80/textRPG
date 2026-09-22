@@ -14,6 +14,7 @@
 #include "save/saveManager.h"
 #include "settings/settingsManager.h"
 #include "state/characterCreationState.h"
+#include "combat/weaponSkillDatabase.h"
 #include "state/combatState.h"
 #include "state/encounterResolutionState.h"
 #include "state/eventState.h"
@@ -35,38 +36,38 @@ namespace
 {
     inline void padButtonsTo(game* g, size_t targetCount)
     {
-        while (g->activeButtons.size() < targetCount)
+        while (g->activeActionSlots.size() < targetCount)
         {
-            actionButton btn;
+            ActionSlot btn;
             btn.label = "";
             btn.isEnabled = false;
             btn.isSelected = false;
             btn.onClick = nullptr;
-            g->activeButtons.push_back(btn);
+            g->activeActionSlots.push_back(btn);
         }
     }
 
     inline void addBtn(game* g, std::string_view label, std::function<void()> onClick, bool enabled = true, bool selected = false, std::string_view description = "")
     {
-        actionButton btn;
+        ActionSlot btn;
         btn.label = std::string(label);
         btn.description = std::string(description);
         btn.isEnabled = enabled;
         btn.isSelected = selected;
         btn.onClick = std::move(onClick);
-        g->activeButtons.push_back(btn);
+        g->activeActionSlots.push_back(btn);
     }
 
     inline void addBackBtn(game* g, std::string_view label, std::function<void()> onClick, std::string_view description = "")
     {
         padButtonsTo(g, 14);
-        actionButton btn;
+        ActionSlot btn;
         btn.label = std::string(label);
         btn.description = std::string(description);
         btn.isEnabled = true;
         btn.isSelected = false;
         btn.onClick = std::move(onClick);
-        g->activeButtons.push_back(btn);
+        g->activeActionSlots.push_back(btn);
     }
 }
 
@@ -77,7 +78,7 @@ void ActionGridManager::refresh(game* gameContext)
     iGameState* currentState = gameContext->getActiveState();
     if (!currentState) return;
 
-    gameContext->activeButtons.clear();
+    gameContext->activeActionSlots.clear();
 
     // 1. Main Menu
     if (auto menu = dynamic_cast<mainMenuState*>(currentState))
@@ -1017,6 +1018,7 @@ void ActionGridManager::refresh(game* gameContext)
     {
         auto& players = combat->getEngine().getPlayerParty();
         int curAp = (!players.empty()) ? players[0].currentAp : 0;
+        float curStamina = (!players.empty()) ? players[0].currentStamina : 0.0f;
         bool hasQueuedActions = (!players.empty() && !players[0].turnQueue.empty());
 
         auto p = gameContext->getPlayer();
@@ -1030,81 +1032,249 @@ void ActionGridManager::refresh(game* gameContext)
             }
         }
 
-        // Row 1: Physical Attacks & End Turn
-        bool canStrike = (curAp >= 1);
-        addBtn(gameContext, "Strike (1 AP)", [gameContext]() {
-            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "STRIKE" });
-        }, canStrike, false, canStrike ? "Queue physical strike dealing weapon damage." : "Insufficient AP (Requires 1 AP).");
+        if (combat->getCombatFocus() == CombatFocus::ROOT)
+        {
+            addBtn(gameContext, "Weapon Skills", [gameContext]() {
+                gameContext->handleCommand({ CommandType::SELECT_COMBAT_FOCUS, 0, 0, "WEAPON" });
+            }, true, false, "Select Weapon Focus: Strike with equipped weapon skills and martial techniques.");
 
-        bool canHeavy = (curAp >= 2);
-        addBtn(gameContext, "Heavy Strike (2 AP)", [gameContext]() {
-            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "HEAVY_STRIKE" });
-        }, canHeavy, false, canHeavy ? "Queue heavy blow dealing high physical damage." : "Insufficient AP (Requires 2 AP).");
+            addBtn(gameContext, "Spells & Magic", [gameContext]() {
+                gameContext->handleCommand({ CommandType::SELECT_COMBAT_FOCUS, 0, 0, "MAGIC" });
+            }, true, false, "Select Magic Focus: Cast arcane, elemental, and healing spells.");
 
-        bool canDefend = (curAp >= 1);
-        addBtn(gameContext, "Defend (1 AP)", [gameContext]() {
-            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "DEFEND" });
-        }, canDefend, false, canDefend ? "Queue defensive stance to bolster temporary barrier." : "Insufficient AP (Requires 1 AP).");
+            addBtn(gameContext, "Defensive Maneuvers", [gameContext]() {
+                gameContext->handleCommand({ CommandType::SELECT_COMBAT_FOCUS, 0, 0, "DEFENSE" });
+            }, true, false, "Select Defense Focus: Guard, dodge, or parry to mitigate and counter damage.");
 
-        bool canDisarm = (curAp >= 2);
-        addBtn(gameContext, "Disarm (2 AP)", [gameContext]() {
-            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "DISARM" });
-        }, canDisarm, false, canDisarm ? "Queue disarm attempt dealing physical damage and disrupting foe." : "Insufficient AP (Requires 2 AP).");
+            addBtn(gameContext, "Seduction & Lust", [gameContext]() {
+                gameContext->handleCommand({ CommandType::SELECT_COMBAT_FOCUS, 0, 0, "SEDUCTION" });
+            }, true, false, "Select Seduction Focus: Tease, flirt, and compel erotic surrender.");
 
-        addBtn(gameContext, "End Turn", [combat, gameContext]() {
-            combat->handleEndTurn(gameContext);
-        }, true, false, "Conclude planning phase and resolve all queued turn actions.");
+            bool hasCompanion = (players.size() > 1 || !gameContext->getCompanions().empty());
+            addBtn(gameContext, "Companion Orders", [gameContext]() {
+                gameContext->handleCommand({ CommandType::SELECT_COMBAT_FOCUS, 0, 0, "COMPANION" });
+            }, hasCompanion, false, hasCompanion ? "Select Companion Focus: Command party elementals and familiars." : "No active companions in party.");
 
-        // Row 2: Spells & Magic (AP + MP requirements)
-        bool canDart = (curAp >= 1 && curMp >= 10.0f);
-        addBtn(gameContext, "Arcane Dart (1 AP, 10 MP)", [gameContext]() {
-            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SPELL_DART" });
-        }, canDart, false, canDart ? "Queue sharp dart of concentrated arcane power." : (curAp < 1 ? "Insufficient AP." : "Insufficient Mana (Requires 10 MP)."));
+            addBtn(gameContext, "Items & Potions", [gameContext]() {
+                gameContext->handleCommand({ CommandType::SELECT_COMBAT_FOCUS, 0, 0, "ITEM" });
+            }, true, false, "Select Item Focus: Consume restorative elixirs, potions, and crystals.");
 
-        bool canFireball = (curAp >= 2 && curMp >= 25.0f);
-        addBtn(gameContext, "Fireball (2 AP, 25 MP)", [gameContext]() {
-            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SPELL_FIREBALL" });
-        }, canFireball, false, canFireball ? "Queue explosive sphere of demonic flame." : (curAp < 2 ? "Insufficient AP." : "Insufficient Mana (Requires 25 MP)."));
+            // Control Actions
+            addBtn(gameContext, "End Turn", [combat, gameContext]() {
+                combat->handleEndTurn(gameContext);
+            }, true, false, "Conclude planning phase and resolve all queued turn actions.");
 
-        bool canShield = (curAp >= 1 && curMp >= 15.0f);
-        addBtn(gameContext, "Shield (1 AP, 15 MP)", [gameContext]() {
-            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SPELL_SHIELD" });
-        }, canShield, false, canShield ? "Queue shimmering protective barrier." : (curAp < 1 ? "Insufficient AP." : "Insufficient Mana (Requires 15 MP)."));
+            addBtn(gameContext, "Clear Queue", [combat, gameContext]() {
+                combat->handleClearQueue(gameContext);
+            }, hasQueuedActions, false, hasQueuedActions ? "Clear all queued actions and refund spent AP/Stamina/Mana." : "No actions currently queued.");
 
-        bool canCleanse = (curAp >= 1 && curMp >= 20.0f);
-        addBtn(gameContext, "Cleanse (1 AP, 20 MP)", [gameContext]() {
-            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SPELL_CLEANSE" });
-        }, canCleanse, false, canCleanse ? "Queue pure energy cleanse to purge debuffs and restore 40 HP." : (curAp < 1 ? "Insufficient AP." : "Insufficient Mana (Requires 20 MP)."));
+            addBtn(gameContext, "Surrender", [gameContext]() {
+                gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SURRENDER" });
+            }, true, false, "Yield to enemy combatants and enter submission.");
 
-        bool canBlink = (curAp >= 1 && curMp >= 30.0f);
-        addBtn(gameContext, "Blink (1 AP, 30 MP)", [gameContext]() {
-            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SPELL_BLINK" });
-        }, canBlink, false, canBlink ? "Queue teleport evasive blink." : (curAp < 1 ? "Insufficient AP." : "Insufficient Mana (Requires 30 MP)."));
+            addBtn(gameContext, "Escape", [gameContext]() {
+                gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "ESCAPE" });
+            }, true, false, "Attempt to flee from combat encounter.");
 
-        // Row 3: Items, Queue Management & Actions
-        bool canPot = (curAp >= 1 && potionCount > 0);
-        addBtn(gameContext, "Potion (1 AP)", [gameContext]() {
-            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "ITEM_POTION" });
-        }, canPot, false, canPot ? "Queue drinking a healing potion to restore 50 HP." : (curAp < 1 ? "Insufficient AP." : "No healing potions in inventory."));
+            return;
+        }
 
-        bool canMana = (curAp >= 1);
-        addBtn(gameContext, "Mana (1 AP)", [gameContext]() {
-            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "ITEM_MANA" });
-        }, canMana, false, canMana ? "Queue consuming a mana crystal to restore 50 MP." : "Insufficient AP.");
+        if (combat->getCombatFocus() == CombatFocus::WEAPON)
+        {
+            std::vector<std::string> skillIds;
+            auto eqWep = p ? p->inventory.getEquippedItem(equipSlot::WEAPON_MAIN) : nullptr;
+            if (eqWep && !eqWep->weaponSkills.empty())
+            {
+                skillIds = eqWep->weaponSkills;
+            }
+            else
+            {
+                skillIds = { "skill_slash", "skill_thrust", "skill_pommel_strike" };
+            }
 
-        addBtn(gameContext, "Clear Queue", [combat, gameContext]() {
-            combat->handleClearQueue(gameContext);
-        }, hasQueuedActions, false, hasQueuedActions ? "Clear all queued actions and refund spent AP/Mana." : "No actions currently queued.");
+            for (const auto& sId : skillIds)
+            {
+                const WeaponSkill* ws = WeaponSkillDatabase::getSkill(sId);
+                if (ws)
+                {
+                    bool canAfford = (curStamina >= ws->staminaCost && curAp >= 1);
+                    std::string label = std::format("{} ({:.0f} Sta)", ws->name, ws->staminaCost);
+                    std::string tip = std::format("{}\nDamage: {:.0f}%\nType: {}\nCost: {:.0f} Stamina, 1 AP",
+                                                  ws->description, ws->damageMult * 100.0f, ws->damageType, ws->staminaCost);
+                    addBtn(gameContext, label, [gameContext, sId]() {
+                        gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, sId });
+                    }, canAfford, false, tip);
+                }
+            }
 
-        addBtn(gameContext, "Surrender", [gameContext]() {
-            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SURRENDER" });
-        }, true, false, "Yield to enemy combatants and enter submission.");
+            addBtn(gameContext, "Back (Reset)", [combat, gameContext]() {
+                combat->setCombatFocus(CombatFocus::ROOT);
+                gameContext->refreshActionGrid();
+            }, true, false, "Return to main focus menu (clears and refunds queued actions).");
 
-        addBtn(gameContext, "Escape", [gameContext]() {
-            gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "ESCAPE" });
-        }, true, false, "Attempt to flee from combat encounter.");
+            addBtn(gameContext, "Clear Queue", [combat, gameContext]() {
+                combat->handleClearQueue(gameContext);
+            }, hasQueuedActions, false, "Clear all queued actions and refund stamina.");
 
-        return;
+            addBtn(gameContext, "End Turn", [combat, gameContext]() {
+                combat->handleEndTurn(gameContext);
+            }, true, false, "Execute turn.");
+
+            return;
+        }
+
+        if (combat->getCombatFocus() == CombatFocus::MAGIC)
+        {
+            struct MagicOption { std::string id; std::string name; float mp; float sta; std::string tip; };
+            std::vector<MagicOption> spells = {
+                { "SPELL_DART", "Arcane Dart", 10.0f, 10.0f, "Concentrated dart of arcane force." },
+                { "SPELL_FIREBALL", "Fireball", 25.0f, 15.0f, "Explosive sphere of demonic flame." },
+                { "SPELL_SHIELD", "Arcane Shield", 15.0f, 10.0f, "Absorb 35 incoming damage." },
+                { "SPELL_CLEANSE", "Cleanse", 20.0f, 10.0f, "Purge debuffs and restore 40 HP." },
+                { "SPELL_BLINK", "Blink", 30.0f, 10.0f, "Teleport to evade enemy strikes." }
+            };
+
+            for (const auto& sp : spells)
+            {
+                bool canAfford = (curAp >= 1 && curMp >= sp.mp && curStamina >= sp.sta);
+                std::string label = std::format("{} ({:.0f} MP)", sp.name, sp.mp);
+                addBtn(gameContext, label, [gameContext, sp]() {
+                    gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, sp.id });
+                }, canAfford, false, sp.tip);
+            }
+
+            addBtn(gameContext, "Back (Reset)", [combat, gameContext]() {
+                combat->setCombatFocus(CombatFocus::ROOT);
+                gameContext->refreshActionGrid();
+            }, true, false, "Return to main focus menu (clears and refunds queued actions).");
+
+            addBtn(gameContext, "Clear Queue", [combat, gameContext]() {
+                combat->handleClearQueue(gameContext);
+            }, hasQueuedActions, false, "Clear all queued actions and refund mana.");
+
+            addBtn(gameContext, "End Turn", [combat, gameContext]() {
+                combat->handleEndTurn(gameContext);
+            }, true, false, "Execute turn.");
+
+            return;
+        }
+
+        if (combat->getCombatFocus() == CombatFocus::DEFENSE)
+        {
+            bool canGuard = (curAp >= 1 && curStamina >= 15.0f);
+            addBtn(gameContext, "Guard (15 Sta)", [gameContext]() {
+                gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, "DEFENSE_GUARD" });
+            }, canGuard, false, "Raise your guard to absorb incoming damage with stamina.");
+
+            bool canDodge = (curAp >= 1 && curStamina >= 20.0f);
+            addBtn(gameContext, "Dodge (20 Sta)", [gameContext]() {
+                gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, "DEFENSE_DODGE" });
+            }, canDodge, false, "Prepare to nimbly evade enemy attacks.");
+
+            bool canParry = (curAp >= 1 && curStamina >= 25.0f);
+            addBtn(gameContext, "Parry (25 Sta)", [gameContext]() {
+                gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, "DEFENSE_PARRY" });
+            }, canParry, false, "Time a deflection to deliver counter damage.");
+
+            addBtn(gameContext, "Back (Reset)", [combat, gameContext]() {
+                combat->setCombatFocus(CombatFocus::ROOT);
+                gameContext->refreshActionGrid();
+            }, true, false, "Return to main focus menu (clears and refunds queued actions).");
+
+            addBtn(gameContext, "Clear Queue", [combat, gameContext]() {
+                combat->handleClearQueue(gameContext);
+            }, hasQueuedActions, false, "Clear all queued actions.");
+
+            addBtn(gameContext, "End Turn", [combat, gameContext]() {
+                combat->handleEndTurn(gameContext);
+            }, true, false, "Execute turn.");
+
+            return;
+        }
+
+        if (combat->getCombatFocus() == CombatFocus::SEDUCTION)
+        {
+            bool canTease = (curAp >= 1 && curStamina >= 10.0f);
+            addBtn(gameContext, "Tease (10 Sta)", [gameContext]() {
+                gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, "SEDUCE_TEASE" });
+            }, canTease, false, "Tease target with seductive body movements (+15 Lust).");
+
+            bool canFlirt = (curAp >= 1 && curStamina >= 15.0f);
+            addBtn(gameContext, "Flirt (15 Sta)", [gameContext]() {
+                gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, "SEDUCE_FLIRT" });
+            }, canFlirt, false, "Whisper tantalizing promises (+25 Lust).");
+
+            bool canExpose = (curAp >= 1 && curStamina >= 20.0f);
+            addBtn(gameContext, "Expose Flesh (20 Sta)", [gameContext]() {
+                gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, "SEDUCE_EXPOSE" });
+            }, canExpose, false, "Expose sensitive anatomy to drive foe wild (+35 Lust).");
+
+            addBtn(gameContext, "Back (Reset)", [combat, gameContext]() {
+                combat->setCombatFocus(CombatFocus::ROOT);
+                gameContext->refreshActionGrid();
+            }, true, false, "Return to main focus menu (clears and refunds queued actions).");
+
+            addBtn(gameContext, "Clear Queue", [combat, gameContext]() {
+                combat->handleClearQueue(gameContext);
+            }, hasQueuedActions, false, "Clear all queued actions.");
+
+            addBtn(gameContext, "End Turn", [combat, gameContext]() {
+                combat->handleEndTurn(gameContext);
+            }, true, false, "Execute turn.");
+
+            return;
+        }
+
+        if (combat->getCombatFocus() == CombatFocus::COMPANION)
+        {
+            bool canCompAtk = (curAp >= 1 && curStamina >= 15.0f);
+            addBtn(gameContext, "Familiar Strike (15 Sta)", [gameContext]() {
+                gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, "COMPANION_ATTACK" });
+            }, canCompAtk, false, "Command your elemental companion to unleash an elemental burst.");
+
+            addBtn(gameContext, "Back (Reset)", [combat, gameContext]() {
+                combat->setCombatFocus(CombatFocus::ROOT);
+                gameContext->refreshActionGrid();
+            }, true, false, "Return to main focus menu (clears and refunds queued actions).");
+
+            addBtn(gameContext, "Clear Queue", [combat, gameContext]() {
+                combat->handleClearQueue(gameContext);
+            }, hasQueuedActions, false, "Clear all queued actions.");
+
+            addBtn(gameContext, "End Turn", [combat, gameContext]() {
+                combat->handleEndTurn(gameContext);
+            }, true, false, "Execute turn.");
+
+            return;
+        }
+
+        if (combat->getCombatFocus() == CombatFocus::ITEM)
+        {
+            bool canPot = (curAp >= 1 && potionCount > 0);
+            addBtn(gameContext, "Potion (1 AP)", [gameContext]() {
+                gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, "ITEM_POTION" });
+            }, canPot, false, canPot ? "Queue drinking a healing potion to restore 50 HP." : (curAp < 1 ? "Insufficient AP." : "No healing potions in inventory."));
+
+            bool canMana = (curAp >= 1);
+            addBtn(gameContext, "Mana Crystal (1 AP)", [gameContext]() {
+                gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, "ITEM_MANA" });
+            }, canMana, false, "Queue consuming a mana crystal to restore 50 MP.");
+
+            addBtn(gameContext, "Back (Reset)", [combat, gameContext]() {
+                combat->setCombatFocus(CombatFocus::ROOT);
+                gameContext->refreshActionGrid();
+            }, true, false, "Return to main focus menu (clears and refunds queued actions).");
+
+            addBtn(gameContext, "Clear Queue", [combat, gameContext]() {
+                combat->handleClearQueue(gameContext);
+            }, hasQueuedActions, false, "Clear all queued actions.");
+
+            addBtn(gameContext, "End Turn", [combat, gameContext]() {
+                combat->handleEndTurn(gameContext);
+            }, true, false, "Execute turn.");
+
+            return;
+        }
     }
 
     // 12. Scene Event Choices (Data-Driven Tooltips & Greyed-Out when requirements unmet)

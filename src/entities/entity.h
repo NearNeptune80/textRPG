@@ -46,6 +46,18 @@ public:
     int age = 24;
     std::unordered_map<std::string, int> fetishDesires;
 
+    // Elemental Companion & Body Material
+    bool isElemental = false;
+    std::string elementalType = "physical"; // "fire", "water", "air", "earth", "arcane", "lust", "physical"
+    std::string bodyMaterial = "flesh";     // "fire", "water", "wind", "stone", "flesh"
+    std::string summonSpellId = "";
+    int spiritRank = 1;
+    int bondLevel = 10;
+    float resonance = 80.0f;
+
+    std::string handleMasturbation(const std::string& actionId, int baseDurationMinutes, class timeManager* timeMgr);
+    std::string handleFamiliarAction(const std::string& actionId, int baseDurationMinutes, class timeManager* timeMgr);
+
     int getFetishDesire(const std::string& fetishKey) const;
     void setFetishDesire(const std::string& fetishKey, int level);
     bool hasFetish(const std::string& fetishKey) const;
