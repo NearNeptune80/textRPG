@@ -382,7 +382,19 @@ bool saveManager::loadFromFile(game* g, const std::string& fileName)
 
         if (j.contains("settings"))
         {
+            auto currentDisplay = g->settings.display;
+            auto currentContent = g->settings.content;
+            auto currentDemographics = g->settings.demographics;
+            std::string currentUnits = g->settings.gameplay.unitPreference;
+
             g->settings.fromJson(j["settings"]);
+
+            // Retain global client settings rather than clobbering them with the save file
+            g->settings.display = currentDisplay;
+            g->settings.content = currentContent;
+            g->settings.demographics = currentDemographics;
+            g->settings.gameplay.unitPreference = currentUnits;
+            g->settings.gameplay.autoSaveOnMapChange = prevAutoSave;
         }
         else
         {

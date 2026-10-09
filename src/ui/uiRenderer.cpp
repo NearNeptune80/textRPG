@@ -251,7 +251,8 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
                     curY += LoadGameView::render(renderer, gameContext, p.rect, curY, uiScale);
                 else if (wId == "widget_narrative_story" || wId == "SCENE_NARRATIVE" ||
                          wId == "widget_main_menu_hero" || wId == "widget_main_menu_actions" || wId == "widget_save_slot_list" ||
-                         wId == "widget_options_content" || wId == "widget_options_demographics" || wId == "widget_options_display_audio")
+                         wId == "widget_options_content" || wId == "widget_options_demographics" || wId == "widget_options_display_audio" ||
+                         wId == "widget_erotic_encounter")
                 {
                     if (!renderedCenterViewInPanel)
                     {
@@ -264,6 +265,16 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
             float totalContentH = (curY + scrollY) - p.rect.y;
             float calculatedMaxScroll = std::max(0.0f, totalContentH - p.rect.h);
             m_panelMaxScrollY[p.id] = calculatedMaxScroll;
+            if (p.id == "sex_encounter_box")
+            {
+                if (auto* sex = dynamic_cast<sexState*>(gameContext->getActiveState()))
+                {
+                    if (sex->checkAndResetNewNarrative())
+                    {
+                        m_panelScrollY[p.id] = calculatedMaxScroll;
+                    }
+                }
+            }
             m_panelScrollY[p.id] = std::clamp(m_panelScrollY[p.id], 0.0f, calculatedMaxScroll);
             drawScrollbar(renderer, p.rect, totalContentH, m_panelScrollY[p.id], uiScale);
         }
@@ -391,11 +402,56 @@ void uiRenderer::renderBottomActionGrid(SDL_Renderer* renderer, game* gameContex
 
     float sideBtnW = 20.0f * uiScale;
     float marginX = 8.0f * uiScale;
-    float padY = rect.y + (6.0f * uiScale);
-    float gridH = rect.h - (12.0f * uiScale);
 
     auto mousePos = gameContext->input.getMousePosition();
     bool clicked = gameContext->input.isLeftMouseJustClicked();
+
+    // 0. Category Tabs Strip (Rendered above grid if categories defined)
+    const auto& categories = gameContext->getActionCategories();
+    float tabH = 0.0f;
+    if (!categories.empty())
+    {
+        tabH = 22.0f * uiScale;
+        float tabY = rect.y + (4.0f * uiScale);
+        float tabAreaX = rect.x + marginX;
+        float tabAreaW = rect.w - (2.0f * marginX);
+
+        int catCount = static_cast<int>(categories.size());
+        float tabSpacing = 4.0f * uiScale;
+        float tabW = (tabAreaW - (tabSpacing * (catCount - 1))) / static_cast<float>(catCount);
+
+        for (int c = 0; c < catCount; ++c)
+        {
+            const auto& catName = categories[c];
+            SDL_FRect tabRect = { tabAreaX + c * (tabW + tabSpacing), tabY, tabW, tabH };
+            bool isCurrent = (catName == gameContext->getActiveActionCategory());
+            bool hovered = (mousePos.x >= tabRect.x && mousePos.x <= tabRect.x + tabRect.w &&
+                            mousePos.y >= tabRect.y && mousePos.y <= tabRect.y + tabRect.h);
+
+            SDL_Color bgCol = isCurrent ? Theme::colors.bgHeader : (hovered ? Theme::colors.bgSlot : Theme::colors.bgDark);
+            SDL_Color borderCol = isCurrent ? Theme::colors.borderSelected : (hovered ? Theme::colors.borderNormal : Theme::colors.borderButtonDisabled);
+            SDL_Color textCol = isCurrent ? Theme::colors.textGold : (hovered ? Theme::colors.textPrimary : Theme::colors.textSecondary);
+
+            UIWidget::drawPanel(renderer, tabRect, bgCol, borderCol);
+
+            float fontScale = uiScale * 0.80f;
+            float textW = UIWidget::getTextWidth(catName, fontScale);
+            float textH = UIWidget::getLineHeight(fontScale);
+            float textX = tabRect.x + (tabRect.w - textW) / 2.0f;
+            float textY = tabRect.y + (tabRect.h - textH) / 2.0f;
+            UIWidget::drawText(renderer, catName, textX, textY, textCol, fontScale);
+
+            if (hovered && clicked)
+            {
+                gameContext->selectActionCategory(catName);
+                gameContext->input.consumeMouseClick();
+                return;
+            }
+        }
+    }
+
+    float padY = rect.y + (6.0f * uiScale) + (tabH > 0.0f ? (tabH + 3.0f * uiScale) : 0.0f);
+    float gridH = rect.h - (padY - rect.y) - (6.0f * uiScale);
 
     // 1. Left Side Pagination (< and Q)
     SDL_FRect leftTopRect = { rect.x + marginX, padY, sideBtnW, (gridH / 3.0f) - (2.0f * uiScale) };

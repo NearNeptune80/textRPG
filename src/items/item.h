@@ -59,9 +59,18 @@ struct item
     std::string id;
     std::string name;
     std::string description;
-    std::string tooltip;
+    std::string briefDescription = "";
+    std::string tooltip = "";
+    std::string imagePath = "";
 
     int baseValue = 0;
+
+    std::string getBriefDescription() const
+    {
+        if (!briefDescription.empty()) return briefDescription;
+        if (!tooltip.empty()) return tooltip;
+        return "";
+    }
 
     ItemCategory category = ItemCategory::MISC;
 

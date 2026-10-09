@@ -217,7 +217,6 @@ void CombatState::handleCommand(game* gameContext, const UICommand& cmd)
         {
             act.id = "action_guard";
             act.name = "Guard Stance";
-            act.baseApCost = 1;
             act.staminaCost = 15.0f;
             act.isGuarding = true;
         }
@@ -225,7 +224,6 @@ void CombatState::handleCommand(game* gameContext, const UICommand& cmd)
         {
             act.id = "action_dodge";
             act.name = "Evasive Dodge";
-            act.baseApCost = 1;
             act.staminaCost = 20.0f;
             act.isDodging = true;
         }
@@ -233,7 +231,6 @@ void CombatState::handleCommand(game* gameContext, const UICommand& cmd)
         {
             act.id = "action_parry";
             act.name = "Counter Parry";
-            act.baseApCost = 1;
             act.staminaCost = 25.0f;
             act.isParrying = true;
         }
@@ -241,7 +238,6 @@ void CombatState::handleCommand(game* gameContext, const UICommand& cmd)
         {
             act.id = "action_seduce_tease";
             act.name = "Tease";
-            act.baseApCost = 1;
             act.staminaCost = 10.0f;
             act.lustDamage = 15.0f;
         }
@@ -249,7 +245,6 @@ void CombatState::handleCommand(game* gameContext, const UICommand& cmd)
         {
             act.id = "action_seduce_flirt";
             act.name = "Flirtatious Whisper";
-            act.baseApCost = 1;
             act.staminaCost = 15.0f;
             act.lustDamage = 25.0f;
         }
@@ -257,7 +252,6 @@ void CombatState::handleCommand(game* gameContext, const UICommand& cmd)
         {
             act.id = "action_seduce_expose";
             act.name = "Sensual Exposure";
-            act.baseApCost = 1;
             act.staminaCost = 20.0f;
             act.lustDamage = 35.0f;
         }
@@ -265,7 +259,6 @@ void CombatState::handleCommand(game* gameContext, const UICommand& cmd)
         {
             act.id = "action_companion_attack";
             act.name = "Familiar Strike";
-            act.baseApCost = 1;
             act.staminaCost = 15.0f;
             SpellEffectNode node;
             node.effectType = "DAMAGE";
@@ -286,7 +279,6 @@ void CombatState::handleCommand(game* gameContext, const UICommand& cmd)
         {
             act.id = "action_strike";
             act.name = "Strike";
-            act.baseApCost = 1;
             act.staminaCost = 15.0f;
             SpellEffectNode node;
             node.effectType = "DAMAGE";
@@ -298,7 +290,6 @@ void CombatState::handleCommand(game* gameContext, const UICommand& cmd)
         {
             act.id = "action_heavy_strike";
             act.name = "Heavy Strike";
-            act.baseApCost = 2;
             act.staminaCost = 35.0f;
             SpellEffectNode node;
             node.effectType = "DAMAGE";
@@ -310,7 +301,6 @@ void CombatState::handleCommand(game* gameContext, const UICommand& cmd)
         {
             act.id = "action_disarm";
             act.name = "Disarm";
-            act.baseApCost = 2;
             act.staminaCost = 30.0f;
             SpellEffectNode node;
             node.effectType = "DAMAGE";
@@ -322,7 +312,6 @@ void CombatState::handleCommand(game* gameContext, const UICommand& cmd)
         {
             act.id = "spell_arcane_dart";
             act.name = "Arcane Dart";
-            act.baseApCost = 1;
             act.staminaCost = 10.0f;
             act.manaCost = 10.0f;
             SpellEffectNode node;
@@ -335,7 +324,6 @@ void CombatState::handleCommand(game* gameContext, const UICommand& cmd)
         {
             act.id = "spell_fireball";
             act.name = "Fireball";
-            act.baseApCost = 2;
             act.staminaCost = 15.0f;
             act.manaCost = 25.0f;
             SpellEffectNode node;
@@ -348,7 +336,6 @@ void CombatState::handleCommand(game* gameContext, const UICommand& cmd)
         {
             act.id = "spell_arcane_shield";
             act.name = "Arcane Shield";
-            act.baseApCost = 1;
             act.staminaCost = 10.0f;
             act.manaCost = 15.0f;
             act.customExecute = [this](entity* user, entity* target, game* g) {
@@ -361,7 +348,6 @@ void CombatState::handleCommand(game* gameContext, const UICommand& cmd)
         {
             act.id = "spell_cleanse";
             act.name = "Cleanse";
-            act.baseApCost = 1;
             act.staminaCost = 10.0f;
             act.manaCost = 20.0f;
             act.customExecute = [this](entity* user, entity* target, game* g) {
@@ -375,7 +361,6 @@ void CombatState::handleCommand(game* gameContext, const UICommand& cmd)
         {
             act.id = "spell_blink";
             act.name = "Blink";
-            act.baseApCost = 1;
             act.staminaCost = 10.0f;
             act.manaCost = 30.0f;
             act.customExecute = [this](entity* user, entity* target, game* g) {
@@ -388,7 +373,6 @@ void CombatState::handleCommand(game* gameContext, const UICommand& cmd)
         {
             act.id = "item_potion";
             act.name = "Health Potion";
-            act.baseApCost = 1;
             act.customExecute = [this](entity* user, entity* target, game* g) {
                 if (!user) return;
                 user->stats.modifyBaseStat("health", 50.0f);
@@ -399,7 +383,6 @@ void CombatState::handleCommand(game* gameContext, const UICommand& cmd)
         {
             act.id = "item_mana";
             act.name = "Mana Crystal";
-            act.baseApCost = 1;
             act.customExecute = [this](entity* user, entity* target, game* g) {
                 if (!user) return;
                 user->stats.modifyBaseStat("mana", 50.0f);
@@ -413,8 +396,6 @@ void CombatState::handleCommand(game* gameContext, const UICommand& cmd)
             {
                 player->inventory.removeItem("item_health_potion", 1);
             }
-            m_engine.appendLog(std::format("[Queued #{}] {} -> {} ({:.0f} Sta, {:.0f} MP, {:.0f} Sta left)",
-                p.turnQueue.size(), act.name, target->name, act.staminaCost, act.manaCost, p.currentStamina));
             gameContext->refreshActionGrid();
         }
         return;
@@ -583,7 +564,6 @@ void CombatState::handleClearQueue(game* gameContext)
             }
         }
         m_engine.clearPlayerQueue(0);
-        m_engine.appendLog("[Combat] Action queue cleared. AP and resources refunded.");
         gameContext->refreshActionGrid();
     }
 }

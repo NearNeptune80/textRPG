@@ -17,6 +17,7 @@ struct DefeatedEnemyRecord
     bool isSubjugated = false;
     bool isReleased = false;
     bool isPermanentlyRemoved = false;
+    bool talkedTo = false;
 };
 
 class encounterResolutionState : public iGameState
@@ -34,9 +35,14 @@ public:
     void onExit(game* gameContext) override;
 
     // Sub-action Executors
+    void handleOpenLootInventory(game* gameContext);
     void handleLootEnemy(game* gameContext);
     void handleStripEnemy(game* gameContext);
     void handleInteractiveSex(game* gameContext);
+    void handleInteractiveSexDom(game* gameContext);
+    void handleInteractiveSexSub(game* gameContext);
+    void handleTransformEnemy(game* gameContext);
+    void handleTalkEnemy(game* gameContext);
     void handleSubjugateEnemy(game* gameContext);
     void handleReleaseEnemy(game* gameContext);
     void handlePermanentlyRemoveEnemy(game* gameContext);

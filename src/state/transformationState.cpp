@@ -30,9 +30,14 @@ static std::string getPresetsDirectory()
     return dir;
 }
 
-transformationState::transformationState(TransformationTab initialTab, std::unique_ptr<iGameState> previousState)
-    : currentTab(initialTab), m_previousState(std::move(previousState))
+transformationState::transformationState(TransformationTab initialTab, std::unique_ptr<iGameState> previousState, std::shared_ptr<entity> targetEntity)
+    : currentTab(initialTab), m_previousState(std::move(previousState)), m_targetEntity(targetEntity)
 {
+}
+
+entity* transformationState::getTargetEntity(game* gameContext) const
+{
+    return m_targetEntity ? m_targetEntity.get() : (gameContext ? gameContext->getPlayer() : nullptr);
 }
 
 void transformationState::initialise(game* gameContext)
@@ -92,7 +97,7 @@ void transformationState::handleCommand(game* gameContext, const UICommand& cmd)
 void transformationState::savePreset(game* gameContext, const std::string& name)
 {
     if (!gameContext) return;
-    entity* player = gameContext->getPlayer();
+    entity* player = getTargetEntity(gameContext);
     if (!player) return;
 
     std::string cleanName = name.empty() ? "Custom_Form" : name;
@@ -165,7 +170,7 @@ void transformationState::savePreset(game* gameContext, const std::string& name)
 void transformationState::loadPreset(game* gameContext, const std::string& name)
 {
     if (!gameContext) return;
-    entity* player = gameContext->getPlayer();
+    entity* player = getTargetEntity(gameContext);
     if (!player) return;
 
     std::string dir = getPresetsDirectory();
@@ -277,7 +282,7 @@ void transformationState::refreshPresetNames()
 void transformationState::resetToHuman(game* gameContext)
 {
     if (!gameContext) return;
-    entity* p = gameContext->getPlayer();
+    entity* p = getTargetEntity(gameContext);
     if (!p) return;
 
     for (size_t i = 0; i < BODY_SLOT_COUNT; ++i)
@@ -348,7 +353,7 @@ void transformationState::resetToHuman(game* gameContext)
 void transformationState::randomizeForm(game* gameContext)
 {
     if (!gameContext) return;
-    entity* p = gameContext->getPlayer();
+    entity* p = getTargetEntity(gameContext);
     if (!p) return;
 
     static std::mt19937 rng(std::random_device{}());

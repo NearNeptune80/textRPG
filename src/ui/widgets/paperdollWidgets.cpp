@@ -6,7 +6,9 @@
 #include <format>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <vector>
+#include <SDL3_image/SDL_image.h>
 
 #include "core/game.h"
 #include "entities/entity.h"
@@ -193,11 +195,9 @@ namespace PaperdollWidgets
 
     float renderWidgetPaperdoll(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& panelRect, float curY, float uiScale, entity* targetEntity)
     {
-        if (!gameContext) return 0.0f;
+        if (!gameContext || !targetEntity) return 0.0f;
 
-        entity* character = targetEntity ? targetEntity : gameContext->getPlayer();
-        if (!character) return 0.0f;
-
+        entity* character = targetEntity;
         bool isPlayer = (character == gameContext->getPlayer());
         bool& inTattooMode = isPlayer ? s_playerTattooMode : s_partnerTattooMode;
 
@@ -215,16 +215,26 @@ namespace PaperdollWidgets
         const float tileSize = (boxSize - (slotGap * static_cast<float>(cols - 1))) / static_cast<float>(cols);
 
         float toolH = SidebarGeometry::getToolbarH(uiScale);
-        float cardH = SidebarGeometry::getSquareCardH(panelRect, uiScale);
+        float cardH = isPlayer
+            ? SidebarGeometry::getSquareCardH(panelRect, uiScale)
+            : ((18.0f * uiScale) + boxSize + (6.0f * uiScale));
 
         // Pin to the bottom of the sidebar panel (matching mini-map radar positioning exactly)
         float bottomPinnedY = SidebarGeometry::getBottomPinnedY(panelRect, uiScale);
-        curY = std::max(curY, bottomPinnedY);
         float startY = curY;
 
-        // Render Date & Time Bar
-        curY += RadarWidgets::renderWidgetTimeBar(renderer, gameContext, panelRect.x, curY, panelRect.w, uiScale);
-        curY += SidebarGeometry::getGapBetweenCards(uiScale);
+        if (isPlayer)
+        {
+            curY = std::max(curY, bottomPinnedY);
+            // Render Date & Time Bar (only above player equipment grid)
+            curY += RadarWidgets::renderWidgetTimeBar(renderer, gameContext, panelRect.x, curY, panelRect.w, uiScale);
+            curY += SidebarGeometry::getGapBetweenCards(uiScale);
+        }
+        else
+        {
+            // Align NPC equipment grid with player equipment grid without duplicate calendar/clock
+            curY = std::max(curY, bottomPinnedY + SidebarGeometry::getTimeBarH(uiScale) + SidebarGeometry::getGapBetweenCards(uiScale));
+        }
 
         // =========================================================================
         // OVERARCHING CONTAINER: Equipment / Tattoo Grid Box
@@ -235,7 +245,9 @@ namespace PaperdollWidgets
         float innerX = padX + (4.0f * uiScale);
         float cardCurY = curY + (3.0f * uiScale);
 
-        std::string headerTitle = inTattooMode ? "TATTOOS (6x6)" : "EQUIPMENT (6x6)";
+        std::string headerTitle = inTattooMode
+            ? (isPlayer ? "TATTOOS (6x6)" : "NPC TATTOOS (6x6)")
+            : (isPlayer ? "EQUIPMENT (6x6)" : "NPC EQUIPMENT (6x6)");
         UIWidget::drawText(renderer, headerTitle, innerX, cardCurY, Theme::colors.textGold, uiScale * 0.74f);
         cardCurY += (15.0f * uiScale);
 
@@ -317,7 +329,8 @@ namespace PaperdollWidgets
                     // -----------------------------------------------------------------
                     const auto& def = s_equipmentGrid[index];
                     bool isAvailable = def.isSwapButton || isEquipSlotAvailable(character, def.slot);
-                    bool isSelected = (!def.isSwapButton && isPlayer && gameContext->selectedEquipmentSlot == def.slot);
+                    int currentSide = isPlayer ? 0 : 1;
+                    bool isSelected = (!def.isSwapButton && gameContext->selectedEquipmentSide == currentSide && gameContext->selectedEquipmentSlot == def.slot);
 
                     if (def.isSwapButton)
                     {
@@ -356,6 +369,13 @@ namespace PaperdollWidgets
                         SDL_Color bd = isSelected ? Theme::colors.borderSelected : (hovered ? Theme::colors.borderButton : Theme::colors.borderNormal);
                         UIWidget::drawPanel(renderer, slotRect, fill, bd);
 
+                        if (isSelected)
+                        {
+                            SDL_FRect innerRect = { slotRect.x + 1.0f, slotRect.y + 1.0f, slotRect.w - 2.0f, slotRect.h - 2.0f };
+                            SDL_SetRenderDrawColor(renderer, Theme::colors.borderSelected.r, Theme::colors.borderSelected.g, Theme::colors.borderSelected.b, Theme::colors.borderSelected.a);
+                            SDL_RenderRect(renderer, &innerRect);
+                        }
+
                         // Label
                         float lW = UIWidget::getTextWidth(def.shortName, uiScale * 0.52f);
                         SDL_Color textCol = isSelected ? Theme::colors.textGold : (eqItem ? Theme::colors.textGold : Theme::colors.textSecondary);
@@ -377,14 +397,26 @@ namespace PaperdollWidgets
 
                             std::string slotName = gameContext->formatEquipSlotName(def.slot);
                             std::string status = std::format("Fit: {} • Value: {} ¤", displacementModeToString(disp), eqItem->baseValue);
-                            std::string itemDesc = !eqItem->tooltip.empty() ? eqItem->tooltip : eqItem->description;
+                            std::string itemDesc = eqItem->getBriefDescription();
                             TooltipManager::setHoverTooltip(slotRect, mousePos, eqItem->name, itemDesc, status, slotName);
                         }
 
-                        if (hovered && clicked && isPlayer)
+                        if (hovered && clicked)
                         {
-                            gameContext->selectedEquipmentSlot = def.slot;
-                            gameContext->selectedInventoryIndex = -1;
+                            if (gameContext->selectedEquipmentSlot == def.slot && gameContext->selectedEquipmentSide == currentSide)
+                            {
+                                gameContext->selectedEquipmentSlot = equipSlot::NONE;
+                            }
+                            else if (eqItem != nullptr)
+                            {
+                                gameContext->selectedEquipmentSlot = def.slot;
+                                gameContext->selectedEquipmentSide = currentSide;
+                                gameContext->selectedInventoryIndex = -1;
+                            }
+                            else
+                            {
+                                gameContext->selectedEquipmentSlot = equipSlot::NONE;
+                            }
                             gameContext->refreshActionGrid();
                             gameContext->input.consumeMouseClick();
                         }
@@ -394,9 +426,12 @@ namespace PaperdollWidgets
         }
 
         // =========================================================================
-        // TOOLBAR BUTTONS UNDER THE 6x6 GRID
+        // TOOLBAR BUTTONS UNDER THE 6x6 GRID (Player only)
         // =========================================================================
-        SidebarGeometry::renderNavigationToolbar(renderer, gameContext, panelRect, curY, uiScale);
+        if (isPlayer)
+        {
+            SidebarGeometry::renderNavigationToolbar(renderer, gameContext, panelRect, curY, uiScale);
+        }
 
         curY += cardH;
         return (curY - startY);
@@ -404,7 +439,105 @@ namespace PaperdollWidgets
 
     float renderWidgetPaperdoll(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
     {
-        return renderWidgetPaperdoll(renderer, gameContext, { curX, curY, innerW, 260.0f * uiScale }, curY, uiScale, nullptr);
+        return renderWidgetPaperdoll(renderer, gameContext, { curX, curY, innerW, 260.0f * uiScale }, curY, uiScale, gameContext ? gameContext->getPlayer() : nullptr);
+    }
+
+    static float renderItemDetailCard(SDL_Renderer* renderer, game* gameContext, float padX, float curY, float availableW, float uiScale,
+                                       const std::string& title, const std::string& metaLine, const std::string& description,
+                                       const std::string& imagePath, SDL_Color titleCol, SDL_Color metaCol, SDL_Color descCol)
+    {
+        float innerPad = 8.0f * uiScale;
+        float boxGap = 10.0f * uiScale;
+
+        // Match horizontal alignment with the box at 4,4 in the floor/NPC inventory (Side 1 grid)
+        // 5 columns x 4 rows: column 4 is index c = 3
+        float gapBetweenSides = 8.0f * uiScale;
+        float halfW = std::floor((availableW - gapBetweenSides) / 2.0f);
+        float side1X = padX + halfW + gapBetweenSides;
+        const int cols = 5;
+        const float slotGap = 4.0f * uiScale;
+        const float innerPadG = 4.0f * uiScale;
+        const float tabW = 28.0f * uiScale;
+        const float tabColGap = 4.0f * uiScale;
+
+        float gridInnerW = halfW - tabW - tabColGap - (innerPadG * 2.0f);
+        float slotSize = std::floor((gridInnerW - (slotGap * static_cast<float>(cols - 1))) / static_cast<float>(cols));
+        float gridStartX = side1X + innerPadG;
+        float col4Left = gridStartX + (3.0f * (slotSize + slotGap));
+
+        float boxRight = padX + availableW - innerPad;
+        float imageBoxSize = boxRight - col4Left;
+        float boxX = col4Left;
+
+        if (imageBoxSize < 60.0f * uiScale || col4Left <= padX + (120.0f * uiScale))
+        {
+            imageBoxSize = 74.0f * uiScale;
+            boxX = boxRight - imageBoxSize;
+        }
+
+        float textContentW = boxX - (padX + innerPad) - boxGap;
+        if (textContentW < 120.0f * uiScale)
+        {
+            textContentW = availableW - (innerPad * 2.0f);
+        }
+
+        std::string effectiveDesc = !description.empty() ? description : "A standard item of unknown origin.";
+        float textH = UIWidget::getTextWrappedHeight(effectiveDesc, textContentW, uiScale * 0.74f);
+        float leftContentH = (36.0f * uiScale) + textH + (6.0f * uiScale);
+        float cardH = std::max(imageBoxSize + (innerPad * 2.0f), leftContentH + (innerPad * 2.0f));
+        cardH = std::max(cardH, 70.0f * uiScale);
+
+        SDL_FRect cardRect = { padX, curY, availableW, cardH };
+        UIWidget::drawPanel(renderer, cardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+
+        float iX = padX + innerPad;
+        float iY = curY + innerPad;
+
+        // Title line
+        UIWidget::drawText(renderer, title, iX, iY, titleCol, uiScale * 0.85f);
+
+        // Metadata line
+        UIWidget::drawText(renderer, metaLine, iX, iY + (18.0f * uiScale), metaCol, uiScale * 0.74f);
+
+        // Wrapped Description
+        UIWidget::drawTextWrapped(renderer, effectiveDesc, iX, iY + (36.0f * uiScale), textContentW, descCol, uiScale * 0.74f);
+
+        // Right side: Square Item Image Box within the text pane (close-up preview)
+        float boxY = curY + ((cardH - imageBoxSize) / 2.0f);
+        SDL_FRect imageBoxRect = { boxX, boxY, imageBoxSize, imageBoxSize };
+
+        UIWidget::drawPanel(renderer, imageBoxRect, Theme::colors.bgDark, Theme::colors.borderButton);
+
+        SDL_Texture* itemTexture = UIWidget::getItemTexture(renderer, imagePath);
+
+        if (itemTexture)
+        {
+            SDL_FRect texRect = { boxX + (2.0f * uiScale), boxY + (2.0f * uiScale), imageBoxSize - (4.0f * uiScale), imageBoxSize - (4.0f * uiScale) };
+            SDL_RenderTexture(renderer, itemTexture, nullptr, &texRect);
+        }
+        else
+        {
+            // Placeholder inner subtle frame & centered "No Image" text
+            SDL_FRect innerFrame = { boxX + (3.0f * uiScale), boxY + (3.0f * uiScale), imageBoxSize - (6.0f * uiScale), imageBoxSize - (6.0f * uiScale) };
+            SDL_SetRenderDrawColor(renderer, Theme::colors.borderButton.r, Theme::colors.borderButton.g, Theme::colors.borderButton.b, 60);
+            SDL_RenderRect(renderer, &innerFrame);
+
+            std::string noImg = "No Image";
+            float noImgW = UIWidget::getTextWidth(noImg, uiScale * 0.72f);
+            float noImgH = UIWidget::getLineHeight(uiScale * 0.72f);
+            float noImgX = boxX + ((imageBoxSize - noImgW) / 2.0f);
+            float noImgY = boxY + ((imageBoxSize - noImgH) / 2.0f);
+            UIWidget::drawText(renderer, noImg, noImgX, noImgY, Theme::colors.textMuted, uiScale * 0.72f);
+        }
+
+        if (gameContext)
+        {
+            auto mousePos = gameContext->input.getMousePosition();
+            TooltipManager::setHoverTooltip(imageBoxRect, mousePos, title, "Item Visual Illustration",
+                                            itemTexture ? "Rendered item graphical preview." : "No visual graphic asset currently assigned.");
+        }
+
+        return cardH;
     }
 
     float renderWidgetItemInspector(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
@@ -412,8 +545,8 @@ namespace PaperdollWidgets
         if (!gameContext || !gameContext->getPlayer()) return 0.0f;
 
         float startY = curY;
-        float padX = curX + (8.0f * uiScale);
-        float availableW = innerW - (16.0f * uiScale);
+        float padX = curX + (6.0f * uiScale);
+        float availableW = innerW - (12.0f * uiScale);
 
         entity* player = gameContext->getPlayer();
         auto mousePos = gameContext->input.getMousePosition();
@@ -427,34 +560,30 @@ namespace PaperdollWidgets
             equipSlot slot = gameContext->selectedEquipmentSlot;
             std::string slotTitle = gameContext->formatEquipSlotName(slot);
 
+            entity* targetEntity = (gameContext->selectedEquipmentSide == 1 && gameContext->getActiveTargetNPC())
+                ? gameContext->getActiveTargetNPC()
+                : player;
+            bool isPlayerTarget = (targetEntity == player);
+
             float headerH = 22.0f * uiScale;
             SDL_FRect headerRect = { padX, curY, availableW, headerH };
-            UIWidget::drawHeader(renderer, headerRect, std::format("EQUIPMENT INSPECTOR: {}", slotTitle), Theme::colors.bgHeader, Theme::colors.textGold, uiScale * 0.78f);
+            std::string inspectorTitle = isPlayerTarget
+                ? std::format("EQUIPMENT INSPECTOR: {}", slotTitle)
+                : std::format("NPC EQUIPMENT: {} ({})", slotTitle, targetEntity->name);
+            UIWidget::drawHeader(renderer, headerRect, inspectorTitle, Theme::colors.bgHeader, Theme::colors.textGold, uiScale * 0.78f);
             curY += headerH + (4.0f * uiScale);
 
-            auto eq = player->inventory.getEquippedItem(slot);
+            auto eq = targetEntity->inventory.getEquippedItem(slot);
             if (eq)
             {
-                float innerPad = 8.0f * uiScale;
-                float iX = padX + innerPad;
-                float iY = curY + (6.0f * uiScale);
-                float contentW = availableW - (innerPad * 2.0f);
-
-                // Full-width details and lore description (actions are handled via bottom action grid)
-                float textH = UIWidget::drawTextWrapped(renderer, eq->description, iX, iY + (34.0f * uiScale), contentW, Theme::colors.textSecondary, uiScale * 0.74f);
-                float cardH = std::max(64.0f * uiScale, (42.0f * uiScale) + textH + (8.0f * uiScale));
-
-                SDL_FRect cardRect = { padX, curY, availableW, cardH };
-                UIWidget::drawPanel(renderer, cardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
-
-                UIWidget::drawText(renderer, eq->name, iX, iY, Theme::colors.textGold, uiScale * 0.85f);
-
-                DisplacementMode disp = player->inventory.getDisplacement(slot);
+                DisplacementMode disp = targetEntity->inventory.getDisplacement(slot);
                 std::string dispStr = displacementModeToString(disp);
-                std::string statusLine = std::format("Fit: {}  |  Socket: {}  |  Value: {} ¤", dispStr, slotTitle, eq->baseValue);
-                UIWidget::drawText(renderer, statusLine, iX, iY + (17.0f * uiScale), Theme::colors.companion, uiScale * 0.74f);
+                std::string ownerStr = isPlayerTarget ? "Player" : targetEntity->name;
+                std::string statusLine = std::format("Owner: {}  |  Fit: {}  |  Socket: {}  |  Value: {} ¤", ownerStr, dispStr, slotTitle, eq->baseValue);
 
-                UIWidget::drawTextWrapped(renderer, eq->description, iX, iY + (34.0f * uiScale), contentW, Theme::colors.textSecondary, uiScale * 0.74f);
+                float cardH = renderItemDetailCard(renderer, gameContext, padX, curY, availableW, uiScale,
+                                                   eq->name, statusLine, eq->description, eq->imagePath,
+                                                   Theme::colors.textGold, Theme::colors.companion, Theme::colors.textSecondary);
 
                 curY += cardH + (6.0f * uiScale);
                 return (curY - startY);
@@ -464,7 +593,10 @@ namespace PaperdollWidgets
                 float cardH = 40.0f * uiScale;
                 SDL_FRect cardRect = { padX, curY, availableW, cardH };
                 UIWidget::drawPanel(renderer, cardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
-                UIWidget::drawText(renderer, "No item equipped in this slot. Click an item in your backpack above or use the command grid to equip.", padX + (8.0f * uiScale), curY + (10.0f * uiScale), Theme::colors.textMuted, uiScale * 0.76f);
+                std::string emptyMsg = isPlayerTarget
+                    ? "No item equipped in this slot. Click an item in your backpack above or use the command grid to equip."
+                    : std::format("No item equipped in this slot on {}.", targetEntity->name);
+                UIWidget::drawText(renderer, emptyMsg, padX + (8.0f * uiScale), curY + (10.0f * uiScale), Theme::colors.textMuted, uiScale * 0.76f);
                 curY += cardH + (6.0f * uiScale);
                 return (curY - startY);
             }
@@ -477,37 +609,23 @@ namespace PaperdollWidgets
         {
             auto items = (gameContext->selectedInventorySide == 0)
                 ? gameContext->getPlayerInventoryStacked()
-                : gameContext->getTileInventoryStacked();
+                : (gameContext->getActiveTargetNPC() ? gameContext->getActiveTargetNPC()->inventory.getStackedView() : gameContext->getTileInventoryStacked());
 
             if (gameContext->selectedInventoryIndex < static_cast<int>(items.size()))
             {
                 const auto& slotData = items[gameContext->selectedInventoryIndex];
                 if (slotData.itemPtr)
                 {
-                    float headerH = 22.0f * uiScale;
-                    SDL_FRect headerRect = { padX, curY, availableW, headerH };
-                    UIWidget::drawHeader(renderer, headerRect, "ITEM DETAILS & LORE", Theme::colors.bgHeader, Theme::colors.textGold, uiScale * 0.78f);
-                    curY += headerH + (4.0f * uiScale);
-
-                    float innerPad = 8.0f * uiScale;
-                    float iX = padX + innerPad;
-                    float iY = curY + (6.0f * uiScale);
-                    float contentW = availableW - (innerPad * 2.0f);
-
-                    float textH = UIWidget::drawTextWrapped(renderer, slotData.itemPtr->description, iX, iY + (34.0f * uiScale), contentW, Theme::colors.textPrimary, uiScale * 0.74f);
-                    float cardH = std::max(64.0f * uiScale, (42.0f * uiScale) + textH + (8.0f * uiScale));
-
-                    SDL_FRect cardRect = { padX, curY, availableW, cardH };
-                    UIWidget::drawPanel(renderer, cardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
-
-                    UIWidget::drawText(renderer, std::format("{} (x{})", slotData.itemPtr->name, slotData.totalCount), iX, iY, Theme::colors.textGold, uiScale * 0.85f);
-
-                    std::string sideStr = (gameContext->selectedInventorySide == 0) ? "In Backpack" : (gameContext->getActiveTargetNPC() ? "In NPC Inventory" : "On Ground");
+                    std::string sideStr = (gameContext->selectedInventorySide == 0)
+                        ? "In Backpack"
+                        : (gameContext->getActiveTargetNPC() ? std::format("In {}'s Bag", gameContext->getActiveTargetNPC()->name) : "On Ground");
                     std::string targetSlotStr = gameContext->formatEquipSlotName(slotData.itemPtr->targetSlot);
                     std::string lineInfo = std::format("Location: {}  |  Socket: {}  |  Value: {} ¤", sideStr, targetSlotStr, slotData.itemPtr->baseValue);
-                    UIWidget::drawText(renderer, lineInfo, iX, iY + (17.0f * uiScale), Theme::colors.currency, uiScale * 0.74f);
+                    std::string titleStr = std::format("{} (x{})", slotData.itemPtr->name, slotData.totalCount);
 
-                    UIWidget::drawTextWrapped(renderer, slotData.itemPtr->description, iX, iY + (34.0f * uiScale), contentW, Theme::colors.textPrimary, uiScale * 0.74f);
+                    float cardH = renderItemDetailCard(renderer, gameContext, padX, curY, availableW, uiScale,
+                                                       titleStr, lineInfo, slotData.itemPtr->description, slotData.itemPtr->imagePath,
+                                                       Theme::colors.textGold, Theme::colors.currency, Theme::colors.textPrimary);
 
                     curY += cardH + (6.0f * uiScale);
                     return (curY - startY);

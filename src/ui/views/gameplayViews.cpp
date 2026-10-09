@@ -23,6 +23,7 @@
 #include "items/merchantValuation.h"
 #include "ui/views/transformationView.h"
 #include "core/contentFilterManager.h"
+#include "common/unitFormatter.h"
 #include <iostream>
 #include <format>
 #include <vector>
@@ -116,57 +117,169 @@ namespace GameplayViews
         float startY = curY;
         float headerH = 26.0f * uiScale;
         SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
+        float padX = rect.x + (14.0f * uiScale);
+        float innerW = rect.w - (28.0f * uiScale);
 
+        const auto& participants = sex->getParticipants();
+        size_t partCount = participants.size();
+        std::string stanceStr = sexStanceToString(sex->getStance());
+
+        std::string headerText;
         if (sex->isSolo())
         {
-            UIWidget::drawHeader(renderer, headerRect, "SOLO INTIMATE ENCOUNTER", Theme::colors.bgHeader, Theme::colors.lust, uiScale);
-            curY += headerH + (10.0f * uiScale);
-
-            float padX = rect.x + (12.0f * uiScale);
-            float innerW = rect.w - (24.0f * uiScale);
-            float barH = 18.0f * uiScale;
-
-            UIWidget::drawText(renderer, std::format("Position: {} | Private Solitude", sexStanceToString(sex->getStance())), padX, curY, Theme::colors.textGold, uiScale);
-            curY += (22.0f * uiScale);
-
-            UIWidget::drawProgressBar(renderer, { padX, curY, innerW, barH }, sex->getPlayerArousal(), 100.0f, Theme::colors.lust, Theme::colors.bgDark, std::format("Your Arousal: {:.0f}/100", sex->getPlayerArousal()), uiScale);
-            curY += (barH + 12.0f * uiScale);
-
-            UIWidget::drawText(renderer, "INTIMATE LOG:", padX, curY, Theme::colors.textGold, uiScale);
-            curY += (18.0f * uiScale);
-            float textH = UIWidget::drawTextWrapped(renderer, sex->getNarrativeLog(), padX, curY, innerW, Theme::colors.textSecondary, uiScale);
-            curY += textH + (6.0f * uiScale);
-
-            return (curY - startY);
+            headerText = std::format("SOLO INTIMACY • {}", stanceStr);
+        }
+        else if (partCount == 2)
+        {
+            const SexParticipant* targetP = sex->getTargetParticipant();
+            std::string partnerName = targetP ? targetP->getName() : "Partner";
+            headerText = std::format("INTIMATE ENCOUNTER • {} WITH {}", stanceStr, partnerName);
+        }
+        else
+        {
+            headerText = std::format("GROUP ENCOUNTER • {} ({} PARTICIPANTS)", stanceStr, partCount);
         }
 
-        UIWidget::drawHeader(renderer, headerRect, "INTERACTIVE CYOA EROTIC ENCOUNTER", Theme::colors.bgHeader, Theme::colors.lust, uiScale);
-        curY += headerH + (10.0f * uiScale);
+        UIWidget::drawHeader(renderer, headerRect, headerText, Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
+        curY += headerH + (12.0f * uiScale);
 
-        entity* partner = sex->getPartner();
-        std::string partnerName = partner ? partner->name : "Partner";
+        // Group encounter: compact target switcher chips if N >= 3
+        if (partCount > 2)
+        {
+            auto mousePos = gameContext->input.getMousePosition();
+            bool clicked = gameContext->input.isLeftMouseJustClicked();
+            float chipH = 22.0f * uiScale;
+            float chipPad = 6.0f * uiScale;
+            float curChipX = padX;
 
-        float padX = rect.x + (12.0f * uiScale);
-        float innerW = rect.w - (24.0f * uiScale);
-        float halfW = (innerW - (10.0f * uiScale)) / 2.0f;
-        float barH = 18.0f * uiScale;
+            for (size_t i = 0; i < partCount; ++i)
+            {
+                const auto& p = participants[i];
+                if (p.isPlayer) continue;
 
-        UIWidget::drawText(renderer, std::format("Partner: {} | Stance: {}", partnerName, sexStanceToString(sex->getStance())), padX, curY, Theme::colors.textGold, uiScale);
-        curY += (22.0f * uiScale);
+                bool isTarget = (i == sex->getTargetParticipantIndex());
+                std::string chipLabel = std::format("{} {}", isTarget ? "▶" : "•", p.getName());
+                float chipTextW = UIWidget::getTextWidth(chipLabel, uiScale * 0.72f);
+                float chipW = chipTextW + (16.0f * uiScale);
 
-        UIWidget::drawProgressBar(renderer, { padX, curY, halfW, barH }, sex->getPlayerArousal(), 100.0f, Theme::colors.lust, Theme::colors.bgDark, std::format("Your Arousal: {:.0f}/100", sex->getPlayerArousal()), uiScale);
-        UIWidget::drawProgressBar(renderer, { padX + halfW + (10.0f * uiScale), curY, halfW, barH }, sex->getPartnerArousal(), 100.0f, Theme::colors.lust, Theme::colors.bgDark, std::format("{} Arousal: {:.0f}/100", partnerName, sex->getPartnerArousal()), uiScale);
-        curY += (barH + 8.0f * uiScale);
+                if (curChipX + chipW > padX + innerW) break;
 
-        float dom = sex->getPlayerDominance();
-        UIWidget::drawProgressBar(renderer, { padX, curY, innerW, barH }, dom + 100.0f, 200.0f, Theme::colors.textAccent, Theme::colors.bgDark, std::format("Dominance Continuum: {:.0f} ({})", dom, sex->isPlayerDominant() ? "Dominant" : "Submissive"), uiScale);
-        curY += (barH + 10.0f * uiScale);
+                SDL_FRect chipRect = { curChipX, curY, chipW, chipH };
+                bool hov = (mousePos.x >= chipRect.x && mousePos.x <= chipRect.x + chipRect.w &&
+                            mousePos.y >= chipRect.y && mousePos.y <= chipRect.y + chipRect.h);
 
-        UIWidget::drawText(renderer, "NARRATIVE LOG:", padX, curY, Theme::colors.textGold, uiScale);
-        curY += (18.0f * uiScale);
-        float textH = UIWidget::drawTextWrapped(renderer, sex->getNarrativeLog(), padX, curY, innerW, Theme::colors.textSecondary, uiScale);
-        curY += textH + (6.0f * uiScale);
+                SDL_Color chipBg = isTarget ? Theme::colors.bgSlotSelected : (hov ? Theme::colors.bgSlot : Theme::colors.bgDark);
+                SDL_Color chipBorder = isTarget ? Theme::colors.borderSelected : (hov ? Theme::colors.borderNormal : Theme::colors.borderButtonDisabled);
+                UIWidget::drawPanel(renderer, chipRect, chipBg, chipBorder);
 
+                UIWidget::drawText(renderer, chipLabel, curChipX + (8.0f * uiScale), curY + (3.0f * uiScale),
+                                   isTarget ? Theme::colors.textGold : Theme::colors.textSecondary, uiScale * 0.72f);
+
+                if (hov && clicked && !isTarget)
+                {
+                    sex->selectTargetParticipant(i);
+                    if (auto* targetP = sex->getTargetParticipant())
+                    {
+                        if (targetP->character) gameContext->activeTargetNPC = targetP->character;
+                    }
+                    gameContext->refreshActionGrid();
+                    gameContext->input.consumeMouseClick();
+                }
+
+                curChipX += chipW + chipPad;
+            }
+            curY += chipH + (10.0f * uiScale);
+        }
+
+        // Narrative Feed: Structured, spaced, high-readability cards
+        const auto& entries = sex->getNarrativeEntries();
+        if (entries.empty())
+        {
+            if (!sex->getNarrativeLog().empty())
+            {
+                float textH = UIWidget::drawTextWrapped(renderer, sex->getNarrativeLog(), padX, curY, innerW, Theme::colors.textSecondary, uiScale * 0.84f);
+                curY += textH + (12.0f * uiScale);
+            }
+        }
+        else
+        {
+            for (size_t i = 0; i < entries.size(); ++i)
+            {
+                const auto& entry = entries[i];
+
+                float cardPadX = 14.0f * uiScale;
+                float cardPadY = 10.0f * uiScale;
+                float contentW = innerW - (cardPadX * 2.0f);
+                float fontScale = uiScale * 0.84f;
+
+                float textH = UIWidget::getTextWrappedHeight(entry.narrative, contentW, fontScale);
+                float badgeLineH = 18.0f * uiScale;
+                float cardH = cardPadY + badgeLineH + (6.0f * uiScale) + textH + cardPadY;
+
+                SDL_FRect cardRect = { padX, curY, innerW, cardH };
+
+                SDL_Color cardBg, cardBorder, tagColor;
+                std::string actorLabel;
+
+                if (entry.isPlayer)
+                {
+                    cardBg = SDL_Color{ 25, 23, 20, 240 };
+                    cardBorder = SDL_Color{ 130, 105, 50, 200 };
+                    tagColor = Theme::colors.textGold;
+                    actorLabel = "▶ YOU";
+                }
+                else if (entry.isSystem)
+                {
+                    cardBg = SDL_Color{ 20, 22, 28, 240 };
+                    cardBorder = SDL_Color{ 70, 90, 125, 200 };
+                    tagColor = Theme::colors.textAccent;
+                    actorLabel = "✦ SCENE";
+                }
+                else
+                {
+                    cardBg = SDL_Color{ 28, 20, 26, 240 };
+                    cardBorder = SDL_Color{ 140, 60, 100, 200 };
+                    tagColor = Theme::colors.lust;
+                    actorLabel = std::format("◀ {}", entry.actorName);
+                }
+
+                UIWidget::drawPanel(renderer, cardRect, cardBg, cardBorder);
+
+                // Left accent stripe (3.5px width)
+                SDL_FRect stripeRect = { padX, curY, 3.5f * uiScale, cardH };
+                SDL_SetRenderDrawColor(renderer, tagColor.r, tagColor.g, tagColor.b, 255);
+                SDL_RenderFillRect(renderer, &stripeRect);
+
+                // Actor badge
+                float textY = curY + cardPadY;
+                UIWidget::drawText(renderer, actorLabel, padX + cardPadX, textY, tagColor, uiScale * 0.72f);
+                float actorW = UIWidget::getTextWidth(actorLabel, uiScale * 0.72f);
+
+                // Action badge
+                if (!entry.actionName.empty())
+                {
+                    std::string badgeStr = std::format("•  {}", entry.actionName);
+                    UIWidget::drawText(renderer, badgeStr, padX + cardPadX + actorW + (8.0f * uiScale), textY, Theme::colors.textPrimary, uiScale * 0.72f);
+                }
+
+                // Turn indicator on right
+                if (entry.turn > 0)
+                {
+                    std::string turnStr = std::format("Turn {}", entry.turn);
+                    float turnW = UIWidget::getTextWidth(turnStr, uiScale * 0.68f);
+                    UIWidget::drawText(renderer, turnStr, padX + innerW - cardPadX - turnW, textY, Theme::colors.textMuted, uiScale * 0.68f);
+                }
+
+                // Narrative body text with comfortable line wrapping
+                textY += badgeLineH + (6.0f * uiScale);
+                UIWidget::drawTextWrapped(renderer, entry.narrative, padX + cardPadX, textY, contentW, Theme::colors.textSecondary, fontScale);
+
+                // Generous vertical separation between cards
+                curY += cardH + (12.0f * uiScale);
+            }
+        }
+
+        curY += (8.0f * uiScale);
         return (curY - startY);
     }
 
@@ -182,7 +295,7 @@ namespace GameplayViews
         std::string appTitle = phoneAppModeToString(app->getAppMode());
         float headerH = 26.0f * uiScale;
         SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
-        UIWidget::drawHeader(renderer, headerRect, std::format("📱 PHONE - {}", appTitle), Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
+        UIWidget::drawHeader(renderer, headerRect, std::format("[PHONE] - {}", appTitle), Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
         curY += headerH + (10.0f * uiScale);
 
         auto mousePos = gameContext->input.getMousePosition();
@@ -194,7 +307,7 @@ namespace GameplayViews
             float fbH = 28.0f * uiScale;
             SDL_FRect fbRect = { padX, curY, innerW, fbH };
             UIWidget::drawPanel(renderer, fbRect, Theme::colors.bgHeader, Theme::colors.borderSelected);
-            UIWidget::drawText(renderer, "💬 " + app->getFeedbackText(), padX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textGold, uiScale * 0.82f);
+            UIWidget::drawText(renderer, "[NOTE] " + app->getFeedbackText(), padX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textGold, uiScale * 0.82f);
             curY += fbH + (10.0f * uiScale);
         }
 
@@ -206,9 +319,9 @@ namespace GameplayViews
             float barCardH = 34.0f * uiScale;
             SDL_FRect barRect = { padX, curY, innerW, barCardH };
             UIWidget::drawPanel(renderer, barRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
-            std::string timeStr = std::format("📅 Day {}, {:02d}:{:02d}", gameContext->gameTime.day, gameContext->gameTime.hour, gameContext->gameTime.minute);
+            std::string timeStr = std::format("[DAY] Day {}, {:02d}:{:02d}", gameContext->gameTime.day, gameContext->gameTime.hour, gameContext->gameTime.minute);
             UIWidget::drawText(renderer, timeStr, padX + (10.0f * uiScale), curY + (8.0f * uiScale), Theme::colors.textGold, uiScale * 0.85f);
-            std::string signalStr = "Signal: Arcane 5G [█████]   Battery: 98% ⚡";
+            std::string signalStr = "Signal: Arcane 5G [#####]   Battery: 98% [PWR]";
             float sigW = UIWidget::getTextWidth(signalStr, uiScale * 0.78f);
             UIWidget::drawText(renderer, signalStr, padX + innerW - sigW - (10.0f * uiScale), curY + (9.0f * uiScale), Theme::colors.companion, uiScale * 0.78f);
             curY += barCardH + (10.0f * uiScale);
@@ -511,21 +624,23 @@ namespace GameplayViews
                 }
                 else if (activeTab == 1) // Body Stats
                 {
+                    const std::string& unitPref = gameContext->settings.gameplay.unitPreference;
                     UIWidget::drawText(renderer, "Anatomical Measurements:", padX, curY, Theme::colors.textAccent, uiScale * 0.90f);
                     curY += (18.0f * uiScale);
 
-                    std::string bDim = std::format("Body Size: {} | Muscle Tone: {} | Height: {:.2f}m",
-                        p->anatomy.bodySize, p->anatomy.muscleTone, p->anatomy.heightMeters);
+                    std::string hStr = unitFormatter::formatHeight(p->anatomy.heightMeters * 100.0f, unitPref);
+                    std::string bDim = std::format("Body Size: {} | Muscle Tone: {} | Height: {}",
+                        p->anatomy.bodySize, p->anatomy.muscleTone, hStr);
                     UIWidget::drawText(renderer, bDim, padX + (10.0f * uiScale), curY, Theme::colors.textPrimary, uiScale * 0.82f);
                     curY += (18.0f * uiScale);
 
                     const bodyPart* br = p->anatomy.getPart(bodySlot::BREASTS);
-                    std::string brInfo = br ? std::format("Breasts: {} Cup  |  Lactation: {:.0f}ml", bodyPart::getCupSizeName(br->cupSize), br->currentFluidMl) : "Breasts: None";
+                    std::string brInfo = br ? std::format("Breasts: {} Cup  |  Lactation: {}", bodyPart::getCupSizeName(br->cupSize), unitFormatter::formatFluid(br->currentFluidMl, unitPref)) : "Breasts: None";
                     UIWidget::drawText(renderer, brInfo, padX + (10.0f * uiScale), curY, Theme::colors.textSecondary, uiScale * 0.82f);
                     curY += (18.0f * uiScale);
 
                     const bodyPart* as = p->anatomy.getPart(bodySlot::ASS);
-                    std::string asInfo = as ? std::format("Ass Capacity: {:.0f}ml  |  Elasticity: {:.0f}", as->orifice.maxCapacityMl, as->orifice.elasticity) : "Ass: Standard";
+                    std::string asInfo = as ? std::format("Ass Capacity: {}  |  Elasticity: {:.0f}", unitFormatter::formatFluid(as->orifice.maxCapacityMl, unitPref), as->orifice.elasticity) : "Ass: Standard";
                     UIWidget::drawText(renderer, asInfo, padX + (10.0f * uiScale), curY, Theme::colors.textSecondary, uiScale * 0.82f);
                     curY += (18.0f * uiScale);
 
@@ -533,7 +648,7 @@ namespace GameplayViews
                     {
                         const bodyPart* gr = p->anatomy.getPart(bodySlot::GROIN);
                         float pLen = gr ? gr->length : 15.0f;
-                        UIWidget::drawText(renderer, std::format("Penis: {:.0f}cm length", pLen), padX + (10.0f * uiScale), curY, Theme::colors.textSecondary, uiScale * 0.82f);
+                        UIWidget::drawText(renderer, std::format("Penis: {} length", unitFormatter::formatLength(pLen, unitPref)), padX + (10.0f * uiScale), curY, Theme::colors.textSecondary, uiScale * 0.82f);
                         curY += (18.0f * uiScale);
                     }
                     if (p->anatomy.hasVagina())
@@ -1623,7 +1738,7 @@ namespace GameplayViews
                     float artH = headH - (12.0f * uiScale);
                     SDL_FRect artRect = { padX + (8.0f * uiScale), curY + (6.0f * uiScale), artW, artH };
                     UIWidget::drawPanel(renderer, artRect, Theme::colors.bgDark, Theme::colors.borderSelected);
-                    UIWidget::drawText(renderer, "🖼️ ART", artRect.x + (14.0f * uiScale), artRect.y + (22.0f * uiScale), Theme::colors.textGold, uiScale * 0.75f);
+                    UIWidget::drawText(renderer, "[ART]", artRect.x + (14.0f * uiScale), artRect.y + (22.0f * uiScale), Theme::colors.textGold, uiScale * 0.75f);
                     UIWidget::drawText(renderer, "PORTRAIT", artRect.x + (8.0f * uiScale), artRect.y + (42.0f * uiScale), Theme::colors.textMuted, uiScale * 0.65f);
 
                     // Identity Text
@@ -1724,7 +1839,7 @@ namespace GameplayViews
                         app->setFeedbackText(std::format("Placed call to {}. 'Greetings! Stay safe.'", cName));
                         gameContext->input.consumeMouseClick();
                     }
-                    UIWidget::drawButton(renderer, callRect, "📞 Call Transceiver", cHov, true, false, uiScale * 0.76f);
+                    UIWidget::drawButton(renderer, callRect, "[CALL] Call Transceiver", cHov, true, false, uiScale * 0.76f);
 
                     SDL_FRect msgRect = { padX + (10.0f * uiScale) + btnW, curY, btnW, btnH };
                     bool mHov = (mousePos.x >= msgRect.x && mousePos.x <= msgRect.x + msgRect.w &&
@@ -1734,7 +1849,7 @@ namespace GameplayViews
                         app->setFeedbackText(std::format("Sent message to {}. Delivered.", cName));
                         gameContext->input.consumeMouseClick();
                     }
-                    UIWidget::drawButton(renderer, msgRect, "✉️ Send Message", mHov, true, false, uiScale * 0.76f);
+                    UIWidget::drawButton(renderer, msgRect, "[MSG] Send Message", mHov, true, false, uiScale * 0.76f);
 
                     curY += btnH + (12.0f * uiScale);
                 }
@@ -1781,7 +1896,7 @@ namespace GameplayViews
 
             if (activeTab == 0) // World Overview
             {
-                UIWidget::drawText(renderer, "🗺️ Regional Geography: The Central Realm & Outlying Territories", padX + (12.0f * uiScale), curY + (10.0f * uiScale), Theme::colors.textGold, uiScale * 0.88f);
+                UIWidget::drawText(renderer, "[MAP] Regional Geography: The Central Realm & Outlying Territories", padX + (12.0f * uiScale), curY + (10.0f * uiScale), Theme::colors.textGold, uiScale * 0.88f);
                 UIWidget::drawText(renderer, "Primary Safe Haven: Sanctuary Manor & Surrounding Grounds", padX + (12.0f * uiScale), curY + (30.0f * uiScale), Theme::colors.companion, uiScale * 0.80f);
 
                 static const std::vector<std::string> sectors = {
@@ -1801,7 +1916,7 @@ namespace GameplayViews
             {
                 const gameMap* map = gameContext->getActiveMap();
                 std::string zoneName = (map && !map->getName().empty()) ? map->getName() : "Sanctuary Manor F1";
-                UIWidget::drawText(renderer, std::format("📍 Current Zone: {}", zoneName), padX + (12.0f * uiScale), curY + (10.0f * uiScale), Theme::colors.textGold, uiScale * 0.88f);
+                UIWidget::drawText(renderer, std::format("[ZONE] Current Zone: {}", zoneName), padX + (12.0f * uiScale), curY + (10.0f * uiScale), Theme::colors.textGold, uiScale * 0.88f);
                 UIWidget::drawText(renderer, "Environmental Condition: Safe Arcane Sanctuary [Combat Disabled]", padX + (12.0f * uiScale), curY + (30.0f * uiScale), Theme::colors.friendly, uiScale * 0.80f);
 
                 static const std::vector<std::string> zoneAmenities = {
@@ -1819,7 +1934,7 @@ namespace GameplayViews
             }
             else if (activeTab == 2) // Points of Interest
             {
-                UIWidget::drawText(renderer, "🌟 Notable Points of Interest & Discovered Landmarks:", padX + (12.0f * uiScale), curY + (10.0f * uiScale), Theme::colors.textGold, uiScale * 0.88f);
+                UIWidget::drawText(renderer, "[POINTS] Notable Points of Interest & Discovered Landmarks:", padX + (12.0f * uiScale), curY + (10.0f * uiScale), Theme::colors.textGold, uiScale * 0.88f);
 
                 static const std::vector<std::string> pois = {
                     "• Sanctuary Research Lab — Equipped for body analysis, alchemy, and rest.",
@@ -2136,106 +2251,527 @@ namespace GameplayViews
         std::string locTitle = (gameContext->getActiveMap() && !gameContext->getActiveMap()->getName().empty())
                                ? gameContext->getActiveMap()->getName()
                                : "Encounter Arena";
-        std::string headerText = std::format("{} • Tactical Combat (Round {})", locTitle, combat->getEngine().getCurrentRound());
+        std::string headerText = std::format("{} • Tactical Combat Arena (Round {})", locTitle, combat->getEngine().getCurrentRound());
         UIWidget::drawHeader(renderer, headerRect, headerText, Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
-        curY += headerH + (10.0f * uiScale);
+        curY += headerH + (8.0f * uiScale);
 
-        float padX = rect.x + (12.0f * uiScale);
-        float innerW = rect.w - (24.0f * uiScale);
-        float innerPad = 10.0f * uiScale;
+        float padX = rect.x + (10.0f * uiScale);
+        float innerW = rect.w - (20.0f * uiScale);
+        float innerPad = 8.0f * uiScale;
 
-        // =========================================================================
-        // 1. TACTICAL STATUS CARD: Turn, AP, Combatants, and Action Queue
-        // =========================================================================
         const auto& playerParty = combat->getEngine().getPlayerParty();
-        bool hasQueue = (!playerParty.empty() && !playerParty.front().turnQueue.empty());
-        float statusCardH = hasQueue ? (72.0f * uiScale) : (50.0f * uiScale);
-        SDL_FRect statusRect = { padX, curY, innerW, statusCardH };
-        UIWidget::drawPanel(renderer, statusRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+        const auto& enemyParty = combat->getEngine().getEnemyParty();
 
-        // Player side: Name & Action Points
+        auto mousePos = gameContext->input.getMousePosition();
+        bool clicked = gameContext->input.isLeftMouseJustClicked();
+
+        // =========================================================================
+        // 1. ACTIVE FOCUS STANCE BANNER
+        // =========================================================================
+        float bannerH = 30.0f * uiScale;
+        SDL_FRect bannerRect = { padX, curY, innerW, bannerH };
+
+        CombatFocus focus = combat->getCombatFocus();
+        std::string focusTitle = "[OVERVIEW] SELECT FOCUS ON ACTION GRID";
+        SDL_Color focusCol = Theme::colors.textGold;
+        SDL_Color focusBorder = Theme::colors.borderNormal;
+
+        switch (focus)
+        {
+            case CombatFocus::ROOT:
+                focusTitle = "[OVERVIEW] SELECT FOCUS ON ACTION GRID";
+                focusCol = Theme::colors.textGold;
+                focusBorder = Theme::colors.borderNormal;
+                break;
+            case CombatFocus::WEAPON:
+                focusTitle = "[WEAPON FOCUS] MARTIAL & WEAPON TECHNIQUES";
+                focusCol = Theme::colors.textGold;
+                focusBorder = Theme::colors.borderButton;
+                break;
+            case CombatFocus::MAGIC:
+                focusTitle = "[MAGIC FOCUS] ARCANE & ELEMENTAL SPELLS";
+                focusCol = Theme::colors.elementArcane;
+                focusBorder = Theme::colors.elementArcane;
+                break;
+            case CombatFocus::DEFENSE:
+                focusTitle = "[DEFENSE FOCUS] GUARDS, PARRIES & EVASION";
+                focusCol = Theme::colors.friendly;
+                focusBorder = Theme::colors.friendly;
+                break;
+            case CombatFocus::SEDUCTION:
+                focusTitle = "[SEDUCTION FOCUS] EROTIC MANEUVERS & LUST";
+                focusCol = Theme::colors.elementLust;
+                focusBorder = Theme::colors.elementLust;
+                break;
+            case CombatFocus::COMPANION:
+                focusTitle = "[COMPANION FOCUS] FAMILIAR & ELEMENTAL COMMANDS";
+                focusCol = Theme::colors.companion;
+                focusBorder = Theme::colors.companion;
+                break;
+            case CombatFocus::ITEM:
+                focusTitle = "[INVENTORY FOCUS] POTIONS, RUNES & CONSUMABLES";
+                focusCol = Theme::colors.textSecondary;
+                focusBorder = Theme::colors.borderNormal;
+                break;
+        }
+
+        UIWidget::drawPanel(renderer, bannerRect, Theme::colors.bgHeader, focusBorder);
+        UIWidget::drawText(renderer, focusTitle, padX + (10.0f * uiScale), curY + (7.0f * uiScale), focusCol, uiScale * 0.78f);
+
+        // Turn resources summary: Pure Stamina & Mana (Zero AP)
         if (!playerParty.empty() && playerParty.front().character)
         {
             const auto& p = playerParty.front();
-            UIWidget::drawText(renderer, p.character->name, padX + innerPad, curY + (7.0f * uiScale), Theme::colors.textGold, uiScale * 0.84f);
+            float curMp = p.character->getStat("mana");
+            float maxMp = std::max(1.0f, p.character->getStat("max_mana"));
+            std::string resSummary = std::format("Stamina: {:.0f} / {:.0f} • Mana: {:.0f} / {:.0f}",
+                p.currentStamina, p.maxStamina, curMp, maxMp);
+            float resW = UIWidget::getTextWidth(resSummary, uiScale * 0.72f);
+            UIWidget::drawText(renderer, resSummary, padX + innerW - resW - (10.0f * uiScale), curY + (7.0f * uiScale), Theme::colors.friendly, uiScale * 0.72f);
+        }
 
-            std::string apStr = std::format("Turn Action Points: {} / {} AP", p.currentAp, p.maxAp);
-            UIWidget::drawText(renderer, apStr, padX + innerPad, curY + (26.0f * uiScale), Theme::colors.companion, uiScale * 0.72f);
+        curY += bannerH + (8.0f * uiScale);
 
-            if (hasQueue)
+        // =========================================================================
+        // 2. MULTI-MEMBER PARTY ACTION QUEUE (ONE LINE PER TEAM MEMBER)
+        // =========================================================================
+        float queueHeaderH = 18.0f * uiScale;
+        float rowH = 30.0f * uiScale;
+        float rowGap = 4.0f * uiScale;
+        size_t partyCount = std::max<size_t>(1, playerParty.size());
+        float queueH = queueHeaderH + (partyCount * (rowH + rowGap)) + (4.0f * uiScale);
+        SDL_FRect queueRect = { padX, curY, innerW, queueH };
+
+        UIWidget::drawPanel(renderer, queueRect, Theme::colors.bgPanel, Theme::colors.borderNormal);
+        UIWidget::drawText(renderer, "PARTY ACTION QUEUES (PLANNED TURNS)", padX + innerPad, curY + (4.0f * uiScale), Theme::colors.textGold, uiScale * 0.68f);
+
+        float memberY = curY + queueHeaderH + (2.0f * uiScale);
+
+        for (size_t pIdx = 0; pIdx < playerParty.size(); ++pIdx)
+        {
+            const auto& memberPart = playerParty[pIdx];
+            if (!memberPart.character) continue;
+
+            bool isLeader = (pIdx == 0);
+            std::string memberLabel = isLeader ? std::format("[LEADER] {}:", memberPart.character->name)
+                                               : std::format("[COMPANION] {}:", memberPart.character->name);
+            SDL_Color labelCol = isLeader ? Theme::colors.textGold : Theme::colors.companion;
+
+            float labelWidth = std::max(115.0f * uiScale, UIWidget::getTextWidth(memberLabel, uiScale * 0.68f) + (10.0f * uiScale));
+            UIWidget::drawText(renderer, memberLabel, padX + innerPad, memberY + (7.0f * uiScale), labelCol, uiScale * 0.68f);
+
+            float pillStartX = padX + innerPad + labelWidth;
+            float availW = innerW - innerPad - (labelWidth + (12.0f * uiScale));
+
+            const auto& q = memberPart.turnQueue;
+            if (q.empty())
             {
-                std::string qStr = "Action Queue: ";
-                for (size_t qi = 0; qi < p.turnQueue.size(); ++qi)
-                {
-                    const auto& qa = p.turnQueue[qi];
-                    std::string tName = qa.target ? qa.target->name : "Enemy";
-                    qStr += std::format("[{}. {} -> {} ({} AP)] ", qi + 1, qa.action.name, tName, qa.actualApCost);
-                }
-                UIWidget::drawText(renderer, qStr, padX + innerPad, curY + (48.0f * uiScale), Theme::colors.friendly, uiScale * 0.68f);
+                std::string emptyMsg = isLeader
+                    ? "[No actions queued - Select techniques below to chain turn]"
+                    : "[Holding position - Conserving Stamina]";
+                UIWidget::drawText(renderer, emptyMsg, pillStartX, memberY + (7.0f * uiScale), Theme::colors.textMuted, uiScale * 0.64f);
             }
+            else
+            {
+                float maxPillW = 160.0f * uiScale;
+                float pillW = std::min(maxPillW, availW / q.size());
+                float pillH = 26.0f * uiScale;
+
+                for (size_t qi = 0; qi < q.size(); ++qi)
+                {
+                    const auto& qa = q[qi];
+                    SDL_FRect pillRect = { pillStartX, memberY + (2.0f * uiScale), pillW - (8.0f * uiScale), pillH };
+                    SDL_Color pillBg = isLeader ? Theme::colors.bgSlotOccupied : Theme::colors.bgDark;
+                    SDL_Color pillBorder = isLeader ? Theme::colors.borderButton : Theme::colors.borderSelected;
+                    UIWidget::drawPanel(renderer, pillRect, pillBg, pillBorder);
+
+                    std::string line1 = std::format("#{}. {}", qi + 1, qa.action.name);
+                    std::string costStr = "";
+                    if (qa.action.staminaCost > 0.0f) costStr += std::format("{:.0f} Sta ", qa.action.staminaCost);
+                    if (qa.action.manaCost > 0.0f) costStr += std::format("{:.0f} MP ", qa.action.manaCost);
+                    if (qa.action.lustDamage > 0.0f) costStr += std::format("+{:.0f} Lust ", qa.action.lustDamage);
+                    if (!isLeader && qa.target)
+                    {
+                        costStr += std::format("-> {}", qa.target->name);
+                    }
+
+                    UIWidget::drawText(renderer, line1, pillRect.x + (4.0f * uiScale), pillRect.y + (2.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.62f);
+                    UIWidget::drawText(renderer, costStr, pillRect.x + (4.0f * uiScale), pillRect.y + (13.0f * uiScale), isLeader ? Theme::colors.friendly : Theme::colors.companion, uiScale * 0.56f);
+
+                    if (qi + 1 < q.size())
+                    {
+                        UIWidget::drawText(renderer, "->", pillRect.x + pillRect.w + (1.0f * uiScale), pillRect.y + (6.0f * uiScale), Theme::colors.textGold, uiScale * 0.68f);
+                    }
+
+                    pillStartX += pillW;
+                }
+            }
+
+            memberY += rowH + rowGap;
         }
 
-        // Opponent side: Target Name & Subtitle
-        const auto& enemyParty = combat->getEngine().getEnemyParty();
-        entity* targetEnemy = gameContext->getActiveTargetNPC();
-        if (!targetEnemy && !enemyParty.empty())
-        {
-            targetEnemy = enemyParty.front().character.get();
-        }
-
-        if (targetEnemy)
-        {
-            std::string eName = targetEnemy->name;
-            float eW = UIWidget::getTextWidth(eName, uiScale * 0.84f);
-            UIWidget::drawText(renderer, eName, padX + innerW - eW - innerPad, curY + (7.0f * uiScale), Theme::colors.enemy, uiScale * 0.84f);
-
-            std::string raceStr = targetEnemy->anatomy.getRacialTitle().empty() ? "Enemy" : targetEnemy->anatomy.getRacialTitle();
-            std::string eSub = std::format("Target: Lvl {} • {}", targetEnemy->stats.level, raceStr);
-            float eSubW = UIWidget::getTextWidth(eSub, uiScale * 0.72f);
-            UIWidget::drawText(renderer, eSub, padX + innerW - eSubW - innerPad, curY + (26.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.72f);
-        }
-
-        curY += statusCardH + (10.0f * uiScale);
+        curY += queueH + (8.0f * uiScale);
 
         // =========================================================================
-        // 2. TACTICAL COMBAT LOG CHRONICLE
+        // 4. TACTICAL COMBAT CHRONICLE / LOG
         // =========================================================================
-        float logCardH = rect.h - (curY - startY) - (10.0f * uiScale);
-        if (logCardH < 180.0f * uiScale) logCardH = 220.0f * uiScale;
+        float logCardH = rect.h - (curY - startY) - (8.0f * uiScale);
+        if (logCardH < 150.0f * uiScale) logCardH = 170.0f * uiScale;
         SDL_FRect logRect = { padX, curY, innerW, logCardH };
         UIWidget::drawPanel(renderer, logRect, Theme::colors.bgPanel, Theme::colors.borderNormal);
 
-        UIWidget::drawText(renderer, "TACTICAL COMBAT LOG", padX + innerPad, curY + (8.0f * uiScale), Theme::colors.textGold, uiScale * 0.76f);
-
-        float logY = curY + (28.0f * uiScale);
         const auto& combatLog = combat->getEngine().getCombatLog();
+        int totalLogs = static_cast<int>(combatLog.size());
 
-        float lineH = 17.0f * uiScale;
-        int maxLines = static_cast<int>((logCardH - (34.0f * uiScale)) / lineH);
-        if (maxLines < 1) maxLines = 1;
+        // Header bar inside chronicle panel
+        float headerBarH = 24.0f * uiScale;
+        SDL_FRect headerBarRect = { padX, curY, innerW, headerBarH };
+        UIWidget::drawPanel(renderer, headerBarRect, Theme::colors.bgHeader, Theme::colors.borderNormal);
 
-        int startIdx = std::max(0, static_cast<int>(combatLog.size()) - maxLines);
-        for (size_t i = startIdx; i < combatLog.size(); ++i)
+        // Header Title
+        UIWidget::drawText(renderer, "TACTICAL COMBAT CHRONICLE", padX + innerPad, curY + (5.0f * uiScale), Theme::colors.textGold, uiScale * 0.74f);
+
+        // Round Badge Pill
+        int currentRound = combat->getEngine().getCurrentRound();
+        std::string roundPill = std::format("[ROUND {}]", currentRound);
+        float roundPillW = UIWidget::getTextWidth(roundPill, uiScale * 0.62f) + (10.0f * uiScale);
+        float titleW = UIWidget::getTextWidth("TACTICAL COMBAT CHRONICLE", uiScale * 0.74f);
+        SDL_FRect roundPillRect = { padX + innerPad + titleW + (12.0f * uiScale), curY + (3.0f * uiScale), roundPillW, headerBarH - (6.0f * uiScale) };
+        UIWidget::drawPanel(renderer, roundPillRect, Theme::colors.bgSlotOccupied, Theme::colors.borderSelected);
+        UIWidget::drawText(renderer, roundPill, roundPillRect.x + (5.0f * uiScale), roundPillRect.y + (3.0f * uiScale), Theme::colors.textGold, uiScale * 0.62f);
+
+        // Scroll state management (0 = pinned to newest events at bottom)
+        static int s_combatLogScrollOffset = 0;
+        static int s_prevLogSize = 0;
+        if (totalLogs != s_prevLogSize)
         {
-            const auto& line = combatLog[i];
-            SDL_Color col = Theme::colors.textSecondary;
-
-            if (line.find("===") != std::string::npos || line.find("--- Round") != std::string::npos)
-                col = Theme::colors.textGold;
-            else if (line.find("takes") != std::string::npos || line.find("damage") != std::string::npos || line.find("deals") != std::string::npos)
-                col = Theme::colors.enemy;
-            else if (line.find("casts") != std::string::npos || line.find("Fireball") != std::string::npos || line.find("Dart") != std::string::npos)
-                col = Theme::colors.arcane;
-            else if (line.find("defends") != std::string::npos || line.find("parries") != std::string::npos || line.find("dodges") != std::string::npos || line.find("Shield") != std::string::npos)
-                col = Theme::colors.companion;
-            else if (line.find("defeated") != std::string::npos || line.find("Defeated") != std::string::npos)
-                col = Theme::colors.lust;
-
-            UIWidget::drawText(renderer, line, padX + innerPad, logY, col, uiScale * 0.72f);
-            logY += lineH;
+            if (s_combatLogScrollOffset == 0)
+            {
+                s_combatLogScrollOffset = 0;
+            }
+            s_prevLogSize = totalLogs;
         }
 
-        curY += logCardH + (10.0f * uiScale);
+        float entryH = 21.0f * uiScale;
+        float listAreaY = curY + headerBarH + (4.0f * uiScale);
+        float listAreaH = logCardH - headerBarH - (8.0f * uiScale);
+        int maxVisible = std::max(1, static_cast<int>(listAreaH / entryH));
+        int maxOffset = std::max(0, totalLogs - maxVisible);
+        s_combatLogScrollOffset = std::clamp(s_combatLogScrollOffset, 0, maxOffset);
+
+        // Mouse wheel scrolling on hover
+        bool logBoxHovered = (mousePos.x >= logRect.x && mousePos.x <= logRect.x + logRect.w &&
+                              mousePos.y >= logRect.y && mousePos.y <= logRect.y + logRect.h);
+        if (logBoxHovered && maxOffset > 0)
+        {
+            float wheelY = gameContext->input.getMouseWheelY();
+            if (wheelY != 0.0f)
+            {
+                int step = static_cast<int>(std::round(wheelY));
+                if (step == 0) step = (wheelY > 0.0f) ? 1 : -1;
+                s_combatLogScrollOffset = std::clamp(s_combatLogScrollOffset + step, 0, maxOffset);
+                gameContext->input.consumeMouseWheel();
+            }
+        }
+
+        // Header controls (Scroll buttons & status count)
+        float btnW = 18.0f * uiScale;
+        float btnH = 16.0f * uiScale;
+        float btnGap = 3.0f * uiScale;
+        float btnY = curY + (4.0f * uiScale);
+        float btnDownX = padX + innerW - innerPad - btnW;
+        float btnUpX = btnDownX - btnW - btnGap;
+
+        if (totalLogs > maxVisible)
+        {
+            SDL_FRect upRect = { btnUpX, btnY, btnW, btnH };
+            bool upHov = (mousePos.x >= upRect.x && mousePos.x <= upRect.x + upRect.w &&
+                          mousePos.y >= upRect.y && mousePos.y <= upRect.y + upRect.h);
+            bool canUp = (s_combatLogScrollOffset < maxOffset);
+            if (upHov && clicked && canUp)
+            {
+                s_combatLogScrollOffset = std::min(maxOffset, s_combatLogScrollOffset + 1);
+                gameContext->input.consumeMouseClick();
+            }
+            UIWidget::drawButton(renderer, upRect, "^", upHov, canUp, false, uiScale * 0.60f);
+
+            SDL_FRect downRect = { btnDownX, btnY, btnW, btnH };
+            bool downHov = (mousePos.x >= downRect.x && mousePos.x <= downRect.x + downRect.w &&
+                            mousePos.y >= downRect.y && mousePos.y <= downRect.y + downRect.h);
+            bool canDown = (s_combatLogScrollOffset > 0);
+            if (downHov && clicked && canDown)
+            {
+                s_combatLogScrollOffset = std::max(0, s_combatLogScrollOffset - 1);
+                gameContext->input.consumeMouseClick();
+            }
+            UIWidget::drawButton(renderer, downRect, "v", downHov, canDown, false, uiScale * 0.60f);
+        }
+
+        // Event count & history status text
+        std::string countStr = std::format("{} events", totalLogs);
+        if (s_combatLogScrollOffset > 0)
+        {
+            countStr = std::format("[HISTORY +{}] • {}", s_combatLogScrollOffset, countStr);
+        }
+        float countW = UIWidget::getTextWidth(countStr, uiScale * 0.65f);
+        float countX = (totalLogs > maxVisible) ? (btnUpX - countW - (8.0f * uiScale)) : (padX + innerW - innerPad - countW);
+        SDL_Color countCol = (s_combatLogScrollOffset > 0) ? Theme::colors.textAccent : Theme::colors.textMuted;
+        UIWidget::drawText(renderer, countStr, countX, curY + (5.0f * uiScale), countCol, uiScale * 0.65f);
+
+        // Scrollbar geometry
+        float scrollbarW = (totalLogs > maxVisible) ? (10.0f * uiScale) : 0.0f;
+        float cardContentW = innerW - (innerPad * 2.0f) - scrollbarW;
+        float logCurY = listAreaY;
+
+        if (combatLog.empty())
+        {
+            UIWidget::drawText(renderer, "Combat initiated. Awaiting initial actions and turn declarations...",
+                padX + innerPad, logCurY + (10.0f * uiScale), Theme::colors.textMuted, uiScale * 0.70f);
+        }
+        else
+        {
+            int startIdx = std::max(0, totalLogs - maxVisible - s_combatLogScrollOffset);
+            int endIdx = std::min(totalLogs, startIdx + maxVisible);
+
+            for (int i = startIdx; i < endIdx; ++i)
+            {
+                const auto& line = combatLog[i];
+                SDL_FRect stripRect = { padX + innerPad, logCurY, cardContentW, entryH - (2.0f * uiScale) };
+
+                // Check for milestone / round divider
+                bool isMilestone = (line.find("--- Round") != std::string::npos ||
+                                    line.find("=== COMBAT") != std::string::npos ||
+                                    line.find("=== VICTORY") != std::string::npos);
+
+                if (isMilestone)
+                {
+                    UIWidget::drawPanel(renderer, stripRect, Theme::colors.bgHeader, Theme::colors.borderNormal);
+                    float txtW = UIWidget::getTextWidth(line, uiScale * 0.68f);
+                    float txtX = stripRect.x + ((stripRect.w - txtW) / 2.0f);
+                    float txtY = stripRect.y + (3.0f * uiScale);
+
+                    float lineY = stripRect.y + (stripRect.h / 2.0f);
+                    float padSide = 14.0f * uiScale;
+                    float lineWidth = txtX - stripRect.x - padSide;
+                    if (lineWidth > 10.0f * uiScale)
+                    {
+                        SDL_SetRenderDrawColor(renderer, Theme::colors.borderSelected.r, Theme::colors.borderSelected.g, Theme::colors.borderSelected.b, 100);
+                        SDL_FRect l1 = { stripRect.x + padSide, lineY, lineWidth - (4.0f * uiScale), 1.0f };
+                        SDL_FRect l2 = { txtX + txtW + (4.0f * uiScale), lineY, lineWidth - (4.0f * uiScale), 1.0f };
+                        SDL_RenderFillRect(renderer, &l1);
+                        SDL_RenderFillRect(renderer, &l2);
+                    }
+
+                    UIWidget::drawText(renderer, line, txtX, txtY, Theme::colors.textGold, uiScale * 0.68f);
+                }
+                else
+                {
+                    std::string badge = "[ACTION]";
+                    SDL_Color accentCol = Theme::colors.textSecondary;
+                    SDL_Color textCol = Theme::colors.textPrimary;
+
+                    bool isHeroAction = false;
+                    for (const auto& p : playerParty)
+                    {
+                        if (p.character && line.starts_with(p.character->name))
+                        {
+                            isHeroAction = true;
+                            break;
+                        }
+                    }
+
+                    bool isEnemyAction = false;
+                    if (!isHeroAction)
+                    {
+                        for (const auto& e : enemyParty)
+                        {
+                            if (e.character && line.starts_with(e.character->name))
+                            {
+                                isEnemyAction = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (line.find("[REACTION:") != std::string::npos || line.find("COMBO") != std::string::npos ||
+                        line.find("Vaporize") != std::string::npos || line.find("Freeze") != std::string::npos ||
+                        line.find("Conflagration") != std::string::npos || line.find("Magma Melt") != std::string::npos)
+                    {
+                        badge = "[COMBO]";
+                        accentCol = Theme::colors.arcane;
+                        textCol = Theme::colors.textAccent;
+                    }
+                    else if (line.find("climax") != std::string::npos || line.find("surrenders") != std::string::npos ||
+                             line.find("Surrender") != std::string::npos)
+                    {
+                        badge = "[CLIMAX]";
+                        accentCol = Theme::colors.lust;
+                        textCol = Theme::colors.lust;
+                    }
+                    else if (line.find("Lust") != std::string::npos || line.find("lust") != std::string::npos ||
+                             line.find("Seduce") != std::string::npos || line.find("Tease") != std::string::npos)
+                    {
+                        badge = "[LUST]";
+                        accentCol = Theme::colors.elementLust;
+                        textCol = Theme::colors.lust;
+                    }
+                    else if (line.find("guard is SHATTERED") != std::string::npos)
+                    {
+                        badge = "[SHATTER]";
+                        accentCol = Theme::colors.textGold;
+                        textCol = Theme::colors.textGold;
+                    }
+                    else if (line.find("holds their guard") != std::string::npos || line.find("absorbs") != std::string::npos ||
+                             line.find("parries") != std::string::npos || line.find("dodges") != std::string::npos ||
+                             line.find("Shield") != std::string::npos || line.find("Guard") != std::string::npos)
+                    {
+                        badge = "[GUARD]";
+                        accentCol = Theme::colors.companion;
+                        textCol = Theme::colors.textSecondary;
+                    }
+                    else if (line.find("heals") != std::string::npos || line.find("restored") != std::string::npos ||
+                             line.find("recovered") != std::string::npos || line.find("Cleanse") != std::string::npos)
+                    {
+                        badge = "[HEAL]";
+                        accentCol = Theme::colors.stamina;
+                        textCol = Theme::colors.stamina;
+                    }
+                    else if (line.find("has been defeated") != std::string::npos || line.find("Defeated") != std::string::npos ||
+                             line.find("Victory") != std::string::npos || line.find("Defeat") != std::string::npos)
+                    {
+                        badge = "[DEFEAT]";
+                        accentCol = Theme::colors.textGold;
+                        textCol = Theme::colors.textGold;
+                    }
+                    else if (line.find("[Spell]") != std::string::npos || line.find("conjures") != std::string::npos ||
+                             line.find("cast ") != std::string::npos)
+                    {
+                        badge = "[MAGIC]";
+                        accentCol = Theme::colors.elementArcane;
+                        textCol = Theme::colors.textAccent;
+                    }
+                    else if (line.find("[Item]") != std::string::npos || line.find("consumed") != std::string::npos)
+                    {
+                        badge = "[ITEM]";
+                        accentCol = Theme::colors.currency;
+                        textCol = Theme::colors.textPrimary;
+                    }
+                    else if (isHeroAction)
+                    {
+                        badge = "[HERO]";
+                        accentCol = Theme::colors.friendly;
+                        textCol = Theme::colors.textPrimary;
+                    }
+                    else if (isEnemyAction)
+                    {
+                        badge = "[ENEMY]";
+                        accentCol = Theme::colors.enemy;
+                        textCol = Theme::colors.textSecondary;
+                    }
+
+                    bool stripHovered = (mousePos.x >= stripRect.x && mousePos.x <= stripRect.x + stripRect.w &&
+                                         mousePos.y >= stripRect.y && mousePos.y <= stripRect.y + stripRect.h);
+                    SDL_Color cardBg = stripHovered ? Theme::colors.bgSlotOccupied : Theme::colors.bgSlot;
+                    SDL_Color cardBorder = stripHovered ? Theme::colors.borderButtonHover : Theme::colors.borderMuted;
+                    UIWidget::drawPanel(renderer, stripRect, cardBg, cardBorder);
+
+                    // 3px Left indicator stripe
+                    SDL_FRect stripeRect = { stripRect.x, stripRect.y, 3.0f * uiScale, stripRect.h };
+                    SDL_SetRenderDrawColor(renderer, accentCol.r, accentCol.g, accentCol.b, 255);
+                    SDL_RenderFillRect(renderer, &stripeRect);
+
+                    // Badge pill
+                    float badgeW = UIWidget::getTextWidth(badge, uiScale * 0.60f) + (8.0f * uiScale);
+                    SDL_FRect badgeRect = { stripRect.x + (6.0f * uiScale), stripRect.y + (2.0f * uiScale), badgeW, stripRect.h - (4.0f * uiScale) };
+                    SDL_Color badgeBg = { static_cast<Uint8>(accentCol.r / 5), static_cast<Uint8>(accentCol.g / 5), static_cast<Uint8>(accentCol.b / 5), 230 };
+                    SDL_Color badgeBd = { accentCol.r, accentCol.g, accentCol.b, 160 };
+                    UIWidget::drawPanel(renderer, badgeRect, badgeBg, badgeBd);
+                    UIWidget::drawText(renderer, badge, badgeRect.x + (4.0f * uiScale), badgeRect.y + (2.0f * uiScale), accentCol, uiScale * 0.60f);
+
+                    // Action message text (with truncation if exceeding width)
+                    float textStartX = badgeRect.x + badgeRect.w + (6.0f * uiScale);
+                    float maxMsgW = stripRect.w - (textStartX - stripRect.x) - (6.0f * uiScale);
+                    std::string dispMsg = line;
+                    while (!dispMsg.empty() && UIWidget::getTextWidth(dispMsg, uiScale * 0.66f) > maxMsgW)
+                    {
+                        dispMsg.pop_back();
+                    }
+                    if (dispMsg.size() < line.size() && dispMsg.size() > 3)
+                    {
+                        dispMsg.replace(dispMsg.size() - 2, 2, "..");
+                    }
+
+                    UIWidget::drawText(renderer, dispMsg, textStartX, stripRect.y + (3.0f * uiScale), textCol, uiScale * 0.66f);
+
+                    if (stripHovered)
+                    {
+                        TooltipManager::setHoverTooltip(stripRect, mousePos, badge + " Event", line, "Tactical Chronicle");
+                    }
+                }
+
+                logCurY += entryH;
+            }
+
+            // Scrollbar Track & Thumb with click jumping and drag support
+            if (totalLogs > maxVisible)
+            {
+                float barW = 5.0f * uiScale;
+                float trackX = padX + innerW - innerPad - barW;
+                float trackY = listAreaY;
+                float trackH = listAreaH;
+
+                float thumbH = std::max(16.0f * uiScale, trackH * (static_cast<float>(maxVisible) / static_cast<float>(totalLogs)));
+                float travelH = trackH - thumbH;
+                float ratio = (maxOffset > 0 && travelH > 0.0f) ? (1.0f - (static_cast<float>(s_combatLogScrollOffset) / static_cast<float>(maxOffset))) : 1.0f;
+                float thumbY = trackY + ratio * travelH;
+
+                static bool s_isDraggingCombatScroll = false;
+                static float s_dragStartMouseY = 0.0f;
+                static int s_dragStartOffset = 0;
+
+                SDL_FRect trackHitRect = { trackX - (4.0f * uiScale), trackY, barW + (8.0f * uiScale), trackH };
+                bool trackHovered = (mousePos.x >= trackHitRect.x && mousePos.x <= trackHitRect.x + trackHitRect.w &&
+                                     mousePos.y >= trackHitRect.y && mousePos.y <= trackHitRect.y + trackHitRect.h);
+
+                bool isMouseDown = gameContext->input.isLeftMouseDown();
+                if (clicked && trackHovered)
+                {
+                    s_isDraggingCombatScroll = true;
+                    s_dragStartMouseY = mousePos.y;
+                    s_dragStartOffset = s_combatLogScrollOffset;
+                    gameContext->input.consumeMouseClick();
+                }
+
+                if (s_isDraggingCombatScroll)
+                {
+                    if (isMouseDown)
+                    {
+                        float deltaY = mousePos.y - s_dragStartMouseY;
+                        if (travelH > 0.0f)
+                        {
+                            int offsetDelta = static_cast<int>(std::round((deltaY / travelH) * maxOffset));
+                            s_combatLogScrollOffset = std::clamp(s_dragStartOffset - offsetDelta, 0, maxOffset);
+                        }
+                    }
+                    else
+                    {
+                        s_isDraggingCombatScroll = false;
+                    }
+                }
+
+                // Draw track
+                SDL_FRect trackRect = { trackX, trackY, barW, trackH };
+                SDL_SetRenderDrawColor(renderer, Theme::colors.bgDark.r, Theme::colors.bgDark.g, Theme::colors.bgDark.b, 180);
+                SDL_RenderFillRect(renderer, &trackRect);
+
+                // Draw thumb
+                SDL_FRect thumbRect = { trackX, thumbY, barW, thumbH };
+                SDL_SetRenderDrawColor(renderer, Theme::colors.borderButton.r, Theme::colors.borderButton.g, Theme::colors.borderButton.b, 220);
+                SDL_RenderFillRect(renderer, &thumbRect);
+            }
+        }
+
+        curY += logCardH + (8.0f * uiScale);
         return (curY - startY);
     }
 
@@ -2247,34 +2783,187 @@ namespace GameplayViews
         float startY = curY;
         float headerH = 26.0f * uiScale;
         SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
-        UIWidget::drawHeader(renderer, headerRect, "POST-COMBAT RESOLUTION HUB", Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
+        UIWidget::drawHeader(renderer, headerRect, "POST-COMBAT RESOLUTION HUB • VICTORY SPOILS & PRISONERS", Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
         curY += headerH + (10.0f * uiScale);
 
-        float padX = rect.x + (12.0f * uiScale);
-        UIWidget::drawText(renderer, res->getResolutionLog(), padX, curY, Theme::colors.textAccent, uiScale);
-        curY += (26.0f * uiScale);
+        float padX = rect.x + (10.0f * uiScale);
+        float innerW = rect.w - (20.0f * uiScale);
+        float innerPad = 8.0f * uiScale;
 
-        UIWidget::drawText(renderer, "DEFEATED ENEMIES AT YOUR MERCY:", padX, curY, Theme::colors.textGold, uiScale);
-        curY += (20.0f * uiScale);
+        auto mousePos = gameContext->input.getMousePosition();
+        bool clicked = gameContext->input.isLeftMouseJustClicked();
 
+        // 1. Resolution narrative banner card
+        float bannerH = 32.0f * uiScale;
+        SDL_FRect bannerRect = { padX, curY, innerW, bannerH };
+        UIWidget::drawPanel(renderer, bannerRect, Theme::colors.bgHeader, Theme::colors.borderButton);
+
+        // 3px indicator stripe on banner
+        SDL_FRect bannerStripe = { padX, curY, 3.0f * uiScale, bannerH };
+        SDL_SetRenderDrawColor(renderer, Theme::colors.textGold.r, Theme::colors.textGold.g, Theme::colors.textGold.b, 255);
+        SDL_RenderFillRect(renderer, &bannerStripe);
+
+        UIWidget::drawText(renderer, res->getResolutionLog(), padX + (12.0f * uiScale), curY + (7.0f * uiScale), Theme::colors.textGold, uiScale * 0.78f);
+        curY += bannerH + (12.0f * uiScale);
+
+        // 2. Section Header: Defeated Combatants
         const auto& records = res->getDefeatedRecords();
         size_t selected = res->getSelectedIndex();
 
-        for (size_t i = 0; i < records.size(); ++i)
-        {
-            const auto& rec = records[i];
-            std::string line = std::format("{} [{}] {} | Looted: {} | Stripped: {} | Sex: {} | Subjugated: {}",
-                                           (i == selected ? "->" : "  "), i,
-                                           (rec.npc ? rec.npc->name : "Enemy"),
-                                           rec.isLooted ? "Yes" : "No",
-                                           rec.isStripped ? "Yes" : "No",
-                                           rec.hadSex ? "Yes" : "No",
-                                           rec.isSubjugated ? "Yes" : "No");
+        std::string sectionTitle = std::format("DEFEATED ADVERSARIES AT YOUR MERCY ({})", records.size());
+        UIWidget::drawText(renderer, sectionTitle, padX, curY, Theme::colors.textGold, uiScale * 0.76f);
+        curY += (20.0f * uiScale);
 
-            SDL_Color c = (i == selected) ? Theme::colors.textGold : Theme::colors.textPrimary;
-            UIWidget::drawText(renderer, line, padX, curY, c, uiScale);
-            curY += (18.0f * uiScale);
+        if (records.empty())
+        {
+            UIWidget::drawText(renderer, "No defeated adversaries remaining in the encounter area.", padX, curY, Theme::colors.textMuted, uiScale * 0.72f);
+            curY += (24.0f * uiScale);
         }
+        else
+        {
+            float cardH = 92.0f * uiScale;
+            float cardGap = 8.0f * uiScale;
+
+            for (size_t i = 0; i < records.size(); ++i)
+            {
+                const auto& rec = records[i];
+                if (!rec.npc) continue;
+
+                bool isSelected = (i == selected);
+                SDL_FRect cardRect = { padX, curY, innerW, cardH };
+
+                bool cardHovered = (mousePos.x >= cardRect.x && mousePos.x <= cardRect.x + cardRect.w &&
+                                    mousePos.y >= cardRect.y && mousePos.y <= cardRect.y + cardRect.h);
+
+                if (cardHovered && clicked && !isSelected)
+                {
+                    res->setSelectedIndex(i);
+                    gameContext->refreshActionGrid();
+                    gameContext->input.consumeMouseClick();
+                    isSelected = true;
+                }
+
+                // Card panel background & border
+                SDL_Color bgCol = isSelected ? Theme::colors.bgSlotOccupied : (cardHovered ? Theme::colors.bgSlotOccupied : Theme::colors.bgSlot);
+                SDL_Color bdCol = isSelected ? Theme::colors.borderSelected : (cardHovered ? Theme::colors.borderButtonHover : Theme::colors.borderNormal);
+                UIWidget::drawPanel(renderer, cardRect, bgCol, bdCol);
+
+                // Left indicator stripe
+                float stripeW = isSelected ? (4.0f * uiScale) : (3.0f * uiScale);
+                SDL_FRect stripeRect = { cardRect.x, cardRect.y, stripeW, cardRect.h };
+                SDL_Color stripeCol = isSelected ? Theme::colors.textGold : Theme::colors.borderNormal;
+                SDL_SetRenderDrawColor(renderer, stripeCol.r, stripeCol.g, stripeCol.b, 255);
+                SDL_RenderFillRect(renderer, &stripeRect);
+
+                float cInnerX = cardRect.x + (12.0f * uiScale);
+                float cY = cardRect.y + (7.0f * uiScale);
+
+                // Line 1: Name, Race, Level & Defeat Condition Pill
+                std::string nameTitle = std::format("{} (Level {} {})", rec.npc->name, rec.npc->stats.level, rec.npc->anatomy.getDominantRace());
+                UIWidget::drawText(renderer, nameTitle, cInnerX, cY, Theme::colors.textPrimary, uiScale * 0.74f);
+
+                // Condition Pill
+                std::string condBadge = "[SUBDUED]";
+                SDL_Color condCol = Theme::colors.friendly;
+                if (rec.npc->getStat("lust") >= 100.0f)
+                {
+                    condBadge = "[EROTIC SURRENDER]";
+                    condCol = Theme::colors.lust;
+                }
+                else if (rec.npc->getStat("health") <= 0.0f)
+                {
+                    condBadge = "[UNCONSCIOUS KO]";
+                    condCol = Theme::colors.health;
+                }
+
+                float nameW = UIWidget::getTextWidth(nameTitle, uiScale * 0.74f);
+                float condBadgeW = UIWidget::getTextWidth(condBadge, uiScale * 0.60f) + (8.0f * uiScale);
+                SDL_FRect condBadgeRect = { cInnerX + nameW + (10.0f * uiScale), cY - (1.0f * uiScale), condBadgeW, 16.0f * uiScale };
+                SDL_Color condBg = { static_cast<Uint8>(condCol.r / 5), static_cast<Uint8>(condCol.g / 5), static_cast<Uint8>(condCol.b / 5), 220 };
+                UIWidget::drawPanel(renderer, condBadgeRect, condBg, condCol);
+                UIWidget::drawText(renderer, condBadge, condBadgeRect.x + (4.0f * uiScale), condBadgeRect.y + (2.0f * uiScale), condCol, uiScale * 0.60f);
+
+                if (isSelected)
+                {
+                    std::string selStr = "[ACTIVE TARGET]";
+                    float selW = UIWidget::getTextWidth(selStr, uiScale * 0.60f) + (8.0f * uiScale);
+                    SDL_FRect selRect = { cardRect.x + cardRect.w - selW - (10.0f * uiScale), cY - (1.0f * uiScale), selW, 16.0f * uiScale };
+                    UIWidget::drawPanel(renderer, selRect, Theme::colors.bgSlotOccupied, Theme::colors.borderSelected);
+                    UIWidget::drawText(renderer, selStr, selRect.x + (4.0f * uiScale), selRect.y + (2.0f * uiScale), Theme::colors.textGold, uiScale * 0.60f);
+                }
+
+                cY += (20.0f * uiScale);
+
+                // Line 2: Vitals Overview (Health & Lust)
+                float curHp = rec.npc->getStat("health");
+                float maxHp = std::max(1.0f, rec.npc->getStat("max_health"));
+                float curLust = rec.npc->getStat("lust");
+                std::string vitalsStr = std::format("HP: {:.0f}/{:.0f} • Lust: {:.0f}/100", curHp, maxHp, curLust);
+                UIWidget::drawText(renderer, vitalsStr, cInnerX, cY, Theme::colors.textSecondary, uiScale * 0.66f);
+
+                // Line 2 Right: Carried Resources (Spoils)
+                float gold = rec.npc->getStat("currency");
+                size_t bagCount = 0;
+                for (const auto& it : rec.npc->inventory.backpack) if (it) bagCount++;
+
+                int eqCount = 0;
+                for (size_t eqIdx = 0; eqIdx < EQUIP_SLOT_COUNT; ++eqIdx)
+                {
+                    if (rec.npc->inventory.isEquipped(static_cast<equipSlot>(eqIdx))) eqCount++;
+                }
+
+                bool allTaken = (gold <= 0.0f && bagCount == 0 && eqCount == 0);
+                std::string spoilsStr = allTaken
+                    ? "[All Belongings Confiscated]"
+                    : std::format("Spoils: {:.0f}¤ Gold • {} Backpack Item(s) • {} Worn Garment(s)", gold, bagCount, eqCount);
+                SDL_Color spoilsCol = allTaken ? Theme::colors.textMuted : Theme::colors.currency;
+                float spoilsW = UIWidget::getTextWidth(spoilsStr, uiScale * 0.66f);
+                UIWidget::drawText(renderer, spoilsStr, cardRect.x + cardRect.w - spoilsW - (10.0f * uiScale), cY, spoilsCol, uiScale * 0.66f);
+
+                cY += (20.0f * uiScale);
+
+                // Line 3: Resolution Status Badges (Pills)
+                float badgeX = cInnerX;
+                auto drawStatusPill = [&](const std::string& label, SDL_Color col, bool active) {
+                    float bW = UIWidget::getTextWidth(label, uiScale * 0.58f) + (8.0f * uiScale);
+                    SDL_FRect bRect = { badgeX, cY, bW, 16.0f * uiScale };
+                    SDL_Color bBg = active ? SDL_Color{ static_cast<Uint8>(col.r / 5), static_cast<Uint8>(col.g / 5), static_cast<Uint8>(col.b / 5), 220 }
+                                           : Theme::colors.bgDark;
+                    SDL_Color bBorder = active ? col : Theme::colors.borderNormal;
+                    UIWidget::drawPanel(renderer, bRect, bBg, bBorder);
+                    UIWidget::drawText(renderer, label, bRect.x + (4.0f * uiScale), bRect.y + (2.0f * uiScale), active ? col : Theme::colors.textMuted, uiScale * 0.58f);
+                    badgeX += bW + (6.0f * uiScale);
+                };
+
+                drawStatusPill(rec.isLooted ? "[LOOTED]" : "[UNLOOTED]", rec.isLooted ? Theme::colors.stamina : Theme::colors.currency, rec.isLooted);
+                drawStatusPill(rec.isStripped ? "[STRIPPED]" : "[EQUIPPED]", rec.isStripped ? Theme::colors.elementLust : Theme::colors.textSecondary, rec.isStripped);
+                drawStatusPill(rec.hadSex ? "[INTERACTED]" : "[INTIMACY: PENDING]", rec.hadSex ? Theme::colors.lust : Theme::colors.textMuted, rec.hadSex);
+                if (rec.isSubjugated) drawStatusPill("[SUBJUGATED]", Theme::colors.arcane, true);
+                if (rec.isReleased) drawStatusPill("[RELEASED]", Theme::colors.friendly, true);
+                if (rec.isPermanentlyRemoved) drawStatusPill("[BANISHED]", Theme::colors.enemy, true);
+
+                // Tooltip on Hover
+                if (cardHovered)
+                {
+                    std::string ttDesc = std::format("Click to select {} as the active resolution target.\n\nCondition: {}\nHealth: {:.0f}/{:.0f} | Lust: {:.0f}/100\nSpoils: {:.0f}¤ Currency, {} item(s) in pack, {} worn garment(s).",
+                        rec.npc->name, condBadge, curHp, maxHp, curLust, gold, bagCount, eqCount);
+                    TooltipManager::setHoverTooltip(cardRect, mousePos, rec.npc->name, ttDesc, "Resolution Target");
+                }
+
+                curY += cardH + cardGap;
+            }
+        }
+
+        curY += (10.0f * uiScale);
+
+        // 3. Action Guidance Card
+        float guideH = 50.0f * uiScale;
+        SDL_FRect guideRect = { padX, curY, innerW, guideH };
+        UIWidget::drawPanel(renderer, guideRect, Theme::colors.bgHeader, Theme::colors.borderNormal);
+        UIWidget::drawText(renderer, "RESOLUTION PROTOCOLS:", padX + innerPad, curY + (6.0f * uiScale), Theme::colors.textGold, uiScale * 0.70f);
+        UIWidget::drawText(renderer, "• Loot & Equipment: Open interactive dual-inventory to inspect, unequip, and take belongings.", padX + innerPad, curY + (20.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.64f);
+        UIWidget::drawText(renderer, "• Interactive Sex / Subjugate / Release: Engage intimates, bind to your will, or grant mercy.", padX + innerPad, curY + (32.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.64f);
+        curY += guideH + (10.0f * uiScale);
 
         return (curY - startY);
     }
@@ -2373,7 +3062,7 @@ namespace GameplayViews
             }
             else
             {
-                allItems = gameContext->getTileInventoryStacked();
+                allItems = ent ? ent->inventory.getStackedView() : gameContext->getTileInventoryStacked();
             }
 
             // Partition items: regular items vs key items
@@ -2423,12 +3112,35 @@ namespace GameplayViews
                         SDL_Color bd = isSelected ? Theme::colors.borderSelected : (bHov ? Theme::colors.borderButton : Theme::colors.borderButton);
                         UIWidget::drawPanel(renderer, bRect, fill, bd);
 
-                        // Item name (upper portion)
-                        std::string itName = itSlot.itemPtr->name;
-                        if (itName.length() > 9) itName = itName.substr(0, 8) + "..";
-                        UIWidget::drawText(renderer, itName, bX + (3.0f * uiScale), bY + (3.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.65f);
+                        SDL_Texture* itemTexture = UIWidget::getItemTexture(renderer, itSlot.itemPtr->imagePath);
+                        if (itemTexture)
+                        {
+                            SDL_FRect imgRect = { bX + (3.0f * uiScale), bY + (3.0f * uiScale), slotSize - (6.0f * uiScale), slotSize - (6.0f * uiScale) };
+                            SDL_RenderTexture(renderer, itemTexture, nullptr, &imgRect);
+                        }
+                        else
+                        {
+                            // If there is no image, or the image can't load for some reason,
+                            // then the item name is in the centre of the box so it's still identifiable.
+                            float pad = 4.0f * uiScale;
+                            float maxTextW = slotSize - (pad * 2.0f);
+                            float fontScale = uiScale * 0.62f;
+                            float textW = UIWidget::getTextWidth(itSlot.itemPtr->name, fontScale);
+                            if (textW <= maxTextW)
+                            {
+                                float textX = bX + ((slotSize - textW) / 2.0f);
+                                float textY = bY + ((slotSize - (13.0f * uiScale)) / 2.0f);
+                                UIWidget::drawText(renderer, itSlot.itemPtr->name, textX, textY, Theme::colors.textPrimary, fontScale);
+                            }
+                            else
+                            {
+                                float textH = UIWidget::getTextWrappedHeight(itSlot.itemPtr->name, maxTextW, uiScale * 0.58f);
+                                float textY = bY + std::max(2.0f * uiScale, (slotSize - textH) / 2.0f);
+                                UIWidget::drawTextWrapped(renderer, itSlot.itemPtr->name, bX + pad, textY, maxTextW, Theme::colors.textPrimary, uiScale * 0.58f);
+                            }
+                        }
 
-                        // Count badge (top right)
+                        // Stack count badge in top right corner if stack > 1
                         if (itSlot.totalCount > 1)
                         {
                             std::string cntStr = std::format("x{}", itSlot.totalCount);
@@ -2436,31 +3148,10 @@ namespace GameplayViews
                             UIWidget::drawText(renderer, cntStr, bX + slotSize - cntW - (3.0f * uiScale), bY + (3.0f * uiScale), Theme::colors.textGold, uiScale * 0.62f);
                         }
 
-                        // Socket/Type abbreviation badge
-                        std::string sockStr = "";
-                        if (itSlot.itemPtr->targetSlot != equipSlot::NONE)
-                        {
-                            sockStr = gameContext->formatEquipSlotName(itSlot.itemPtr->targetSlot);
-                            if (sockStr.length() > 6) sockStr = sockStr.substr(0, 5);
-                        }
-                        else if (itSlot.itemPtr->isConsumable)
-                        {
-                            sockStr = "Item";
-                        }
-                        if (!sockStr.empty())
-                        {
-                            UIWidget::drawText(renderer, sockStr, bX + (3.0f * uiScale), bY + slotSize - (24.0f * uiScale), Theme::colors.textAccent, uiScale * 0.56f);
-                        }
-
-                        // Base Value (bottom right)
-                        std::string valStr = std::format("{}¤", itSlot.itemPtr->baseValue);
-                        float valW = UIWidget::getTextWidth(valStr, uiScale * 0.58f);
-                        UIWidget::drawText(renderer, valStr, bX + slotSize - valW - (3.0f * uiScale), bY + slotSize - (13.0f * uiScale), Theme::colors.currency, uiScale * 0.58f);
-
                         std::string targetStr = (itSlot.itemPtr->targetSlot != equipSlot::NONE) ? gameContext->formatEquipSlotName(itSlot.itemPtr->targetSlot) : (itSlot.itemPtr->isConsumable ? "Consumable Item" : "Inventory Item");
                         std::string subInfo = std::format("{} • Base Value: {} ¤", targetStr, itSlot.itemPtr->baseValue);
                         std::string cntHotkey = (itSlot.totalCount > 1) ? std::format("x{}", itSlot.totalCount) : "";
-                        std::string itemDesc = !itSlot.itemPtr->tooltip.empty() ? itSlot.itemPtr->tooltip : itSlot.itemPtr->description;
+                        std::string itemDesc = itSlot.itemPtr->getBriefDescription();
                         TooltipManager::setHoverTooltip(bRect, mousePos, itSlot.itemPtr->name, itemDesc, subInfo, cntHotkey);
 
                         if (bHov && clicked)
@@ -2496,6 +3187,134 @@ namespace GameplayViews
         float targetGridH = renderInventorySide(1, padX + halfW + gapBetweenSides, halfW, targetNpc, s_targetInvPage);
 
         curY += std::max(playerGridH, targetGridH);
+
+        // -------------------------------------------------------------------------
+        // Side-by-Side Currency Transfer Boxes (Underneath Inventory Grids)
+        // -------------------------------------------------------------------------
+        float boxH = 32.0f * uiScale;
+        float boxY = curY + (2.0f * uiScale);
+        float btnW = 32.0f * uiScale;
+        float btnH = 22.0f * uiScale;
+        float btnGap = 4.0f * uiScale;
+        float btnY = boxY + ((boxH - btnH) / 2.0f);
+        float totalBtnsW = (btnW * 3.0f) + (btnGap * 2.0f);
+
+        // --- Left Box: Player Currency ---
+        SDL_FRect pBoxRect = { padX, boxY, halfW, boxH };
+        bool pHov = (mousePos.x >= pBoxRect.x && mousePos.x <= pBoxRect.x + pBoxRect.w &&
+                     mousePos.y >= pBoxRect.y && mousePos.y <= pBoxRect.y + pBoxRect.h);
+        UIWidget::drawPanel(renderer, pBoxRect, Theme::colors.bgSlot, pHov ? Theme::colors.borderButton : Theme::colors.borderNormal);
+
+        float pGold = player ? player->getStat("currency") : 0.0f;
+        std::string pLabel = std::format("Player: {:.0f} ¤", pGold);
+        UIWidget::drawText(renderer, pLabel, padX + (10.0f * uiScale), boxY + ((boxH - (14.0f * uiScale)) / 2.0f), Theme::colors.currency, uiScale * 0.78f);
+
+        // Player transfer buttons (give 1, 10, 100 to side 1: > / >> / >>>)
+        float pBtnStartX = padX + halfW - totalBtnsW - (8.0f * uiScale);
+        const std::vector<std::pair<std::string, float>> pTransferBtns = {
+            { ">", 1.0f },
+            { ">>", 10.0f },
+            { ">>>", 100.0f }
+        };
+        for (size_t i = 0; i < pTransferBtns.size(); ++i)
+        {
+            float bX = pBtnStartX + (i * (btnW + btnGap));
+            SDL_FRect bRect = { bX, btnY, btnW, btnH };
+            bool bHov = (mousePos.x >= bRect.x && mousePos.x <= bRect.x + bRect.w &&
+                         mousePos.y >= bRect.y && mousePos.y <= bRect.y + bRect.h);
+            bool bEnabled = (pGold >= 1.0f);
+            UIWidget::drawButton(renderer, bRect, pTransferBtns[i].first, bHov, bEnabled, false, uiScale * 0.70f);
+
+            std::string tipTitle = std::format("Transfer {:.0f} ¤", pTransferBtns[i].second);
+            std::string tipDesc = std::format("Give {:.0f} ¤ from player purse to {}.",
+                pTransferBtns[i].second, targetNpc ? targetNpc->name : "the ground");
+            TooltipManager::setHoverTooltip(bRect, mousePos, tipTitle, tipDesc, "Transfer Currency");
+
+            if (bHov && clicked && bEnabled)
+            {
+                gameContext->transferCurrencyToSide1(pTransferBtns[i].second);
+                gameContext->input.consumeMouseClick();
+            }
+        }
+
+        // --- Right Box: Target NPC or Floor Currency ---
+        float rBoxX = padX + halfW + gapBetweenSides;
+        SDL_FRect rBoxRect = { rBoxX, boxY, halfW, boxH };
+        bool rHov = (mousePos.x >= rBoxRect.x && mousePos.x <= rBoxRect.x + rBoxRect.w &&
+                     mousePos.y >= rBoxRect.y && mousePos.y <= rBoxRect.y + rBoxRect.h);
+        UIWidget::drawPanel(renderer, rBoxRect, Theme::colors.bgSlot, rHov ? Theme::colors.borderButton : Theme::colors.borderNormal);
+
+        float rGold = targetNpc ? targetNpc->getStat("currency") : gameContext->getTileCurrency();
+
+        // Side 1 transfer buttons (take 100, 10, 1 from side 1: <<< / << / <)
+        // Buttons placed on the inside (left side of right box, facing the player buttons)
+        float rBtnStartX = rBoxX + (8.0f * uiScale);
+        const std::vector<std::pair<std::string, float>> rTransferBtns = {
+            { "<<<", 100.0f },
+            { "<<", 10.0f },
+            { "<", 1.0f }
+        };
+        for (size_t i = 0; i < rTransferBtns.size(); ++i)
+        {
+            float bX = rBtnStartX + (i * (btnW + btnGap));
+            SDL_FRect bRect = { bX, btnY, btnW, btnH };
+            bool bHov = (mousePos.x >= bRect.x && mousePos.x <= bRect.x + bRect.w &&
+                         mousePos.y >= bRect.y && mousePos.y <= bRect.y + bRect.h);
+            bool bEnabled = (rGold >= 1.0f);
+            UIWidget::drawButton(renderer, bRect, rTransferBtns[i].first, bHov, bEnabled, false, uiScale * 0.70f);
+
+            std::string tipTitle = std::format("Transfer {:.0f} ¤", rTransferBtns[i].second);
+            std::string tipDesc = std::format("Take {:.0f} ¤ from {} into player purse.",
+                rTransferBtns[i].second, targetNpc ? targetNpc->name : "the ground");
+            TooltipManager::setHoverTooltip(bRect, mousePos, tipTitle, tipDesc, "Transfer Currency");
+
+            if (bHov && clicked && bEnabled)
+            {
+                gameContext->transferCurrencyFromSide1(rTransferBtns[i].second);
+                gameContext->input.consumeMouseClick();
+            }
+        }
+
+        // Text placed on the outside (right side of right box)
+        float minTextX = rBtnStartX + totalBtnsW + (8.0f * uiScale);
+        if (targetNpc)
+        {
+            std::string rLabel = std::format("{}: {:.0f} ¤", targetNpc->name, rGold);
+            float labelW = UIWidget::getTextWidth(rLabel, uiScale * 0.78f);
+            float textX = std::max(minTextX, rBoxX + halfW - labelW - (10.0f * uiScale));
+            UIWidget::drawText(renderer, rLabel, textX, boxY + ((boxH - (14.0f * uiScale)) / 2.0f), Theme::colors.currency, uiScale * 0.78f);
+        }
+        else
+        {
+            std::string rLabel = std::format("Ground: {:.0f} ¤", rGold);
+            float labelW = UIWidget::getTextWidth(rLabel, uiScale * 0.78f);
+
+            bool isSafe = gameContext->isCurrentTileStorageSafe();
+            std::string pillText = isSafe ? "[Safe]" : "[Unsafe]";
+            SDL_Color pillCol = isSafe ? Theme::colors.stamina : Theme::colors.textMuted;
+            float pillW = UIWidget::getTextWidth(pillText, uiScale * 0.62f) + (8.0f * uiScale);
+            float pillGap = 8.0f * uiScale;
+            float totalW = labelW + pillGap + pillW;
+            float startX = std::max(minTextX, rBoxX + halfW - totalW - (10.0f * uiScale));
+
+            UIWidget::drawText(renderer, rLabel, startX, boxY + ((boxH - (14.0f * uiScale)) / 2.0f), Theme::colors.currency, uiScale * 0.78f);
+
+            float pillX = startX + labelW + pillGap;
+            float pillH = 16.0f * uiScale;
+            float pillY = boxY + ((boxH - pillH) / 2.0f);
+            SDL_FRect pillRect = { pillX, pillY, pillW, pillH };
+            SDL_Color pillBg = isSafe ? SDL_Color{ 20, 50, 20, 220 } : SDL_Color{ 40, 40, 40, 220 };
+            UIWidget::drawPanel(renderer, pillRect, pillBg, pillCol);
+            UIWidget::drawText(renderer, pillText, pillX + (4.0f * uiScale), pillY + (1.0f * uiScale), pillCol, uiScale * 0.62f);
+
+            TooltipManager::setHoverTooltip(pillRect, mousePos,
+                isSafe ? "Safe Storage Tile" : "Unsafe Storage Tile",
+                isSafe ? "Items and currency left on this tile are preserved even after you move away."
+                       : "Items and currency left on this tile remain while here, but are cleared when you move away.",
+                "Tile Status");
+        }
+
+        curY += boxH + (8.0f * uiScale);
         return (curY - startY);
     }
 
@@ -2830,43 +3649,45 @@ namespace GameplayViews
                         SDL_Color bd = isSelected ? Theme::colors.borderSelected : (bHov ? Theme::colors.borderButton : Theme::colors.borderButton);
                         UIWidget::drawPanel(renderer, bRect, fill, bd);
 
-                        // Item name (upper portion)
-                        std::string itName = itSlot.itemPtr->name;
-                        if (itName.length() > 9) itName = itName.substr(0, 8) + "..";
-                        UIWidget::drawText(renderer, itName, bX + (3.0f * uiScale), bY + (3.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.65f);
+                        int tradePrice = (side == 0)
+                            ? merchantValuation::calculateSellPrice(itSlot.itemPtr.get(), player, merchant.get())
+                            : merchantValuation::calculateBuyPrice(itSlot.itemPtr.get(), player, merchant.get());
 
-                        // Count badge (top right)
+                        SDL_Texture* itemTexture = UIWidget::getItemTexture(renderer, itSlot.itemPtr->imagePath);
+                        if (itemTexture)
+                        {
+                            SDL_FRect imgRect = { bX + (3.0f * uiScale), bY + (3.0f * uiScale), slotSize - (6.0f * uiScale), slotSize - (6.0f * uiScale) };
+                            SDL_RenderTexture(renderer, itemTexture, nullptr, &imgRect);
+                        }
+                        else
+                        {
+                            // If there is no image, or the image can't load for some reason,
+                            // then the item name is in the centre of the box so it's still identifiable.
+                            float pad = 4.0f * uiScale;
+                            float maxTextW = slotSize - (pad * 2.0f);
+                            float fontScale = uiScale * 0.62f;
+                            float textW = UIWidget::getTextWidth(itSlot.itemPtr->name, fontScale);
+                            if (textW <= maxTextW)
+                            {
+                                float textX = bX + ((slotSize - textW) / 2.0f);
+                                float textY = bY + ((slotSize - (13.0f * uiScale)) / 2.0f);
+                                UIWidget::drawText(renderer, itSlot.itemPtr->name, textX, textY, Theme::colors.textPrimary, fontScale);
+                            }
+                            else
+                            {
+                                float textH = UIWidget::getTextWrappedHeight(itSlot.itemPtr->name, maxTextW, uiScale * 0.58f);
+                                float textY = bY + std::max(2.0f * uiScale, (slotSize - textH) / 2.0f);
+                                UIWidget::drawTextWrapped(renderer, itSlot.itemPtr->name, bX + pad, textY, maxTextW, Theme::colors.textPrimary, uiScale * 0.58f);
+                            }
+                        }
+
+                        // Stack count badge in top right corner if stack > 1
                         if (itSlot.totalCount > 1)
                         {
                             std::string cntStr = std::format("x{}", itSlot.totalCount);
                             float cntW = UIWidget::getTextWidth(cntStr, uiScale * 0.62f);
                             UIWidget::drawText(renderer, cntStr, bX + slotSize - cntW - (3.0f * uiScale), bY + (3.0f * uiScale), Theme::colors.textGold, uiScale * 0.62f);
                         }
-
-                        // Socket/Type abbreviation badge
-                        std::string sockStr = "";
-                        if (itSlot.itemPtr->targetSlot != equipSlot::NONE)
-                        {
-                            sockStr = gameContext->formatEquipSlotName(itSlot.itemPtr->targetSlot);
-                            if (sockStr.length() > 6) sockStr = sockStr.substr(0, 5);
-                        }
-                        else if (itSlot.itemPtr->isConsumable)
-                        {
-                            sockStr = "Item";
-                        }
-                        if (!sockStr.empty())
-                        {
-                            UIWidget::drawText(renderer, sockStr, bX + (3.0f * uiScale), bY + slotSize - (24.0f * uiScale), Theme::colors.textAccent, uiScale * 0.56f);
-                        }
-
-                        // Buy/Sell Price on slot box (bottom right)
-                        int tradePrice = (side == 0)
-                            ? merchantValuation::calculateSellPrice(itSlot.itemPtr.get(), player, merchant.get())
-                            : merchantValuation::calculateBuyPrice(itSlot.itemPtr.get(), player, merchant.get());
-
-                        std::string priceStr = std::format("{}¤", tradePrice);
-                        float valW = UIWidget::getTextWidth(priceStr, uiScale * 0.58f);
-                        UIWidget::drawText(renderer, priceStr, bX + slotSize - valW - (3.0f * uiScale), bY + slotSize - (13.0f * uiScale), Theme::colors.currency, uiScale * 0.58f);
 
                         // Tooltip
                         std::string targetStr = (itSlot.itemPtr->targetSlot != equipSlot::NONE)
@@ -2877,7 +3698,7 @@ namespace GameplayViews
                             ? std::format("{} • Sell: {}¤ • Base: {}¤", targetStr, tradePrice, itSlot.itemPtr->baseValue)
                             : std::format("{} • Buy: {}¤ • Base: {}¤", targetStr, tradePrice, itSlot.itemPtr->baseValue);
 
-                        std::string itemDesc = !itSlot.itemPtr->tooltip.empty() ? itSlot.itemPtr->tooltip : itSlot.itemPtr->description;
+                        std::string itemDesc = itSlot.itemPtr->getBriefDescription();
                         std::string cntHotkey = (side == 0) ? "[ Click to Sell ]" : "[ Click to Buy ]";
                         TooltipManager::setHoverTooltip(bRect, mousePos, itSlot.itemPtr->name, itemDesc, subInfo, cntHotkey);
 

@@ -108,6 +108,14 @@ bool Theme::loadFromFile(const std::string& filePath)
         colors.friendly = parseJsonColor(j, "friendly", colors.friendly);
         colors.companion = parseJsonColor(j, "companion", colors.companion);
 
+        colors.stamina = parseJsonColor(j, "stamina", colors.stamina);
+        colors.elementFire = parseJsonColor(j, "elementFire", colors.elementFire);
+        colors.elementWater = parseJsonColor(j, "elementWater", colors.elementWater);
+        colors.elementAir = parseJsonColor(j, "elementAir", colors.elementAir);
+        colors.elementEarth = parseJsonColor(j, "elementEarth", colors.elementEarth);
+        colors.elementArcane = parseJsonColor(j, "elementArcane", colors.elementArcane);
+        colors.elementLust = parseJsonColor(j, "elementLust", colors.elementLust);
+
         std::cout << "[Theme] Initialised UI colour palette successfully from " << filePath << ".\n";
         return true;
     }

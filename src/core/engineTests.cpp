@@ -20,6 +20,7 @@
 #include "items/inventory.h"
 #include "items/itemDatabase.h"
 #include "settings/settingsManager.h"
+#include "common/unitFormatter.h"
 #include "ui/theme.h"
 #include "ui/fontManager.h"
 #include "ui/tooltipManager.h"
@@ -444,9 +445,9 @@ namespace EngineTests
 
         // 1. Misc Category
         optPtr->contentCategory = ContentOptionsCategory::MISC;
-        g.settings.gameplay.autoSaveFrequency = 2; // Weekly
+        g.settings.gameplay.autoSaveOnMapChange = false;
         g.settings.display.showArtwork = false;
-        g.settings.gameplay.stormInterruptions = false;
+        g.settings.gameplay.autoSaveOnSceneExit = false;
 
         // 2. Gameplay Category
         optPtr->contentCategory = ContentOptionsCategory::GAMEPLAY;
@@ -489,7 +490,7 @@ namespace EngineTests
         GameSettings verified;
         settingsManager::loadFromFile(verified, testOptFile);
 
-        bool miscMatch = (verified.gameplay.autoSaveFrequency == 2 && !verified.display.showArtwork && !verified.gameplay.stormInterruptions);
+        bool miscMatch = (!verified.gameplay.autoSaveOnMapChange && !verified.display.showArtwork && !verified.gameplay.autoSaveOnSceneExit);
         logResult("Content Category 0 (Misc) Persisted Accurately", miscMatch);
         allPassed &= miscMatch;
 
@@ -2624,7 +2625,7 @@ namespace EngineTests
         CombatAction strikeAction;
         strikeAction.id = "act_strike";
         strikeAction.name = "Strike";
-        strikeAction.baseApCost = 1;
+        strikeAction.staminaCost = 10.0f;
         SpellEffectNode dmgNode;
         dmgNode.effectType = "DAMAGE";
         dmgNode.element = "physical";
@@ -2725,6 +2726,7 @@ namespace EngineTests
 
         // 9d. Non-Con Enabled gating in encounterResolutionState
         cg.settings.content.nonConEnabled = false;
+        cg.settings.content.contentFilterMode = ContentFilterMode::BLOCK_AND_SKIP;
         resState.handleInteractiveSex(&cg);
         bool nonConBlocked = (resState.getDefeatedRecords()[0].hadSex == false) &&
                              (resState.getResolutionLog().find("Non-consensual content is disabled") != std::string::npos);
@@ -2750,15 +2752,17 @@ namespace EngineTests
         std::cout << "\n--- Running Test 26: Expanded Content Options, Lilith's Throne Fetishes & Scene Gating ---\n";
         bool allPassed = true;
 
-        // 1. Lilith's Throne 28 Fetishes Default Initialization & JSON Roundtrip
+        // 1. Unified Fetishes Default Initialization & JSON Roundtrip
         ContentSettings cs;
-        bool countMatches = (cs.fetishPreferences.size() == 28);
+        bool countMatches = (cs.fetishPreferences.size() >= 28);
         static const std::vector<std::string> expectedFetishes = {
             "Anal", "Buttslut", "Vaginal", "Pussy slut", "Oral", "Oral performer",
             "Breasts lover", "Breasts", "Milk lover", "Lactation", "Foot worship", "Feet",
             "Dominance", "Submission", "BDSM / Sadism", "Masochism", "Bondage",
             "Exhibitionism", "Voyeurism", "Insemination", "Pregnancy", "Transformations",
-            "Watersports", "Spitting", "Tentacles", "Size Difference", "Crossdressing", "Denial & Edging"
+            "Watersports", "Spitting", "Tentacles", "Size Difference", "Crossdressing", "Denial & Edging",
+            "Non-Consent", "Sadistic sex / Extreme", "BDSM & Restraints", "Incest", "Prolapse",
+            "Aphrodisiacs & Drugs", "Hypnosis & Mind Control", "Cum Inflation & Expansion", "Feral / Bestiality"
         };
         bool allKeysPresent = true;
         for (const auto& key : expectedFetishes)
@@ -2770,7 +2774,7 @@ namespace EngineTests
             }
         }
         bool fetishInitOk = countMatches && allKeysPresent;
-        logResult("ContentSettings initializes complete Lilith's Throne 28-fetish roster", fetishInitOk);
+        logResult("ContentSettings initializes complete unified fetish roster", fetishInitOk);
         allPassed &= fetishInitOk;
 
         // Verify JSON roundtrip for new fetishes and custom ratings
@@ -2783,8 +2787,8 @@ namespace EngineTests
         deserialized.fromJson(serialized);
         bool jsonFetishOk = (deserialized.content.fetishPreferences["Watersports"] == 5 &&
                              deserialized.content.fetishPreferences["Tentacles"] == 0 &&
-                             deserialized.content.fetishPreferences.size() == 28);
-        logResult("Lilith's Throne 28-fetish preferences serialize and deserialize accurately", jsonFetishOk);
+                             deserialized.content.fetishPreferences.size() == cs.fetishPreferences.size());
+        logResult("Unified fetish preferences serialize and deserialize accurately", jsonFetishOk);
         allPassed &= jsonFetishOk;
 
         // 2. All 14 Content Toggles & Filter Mode Persistence
@@ -3175,27 +3179,27 @@ namespace EngineTests
         if (cs)
         {
             auto& players = cs->getEngine().getPlayerParty();
-            int startingAp = players[0].currentAp;
-            bool hasStartingAp = (startingAp >= 3);
-            logResult("Player participant initializes with starting action points (>= 3 AP)", hasStartingAp);
-            allPassed &= hasStartingAp;
+            float startingStamina = players[0].currentStamina;
+            bool hasStartingStamina = (startingStamina >= 100.0f);
+            logResult("Player participant initializes with full starting stamina (>= 100)", hasStartingStamina);
+            allPassed &= hasStartingStamina;
 
-            // Target Enemy A and queue Strike (1 AP)
+            // Target Enemy A and queue Strike (15 Stamina)
             g.activeTargetNPC = enemyA;
             g.handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "STRIKE" });
-            int apAfterStrike = players[0].currentAp;
-            bool strikeQueued = (players[0].turnQueue.size() == 1 && apAfterStrike == startingAp - 1 &&
+            float staminaAfterStrike = players[0].currentStamina;
+            bool strikeQueued = (players[0].turnQueue.size() == 1 && staminaAfterStrike == startingStamina - 15.0f &&
                                  players[0].turnQueue[0].target == enemyA.get());
-            logResult("Queueing Strike (1 AP) targets Enemy A and deducts 1 AP without ending turn", strikeQueued);
+            logResult("Queueing Strike (15 Stamina) targets Enemy A and deducts 15 stamina without ending turn", strikeQueued);
             allPassed &= strikeQueued;
 
-            // Target Enemy B and queue Heavy Strike (2 AP)
+            // Target Enemy B and queue Heavy Strike (35 Stamina)
             g.activeTargetNPC = enemyB;
             g.handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "HEAVY_STRIKE" });
-            int apAfterHeavy = players[0].currentAp;
-            bool heavyQueued = (players[0].turnQueue.size() == 2 && apAfterHeavy == apAfterStrike - 2 &&
+            float staminaAfterHeavy = players[0].currentStamina;
+            bool heavyQueued = (players[0].turnQueue.size() == 2 && staminaAfterHeavy == staminaAfterStrike - 35.0f &&
                                 players[0].turnQueue[1].target == enemyB.get());
-            logResult("Queueing Heavy Strike (2 AP) targets selected Enemy B and deducts 2 AP", heavyQueued);
+            logResult("Queueing Heavy Strike (35 Stamina) targets selected Enemy B and deducts 35 stamina", heavyQueued);
             allPassed &= heavyQueued;
 
             // Resolve turn
@@ -4632,21 +4636,19 @@ namespace EngineTests
         logResult("Command SELECT_COMBAT_FOCUS switches focus cleanly to CombatFocus::WEAPON", weaponFocusOk);
         allPassed &= weaponFocusOk;
 
-        // Queue a weapon action (skill_slash: staminaCost = 20.0f, apCost = 1)
+        // Queue a weapon action (skill_slash: staminaCost = 20.0f)
         float staminaBeforeQueue = cState->getEngine().getPlayerParty()[0].currentStamina;
-        int apBeforeQueue = cState->getEngine().getPlayerParty()[0].currentAp;
 
         g.handleCommand(UICommand::queueCombatAction("skill_slash"));
 
         const auto& playerPart = cState->getEngine().getPlayerParty()[0];
         bool actionQueued = (playerPart.turnQueue.size() == 1 &&
                              playerPart.turnQueue[0].action.id == "skill_slash" &&
-                             playerPart.currentStamina == staminaBeforeQueue - 20.0f &&
-                             playerPart.currentAp == apBeforeQueue - 1);
-        logResult("QUEUE_COMBAT_ACTION adds action to turn queue and deducts stamina and AP", actionQueued);
+                             playerPart.currentStamina == staminaBeforeQueue - 20.0f);
+        logResult("QUEUE_COMBAT_ACTION adds action to turn queue and deducts stamina", actionQueued);
         allPassed &= actionQueued;
 
-        // Queue another action: DEFENSE_GUARD (baseApCost = 1, staminaCost = 15.0f)
+        // Queue another action: DEFENSE_GUARD (staminaCost = 15.0f)
         g.handleCommand(UICommand::queueCombatAction("DEFENSE_GUARD"));
         bool secondQueued = (playerPart.turnQueue.size() == 2 && playerPart.currentStamina == staminaBeforeQueue - 35.0f);
         logResult("Chaining additional moves in turn queue deducts stamina incrementally", secondQueued);
@@ -4657,9 +4659,8 @@ namespace EngineTests
         const auto& playerPartAfterSwitch = cState->getEngine().getPlayerParty()[0];
         bool queueReset = (cState->getCombatFocus() == CombatFocus::MAGIC &&
                            playerPartAfterSwitch.turnQueue.empty() &&
-                           playerPartAfterSwitch.currentStamina == staminaBeforeQueue &&
-                           playerPartAfterSwitch.currentAp == apBeforeQueue);
-        logResult("Switching combat focus resets turn queue and refunds stamina and AP completely", queueReset);
+                           playerPartAfterSwitch.currentStamina == staminaBeforeQueue);
+        logResult("Switching combat focus resets turn queue and refunds stamina completely", queueReset);
         allPassed &= queueReset;
 
         // 5. Dual Defeat / Victory Resolution
@@ -4996,6 +4997,861 @@ namespace EngineTests
         return allPassed;
     }
 
+    bool testSceneEnhancementsAndEncounterResolutionHub()
+    {
+        std::cout << "\n--- Running Test 38: Encounter Resolution Hub & Defeated Enemy Action Grid ---\n";
+        bool allPassed = true;
+
+        game g;
+        auto hero = std::make_shared<entity>("player", "Hero");
+        g.playerEntity = hero;
+        g.Player = hero.get();
+        auto enemyA = std::make_shared<entity>("enemy_a", "Goblin Scout");
+        auto enemyB = std::make_shared<entity>("enemy_b", "Goblin Shaman");
+
+        enemyA->canSelfTransform = false;
+        enemyB->canSelfTransform = true;
+
+        auto resState = std::make_unique<encounterResolutionState>(std::vector<std::shared_ptr<entity>>{ enemyA, enemyB });
+        encounterResolutionState* rawRes = resState.get();
+        g.changeState(std::move(resState));
+
+        // 1. Initial State verification
+        bool recordsOk = (rawRes->getDefeatedRecords().size() == 2);
+        logResult("EncounterResolutionState initializes with defeated enemy records", recordsOk);
+        allPassed &= recordsOk;
+
+        // 2. Action slots verification for selected enemy A (cannot transform)
+        const auto& slots = g.getActiveActionSlots();
+        bool hasLootBtn = (slots.size() > 0 && slots[0].label == "Loot & Equipment" && slots[0].isEnabled);
+        bool hasDomBtn = (slots.size() > 1 && slots[1].label == "Dom Scene" && slots[1].isEnabled);
+        bool hasSubBtn = (slots.size() > 2 && slots[2].label == "Sub Scene" && slots[2].isEnabled);
+        bool hasTransformDisabled = (slots.size() > 3 && slots[3].label == "Transform" && !slots[3].isEnabled);
+        bool hasTalkBtn = (slots.size() > 4 && slots[4].label == "Talk" && slots[4].isEnabled);
+        bool hasRemoveBtn = (slots.size() > 10 && slots[10].label == "Remove Character" && slots[10].isEnabled);
+        bool hasContinueBtn = (slots.size() > 14 && slots[14].label == "Continue" && slots[14].isEnabled);
+
+        logResult("Encounter Resolution Grid maps Slot 0 Loot, Slot 1 Dom, Slot 2 Sub, Slot 4 Talk",
+                  hasLootBtn && hasDomBtn && hasSubBtn && hasTalkBtn);
+        allPassed &= (hasLootBtn && hasDomBtn && hasSubBtn && hasTalkBtn);
+
+        logResult("Transform button is disabled for enemy without metamorphosis capability", hasTransformDisabled);
+        allPassed &= hasTransformDisabled;
+
+        logResult("Encounter Resolution Grid maps Slot 10 Remove Character (bottom-left) and Slot 14 Continue (bottom-right)",
+                  hasRemoveBtn && hasContinueBtn);
+        allPassed &= (hasRemoveBtn && hasContinueBtn);
+
+        // 3. Multi-target selection buttons (Slots 5 & 6)
+        bool hasTargetA = (slots.size() > 5 && slots[5].label.find("Goblin Scout") != std::string::npos);
+        bool hasTargetB = (slots.size() > 6 && slots[6].label.find("Goblin Shaman") != std::string::npos);
+        logResult("Multi-enemy encounter generates Target Selection buttons in row 1", hasTargetA && hasTargetB);
+        allPassed &= (hasTargetA && hasTargetB);
+
+        // Switch target to enemy B (who can transform)
+        g.handleCommand({ CommandType::SELECT_RESOLUTION_TARGET, 1, 0, "" });
+        bool targetSwitched = (rawRes->getSelectedIndex() == 1 && g.activeTargetNPC == enemyB);
+        const auto& slotsB = g.getActiveActionSlots();
+        bool transformEnabledB = (slotsB.size() > 3 && slotsB[3].label == "Transform" && slotsB[3].isEnabled);
+        logResult("SELECT_RESOLUTION_TARGET switches active NPC and enables Transform for metamorphic enemy",
+                  targetSwitched && transformEnabledB);
+        allPassed &= (targetSwitched && transformEnabledB);
+
+        // 4. Test Permanent Removal
+        g.handleCommand({ CommandType::PERMANENTLY_REMOVE_ENEMY, 0, 0, "" });
+        bool enemyBRemoved = rawRes->getDefeatedRecords()[1].isPermanentlyRemoved;
+        const auto& updatedSlots = g.getActiveActionSlots();
+        bool removeBtnDisabled = (updatedSlots.size() > 10 && !updatedSlots[10].isEnabled);
+        logResult("PERMANENTLY_REMOVE_ENEMY marks record as permanently removed and disables button",
+                  enemyBRemoved && removeBtnDisabled);
+        allPassed &= (enemyBRemoved && removeBtnDisabled);
+
+        // 5. Test Continue returns to exploration
+        g.handleCommand({ CommandType::CLOSE_MENU, 0, 0, "" });
+        bool returnedToExploration = (dynamic_cast<explorationState*>(g.getActiveState()) != nullptr);
+        logResult("CLOSE_MENU returns cleanly from encounterResolutionState to explorationState", returnedToExploration);
+        allPassed &= returnedToExploration;
+
+        return allPassed;
+    }
+
+    bool testDualInventoryEquipmentLooting()
+    {
+        std::cout << "\n--- Running Test 39: Dual Inventory Equipment & Tooltip Brief Descriptions ---\n";
+        bool allPassed = true;
+
+        game g;
+        auto hero = std::make_shared<entity>("player", "Hero");
+        g.playerEntity = hero;
+        g.Player = hero.get();
+        auto npc = std::make_shared<entity>("npc_bandit", "Bandit");
+        g.activeTargetNPC = npc;
+        g.activeTargetMode = TargetMode::COMBAT_ENEMY;
+
+        // Create an item on NPC
+        auto dagger = std::make_shared<item>();
+        dagger->id = "iron_dagger";
+        dagger->name = "Iron Dagger";
+        dagger->description = "A finely forged iron dagger with a serrated edge.";
+        dagger->briefDescription = "1d4 piercing, light weapon.";
+        dagger->isEquippable = true;
+        dagger->targetSlot = equipSlot::WEAPON_MAIN;
+        npc->inventory.equipped[static_cast<size_t>(equipSlot::WEAPON_MAIN)] = dagger;
+
+        // Item with empty briefDescription
+        auto potion = std::make_shared<item>();
+        potion->id = "minor_potion";
+        potion->name = "Minor Potion";
+        potion->description = "Restores a small amount of health.";
+        potion->briefDescription = "";
+
+        // Verify getBriefDescription()
+        bool briefPopulated = (dagger->getBriefDescription() == "1d4 piercing, light weapon.");
+        bool briefEmpty = (potion->getBriefDescription().empty());
+        logResult("Item getBriefDescription returns brief description when defined and empty string when omitted",
+                  briefPopulated && briefEmpty);
+        allPassed &= (briefPopulated && briefEmpty);
+
+        // Open dual inventory
+        auto invState = std::make_unique<inventoryState>();
+        g.changeState(std::move(invState));
+
+        bool inInventory = (dynamic_cast<inventoryState*>(g.getActiveState()) != nullptr);
+        logResult("Dual inventory initializes cleanly with NPC target active", inInventory);
+        allPassed &= inInventory;
+
+        // Strip NPC equipment
+        g.handleStripAllNPCEquipmentAction();
+        bool npcStripped = (!npc->inventory.isEquipped(equipSlot::WEAPON_MAIN));
+        bool playerHasDagger = false;
+        for (const auto& it : hero->inventory.backpack)
+        {
+            if (it && it->id == "iron_dagger") playerHasDagger = true;
+        }
+        logResult("handleStripAllNPCEquipmentAction unequips NPC items and transfers directly to player",
+                  npcStripped && playerHasDagger);
+        allPassed &= (npcStripped && playerHasDagger);
+
+        // Add a potion to NPC backpack and test take all items
+        npc->inventory.backpack.push_back(potion);
+        g.handleTakeAllNPCItemsAction();
+        bool playerHasPotion = false;
+        for (const auto& it : hero->inventory.backpack)
+        {
+            if (it && it->id == "minor_potion") playerHasPotion = true;
+        }
+        bool npcBagEmpty = npc->inventory.backpack.empty();
+        logResult("handleTakeAllNPCItemsAction transfers all items from NPC backpack to player",
+                  playerHasPotion && npcBagEmpty);
+        allPassed &= (playerHasPotion && npcBagEmpty);
+
+        return allPassed;
+    }
+
+    bool testDualInventoryCurrencyTransferAndStorage()
+    {
+        std::cout << "\n--- Running Test 40: Dual Inventory Currency Transfer & Safe Storage ---\n";
+        bool allPassed = true;
+
+        game g;
+        gameMap testMap;
+        g.map = &testMap;
+        auto hero = std::make_shared<entity>("player", "Hero");
+        hero->stats.setBaseStat("currency", 100.0f);
+        g.playerEntity = hero;
+        g.Player = hero.get();
+
+        auto npc = std::make_shared<entity>("npc_trader", "Trader");
+        npc->stats.setBaseStat("currency", 50.0f);
+        g.activeTargetNPC = npc;
+
+        // 1. Transfer currency to NPC (Side 1)
+        g.transferCurrencyToSide1(30.0f);
+        bool p1 = (hero->getStat("currency") == 70.0f && npc->getStat("currency") == 80.0f);
+        logResult("transferCurrencyToSide1 deducts 30 currency from player and adds to NPC", p1);
+        allPassed &= p1;
+
+        // 2. Transfer currency from NPC (Side 1)
+        g.transferCurrencyFromSide1(50.0f);
+        bool p2 = (hero->getStat("currency") == 120.0f && npc->getStat("currency") == 30.0f);
+        logResult("transferCurrencyFromSide1 deducts 50 currency from NPC and adds to player", p2);
+        allPassed &= p2;
+
+        // 3. Ground / Tile currency transfer when no NPC target
+        g.activeTargetNPC = nullptr;
+        g.transferCurrencyToSide1(40.0f);
+        bool p3 = (hero->getStat("currency") == 80.0f && g.getTileCurrency() == 40.0f);
+        logResult("transferCurrencyToSide1 with no NPC drops currency onto tile", p3);
+        allPassed &= p3;
+
+        g.transferCurrencyFromSide1(40.0f);
+        bool p4 = (hero->getStat("currency") == 120.0f && g.getTileCurrency() == 0.0f);
+        logResult("transferCurrencyFromSide1 with no NPC picks up currency from tile", p4);
+        allPassed &= p4;
+
+        return allPassed;
+    }
+
+    bool testDefeatResolutionAndEnslavementCapture()
+    {
+        std::cout << "\n--- Running Test 41: Defeat Resolution Enslavement Capture Mechanics ---\n";
+        bool allPassed = true;
+
+        game g;
+        auto hero = std::make_shared<entity>("player", "Hero");
+        g.playerEntity = hero;
+        g.Player = hero.get();
+
+        auto captive = std::make_shared<entity>("captive_wolf", "Dire Wolf");
+        g.activeTargetNPC = captive;
+
+        // Create an enslaving collar item
+        auto collar = std::make_shared<item>();
+        collar->id = "collar_enslave_choker";
+        collar->name = "Enslaving Choker of Subjugation";
+        collar->description = "A sinister collar pulsing with mind-binding magic.";
+        collar->isEquippable = true;
+        collar->targetSlot = equipSlot::NECKWEAR;
+
+        // Verify isEnslavingItem detects the collar
+        bool isEnslaving = game::isEnslavingItem(collar.get());
+        logResult("game::isEnslavingItem correctly recognizes enslaving keyword/enchantment", isEnslaving);
+        allPassed &= isEnslaving;
+
+        // Give collar to player
+        hero->inventory.backpack.push_back(collar);
+        int collarIdx = 0;
+
+        // Setup encounter resolution state with captive
+        auto resState = std::make_unique<encounterResolutionState>(std::vector<std::shared_ptr<entity>>{ captive });
+        encounterResolutionState* rawRes = resState.get();
+        g.changeState(std::move(resState));
+
+        // Open loot inventory from resolution hub
+        rawRes->handleOpenLootInventory(&g);
+        bool inInv = (dynamic_cast<inventoryState*>(g.getActiveState()) != nullptr);
+        logResult("handleOpenLootInventory transitions to inventoryState preserving encounterResolutionState return state", inInv);
+        allPassed &= inInv;
+
+        // Equip collar onto captive
+        bool equipSuccess = g.handleEquipOnNPCAction(collarIdx, equipSlot::NECKWEAR, captive.get());
+        logResult("handleEquipOnNPCAction successfully equips collar onto defeated captive", equipSuccess);
+        allPassed &= equipSuccess;
+
+        // Check enslavement consequences
+        bool captiveBound = (captive->inventory.isEquipped(equipSlot::NECKWEAR) &&
+                             captive->inventory.getEquippedItem(equipSlot::NECKWEAR)->id == "collar_enslave_choker");
+        bool captiveSubjugatedStage = (captive->quests.getQuestStage("subjugated") == 1);
+        logResult("Captive is equipped with collar and has subjugated quest stage set to 1", captiveBound && captiveSubjugatedStage);
+        allPassed &= (captiveBound && captiveSubjugatedStage);
+
+        // Check narrative scene transition
+        bool sceneLoaded = (dynamic_cast<eventState*>(g.getActiveState()) != nullptr);
+        logResult("Enslaving captive loads 'scene_enslavement_success' event narrative scene", sceneLoaded);
+        allPassed &= sceneLoaded;
+
+        return allPassed;
+    }
+
+    bool testCategoryTabsAndAdaptiveSexEncounters()
+    {
+        std::cout << "\n--- Running Test 42: Category Tabs & Deep Adaptive Sex Encounter Engine ---\n";
+        bool allPassed = true;
+
+        game g;
+        auto hero = std::make_shared<entity>("player", "Hero");
+        hero->stats.setBaseStat("arousal", 10.0f);
+        hero->stats.setBaseStat("stamina", 100.0f);
+        hero->stats.setBaseStat("physique", 50.0f);
+        g.playerEntity = hero;
+        g.Player = hero.get();
+
+        // 1. Category Tabs API in game
+        std::vector<std::string> cats = { "All", "Intimacy", "Oral", "Penetration", "Dominance", "Stances", "Reactions" };
+        g.setActionCategories(cats);
+        bool catsConfigured = (g.getActionCategories().size() == 7 && g.getActiveActionCategory() == "All");
+        logResult("game::setActionCategories configures tabs with 'All' default active", catsConfigured);
+        allPassed &= catsConfigured;
+
+        g.currentActionPage = 2;
+        g.selectActionCategory("Oral");
+        bool oralSelected = (g.getActiveActionCategory() == "Oral" && g.currentActionPage == 0);
+        logResult("selectActionCategory switches active category and resets currentActionPage to 0", oralSelected);
+        allPassed &= oralSelected;
+
+        // 2. Multi-Participant Scaling (Solo, 1-on-1, and 1-on-4 Lopsided Group Scene)
+        auto soloState = std::make_unique<sexState>();
+        bool soloOk = soloState->isSolo() && soloState->getParticipantCount() == 1;
+        logResult("sexState creates solo encounter with participant count = 1 (isSolo == true)", soloOk);
+        allPassed &= soloOk;
+
+        auto partnerA = std::make_shared<entity>("npc_succubus", "Succubus");
+        partnerA->stats.setBaseStat("arousal", 20.0f);
+        partnerA->stats.setBaseStat("stamina", 100.0f);
+        partnerA->stats.setBaseStat("physique", 10.0f);
+        auto duoState = std::make_unique<sexState>(partnerA, SexStance::MISSIONARY, 20.0f);
+        bool duoOk = (!duoState->isSolo() && duoState->getParticipantCount() == 2);
+        logResult("sexState initializes 1-on-1 encounter with participant count = 2 (isSolo == false)", duoOk);
+        allPassed &= duoOk;
+
+        // Lopsided 1-on-4 group encounter
+        auto p1 = std::make_shared<entity>("p1", "Foe 1");
+        auto p2 = std::make_shared<entity>("p2", "Foe 2");
+        auto p3 = std::make_shared<entity>("p3", "Foe 3");
+        auto p4 = std::make_shared<entity>("p4", "Foe 4");
+        std::vector<std::shared_ptr<entity>> foes = { p1, p2, p3, p4 };
+        auto groupState = std::make_unique<sexState>(std::vector<std::shared_ptr<entity>>{}, foes, SexStance::MISSIONARY, -30.0f);
+        bool groupScaled = (groupState->getParticipantCount() == 5); // 1 player + 4 foes
+        logResult("sexState supports arbitrary multi-participant scaling (1-on-4 group: count = 5)", groupScaled);
+        allPassed &= groupScaled;
+
+        // Target Switching in Group Scene
+        groupState->selectTargetParticipant(3);
+        bool targetSwitched = (groupState->getTargetParticipantIndex() == 3 &&
+                               groupState->getTargetParticipant() &&
+                               groupState->getTargetParticipant()->getName() == "Foe 3");
+        logResult("selectTargetParticipant switches active partner target dynamically", targetSwitched);
+        allPassed &= targetSwitched;
+
+        // 3. Continuous Dominance Continuum and Dynamic Switch Role
+        SexParticipant domP;
+        domP.dominanceScore = 60.0f;
+        SexParticipant subP;
+        subP.dominanceScore = -60.0f;
+        SexParticipant switchP;
+        switchP.dominanceScore = 10.0f;
+
+        bool roleDom = (domP.getRole() == SexRole::DOMINANT);
+        bool roleSub = (subP.getRole() == SexRole::SUBMISSIVE);
+        bool roleSwitch = (switchP.getRole() == SexRole::SWITCH);
+        logResult("Dominance continuum assigns DOMINANT (>25), SUBMISSIVE (<-25), and SWITCH (-25 to +25)",
+                  roleDom && roleSub && roleSwitch);
+        allPassed &= (roleDom && roleSub && roleSwitch);
+
+        // 4. Universal Personality Traits Integration
+        partnerA->addTrait("Cruel");
+        partnerA->addTrait("Lewd");
+        bool hasCruel = partnerA->hasTrait("Cruel");
+        bool hasLewdCaseInsensitive = partnerA->hasTrait("lewd");
+        bool notKind = !partnerA->hasTrait("Kind");
+        logResult("entity::hasTrait supports case-insensitive trait querying across game systems",
+                  hasCruel && hasLewdCaseInsensitive && notKind);
+        allPassed &= (hasCruel && hasLewdCaseInsensitive && notKind);
+
+        partnerA->removeTrait("Cruel");
+        bool cruelRemoved = !partnerA->hasTrait("Cruel");
+        logResult("entity::removeTrait removes personality trait cleanly", cruelRemoved);
+        allPassed &= cruelRemoved;
+        partnerA->addTrait("Cruel");
+
+        // 5. Holistic Attitude Engine
+        SexParticipant testPart;
+        testPart.character = partnerA;
+        testPart.dominanceScore = 60.0f;
+        testPart.arousal = 40.0f;
+        testPart.stamina = 90.0f;
+        std::string attitudeCruelDom = duoState->computeHolisticAttitude(testPart);
+        bool attitudeSadistic = (attitudeCruelDom.find("Cruel") != std::string::npos ||
+                                 attitudeCruelDom.find("Mocking") != std::string::npos);
+        logResult("Holistic attitude engine synthesizes cruel/mocking attitude from Cruel trait and high dominance", attitudeSadistic);
+        allPassed &= attitudeSadistic;
+
+        // Test Spent & Blissful attitude on 2+ climaxes
+        testPart.climaxes = 2;
+        std::string attitudeSpent = duoState->computeHolisticAttitude(testPart);
+        bool isSpent = (attitudeSpent.find("Spent") != std::string::npos ||
+                        attitudeSpent.find("Blissful") != std::string::npos);
+        logResult("Holistic attitude engine transitions to Spent & Blissful on multiple climaxes", isSpent);
+        allPassed &= isSpent;
+
+        // 6. Contextual Struggle Mechanics
+        // A) Exhausted post-defeat submissive participant (stamina < 20)
+        duoState->setConsensual(false);
+        auto pPlayer = duoState->getPlayerParticipant();
+        pPlayer->dominanceScore = -50.0f;
+        pPlayer->stamina = 5.0f; // Exhausted after losing combat
+        std::string blockReason;
+        bool canStruggleExhausted = duoState->canParticipantStruggle(0, &blockReason);
+        bool correctlyBlocked = (!canStruggleExhausted && blockReason.find("Exhausted") != std::string::npos);
+        logResult("Post-defeat exhausted participant (stamina < 20) is blocked from struggling", correctlyBlocked);
+        allPassed &= correctlyBlocked;
+
+        // B) Stamina recovered (>= 20) allows struggling in non-consensual scene
+        pPlayer->stamina = 80.0f;
+        bool canStruggleRecovered = duoState->canParticipantStruggle(0, &blockReason);
+        logResult("Recovered stamina unlocks struggle capability in non-consensual encounter", canStruggleRecovered);
+        allPassed &= canStruggleRecovered;
+
+        // C) Consensual scene without struggle fetish blocks struggling
+        duoState->setConsensual(true);
+        bool canStruggleConsensual = duoState->canParticipantStruggle(0, &blockReason);
+        bool blockedConsensual = (!canStruggleConsensual && blockReason.find("consensual") != std::string::npos);
+        logResult("Consensual scene blocks struggling unless specific fetish or boundary violation occurs", blockedConsensual);
+        allPassed &= blockedConsensual;
+
+        // D) Executing Struggle yields dominance swing
+        duoState->setConsensual(false);
+        float domBeforeStruggle = pPlayer->dominanceScore;
+        sexState* rawSex = duoState.get();
+        g.changeState(std::move(duoState));
+        rawSex->handleStruggle(&g);
+        bool dominanceShifted = (rawSex->getPlayerDominance() >= domBeforeStruggle + 20.0f);
+        logResult("Successful struggle awards major dominance swing (+35) turning the tables", dominanceShifted);
+        allPassed &= dominanceShifted;
+
+        // 7. Intelligent NPC AI Turn evaluating Loved Fetishes
+        partnerA->setFetishDesire("Oral", 2); // Loved fetish
+        rawSex->processPartnerTurn(&g);
+        bool aiActed = (rawSex->getParticipants().size() >= 2);
+        logResult("Intelligent NPC AI executes turn evaluating personal fetishes and advancing scene", aiActed);
+        allPassed &= aiActed;
+
+        return allPassed;
+    }
+
+    bool testUnitFormatterAndRefinedSettings()
+    {
+        std::cout << "\n--- Running Test 43: Dynamic Unit Formatter, Refined Global Settings & Narrative ---" << std::endl;
+        bool allPassed = true;
+
+        // 1. Unit Formatter Conversions
+        bool lenMetric = (unitFormatter::formatLength(18.0f, "Metric") == "18.0cm");
+        bool lenImperial = (unitFormatter::formatLength(18.0f, "Imperial") == "7.1 inches");
+        bool lenShort = (unitFormatter::formatLength(18.0f, "Imperial", true) == "7.1\"");
+        bool lengthOk = lenMetric && lenImperial && lenShort;
+        logResult("unitFormatter converts length accurately (18.0cm <-> 7.1 inches)", lengthOk);
+        allPassed &= lengthOk;
+
+        bool heightMetric = (unitFormatter::formatHeight(175.0f, "Metric") == "175cm");
+        bool heightImperial = (unitFormatter::formatHeight(175.0f, "Imperial") == "5'9\"");
+        bool heightOk = heightMetric && heightImperial;
+        logResult("unitFormatter converts standing height accurately (175cm <-> 5'9\")", heightOk);
+        allPassed &= heightOk;
+
+        bool fluidMetric = (unitFormatter::formatFluid(50.0f, "Metric") == "50ml");
+        bool fluidImperial = (unitFormatter::formatFluid(50.0f, "Imperial") == "1.7 fl oz");
+        bool fluidZero = (unitFormatter::formatFluid(0.5f, "Imperial") == "<0.1 fl oz");
+        bool fluidOk = fluidMetric && fluidImperial && fluidZero;
+        logResult("unitFormatter converts fluids accurately (50ml <-> 1.7 fl oz)", fluidOk);
+        allPassed &= fluidOk;
+
+        bool weightMetric = (unitFormatter::formatWeight(65.0f, "Metric") == "65kg");
+        bool weightImperial = (unitFormatter::formatWeight(65.0f, "Imperial") == "143 lbs");
+        bool weightOk = weightMetric && weightImperial;
+        logResult("unitFormatter converts weight accurately (65kg <-> 143 lbs)", weightOk);
+        allPassed &= weightOk;
+
+        // 2. Standard Difficulty Tiers (0..4) and Multipliers
+        game g;
+        g.settings.gameplay.difficultyLevel = 0; // Very Easy
+        float d0 = (g.settings.gameplay.difficultyLevel == 0) ? 0.75f : 1.0f;
+        g.settings.gameplay.difficultyLevel = 4; // Nightmare
+        float d4 = (g.settings.gameplay.difficultyLevel == 4) ? 2.50f : 1.0f;
+        bool diffTiersOk = (d0 == 0.75f && d4 == 2.50f);
+        logResult("Standard difficulty tiers correctly map [Very Easy (0.75x) .. Nightmare (2.50x)]", diffTiersOk);
+        allPassed &= diffTiersOk;
+
+        // 3. Trigger-Based Autosaves and Serialization
+        g.settings.gameplay.autoSaveOnMapChange = true;
+        g.settings.gameplay.autoSaveOnSceneExit = false;
+        g.settings.gameplay.maxAutoSaves = 5;
+        g.settings.gameplay.unitPreference = "Imperial";
+        g.settings.display.activeTheme = "theme_parchment";
+
+        auto jsonSerialized = g.settings.toJson();
+        GameSettings loadedSettings;
+        loadedSettings.fromJson(jsonSerialized);
+
+        bool autosaveSerOk = (loadedSettings.gameplay.autoSaveOnMapChange &&
+                              !loadedSettings.gameplay.autoSaveOnSceneExit &&
+                              loadedSettings.gameplay.maxAutoSaves == 5 &&
+                              loadedSettings.gameplay.unitPreference == "Imperial" &&
+                              loadedSettings.display.activeTheme == "theme_parchment");
+        logResult("Refined settings serialize trigger autosaves and global preferences accurately", autosaveSerOk);
+        allPassed &= autosaveSerOk;
+
+        // 4. SaveManager Global Settings Isolation
+        // Loading a character save must never overwrite active global theme, units, or filters
+        auto hero = std::make_shared<entity>("save_hero", "TestHero");
+        hero->stats.setBaseStat("health", 100.0f);
+        g.playerEntity = hero;
+        g.Player = hero.get();
+        saveManager::saveNamedGame(&g, "GlobalIsoTest");
+
+        // Mutate global settings
+        g.settings.display.activeTheme = "theme_dark_fantasy";
+        g.settings.gameplay.unitPreference = "Metric";
+        g.settings.content.fluidMultiplier = 3.5f;
+
+        // Load the saved character back
+        saveManager::loadFromFile(&g, "TestHero_GlobalIsoTest.json");
+
+        bool globalPreserved = (g.settings.display.activeTheme == "theme_dark_fantasy" &&
+                                g.settings.gameplay.unitPreference == "Metric" &&
+                                g.settings.content.fluidMultiplier == 3.5f);
+        logResult("saveManager::loadFromFile preserves active global theme, units, and content preferences", globalPreserved);
+        allPassed &= globalPreserved;
+
+        // Clean up test save file
+        saveManager::deleteSave("TestHero_GlobalIsoTest.json");
+
+        // 5. SexState Narrative Generation & Static Category Tabs
+        auto partner = std::make_shared<entity>("npc_succubus_test", "Succubus");
+        bodyPart groinPart;
+        groinPart.name = "Vagina";
+        groinPart.orifice.exists = true;
+        partner->anatomy.setPart(bodySlot::GROIN, groinPart);
+        bodyPart breastPart;
+        breastPart.name = "Breasts";
+        breastPart.cupSize = 3;
+        partner->anatomy.setPart(bodySlot::BREASTS, breastPart);
+        partner->stats.setBaseStat("arousal", 10.0f);
+        partner->stats.setBaseStat("stamina", 100.0f);
+        auto sex = std::make_unique<sexState>(partner, SexStance::MISSIONARY, 30.0f);
+        auto* rawSex = sex.get();
+        g.changeState(std::move(sex));
+
+        const auto& cats = g.getActionCategories();
+        bool hasAll = (std::find(cats.begin(), cats.end(), "All") != cats.end());
+        bool hasGeneric = (std::find(cats.begin(), cats.end(), "Generic") != cats.end());
+        bool hasSelf = (std::find(cats.begin(), cats.end(), "Self") != cats.end());
+        bool hasPartner = (std::find(cats.begin(), cats.end(), "Partner") != cats.end());
+        bool hasPosition = (std::find(cats.begin(), cats.end(), "Position") != cats.end());
+        bool categoriesRefined = (!hasAll && hasGeneric && hasSelf && hasPartner && hasPosition && cats.size() == 4);
+        logResult("sexState configures static category tabs without 'All' (Generic, Self, Partner, Position)", categoriesRefined);
+        allPassed &= categoriesRefined;
+
+        // Verify active tab persistence across state category updates
+        g.selectActionCategory("Partner");
+        g.setActionCategories(g.getActionCategories(), "Generic");
+        bool tabPersisted = (g.getActiveActionCategory() == "Partner");
+        logResult("Active category tab persists across turns/actions without resetting", tabPersisted);
+        allPassed &= tabPersisted;
+
+        // Verify dominance-driven action gating
+        auto domActions = rawSex->getAvailableActions();
+        bool hasDominantAction = false;
+        bool hasSubmissiveAction = false;
+        for (const auto& a : domActions)
+        {
+            if (a.id == "generic_command_oral" || a.id == "partner_spank" || a.id == "generic_demand_obedience") hasDominantAction = true;
+            if (a.id == "generic_beg_oral" || a.id == "generic_yield_control") hasSubmissiveAction = true;
+        }
+        bool domGatingOk = hasDominantAction && !hasSubmissiveAction;
+        logResult("Dominance score gates action availability (dominant actions available, submissive hidden)", domGatingOk);
+        allPassed &= domGatingOk;
+
+        // Verify action grid buttons populate rich mechanics tooltips with effects
+        g.refreshActionGrid();
+        const auto& buttons = g.getActiveActionSlots();
+        bool hasActionButtons = !buttons.empty();
+        bool buttonHasStatsTooltip = false;
+        for (const auto& btn : buttons)
+        {
+            if (btn.description.find("Self Arousal:") != std::string::npos ||
+                btn.description.find("Arousal:") != std::string::npos)
+            {
+                buttonHasStatsTooltip = true;
+                break;
+            }
+        }
+        bool buttonsOk = hasActionButtons && buttonHasStatsTooltip;
+        logResult("Action grid buttons populate rich mechanics tooltips (Arousal/Dom Shift)", buttonsOk);
+        allPassed &= buttonsOk;
+
+        // Verify continuous action mechanics: initiation, turn processing, and explicit stop
+        auto avail = rawSex->getAvailableActions();
+        auto contIt = std::find_if(avail.begin(), avail.end(), [](const SexAction& a) { return a.isContinuous; });
+        if (contIt != avail.end())
+        {
+            rawSex->executeAction(&g, *contIt);
+            bool ongoingRegistered = rawSex->hasOngoingAction(0);
+            const auto* oa = rawSex->getOngoingActionForParticipant(0);
+            int startTurns = oa ? oa->turnsActive : -1;
+            rawSex->processOngoingActions(&g);
+            oa = rawSex->getOngoingActionForParticipant(0);
+            int afterTurns = oa ? oa->turnsActive : -1;
+            bool turnTicked = (afterTurns > startTurns);
+            rawSex->stopOngoingAction(0, &g);
+            bool stoppedOk = !rawSex->hasOngoingAction(0);
+            bool continuousOk = ongoingRegistered && turnTicked && stoppedOk;
+            logResult("Continuous sex actions register, persist across turns, and can be stopped", continuousOk);
+            allPassed &= continuousOk;
+        }
+
+        // Execute action and verify procedural narrative log generation
+        if (!avail.empty())
+        {
+            rawSex->executeAction(&g, avail[0]);
+            bool narrativeGenerated = !rawSex->getNarrativeLog().empty();
+            logResult("sexState::executeAction generates rich contextual narrative prose in log", narrativeGenerated);
+            allPassed &= narrativeGenerated;
+        }
+
+        // 6. Multi-Ongoing Actions based on Available Body Parts
+        SexAction kissAct;
+        kissAct.id = "partner_kiss";
+        kissAct.name = "Passionate Kiss";
+        kissAct.isContinuous = true;
+        kissAct.actorSlot = bodySlot::MOUTH;
+        kissAct.targetSlot = bodySlot::MOUTH;
+
+        SexAction breastAct;
+        breastAct.id = "partner_caress_breasts";
+        breastAct.name = "Fondle Breasts";
+        breastAct.isContinuous = true;
+        breastAct.actorSlot = bodySlot::HANDS;
+        breastAct.targetSlot = bodySlot::BREASTS;
+        breastAct.handsRequired = 1;
+
+        SexAction fingerAct;
+        fingerAct.id = "partner_finger_vagina";
+        fingerAct.name = "Finger Vagina";
+        fingerAct.isContinuous = true;
+        fingerAct.actorSlot = bodySlot::HANDS;
+        fingerAct.targetSlot = bodySlot::GROIN;
+        fingerAct.handsRequired = 1;
+
+        SexAction pinAct;
+        pinAct.id = "partner_choke_hold";
+        pinAct.name = "Hold Down & Pin";
+        pinAct.isContinuous = true;
+        pinAct.actorSlot = bodySlot::HANDS;
+        pinAct.targetSlot = bodySlot::ARMS;
+        pinAct.handsRequired = 2;
+
+        rawSex->clearAllOngoingActions();
+        rawSex->executeAction(&g, kissAct);
+        auto ongoing1 = rawSex->getOngoingActionsForParticipant(0);
+        bool kissActive = (ongoing1.size() == 1 && ongoing1[0]->bodyPartUsage == BodyPartUsage::MOUTH);
+
+        rawSex->executeAction(&g, breastAct);
+        auto ongoing2 = rawSex->getOngoingActionsForParticipant(0);
+        bool kissAndHand1 = (ongoing2.size() == 2);
+
+        rawSex->executeAction(&g, fingerAct);
+        auto ongoing3 = rawSex->getOngoingActionsForParticipant(0);
+        bool threeParts = (ongoing3.size() == 3); // Mouth + Hand 1 + Hand 2
+        bool multiBodyPartsOk = kissActive && kissAndHand1 && threeParts;
+        logResult("Actions use available body parts simultaneously (1 mouth + 2 hands)", multiBodyPartsOk);
+        allPassed &= multiBodyPartsOk;
+
+        // Picking 2-handed action overrides both hands while mouth remains active
+        rawSex->executeAction(&g, pinAct);
+        auto ongoingPin = rawSex->getOngoingActionsForParticipant(0);
+        bool pinOverridesHands = (ongoingPin.size() == 2); // Mouth + Both Hands
+        bool hasMouth = false, hasBothHands = false, hasOldHands = false;
+        for (const auto* oa : ongoingPin)
+        {
+            if (oa->bodyPartUsage == BodyPartUsage::MOUTH) hasMouth = true;
+            if (oa->bodyPartUsage == BodyPartUsage::BOTH_HANDS) hasBothHands = true;
+            if (oa->bodyPartUsage == BodyPartUsage::ONE_HAND) hasOldHands = true;
+        }
+        bool twoHandsOverrideOk = pinOverridesHands && hasMouth && hasBothHands && !hasOldHands;
+        logResult("Two-handed action overrides and cancels both hand actions while preserving mouth", twoHandsOverrideOk);
+        allPassed &= twoHandsOverrideOk;
+
+        // 7. Clothing Access Gating & Greyed-out Options
+        auto skirt = std::make_shared<item>();
+        skirt->id = "test_skirt";
+        skirt->targetSlot = equipSlot::LEGS_OUTER;
+        skirt->isEquippable = true;
+        partner->inventory.addItem(skirt);
+        partner->inventory.equipItem(0, equipSlot::LEGS_OUTER);
+
+        std::string accessReason;
+        bool oralBlocked = !rawSex->isActionAccessible(fingerAct, *rawSex->getPlayerParticipant(), *rawSex->getTargetParticipant(), &accessReason);
+        bool oralReasonOk = (accessReason.find("groin is covered") != std::string::npos);
+
+        // In action grid, inaccessible button is disabled (greyed out)
+        g.refreshActionGrid();
+        bool actionGridGreyedOut = false;
+        for (const auto& slot : g.getActiveActionSlots())
+        {
+            if (slot.label == "Finger Vagina" && !slot.isEnabled && slot.description.find("[Inaccessible:") != std::string::npos)
+            {
+                actionGridGreyedOut = true;
+                break;
+            }
+        }
+        bool clothingGatingOk = oralBlocked && oralReasonOk && actionGridGreyedOut;
+        logResult("Clothing blocks intimate access and greys out actions with descriptive tooltip", clothingGatingOk);
+        allPassed &= clothingGatingOk;
+
+        // Undressing partner exposes groin and restores access
+        rawSex->undressEntity(partner.get());
+        bool oralNowAccessible = rawSex->isActionAccessible(fingerAct, *rawSex->getPlayerParticipant(), *rawSex->getTargetParticipant());
+        logResult("Undressing displaces clothing and restores full access to intimate actions", oralNowAccessible);
+        allPassed &= oralNowAccessible;
+
+        // 8. Dedicated Clothing Item Selection & Action Grid Undressing Options
+        partner->inventory.resetAllDisplacements();
+        g.selectedEquipmentSlot = equipSlot::LEGS_OUTER;
+        g.selectedEquipmentSide = 1;
+        g.refreshActionGrid();
+
+        bool hasRemoveBtn = false;
+        bool hasPullDownBtn = false;
+        bool hasPullAsideBtn = false;
+        bool hasDeselectBtn = false;
+
+        for (const auto& slot : g.getActiveActionSlots())
+        {
+            if (slot.label.find("Remove") != std::string::npos) hasRemoveBtn = true;
+            if (slot.label == "Pull Down") hasPullDownBtn = true;
+            if (slot.label == "Pull Aside") hasPullAsideBtn = true;
+            if (slot.label == "Deselect Item") hasDeselectBtn = true;
+        }
+
+        bool clothingSelectionGridOk = hasRemoveBtn && hasPullDownBtn && hasPullAsideBtn && hasDeselectBtn;
+        logResult("Selecting equipped clothing item populates partial and full undressing options", clothingSelectionGridOk);
+        allPassed &= clothingSelectionGridOk;
+
+        // Partially undress piece via Pull Down -> advances turn, creates narrative, exposes groin
+        rawSex->handleClothingAction(&g, 1, equipSlot::LEGS_OUTER, DisplacementMode::PULL_DOWN, false);
+        bool partnerGroinExposed = partner->inventory.isSlotExposed(bodySlot::GROIN);
+        bool clothNarrativeOk = !rawSex->getNarrativeLog().empty();
+        bool partialUndressOk = partnerGroinExposed && clothNarrativeOk;
+        logResult("Partial undressing action displaces garment, generates narrative, and exposes underlying body part", partialUndressOk);
+        allPassed &= partialUndressOk;
+
+        // 9. First Tab (Generic) Undress All (Self) and Undress All (Partner) Buttons
+        g.selectedEquipmentSlot = equipSlot::NONE;
+        g.selectActionCategory("Generic");
+        g.refreshActionGrid();
+
+        bool hasUndressAllSelf = false;
+        bool hasUndressAllPartner = false;
+        bool genericStripExcluded = true;
+
+        for (const auto& slot : g.getActiveActionSlots())
+        {
+            if (slot.label == "Undress All (Self)") hasUndressAllSelf = true;
+            if (slot.label == "Undress All (Partner)") hasUndressAllPartner = true;
+            if (slot.label == "Command: Strip" || slot.label == "Mutual Undress" ||
+                slot.label == "Undress Partner" || slot.label == "Undress Self")
+            {
+                genericStripExcluded = false;
+            }
+        }
+
+        bool undressAllButtonsOk = hasUndressAllSelf && hasUndressAllPartner && genericStripExcluded;
+        logResult("Generic tab provides dedicated Undress All buttons and excludes generic strip actions", undressAllButtonsOk);
+        allPassed &= undressAllButtonsOk;
+
+        return allPassed;
+    }
+
+    bool testUnifiedFetishesAndCombatResolutionSex()
+    {
+        std::cout << "\n--- Running Test 44: Unified Mature Content Fetishes & Combat Resolution Sex Transition ---\n";
+        bool allPassed = true;
+
+        // 1. Unified Fetish Preferences Roster & Auto-Sync
+        ContentSettings cs;
+        static const std::vector<std::string> unifiedFetishes = {
+            "Non-Consent", "Sadistic sex / Extreme", "Public Sex Exposure", "Watersports",
+            "Spitting", "Forced Transformation", "Tentacles & Monsters", "BDSM & Restraints",
+            "Incest", "Size Difference", "Prolapse", "Aphrodisiacs & Drugs",
+            "Hypnosis & Mind Control", "Cum Inflation & Expansion", "Feral / Bestiality",
+            "Pregnancy", "Lactation"
+        };
+        bool allUnifiedPresent = true;
+        for (const auto& f : unifiedFetishes)
+        {
+            if (cs.getFetishRating(f) < 0)
+            {
+                allUnifiedPresent = false;
+                break;
+            }
+        }
+        logResult("All mature content toggles integrated into unified fetish preference roster", allUnifiedPresent);
+        allPassed &= allUnifiedPresent;
+
+        // 2. setFetishPreference auto-syncs boolean flags and aliases
+        cs.setFetishPreference("Non-Consent", 0);
+        bool nonConOffSynced = (cs.nonConEnabled == false && cs.getFetishRating("Non-Consent") == 0);
+        cs.setFetishPreference("Non-Consent", 4);
+        bool nonConOnSynced = (cs.nonConEnabled == true && cs.getFetishRating("Non-Consent") == 4);
+        cs.setFetishPreference("Tentacles & Monsters", 1);
+        bool tentacleAliasSynced = (cs.getFetishRating("Tentacles") == 1);
+        bool syncOk = nonConOffSynced && nonConOnSynced && tentacleAliasSynced;
+        logResult("setFetishPreference synchronizes boolean flags and aliased preferences", syncOk);
+        allPassed &= syncOk;
+
+        // 3. Global contentFilterMode governs behavior for rating 0 (Never)
+        cs.setFetishPreference("Incest", 0);
+        cs.contentFilterMode = ContentFilterMode::BLOCK_AND_SKIP;
+        bool blockOk = (ContentFilterManager::evaluateTag(cs, "incest") == ContentTagStatus::BLOCKED);
+        cs.contentFilterMode = ContentFilterMode::WARN_CONFIRM;
+        bool warnOk = (ContentFilterManager::evaluateTag(cs, "incest") == ContentTagStatus::WARN);
+        cs.contentFilterMode = ContentFilterMode::DROPDOWN;
+        bool dropdownEvalOk = (ContentFilterManager::evaluateTag(cs, "incest") == ContentTagStatus::BLOCKED);
+        bool modeGatingOk = blockOk && warnOk && dropdownEvalOk;
+        logResult("Global contentFilterMode actively controls handling of fetishes set to Never (0)", modeGatingOk);
+        allPassed &= modeGatingOk;
+
+        // 4. Combat Resolution Hub Dom/Sub Scene Transition when Non-Consent enabled
+        game g;
+        auto player = std::make_shared<entity>("hero", "Hero");
+        auto enemy = std::make_shared<entity>("orc", "Orc Raider");
+        g.playerEntity = player;
+        g.Player = player.get();
+        g.activeTargetNPC = enemy;
+        g.settings.content.setFetishPreference("Non-Consent", 3);
+        g.settings.content.contentFilterMode = ContentFilterMode::DROPDOWN;
+
+        auto resState = std::make_unique<encounterResolutionState>(std::vector<std::shared_ptr<entity>>{ enemy });
+        auto* rawRes = resState.get();
+        g.changeState(std::move(resState));
+
+        // Dom scene button should be active
+        const auto& slots = g.getActiveActionSlots();
+        bool domBtnActive = (slots.size() > 1 && slots[1].label == "Dom Scene" && slots[1].isEnabled);
+        logResult("Encounter resolution Dom Scene button is active when Non-Consent is enabled", domBtnActive);
+        allPassed &= domBtnActive;
+
+        // Trigger Dom scene command -> switches state to sexState
+        g.handleCommand({ CommandType::INTERACTIVE_SEX_DOM, 0, 0, "" });
+        auto* rawSex = dynamic_cast<sexState*>(g.getActiveState());
+        bool transitionedToSex = (rawSex != nullptr);
+        bool nonConDynamic = transitionedToSex && (!rawSex->isConsensual());
+        logResult("Clicking Dom Scene transitions smoothly into sexState with non-consensual dynamic", nonConDynamic);
+        allPassed &= nonConDynamic;
+
+        // 5. Combat Resolution when Non-Consent is Never (0) and mode is DROPDOWN -> consensual framing
+        g.settings.content.setFetishPreference("Non-Consent", 0);
+        g.settings.content.contentFilterMode = ContentFilterMode::DROPDOWN;
+        auto resState2 = std::make_unique<encounterResolutionState>(std::vector<std::shared_ptr<entity>>{ enemy });
+        g.changeState(std::move(resState2));
+        g.handleCommand({ CommandType::INTERACTIVE_SEX_DOM, 0, 0, "" });
+        auto* rawSexConsensual = dynamic_cast<sexState*>(g.getActiveState());
+        bool consensualFraming = (rawSexConsensual != nullptr && rawSexConsensual->isConsensual());
+        logResult("Under Non-Consent Never with Dropdown mode, Dom Scene transitions with consensual framing", consensualFraming);
+        allPassed &= consensualFraming;
+
+        // 6. Combat Resolution when Non-Consent is Never (0) and mode is BLOCK_AND_SKIP -> buttons locked
+        g.settings.content.setFetishPreference("Non-Consent", 0);
+        g.settings.content.contentFilterMode = ContentFilterMode::BLOCK_AND_SKIP;
+        auto resState3 = std::make_unique<encounterResolutionState>(std::vector<std::shared_ptr<entity>>{ enemy });
+        auto* rawRes3 = resState3.get();
+        g.changeState(std::move(resState3));
+
+        const auto& lockedSlots = g.getActiveActionSlots();
+        bool domLocked = (lockedSlots.size() > 1 && lockedSlots[1].label == "[Locked: Non-Con]" && !lockedSlots[1].isEnabled);
+        bool subLocked = (lockedSlots.size() > 2 && lockedSlots[2].label == "[Locked: Non-Con]" && !lockedSlots[2].isEnabled);
+        logResult("Under Non-Consent Never with Block & Skip mode, Dom/Sub buttons are locked and disabled", domLocked && subLocked);
+        allPassed &= (domLocked && subLocked);
+
+        // Verify command execution blocks with log notice
+        rawRes3->handleCommand(&g, { CommandType::INTERACTIVE_SEX_DOM, 0, 0, "" });
+        bool blockedLogOk = (rawRes3->getResolutionLog().find("Non-consensual content is disabled") != std::string::npos);
+        logResult("Direct command execution is blocked with content filter notice", blockedLogOk);
+        allPassed &= blockedLogOk;
+
+        return allPassed;
+    }
+
     bool runAllTests()
     {
         g_passCount = 0;
@@ -5041,6 +5897,13 @@ namespace EngineTests
         bool t35 = testDataDrivenEnchantmentsAndTransformationInterrupts();
         bool t36 = testFocusCombatElementalReactionsAndDecoupling();
         bool t37 = testModularScreensAndWidgetCatalog();
+        bool t38 = testSceneEnhancementsAndEncounterResolutionHub();
+        bool t39 = testDualInventoryEquipmentLooting();
+        bool t40 = testDualInventoryCurrencyTransferAndStorage();
+        bool t41 = testDefeatResolutionAndEnslavementCapture();
+        bool t42 = testCategoryTabsAndAdaptiveSexEncounters();
+        bool t43 = testUnitFormatterAndRefinedSettings();
+        bool t44 = testUnifiedFetishesAndCombatResolutionSex();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";

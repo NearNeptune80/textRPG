@@ -578,6 +578,19 @@ nlohmann::json gameMap::saveStateToJson() const
     j["tileNPCs"] = tileNPCsMap;
     j["tileAmbushes"] = tileAmbushesMap;
 
+    json tileCurrencyMap = json::object();
+    for (const auto& [key, runtime] : runtimeData)
+    {
+        if (runtime.droppedCurrency > 0.0f)
+        {
+            json cJson;
+            cJson["amount"] = runtime.droppedCurrency;
+            cJson["minutesRemaining"] = runtime.currencyMinutesRemaining;
+            tileCurrencyMap[std::to_string(key)] = cJson;
+        }
+    }
+    j["tileCurrency"] = tileCurrencyMap;
+
     return j;
 }
 
@@ -662,6 +675,24 @@ void gameMap::loadStateFromJson(const json& j)
                 auto npc = std::make_shared<entity>("npc_ambush", "Ambush Enemy");
                 npc->fromJson(aJson["npc"]);
                 aState.npc = npc;
+            }
+        }
+    }
+
+    if (j.contains("tileCurrency"))
+    {
+        for (auto& [keyStr, cJson] : j["tileCurrency"].items())
+        {
+            uint64_t key = std::stoull(keyStr);
+            if (cJson.is_object())
+            {
+                runtimeData[key].droppedCurrency = cJson.value("amount", 0.0f);
+                runtimeData[key].currencyMinutesRemaining = cJson.value("minutesRemaining", 120);
+            }
+            else if (cJson.is_number())
+            {
+                runtimeData[key].droppedCurrency = cJson.get<float>();
+                runtimeData[key].currencyMinutesRemaining = 120;
             }
         }
     }

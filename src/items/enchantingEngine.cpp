@@ -282,6 +282,7 @@ namespace EnchantingEngine
         {
             it->description = composeItemDescription(it, it->infusionEffects);
             it->tooltip = composeItemTooltip(it, it->infusionEffects);
+            it->briefDescription = it->tooltip;
         }
     }
 
@@ -387,6 +388,7 @@ namespace EnchantingEngine
         crafted->name = !customName.empty() ? customName : composeItemName(baseItem, effects);
         crafted->description = composeItemDescription(baseItem, effects);
         crafted->tooltip = composeItemTooltip(baseItem, effects);
+        crafted->briefDescription = crafted->tooltip;
         crafted->count = 1;
         crafted->baseValue += calculateInfusionCost(baseItem, effects) * 8;
 

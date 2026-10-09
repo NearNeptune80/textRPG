@@ -12,6 +12,7 @@
 #include "entities/entity.h"
 #include "entities/statusEffect.h"
 #include "state/characterCreationState.h"
+#include "state/combatState.h"
 #include "ui/theme.h"
 #include "ui/uiWidget.h"
 #include "ui/tooltipManager.h"
@@ -126,13 +127,13 @@ namespace CharacterCardWidget
         }
     }
 
-    static float renderSingleCompanionCard(SDL_Renderer* renderer, entity* companion, float padX, float curY, float availableW, float uiScale, const TooltipPoint& mousePos)
+    static float renderSingleCompanionCard(SDL_Renderer* renderer, game* gameContext, entity* companion, float padX, float curY, float availableW, float uiScale, const TooltipPoint& mousePos)
     {
         if (!companion) return 0.0f;
 
         float startY = curY;
         float headerH = 17.0f * uiScale;
-        float cardH = 68.0f * uiScale;
+        float cardH = 77.0f * uiScale;
 
         SDL_FRect cardRect = { padX, curY, availableW, cardH };
         UIWidget::drawPanel(renderer, cardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
@@ -166,7 +167,7 @@ namespace CharacterCardWidget
 
         curY += avatarSize + (2.0f * uiScale);
 
-        // Compact Health & Lust Vitals
+        // Compact Health, Stamina & Lust Vitals
         float barH = 7.0f * uiScale;
         float barGap = 2.0f * uiScale;
         float labelW = 36.0f * uiScale;
@@ -188,6 +189,47 @@ namespace CharacterCardWidget
                                         std::format("{}'s Health", companion->name),
                                         "Companion life force. If health drops to 0, they will be knocked unconscious.",
                                         std::format("{:.0f} / {:.0f} HP", curHp, maxHp));
+
+        curY += barH + barGap;
+
+        // Stamina
+        float curSta = companion->getStat("stamina");
+        float maxSta = companion->getStat("max_stamina");
+        if (maxSta <= 0.0f) {
+            float physique = companion->getStat("physique");
+            float toughness = companion->getStat("toughness");
+            maxSta = 80.0f + (physique * 1.5f) + (toughness * 1.0f);
+        }
+        if (gameContext)
+        {
+            if (auto* cs = dynamic_cast<CombatState*>(gameContext->getActiveState()))
+            {
+                for (const auto& p : cs->getEngine().getPlayerParty())
+                {
+                    if (p.character && p.character.get() == companion)
+                    {
+                        curSta = p.currentStamina;
+                        maxSta = p.maxStamina;
+                        break;
+                    }
+                }
+            }
+        }
+        if (curSta <= 0.0f && (!gameContext || dynamic_cast<CombatState*>(gameContext->getActiveState()) == nullptr))
+        {
+            curSta = maxSta;
+        }
+        curSta = std::clamp(curSta, 0.0f, maxSta);
+
+        UIWidget::drawText(renderer, "Stamina", cX, curY, Theme::colors.stamina, uiScale * 0.60f);
+        UIWidget::drawProgressBar(renderer, { cX + labelW, curY, progressW, barH }, curSta, maxSta, Theme::colors.stamina, Theme::colors.bgHeader, "", uiScale);
+        std::string staStr = std::format("{:.0f}/{:.0f}", curSta, maxSta);
+        UIWidget::drawText(renderer, staStr, cX + labelW + progressW + (4.0f * uiScale), curY, Theme::colors.textPrimary, uiScale * 0.58f);
+
+        TooltipManager::setHoverTooltip({ cX, curY, cW, barH }, mousePos,
+                                        std::format("{}'s Stamina", companion->name),
+                                        "Action and endurance reserve consumed by attacks and techniques in battle.",
+                                        std::format("{:.0f} / {:.0f} Stamina", curSta, maxSta));
 
         curY += barH + barGap;
 
@@ -238,7 +280,7 @@ namespace CharacterCardWidget
 
         // Calculate heights dynamically with generous vertical headroom
         float sub1H = 58.0f * uiScale;
-        float vitalsTopH = 80.0f * uiScale; // "VITALS & STATUS" header + 4 progress bars
+        float vitalsTopH = 80.0f * uiScale; // "VITALS & STATUS" header + 4 progress bars (HP, STA, MP, Lust)
         float sub2H = vitalsTopH + statusSectionH + (4.0f * uiScale);
         float headerH = 20.0f * uiScale;
         float outerH = headerH + (3.0f * uiScale) + sub1H + (5.0f * uiScale) + sub2H + (5.0f * uiScale);
@@ -351,7 +393,45 @@ namespace CharacterCardWidget
                                         std::format("{:.0f} / {:.0f} HP", curHp, maxHp));
         s2Y += barH + barGap;
 
-        // 2. Mana Bar
+        // 2. Stamina Bar
+        float curSta = player->getStat("stamina");
+        float maxSta = player->getStat("max_stamina");
+        if (maxSta <= 0.0f) {
+            float physique = player->getStat("physique");
+            float toughness = player->getStat("toughness");
+            maxSta = 80.0f + (physique * 1.5f) + (toughness * 1.0f);
+        }
+        if (gameContext)
+        {
+            if (auto* cs = dynamic_cast<CombatState*>(gameContext->getActiveState()))
+            {
+                for (const auto& p : cs->getEngine().getPlayerParty())
+                {
+                    if (p.character && p.character.get() == player)
+                    {
+                        curSta = p.currentStamina;
+                        maxSta = p.maxStamina;
+                        break;
+                    }
+                }
+            }
+        }
+        if (curSta <= 0.0f && (!gameContext || dynamic_cast<CombatState*>(gameContext->getActiveState()) == nullptr))
+        {
+            curSta = maxSta;
+        }
+        curSta = std::clamp(curSta, 0.0f, maxSta);
+
+        UIWidget::drawText(renderer, "Stamina", s2ContentX, s2Y, Theme::colors.stamina, uiScale * 0.65f);
+        UIWidget::drawProgressBar(renderer, { s2ContentX + labelW, s2Y, progressW, barH }, curSta, maxSta, Theme::colors.stamina, Theme::colors.bgHeader, "", uiScale);
+        std::string staStr = std::format("{:.0f}/{:.0f}", curSta, maxSta);
+        UIWidget::drawText(renderer, staStr, s2ContentX + labelW + progressW + (4.0f * uiScale), s2Y, Theme::colors.textPrimary, uiScale * 0.62f);
+        TooltipManager::setHoverTooltip({ s2ContentX, s2Y, s2ContentW, barH }, mousePos, "Stamina (STA)",
+                                        "Action and endurance reserve consumed by martial strikes, weapons, and defense maneuvers.",
+                                        std::format("{:.0f} / {:.0f} Stamina", curSta, maxSta));
+        s2Y += barH + barGap;
+
+        // 3. Mana Bar
         float curMp = player->getStat("mana");
         float maxMp = player->getStat("max_mana");
         if (maxMp <= 0.0f) maxMp = std::max(curMp, 100.0f);
@@ -366,7 +446,7 @@ namespace CharacterCardWidget
                                         std::format("{:.0f} / {:.0f} MP", curMp, maxMp));
         s2Y += barH + barGap;
 
-        // 3. Lust Bar
+        // 4. Lust & Arousal Bar
         float curLust = std::clamp(player->getStat("lust"), 0.0f, 100.0f);
         float maxLust = player->getStat("max_lust");
         if (maxLust <= 0.0f) maxLust = 100.0f;
@@ -375,23 +455,9 @@ namespace CharacterCardWidget
         UIWidget::drawProgressBar(renderer, { s2ContentX + labelW, s2Y, progressW, barH }, curLust, maxLust, Theme::colors.lust, Theme::colors.bgHeader, "", uiScale);
         std::string lustStr = std::format("{:.0f}%", (curLust / maxLust) * 100.0f);
         UIWidget::drawText(renderer, lustStr, s2ContentX + labelW + progressW + (4.0f * uiScale), s2Y, Theme::colors.textPrimary, uiScale * 0.62f);
-        TooltipManager::setHoverTooltip({ s2ContentX, s2Y, s2ContentW, barH }, mousePos, "Lust Level",
-                                        "Sexual desire and psychological vulnerability. High lust weakens resistance against seductive influences.",
-                                        std::format("{:.0f}% Lust", (curLust / maxLust) * 100.0f));
-        s2Y += barH + barGap;
-
-        // 4. Arousal Bar
-        float curArousal = std::clamp(player->getStat("arousal"), 0.0f, 100.0f);
-        float maxArousal = player->getStat("max_arousal");
-        if (maxArousal <= 0.0f) maxArousal = 100.0f;
-
-        UIWidget::drawText(renderer, "Arousal", s2ContentX, s2Y, Theme::colors.textGold, uiScale * 0.65f);
-        UIWidget::drawProgressBar(renderer, { s2ContentX + labelW, s2Y, progressW, barH }, curArousal, maxArousal, Theme::colors.textGold, Theme::colors.bgHeader, "", uiScale);
-        std::string arousalStr = std::format("{:.0f}%", (curArousal / maxArousal) * 100.0f);
-        UIWidget::drawText(renderer, arousalStr, s2ContentX + labelW + progressW + (4.0f * uiScale), s2Y, Theme::colors.textPrimary, uiScale * 0.62f);
-        TooltipManager::setHoverTooltip({ s2ContentX, s2Y, s2ContentW, barH }, mousePos, "Physical Arousal",
-                                        "Active physiological excitement during intimate encounters. Reaching 100% triggers orgasmic climax.",
-                                        std::format("{:.0f}% Arousal", (curArousal / maxArousal) * 100.0f));
+        TooltipManager::setHoverTooltip({ s2ContentX, s2Y, s2ContentW, barH }, mousePos, "Lust & Arousal",
+                                        "Sexual desire, physical arousal, and psychological vulnerability. Reaching 100% triggers erotic submission or climax.",
+                                        std::format("{:.0f}% Lust / Arousal", (curLust / maxLust) * 100.0f));
         s2Y += barH + (6.0f * uiScale);
 
         // -------------------------------------------------------------------------
@@ -413,7 +479,7 @@ namespace CharacterCardWidget
         {
             if (comp)
             {
-                curY += renderSingleCompanionCard(renderer, comp.get(), padX, curY, availableW, uiScale, mousePos);
+                curY += renderSingleCompanionCard(renderer, gameContext, comp.get(), padX, curY, availableW, uiScale, mousePos);
             }
         }
 

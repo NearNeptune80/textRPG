@@ -55,12 +55,20 @@ public:
     int bondLevel = 10;
     float resonance = 80.0f;
 
+    // Transformation Capabilities
+    bool canSelfTransform = false;
+    bool canTransform() const;
+
     std::string handleMasturbation(const std::string& actionId, int baseDurationMinutes, class timeManager* timeMgr);
     std::string handleFamiliarAction(const std::string& actionId, int baseDurationMinutes, class timeManager* timeMgr);
 
     int getFetishDesire(const std::string& fetishKey) const;
     void setFetishDesire(const std::string& fetishKey, int level);
     bool hasFetish(const std::string& fetishKey) const;
+
+    bool hasTrait(const std::string& traitName) const;
+    void addTrait(const std::string& traitName);
+    void removeTrait(const std::string& traitName);
 
     entity(std::string entityId, std::string entityName);
 

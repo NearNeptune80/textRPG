@@ -20,6 +20,7 @@ void inventoryState::onEnter(game* gameContext)
     {
         gameContext->selectedInventoryIndex = -1;
         gameContext->selectedEquipmentSlot = equipSlot::NONE;
+        gameContext->selectedEquipmentSide = 0;
         gameContext->refreshActionGrid();
     }
 }
@@ -49,6 +50,8 @@ void inventoryState::goBack(game* gameContext)
     }
     else
     {
+        gameContext->activeTargetNPC = nullptr;
+        gameContext->activeTargetMode = TargetMode::NONE;
         gameContext->changeState(std::make_unique<explorationState>());
     }
 }
@@ -75,6 +78,7 @@ void inventoryState::handleCommand(game* gameContext, const UICommand& cmd)
     else if (cmd.type == CommandType::SELECT_EQUIPMENT_SLOT)
     {
         gameContext->selectedEquipmentSlot = static_cast<equipSlot>(cmd.intPayload1);
+        gameContext->selectedEquipmentSide = cmd.intPayload2;
         gameContext->selectedInventoryIndex = -1;
         gameContext->refreshActionGrid();
     }

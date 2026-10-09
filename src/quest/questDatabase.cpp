@@ -131,6 +131,7 @@ bool questDatabase::loadDatabase(const std::string& pathStr)
                                     choice.results.push_back(parseGameEffect(res));
                                 }
                             }
+                            choice.hiddenUnlessMet = cJson.value("hiddenUnlessMet", cJson.value("hidden_unless_met", false));
                             scene.choices.push_back(choice);
                         }
                     }
@@ -312,6 +313,7 @@ bool questDatabase::appendDirectory(const std::string& pathStr)
                                     choice.results.push_back(parseGameEffect(res));
                                 }
                             }
+                            choice.hiddenUnlessMet = cJson.value("hiddenUnlessMet", cJson.value("hidden_unless_met", false));
                             scene.choices.push_back(choice);
                         }
                     }
@@ -402,6 +404,20 @@ questScene questDatabase::getScene(const std::string& id)
         testScene.choices.push_back(c5);
 
         return testScene;
+    }
+
+    if (id == "scene_enslavement_success")
+    {
+        questScene enslaveScene;
+        enslaveScene.id = "scene_enslavement_success";
+        enslaveScene.speakerName = "ENSLAVEMENT BINDING";
+        enslaveScene.bodyText = "You fasten the enchanted servitude binding securely onto {target.name}. A burst of coercive arcane light flares across the runes woven into the garment, sinking deep into their skin, aura, and mind.\n\nTheir resistance rapidly crumbles as their willpower is enveloped by the binding enchant. Looking up at you with wide, compliant eyes, their breathing slows.\n\n'{player.name}... I am yours. I submit to your authority completely.'\n\n{target.name} has been successfully enslaved and bound to your service.";
+        dialogueChoice c;
+        c.label = "Continue";
+        c.tooltip = "Acknowledge the subjugation and return to the overworld.";
+        c.nextSceneId = "EXIT";
+        enslaveScene.choices.push_back(c);
+        return enslaveScene;
     }
 
     questScene fallback;

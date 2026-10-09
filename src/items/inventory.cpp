@@ -242,10 +242,33 @@ bool inventoryComponent::isSlotExposed(bodySlot slot) const
                     continue;
                 }
             }
+            else
+            {
+                // Fallback common-sense displacement exposures if item didn't explicitly map them in JSON
+                if (mode == DisplacementMode::PULL_DOWN && (slot == bodySlot::GROIN || slot == bodySlot::ASS || slot == bodySlot::LEGS || slot == bodySlot::HIPS)) continue;
+                if (mode == DisplacementMode::PULL_ASIDE && (slot == bodySlot::GROIN || slot == bodySlot::ASS || slot == bodySlot::BREASTS || slot == bodySlot::NIPPLES)) continue;
+                if (mode == DisplacementMode::LIFT_UP && (slot == bodySlot::TORSO || slot == bodySlot::BREASTS || slot == bodySlot::NIPPLES || slot == bodySlot::STOMACH || slot == bodySlot::GROIN || slot == bodySlot::ASS)) continue;
+                if (mode == DisplacementMode::UNBUTTON && (slot == bodySlot::TORSO || slot == bodySlot::BREASTS || slot == bodySlot::NIPPLES || slot == bodySlot::GROIN || slot == bodySlot::HIPS)) continue;
+                if (mode == DisplacementMode::OPEN) continue;
+            }
         }
 
         return false;
     }
 
     return true;
+}
+
+bool inventoryComponent::hasAnyClothingEquipped() const
+{
+    for (size_t i = 0; i < EQUIP_SLOT_COUNT; ++i)
+    {
+        if (equipped[i] != nullptr) return true;
+    }
+    return false;
+}
+
+bool inventoryComponent::isFullyExposed() const
+{
+    return isSlotExposed(bodySlot::GROIN) && isSlotExposed(bodySlot::BREASTS) && isSlotExposed(bodySlot::ASS);
 }

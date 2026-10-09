@@ -3,6 +3,7 @@
 #include "ui/theme.h"
 #include "core/game.h"
 #include "entities/entity.h"
+#include "common/unitFormatter.h"
 #include <format>
 #include <algorithm>
 
@@ -72,28 +73,39 @@ namespace StatusWidgets
         float startY = curY;
         float padX = curX + (10.0f * uiScale);
         float lineH = 18.0f * uiScale;
+        const std::string& unitPref = gameContext->settings.gameplay.unitPreference;
 
         UIWidget::drawText(renderer, "ANATOMY & FLUIDS", padX, curY, Theme::colors.textGold, uiScale); curY += (lineH + 2.0f * uiScale);
-        UIWidget::drawText(renderer, std::format("Height: {:.2f}m", p->anatomy.heightMeters), padX, curY, Theme::colors.textSecondary, uiScale); curY += lineH;
+        UIWidget::drawText(renderer, std::format("Height: {}", unitFormatter::formatHeight(p->anatomy.heightMeters * 100.0f, unitPref)), padX, curY, Theme::colors.textSecondary, uiScale); curY += lineH;
 
         if (const bodyPart* b = p->anatomy.getPart(bodySlot::BREASTS))
         {
-            UIWidget::drawText(renderer, std::format("Breasts: {}-Cup ({:.0f}/{:.0f}ml milk)", bodyPart::getCupSizeName(b->cupSize), b->currentFluidMl, b->maxFluidMl), padX, curY, Theme::colors.textSecondary, uiScale); curY += lineH;
+            std::string milkCur = unitFormatter::formatFluid(b->currentFluidMl, unitPref);
+            std::string milkMax = unitFormatter::formatFluid(b->maxFluidMl, unitPref);
+            UIWidget::drawText(renderer, std::format("Breasts: {}-Cup ({}/{} milk)", bodyPart::getCupSizeName(b->cupSize), milkCur, milkMax), padX, curY, Theme::colors.textSecondary, uiScale); curY += lineH;
         }
         if (const bodyPart* g = p->anatomy.getPart(bodySlot::GROIN))
         {
             if (p->anatomy.hasPenis())
             {
-                UIWidget::drawText(renderer, std::format("Penis: {:.1f}cm x {:.1f}cm ({:.0f}/{:.0f}ml cum)", g->length, g->diameter, g->currentFluidMl, g->maxFluidMl), padX, curY, Theme::colors.textSecondary, uiScale); curY += lineH;
+                std::string lenStr = unitFormatter::formatLength(g->length, unitPref);
+                std::string diamStr = unitFormatter::formatLength(g->diameter, unitPref);
+                std::string cumCur = unitFormatter::formatFluid(g->currentFluidMl, unitPref);
+                std::string cumMax = unitFormatter::formatFluid(g->maxFluidMl, unitPref);
+                UIWidget::drawText(renderer, std::format("Penis: {} x {} ({}/{} cum)", lenStr, diamStr, cumCur, cumMax), padX, curY, Theme::colors.textSecondary, uiScale); curY += lineH;
             }
             if (p->anatomy.hasVagina())
             {
-                UIWidget::drawText(renderer, std::format("Vagina: Capacity {:.0f}ml ({:.0f}ml stored)", g->maxFluidMl, g->currentFluidMl), padX, curY, Theme::colors.textSecondary, uiScale); curY += lineH;
+                std::string capStr = unitFormatter::formatFluid(g->maxFluidMl, unitPref);
+                std::string curStr = unitFormatter::formatFluid(g->currentFluidMl, unitPref);
+                UIWidget::drawText(renderer, std::format("Vagina: Capacity {} ({} stored)", capStr, curStr), padX, curY, Theme::colors.textSecondary, uiScale); curY += lineH;
             }
         }
         if (const bodyPart* a = p->anatomy.getPart(bodySlot::ASS))
         {
-            UIWidget::drawText(renderer, std::format("Anus: Capacity {:.0f}ml ({:.0f}ml stored)", a->maxFluidMl, a->currentFluidMl), padX, curY, Theme::colors.textSecondary, uiScale); curY += (lineH + 8.0f * uiScale);
+            std::string capStr = unitFormatter::formatFluid(a->maxFluidMl, unitPref);
+            std::string curStr = unitFormatter::formatFluid(a->currentFluidMl, unitPref);
+            UIWidget::drawText(renderer, std::format("Anus: Capacity {} ({} stored)", capStr, curStr), padX, curY, Theme::colors.textSecondary, uiScale); curY += (lineH + 8.0f * uiScale);
         }
 
         return (curY - startY);

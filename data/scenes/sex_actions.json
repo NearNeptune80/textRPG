@@ -1,5 +1,5 @@
 {
-  "version": "1.0",
+  "version": "2.0",
   "stances": [
     { "id": "SOLO_BED", "name": "In Bed", "isSolo": true },
     { "id": "SOLO_CHAIR", "name": "Seated", "isSolo": true },
@@ -8,15 +8,465 @@
     { "id": "FROM_BEHIND", "name": "From Behind", "isSolo": false },
     { "id": "KNEELING", "name": "Kneeling", "isSolo": false },
     { "id": "STANDING", "name": "Standing", "isSolo": false },
-    { "id": "LAP_SITTING", "name": "Lap Sitting", "isSolo": false }
+    { "id": "LAP_SITTING", "name": "Lap Sitting", "isSolo": false },
+    { "id": "COWGIRL", "name": "Cowgirl / Riding", "isSolo": false },
+    { "id": "LOTUS", "name": "Lotus Embrace", "isSolo": false },
+    { "id": "PRONE_BONE", "name": "Prone Bone", "isSolo": false }
   ],
   "actions": [
     {
+      "id": "generic_dirty_talk",
+      "name": "Dirty Talk",
+      "category": "Generic",
+      "isSolo": false,
+      "isContinuous": false,
+      "minDominance": 10.0,
+      "maxDominance": 100.0,
+      "validStances": [],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 8.0,
+        "arousalPartner": 14.0,
+        "dominanceShift": 3.0,
+        "fluidProducedMl": 0.5
+      },
+      "narrative": "{actor} leans close to {target}'s ear, whispering filthy, commanding phrases that leave no doubt as to who owns this encounter."
+    },
+    {
+      "id": "generic_tease",
+      "name": "Tease & Mock",
+      "category": "Generic",
+      "isSolo": false,
+      "isContinuous": false,
+      "minDominance": 20.0,
+      "maxDominance": 100.0,
+      "validStances": [],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 10.0,
+        "arousalPartner": 12.0,
+        "dominanceShift": 5.0,
+        "fluidProducedMl": 0.5
+      },
+      "narrative": "{actor} laughs softly with amused arrogance, mocking {target} for how eagerly their trembling body reacts to every demand."
+    },
+    {
+      "id": "generic_whimper",
+      "name": "Whimper & Moan",
+      "category": "Generic",
+      "isSolo": false,
+      "isContinuous": false,
+      "minDominance": -100.0,
+      "maxDominance": 0.0,
+      "validStances": [],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 10.0,
+        "arousalPartner": 12.0,
+        "dominanceShift": -3.0,
+        "fluidProducedMl": 0.5
+      },
+      "narrative": "{actor} lets out a helpless, melodic whimper, trembling openly beneath {target}'s gaze."
+    },
+    {
+      "id": "generic_praise_dom",
+      "name": "Praise Dominant",
+      "category": "Generic",
+      "isSolo": false,
+      "isContinuous": false,
+      "minDominance": -100.0,
+      "maxDominance": -10.0,
+      "validStances": [],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 8.0,
+        "arousalPartner": 16.0,
+        "dominanceShift": -4.0,
+        "fluidProducedMl": 0.5
+      },
+      "narrative": "{actor} looks up with adoring, flushed eyes, breathlessly thanking {target} for their overwhelming control."
+    },
+    {
+      "id": "generic_sweet_whisper",
+      "name": "Sweet Whispers",
+      "category": "Generic",
+      "isSolo": false,
+      "isContinuous": false,
+      "minDominance": -40.0,
+      "maxDominance": 40.0,
+      "validStances": [],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 10.0,
+        "arousalPartner": 12.0,
+        "dominanceShift": 0.0,
+        "fluidProducedMl": 0.5
+      },
+      "narrative": "{actor} softly murmurs sweet, tender endearments against {target}'s neck, stoking affectionate warmth."
+    },
+    {
+      "id": "generic_restrict_movement",
+      "name": "Restrict Movement",
+      "category": "Generic",
+      "isSolo": false,
+      "isContinuous": true,
+      "actorSlot": "HANDS",
+      "targetSlot": "ARMS",
+      "handsRequired": 2,
+      "minDominance": 20.0,
+      "maxDominance": 100.0,
+      "validStances": ["MISSIONARY", "FROM_BEHIND", "PRONE_BONE", "LAP_SITTING"],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 12.0,
+        "arousalPartner": 12.0,
+        "dominanceShift": 6.0,
+        "fluidProducedMl": 0.5
+      },
+      "narrative": "{actor} firmly seizes {target}'s wrists, pinning them flat and sternly restricting their ability to move.",
+      "continuousNarrative": "{actor} keeps {target}'s wrists pinned securely down, maintaining total physical control."
+    },
+    {
+      "id": "generic_grant_freedom",
+      "name": "Grant Freedom",
+      "category": "Generic",
+      "isSolo": false,
+      "isContinuous": false,
+      "minDominance": 10.0,
+      "maxDominance": 100.0,
+      "validStances": [],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 8.0,
+        "arousalPartner": 10.0,
+        "dominanceShift": -2.0,
+        "fluidProducedMl": 0.5
+      },
+      "narrative": "{actor} releases {target}'s limbs with a permissive nod, granting them the freedom to touch and move as they please."
+    },
+    {
+      "id": "generic_demand_obedience",
+      "name": "Demand Obedience",
+      "category": "Generic",
+      "isSolo": false,
+      "isContinuous": false,
+      "minDominance": 30.0,
+      "maxDominance": 100.0,
+      "validStances": [],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 12.0,
+        "arousalPartner": 10.0,
+        "dominanceShift": 8.0,
+        "fluidProducedMl": 0.5
+      },
+      "narrative": "{actor} tilts {target}'s chin upward with unyielding firmness, demanding unwavering submissive obedience."
+    },
+    {
+      "id": "generic_yield_control",
+      "name": "Yield Control",
+      "category": "Generic",
+      "isSolo": false,
+      "isContinuous": true,
+      "actorSlot": "TORSO",
+      "targetSlot": "TORSO",
+      "minDominance": -100.0,
+      "maxDominance": -10.0,
+      "validStances": [],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 12.0,
+        "arousalPartner": 14.0,
+        "dominanceShift": -6.0,
+        "fluidProducedMl": 0.5
+      },
+      "narrative": "{actor} exhales with a shiver, relaxing all resistance and surrendering full autonomy to {target}.",
+      "continuousNarrative": "{actor} remains completely pliant and surrendered, waiting obediently on {target}'s desires."
+    },
+    {
+      "id": "generic_cmd_oral",
+      "name": "Command: Oral",
+      "category": "Generic",
+      "isSolo": false,
+      "isContinuous": false,
+      "minDominance": 15.0,
+      "maxDominance": 100.0,
+      "validStances": ["MISSIONARY", "FROM_BEHIND", "KNEELING", "STANDING", "LAP_SITTING"],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 10.0,
+        "arousalPartner": 12.0,
+        "dominanceShift": 5.0,
+        "fluidProducedMl": 0.5
+      },
+      "narrative": "{actor} gestures authoritatively to their groin, commanding {target} to drop down and service them with their mouth."
+    },
+    {
+      "id": "generic_cmd_ride",
+      "name": "Command: Ride Me",
+      "category": "Generic",
+      "isSolo": false,
+      "isContinuous": false,
+      "minDominance": 15.0,
+      "maxDominance": 100.0,
+      "validStances": ["COWGIRL", "LAP_SITTING", "LOTUS"],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 12.0,
+        "arousalPartner": 14.0,
+        "dominanceShift": 5.0,
+        "fluidProducedMl": 0.5
+      },
+      "narrative": "{actor} leans back and orders {target} to straddle their hips and ride to their pace."
+    },
+    {
+      "id": "generic_cmd_strip",
+      "name": "Command: Strip",
+      "category": "Generic",
+      "isSolo": false,
+      "isContinuous": false,
+      "minDominance": 20.0,
+      "maxDominance": 100.0,
+      "validStances": [],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 10.0,
+        "arousalPartner": 12.0,
+        "dominanceShift": 5.0,
+        "fluidProducedMl": 0.5
+      },
+      "narrative": "{actor} points commandingly at {target}'s clothing, ordering them to strip immediately."
+    },
+    {
+      "id": "generic_cmd_beg",
+      "name": "Command: Beg",
+      "category": "Generic",
+      "isSolo": false,
+      "isContinuous": false,
+      "minDominance": 25.0,
+      "maxDominance": 100.0,
+      "validStances": [],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 14.0,
+        "arousalPartner": 10.0,
+        "dominanceShift": 7.0,
+        "fluidProducedMl": 0.5
+      },
+      "narrative": "{actor} withholds touch, commanding {target} to voice their desire and beg properly."
+    },
+    {
+      "id": "generic_req_touch",
+      "name": "Beg for Touch",
+      "category": "Generic",
+      "isSolo": false,
+      "isContinuous": false,
+      "minDominance": -100.0,
+      "maxDominance": 0.0,
+      "validStances": [],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 10.0,
+        "arousalPartner": 12.0,
+        "dominanceShift": -4.0,
+        "fluidProducedMl": 0.5
+      },
+      "narrative": "{actor} reaches trembling fingers outward, pleading with {target} to touch their aching flesh."
+    },
+    {
+      "id": "generic_req_oral",
+      "name": "Beg for Oral",
+      "category": "Generic",
+      "isSolo": false,
+      "isContinuous": false,
+      "minDominance": -100.0,
+      "maxDominance": 0.0,
+      "validStances": [],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 12.0,
+        "arousalPartner": 14.0,
+        "dominanceShift": -4.0,
+        "fluidProducedMl": 0.5
+      },
+      "narrative": "{actor} arches pleadingly, whimpering for {target} to use their mouth on their yearning groin."
+    },
+    {
+      "id": "generic_req_penetrate",
+      "name": "Beg to be Taken",
+      "category": "Generic",
+      "isSolo": false,
+      "isContinuous": false,
+      "minDominance": -100.0,
+      "maxDominance": 0.0,
+      "validStances": [],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 14.0,
+        "arousalPartner": 16.0,
+        "dominanceShift": -5.0,
+        "fluidProducedMl": 0.5
+      },
+      "narrative": "{actor} spreads themselves wide, desperately begging {target} to push inside and claim them."
+    },
+    {
+      "id": "generic_req_climax",
+      "name": "Beg for Climax",
+      "category": "Generic",
+      "isSolo": false,
+      "isContinuous": false,
+      "minDominance": -100.0,
+      "maxDominance": 0.0,
+      "validStances": [],
+      "requirements": {
+        "minArousal": 50.0
+      },
+      "values": {
+        "arousalSelf": 10.0,
+        "arousalPartner": 15.0,
+        "dominanceShift": -6.0,
+        "fluidProducedMl": 1.0
+      },
+      "narrative": "{actor} whines desperately on the verge of tears, begging {target} for permission to climax."
+    },
+    {
+      "id": "generic_suggest_switch",
+      "name": "Suggest Role Switch",
+      "category": "Generic",
+      "isSolo": false,
+      "isContinuous": false,
+      "minDominance": -25.0,
+      "maxDominance": 25.0,
+      "validStances": [],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 10.0,
+        "arousalPartner": 10.0,
+        "dominanceShift": 0.0,
+        "fluidProducedMl": 0.5
+      },
+      "narrative": "{actor} playfully smirks at {target}, proposing they trade positions and switch who takes the dominant lead."
+    },
+    {
+      "id": "generic_end_dominant",
+      "name": "Conclude & Dismiss",
+      "category": "Generic",
+      "isSolo": false,
+      "isContinuous": false,
+      "minDominance": 0.0,
+      "maxDominance": 100.0,
+      "validStances": [],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 0.0,
+        "arousalPartner": 0.0,
+        "dominanceShift": 2.0,
+        "fluidProducedMl": 0.0
+      },
+      "narrative": "{actor} leans back and dismisses {target}, declaring the encounter officially concluded."
+    },
+    {
+      "id": "generic_end_submissive",
+      "name": "Safeword / Tap Out",
+      "category": "Generic",
+      "isSolo": false,
+      "isContinuous": false,
+      "minDominance": -100.0,
+      "maxDominance": 0.0,
+      "validStances": [],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 0.0,
+        "arousalPartner": 0.0,
+        "dominanceShift": -2.0,
+        "fluidProducedMl": 0.0
+      },
+      "narrative": "{actor} holds up a hand and murmurs their safeword, signaling {target} that they have reached their limit."
+    },
+    {
+      "id": "generic_undress_mutual",
+      "name": "Mutual Undress",
+      "category": "Generic",
+      "isSolo": false,
+      "isContinuous": false,
+      "minDominance": -40.0,
+      "maxDominance": 40.0,
+      "validStances": [],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 12.0,
+        "arousalPartner": 12.0,
+        "dominanceShift": 0.0,
+        "fluidProducedMl": 0.5
+      },
+      "narrative": "{actor} and {target} eagerly help each other out of their clothes, tossing aside every layer until both bodies are completely bare."
+    },
+    {
+      "id": "generic_end_mutual",
+      "name": "End Intimacy",
+      "category": "Generic",
+      "isSolo": false,
+      "isContinuous": false,
+      "minDominance": -30.0,
+      "maxDominance": 30.0,
+      "validStances": [],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 0.0,
+        "arousalPartner": 0.0,
+        "dominanceShift": 0.0,
+        "fluidProducedMl": 0.0
+      },
+      "narrative": "{actor} gently disengages, sharing a warm embrace and soft aftercare with {target} as the session concludes."
+    },
+    {
+      "id": "generic_end_solo",
+      "name": "Finish & Dress",
+      "category": "Generic",
+      "isSolo": true,
+      "isContinuous": false,
+      "minDominance": -100.0,
+      "maxDominance": 100.0,
+      "validStances": [],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 0.0,
+        "arousalPartner": 0.0,
+        "dominanceShift": 0.0,
+        "fluidProducedMl": 0.0
+      },
+      "narrative": "Taking a deep, steadying breath, you finish up, clean yourself off, and get dressed."
+    },
+
+    {
+      "id": "self_strip",
+      "name": "Undress Self",
+      "category": "Self",
+      "isSolo": false,
+      "isContinuous": false,
+      "minDominance": -100.0,
+      "maxDominance": 100.0,
+      "validStances": [],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 8.0,
+        "arousalPartner": 10.0,
+        "dominanceShift": 0.0,
+        "fluidProducedMl": 0.5
+      },
+      "narrative": "{actor} removes their own clothing piece by piece, tossing each garment aside to expose their heated skin."
+    },
+    {
       "id": "solo_stroke_penis",
       "name": "Stroke Penis",
-      "category": "Genitals",
+      "category": "Self",
       "isSolo": true,
-      "validStances": ["SOLO_BED", "SOLO_CHAIR", "SOLO_STANDING"],
+      "isContinuous": true,
+      "actorSlot": "HANDS",
+      "targetSlot": "GROIN",
+      "minDominance": -100.0,
+      "maxDominance": 100.0,
+      "validStances": ["SOLO_BED", "SOLO_CHAIR", "SOLO_STANDING", "MISSIONARY", "KNEELING", "STANDING", "LAP_SITTING"],
       "requirements": {
         "hasPenis": true
       },
@@ -26,14 +476,20 @@
         "dominanceShift": 0.0,
         "fluidProducedMl": 2.5
       },
-      "narrative": "You wrap your fingers around your shaft, stroking in a steady, measured rhythm as warmth spreads throughout your groin."
+      "narrative": "{actor} wraps fingers around their shaft, stroking in a steady, measured rhythm as warmth spreads throughout their groin.",
+      "continuousNarrative": "{actor} continues stroking their shaft in a steady, measured rhythm, keeping warmth spreading through their groin."
     },
     {
       "id": "solo_rub_clitoris",
       "name": "Rub Clitoris",
-      "category": "Genitals",
+      "category": "Self",
       "isSolo": true,
-      "validStances": ["SOLO_BED", "SOLO_CHAIR", "SOLO_STANDING"],
+      "isContinuous": true,
+      "actorSlot": "HANDS",
+      "targetSlot": "GROIN",
+      "minDominance": -100.0,
+      "maxDominance": 100.0,
+      "validStances": ["SOLO_BED", "SOLO_CHAIR", "SOLO_STANDING", "MISSIONARY", "KNEELING", "STANDING", "LAP_SITTING"],
       "requirements": {
         "hasVagina": true
       },
@@ -43,14 +499,20 @@
         "dominanceShift": 0.0,
         "fluidProducedMl": 3.0
       },
-      "narrative": "You circle your fingertips gently over your sensitive clit, feeling pleasurable shivers course through your body."
+      "narrative": "{actor} circles fingertips gently over their sensitive clit, feeling pleasurable shivers course through their body.",
+      "continuousNarrative": "{actor} continues rubbing circular strokes over their sensitive clit, sending electric jolts through their core."
     },
     {
       "id": "solo_finger_vagina",
       "name": "Finger Vagina",
-      "category": "Penetration",
+      "category": "Self",
       "isSolo": true,
-      "validStances": ["SOLO_BED", "SOLO_CHAIR"],
+      "isContinuous": true,
+      "actorSlot": "HANDS",
+      "targetSlot": "GROIN",
+      "minDominance": -100.0,
+      "maxDominance": 100.0,
+      "validStances": ["SOLO_BED", "SOLO_CHAIR", "MISSIONARY", "KNEELING", "LAP_SITTING"],
       "requirements": {
         "hasVagina": true
       },
@@ -60,14 +522,20 @@
         "dominanceShift": 0.0,
         "fluidProducedMl": 4.0
       },
-      "narrative": "Slipping your fingers inside your wet passage, you curl them rhythmically, reveling in the tight, warm sensations."
+      "narrative": "Slipping fingers inside their wet passage, {actor} curls them rhythmically, reveling in the tight, warm sensations.",
+      "continuousNarrative": "{actor} continues rhythmically pumping fingers in and out of their hot, slick passage."
     },
     {
       "id": "solo_caress_breasts",
       "name": "Caress Breasts",
-      "category": "Upper Body",
+      "category": "Self",
       "isSolo": true,
-      "validStances": ["SOLO_BED", "SOLO_CHAIR", "SOLO_STANDING"],
+      "isContinuous": true,
+      "actorSlot": "HANDS",
+      "targetSlot": "BREASTS",
+      "minDominance": -100.0,
+      "maxDominance": 100.0,
+      "validStances": ["SOLO_BED", "SOLO_CHAIR", "SOLO_STANDING", "MISSIONARY", "FROM_BEHIND", "KNEELING", "STANDING", "LAP_SITTING", "COWGIRL", "LOTUS", "PRONE_BONE"],
       "requirements": {
         "hasBreasts": true
       },
@@ -77,14 +545,20 @@
         "dominanceShift": 0.0,
         "fluidProducedMl": 1.0
       },
-      "narrative": "You cup your breasts in your hands, gently squeezing the soft mounds as you stimulate yourself."
+      "narrative": "{actor} cups their breasts in their hands, gently squeezing the soft mounds as pleasure builds.",
+      "continuousNarrative": "{actor} continues kneading and cupping their own breasts with soft, attentive strokes."
     },
     {
       "id": "solo_pinch_nipples",
       "name": "Pinch Nipples",
-      "category": "Upper Body",
+      "category": "Self",
       "isSolo": true,
-      "validStances": ["SOLO_BED", "SOLO_CHAIR", "SOLO_STANDING"],
+      "isContinuous": false,
+      "actorSlot": "HANDS",
+      "targetSlot": "NIPPLES",
+      "minDominance": -100.0,
+      "maxDominance": 100.0,
+      "validStances": ["SOLO_BED", "SOLO_CHAIR", "SOLO_STANDING", "MISSIONARY", "FROM_BEHIND", "KNEELING", "STANDING", "LAP_SITTING", "COWGIRL", "LOTUS", "PRONE_BONE"],
       "requirements": {},
       "values": {
         "arousalSelf": 14.0,
@@ -92,14 +566,19 @@
         "dominanceShift": 0.0,
         "fluidProducedMl": 0.5
       },
-      "narrative": "You roll and tease your sensitive nipples between your thumbs and forefingers, sending electric jolts down to your core."
+      "narrative": "{actor} rolls and teases their sensitive nipples between thumb and forefinger, sending electric jolts down to their core."
     },
     {
       "id": "solo_finger_anus",
       "name": "Finger Anus",
-      "category": "Anal",
+      "category": "Self",
       "isSolo": true,
-      "validStances": ["SOLO_BED", "SOLO_CHAIR"],
+      "isContinuous": true,
+      "actorSlot": "HANDS",
+      "targetSlot": "ASS",
+      "minDominance": -100.0,
+      "maxDominance": 100.0,
+      "validStances": ["SOLO_BED", "SOLO_CHAIR", "MISSIONARY", "KNEELING"],
       "requirements": {},
       "values": {
         "arousalSelf": 16.0,
@@ -107,31 +586,38 @@
         "dominanceShift": 0.0,
         "fluidProducedMl": 1.0
       },
-      "narrative": "Carefully exploring your tight rear entrance, you slide a lubricated fingertip inside, gasping at the intense fullness."
+      "narrative": "Carefully exploring their tight rear entrance, {actor} slides a lubricated fingertip inside, gasping at the intense fullness.",
+      "continuousNarrative": "{actor} continues gently stretching and massaging their tight rear opening."
     },
     {
       "id": "solo_edging",
-      "name": "Edge",
-      "category": "Control",
+      "name": "Edge Self",
+      "category": "Self",
       "isSolo": true,
-      "validStances": ["SOLO_BED", "SOLO_CHAIR", "SOLO_STANDING"],
+      "isContinuous": false,
+      "minDominance": -100.0,
+      "maxDominance": 100.0,
+      "validStances": ["SOLO_BED", "SOLO_CHAIR", "SOLO_STANDING", "MISSIONARY", "KNEELING", "STANDING", "LAP_SITTING"],
       "requirements": {
         "minArousal": 50.0
       },
       "values": {
         "arousalSelf": 5.0,
         "arousalPartner": 0.0,
-        "dominanceShift": 5.0,
+        "dominanceShift": 3.0,
         "fluidProducedMl": 2.0
       },
-      "narrative": "You bring yourself right to the precipice of climax before pausing, panting as you masterfully prolong your pleasure."
+      "narrative": "{actor} brings themselves right to the precipice of climax before pausing, panting as they masterfully prolong the ecstasy."
     },
     {
       "id": "solo_climax",
-      "name": "Climax",
-      "category": "Climax",
+      "name": "Self Climax",
+      "category": "Self",
       "isSolo": true,
-      "validStances": ["SOLO_BED", "SOLO_CHAIR", "SOLO_STANDING"],
+      "isContinuous": false,
+      "minDominance": -100.0,
+      "maxDominance": 100.0,
+      "validStances": ["SOLO_BED", "SOLO_CHAIR", "SOLO_STANDING", "MISSIONARY", "KNEELING", "STANDING", "LAP_SITTING", "COWGIRL", "LOTUS"],
       "requirements": {
         "minArousal": 85.0
       },
@@ -141,14 +627,56 @@
         "dominanceShift": 0.0,
         "fluidProducedMl": 15.0
       },
-      "narrative": "Unable to hold back any longer, you surrender to a powerful wave of ecstasy, shuddering as your body convulses in release."
+      "narrative": "Unable to hold back any longer, {actor} surrenders to a powerful wave of ecstasy, shuddering as their body convulses in release."
+    },
+    {
+      "id": "solo_flaunt",
+      "name": "Flaunt Body",
+      "category": "Self",
+      "isSolo": true,
+      "isContinuous": false,
+      "minDominance": -100.0,
+      "maxDominance": 100.0,
+      "validStances": ["SOLO_BED", "SOLO_CHAIR", "SOLO_STANDING", "MISSIONARY", "STANDING"],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 10.0,
+        "arousalPartner": 0.0,
+        "dominanceShift": 2.0,
+        "fluidProducedMl": 0.5
+      },
+      "narrative": "{actor} arches gracefully, running hands over their curves and proudly displaying their bare form."
+    },
+
+    {
+      "id": "partner_strip",
+      "name": "Undress Partner",
+      "category": "Partner",
+      "isSolo": false,
+      "isContinuous": false,
+      "minDominance": -60.0,
+      "maxDominance": 100.0,
+      "validStances": [],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 10.0,
+        "arousalPartner": 12.0,
+        "dominanceShift": 3.0,
+        "fluidProducedMl": 0.5
+      },
+      "narrative": "{actor} reaches for {target}'s clothing, peeling and unfastening the fabric until their body is completely bare and accessible."
     },
     {
       "id": "partner_kiss",
-      "name": "Kiss",
-      "category": "Affection",
+      "name": "Passionate Kiss",
+      "category": "Partner",
       "isSolo": false,
-      "validStances": ["MISSIONARY", "KNEELING", "STANDING", "LAP_SITTING"],
+      "isContinuous": true,
+      "actorSlot": "MOUTH",
+      "targetSlot": "MOUTH",
+      "minDominance": -100.0,
+      "maxDominance": 100.0,
+      "validStances": ["MISSIONARY", "KNEELING", "STANDING", "LAP_SITTING", "COWGIRL", "LOTUS"],
       "requirements": {},
       "values": {
         "arousalSelf": 12.0,
@@ -156,14 +684,20 @@
         "dominanceShift": 2.0,
         "fluidProducedMl": 1.0
       },
-      "narrative": "You lean in and passionately press your lips against your partner's, tangling tongues in an intimate embrace."
+      "narrative": "{actor} leans in and passionately captures {target}'s lips, tangling tongues in a deep, breath-stealing kiss.",
+      "continuousNarrative": "{actor} and {target} continue trading deep, breath-stealing kisses with tangled tongues."
     },
     {
       "id": "partner_caress_body",
       "name": "Caress Body",
-      "category": "Affection",
+      "category": "Partner",
       "isSolo": false,
-      "validStances": ["MISSIONARY", "FROM_BEHIND", "KNEELING", "STANDING", "LAP_SITTING"],
+      "isContinuous": true,
+      "actorSlot": "HANDS",
+      "targetSlot": "TORSO",
+      "minDominance": -100.0,
+      "maxDominance": 100.0,
+      "validStances": ["MISSIONARY", "FROM_BEHIND", "KNEELING", "STANDING", "LAP_SITTING", "COWGIRL", "LOTUS", "PRONE_BONE"],
       "requirements": {},
       "values": {
         "arousalSelf": 10.0,
@@ -171,28 +705,102 @@
         "dominanceShift": 1.0,
         "fluidProducedMl": 1.0
       },
-      "narrative": "Your hands glide along your partner's curves, tracing sensitive contours and stoking their mounting arousal."
+      "narrative": "{actor}'s warm hands glide along {target}'s curves, tracing sensitive contours and eliciting soft, trembling shivers.",
+      "continuousNarrative": "{actor} continues gliding their hands across {target}'s warm skin in slow, sensual passes."
+    },
+    {
+      "id": "partner_caress_breasts",
+      "name": "Fondle Breasts",
+      "category": "Partner",
+      "isSolo": false,
+      "isContinuous": true,
+      "actorSlot": "HANDS",
+      "targetSlot": "BREASTS",
+      "minDominance": -100.0,
+      "maxDominance": 100.0,
+      "validStances": ["MISSIONARY", "FROM_BEHIND", "KNEELING", "STANDING", "LAP_SITTING", "COWGIRL", "LOTUS"],
+      "requirements": {
+        "targetHasBreasts": true
+      },
+      "values": {
+        "arousalSelf": 14.0,
+        "arousalPartner": 18.0,
+        "dominanceShift": 3.0,
+        "fluidProducedMl": 1.5
+      },
+      "narrative": "{actor} cups and firmly kneads {target}'s supple breasts, rolling the hardened tips between skillful fingertips.",
+      "continuousNarrative": "{actor} continues massaging and teasing {target}'s soft breasts, rolling the perked nipples."
+    },
+    {
+      "id": "partner_whisper_desire",
+      "name": "Whisper Desires",
+      "category": "Partner",
+      "isSolo": false,
+      "isContinuous": false,
+      "minDominance": -50.0,
+      "maxDominance": 50.0,
+      "validStances": ["MISSIONARY", "FROM_BEHIND", "KNEELING", "STANDING", "LAP_SITTING", "COWGIRL", "LOTUS", "PRONE_BONE"],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 8.0,
+        "arousalPartner": 16.0,
+        "dominanceShift": 2.0,
+        "fluidProducedMl": 0.5
+      },
+      "narrative": "{actor} leans close to {target}'s ear, murmuring lewd and intoxicating words that send heat flushing through their skin."
+    },
+    {
+      "id": "partner_grind",
+      "name": "Grind Pelvis",
+      "category": "Partner",
+      "isSolo": false,
+      "isContinuous": true,
+      "actorSlot": "GROIN",
+      "targetSlot": "GROIN",
+      "minDominance": -100.0,
+      "maxDominance": 100.0,
+      "validStances": ["MISSIONARY", "STANDING", "LAP_SITTING", "COWGIRL", "LOTUS"],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 16.0,
+        "arousalPartner": 18.0,
+        "dominanceShift": 2.0,
+        "fluidProducedMl": 2.0
+      },
+      "narrative": "{actor} presses their hips flush against {target}, rolling their pelvis in a sultry, friction-filled grind that stokes their mutual fire.",
+      "continuousNarrative": "{actor} continues rolling their hips in a wet, friction-filled grind against {target}'s groin."
     },
     {
       "id": "partner_oral_give",
       "name": "Perform Oral",
-      "category": "Oral",
+      "category": "Partner",
       "isSolo": false,
-      "validStances": ["MISSIONARY", "FROM_BEHIND", "KNEELING", "LAP_SITTING"],
+      "isContinuous": true,
+      "actorSlot": "MOUTH",
+      "targetSlot": "GROIN",
+      "minDominance": -100.0,
+      "maxDominance": 100.0,
+      "validStances": ["MISSIONARY", "FROM_BEHIND", "KNEELING", "LAP_SITTING", "STANDING"],
       "requirements": {},
       "values": {
         "arousalSelf": 15.0,
         "arousalPartner": 25.0,
-        "dominanceShift": -5.0,
+        "dominanceShift": -4.0,
         "fluidProducedMl": 3.0
       },
-      "narrative": "You move down between your partner's thighs, expertly using your mouth and tongue to deliver exquisite pleasure."
+      "narrative": "{actor} dips their head between {target}'s parted thighs, using tongue and lips to lavish exquisite pleasure upon their sensitive groin.",
+      "continuousNarrative": "{actor} continues diligently attending to {target}'s groin with warm, wet licks and suckling."
     },
     {
       "id": "partner_oral_receive",
       "name": "Receive Oral",
-      "category": "Oral",
+      "category": "Partner",
       "isSolo": false,
+      "isContinuous": true,
+      "actorSlot": "GROIN",
+      "targetSlot": "MOUTH",
+      "minDominance": -100.0,
+      "maxDominance": 100.0,
       "validStances": ["MISSIONARY", "FROM_BEHIND", "KNEELING", "STANDING", "LAP_SITTING"],
       "requirements": {},
       "values": {
@@ -201,41 +809,428 @@
         "dominanceShift": 5.0,
         "fluidProducedMl": 3.0
       },
-      "narrative": "Your partner tends to your groin with eager lips and tongue, coaxing breathless moans from your chest."
+      "narrative": "{target} kneels and attends to {actor}'s groin with wet, eager licks and suckling motions, coaxing breathless groans from {actor}.",
+      "continuousNarrative": "{target} continues enthusiastically servicing {actor}'s groin with their tongue and lips."
+    },
+    {
+      "id": "partner_deepthroat",
+      "name": "Deepthroat",
+      "category": "Partner",
+      "isSolo": false,
+      "isContinuous": true,
+      "actorSlot": "GROIN",
+      "targetSlot": "MOUTH",
+      "minDominance": 10.0,
+      "maxDominance": 100.0,
+      "validStances": ["KNEELING", "MISSIONARY", "STANDING", "LAP_SITTING"],
+      "requirements": {
+        "actorHasPenis": true
+      },
+      "values": {
+        "arousalSelf": 28.0,
+        "arousalPartner": 18.0,
+        "dominanceShift": 8.0,
+        "fluidProducedMl": 4.0
+      },
+      "narrative": "{actor} takes hold of {target}'s head, guiding their length deep past {target}'s lips until the tip presses against the back of their throat.",
+      "continuousNarrative": "{actor} keeps their cock buried deep in {target}'s throat, holding them firmly in place."
+    },
+    {
+      "id": "partner_cunnilingus",
+      "name": "Lick Vagina",
+      "category": "Partner",
+      "isSolo": false,
+      "isContinuous": true,
+      "actorSlot": "MOUTH",
+      "targetSlot": "GROIN",
+      "minDominance": -100.0,
+      "maxDominance": 100.0,
+      "validStances": ["MISSIONARY", "FROM_BEHIND", "KNEELING", "LAP_SITTING"],
+      "requirements": {
+        "targetHasVagina": true
+      },
+      "values": {
+        "arousalSelf": 16.0,
+        "arousalPartner": 26.0,
+        "dominanceShift": -3.0,
+        "fluidProducedMl": 4.0
+      },
+      "narrative": "{actor} parts {target}'s folds with gentle fingers, lapping eagerly at their swollen clit and sipping the sweet nectar pooling from their passage.",
+      "continuousNarrative": "{actor} continues lapping at {target}'s dripping cleft, circling their clit with broad strokes."
+    },
+    {
+      "id": "partner_fellatio",
+      "name": "Suck Cock",
+      "category": "Partner",
+      "isSolo": false,
+      "isContinuous": true,
+      "actorSlot": "MOUTH",
+      "targetSlot": "GROIN",
+      "minDominance": -100.0,
+      "maxDominance": 100.0,
+      "validStances": ["KNEELING", "MISSIONARY", "STANDING", "LAP_SITTING"],
+      "requirements": {
+        "targetHasPenis": true
+      },
+      "values": {
+        "arousalSelf": 16.0,
+        "arousalPartner": 26.0,
+        "dominanceShift": -3.0,
+        "fluidProducedMl": 3.0
+      },
+      "narrative": "{actor} takes {target}'s erect shaft into their warm mouth, bobbing their head in a rhythmic, lubricated rhythm that draws deep groans from {target}.",
+      "continuousNarrative": "{actor} continues bobbing their head over {target}'s shaft with steady, wet strokes."
+    },
+    {
+      "id": "partner_rimjob",
+      "name": "Anilingus",
+      "category": "Partner",
+      "isSolo": false,
+      "isContinuous": true,
+      "actorSlot": "MOUTH",
+      "targetSlot": "ASS",
+      "minDominance": -100.0,
+      "maxDominance": 100.0,
+      "validStances": ["FROM_BEHIND", "KNEELING", "PRONE_BONE"],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 14.0,
+        "arousalPartner": 22.0,
+        "dominanceShift": -4.0,
+        "fluidProducedMl": 2.0
+      },
+      "narrative": "{actor} spreads {target}'s cheeks wide, teasing the tight, sensitive entrance of their rear with warm, circular licks.",
+      "continuousNarrative": "{actor} continues working their warm tongue rhythmically against {target}'s tight rear entrance."
     },
     {
       "id": "partner_vaginal_penetrate",
       "name": "Vaginal Sex",
-      "category": "Penetration",
+      "category": "Partner",
       "isSolo": false,
-      "validStances": ["MISSIONARY", "FROM_BEHIND", "STANDING", "LAP_SITTING"],
+      "isContinuous": true,
+      "actorSlot": "GROIN",
+      "targetSlot": "GROIN",
+      "minDominance": -100.0,
+      "maxDominance": 100.0,
+      "validStances": ["MISSIONARY", "FROM_BEHIND", "STANDING", "LAP_SITTING", "COWGIRL", "LOTUS", "PRONE_BONE"],
       "requirements": {
-        "hasPenis": true
+        "actorHasPenis": true,
+        "targetHasVagina": true
       },
       "values": {
         "arousalSelf": 22.0,
-        "arousalPartner": 22.0,
-        "dominanceShift": 4.0,
-        "fluidProducedMl": 5.0
+        "arousalPartner": 24.0,
+        "dominanceShift": 5.0,
+        "fluidProducedMl": 6.0
       },
-      "narrative": "You slide smoothly into your partner's welcoming depth, setting a deep, pleasurable pace that makes you both gasp."
+      "narrative": "{actor} drives smoothly into {target}'s hot, slick channel, establishing a steady, pounding rhythm that draws helpless whimpers from both.",
+      "continuousNarrative": "{actor} continues thrusting into {target}'s hot, slick channel with steady, measured power."
     },
     {
       "id": "partner_anal_penetrate",
       "name": "Anal Sex",
-      "category": "Anal",
+      "category": "Partner",
       "isSolo": false,
-      "validStances": ["MISSIONARY", "FROM_BEHIND", "KNEELING", "STANDING"],
+      "isContinuous": true,
+      "actorSlot": "GROIN",
+      "targetSlot": "ASS",
+      "minDominance": -100.0,
+      "maxDominance": 100.0,
+      "validStances": ["MISSIONARY", "FROM_BEHIND", "KNEELING", "STANDING", "COWGIRL", "PRONE_BONE"],
       "requirements": {
-        "hasPenis": true
+        "actorHasPenis": true
       },
       "values": {
-        "arousalSelf": 24.0,
-        "arousalPartner": 20.0,
+        "arousalSelf": 25.0,
+        "arousalPartner": 22.0,
         "dominanceShift": 8.0,
+        "fluidProducedMl": 5.0
+      },
+      "narrative": "{actor} aligns with {target}'s tight rear passage, pushing past resistance to seat themselves fully inside before beginning powerful thrusts.",
+      "continuousNarrative": "{actor} continues driving their length into {target}'s tight rear passage."
+    },
+    {
+      "id": "partner_vaginal_ride",
+      "name": "Ride Partner",
+      "category": "Partner",
+      "isSolo": false,
+      "isContinuous": true,
+      "actorSlot": "GROIN",
+      "targetSlot": "GROIN",
+      "minDominance": -100.0,
+      "maxDominance": 100.0,
+      "validStances": ["COWGIRL", "LAP_SITTING", "LOTUS"],
+      "requirements": {
+        "actorHasVagina": true,
+        "targetHasPenis": true
+      },
+      "values": {
+        "arousalSelf": 26.0,
+        "arousalPartner": 24.0,
+        "dominanceShift": 6.0,
+        "fluidProducedMl": 6.0
+      },
+      "narrative": "{actor} straddles {target}'s hips and lowers down onto their waiting cock, rocking and bouncing rhythmically to dictate the pace of their pleasure.",
+      "continuousNarrative": "{actor} continues riding {target}'s shaft with rhythmic, undulating bounces."
+    },
+    {
+      "id": "partner_finger_vagina",
+      "name": "Finger Vagina",
+      "category": "Partner",
+      "isSolo": false,
+      "isContinuous": true,
+      "actorSlot": "HANDS",
+      "targetSlot": "GROIN",
+      "minDominance": -100.0,
+      "maxDominance": 100.0,
+      "validStances": ["MISSIONARY", "FROM_BEHIND", "KNEELING", "STANDING", "LAP_SITTING"],
+      "requirements": {
+        "targetHasVagina": true
+      },
+      "values": {
+        "arousalSelf": 14.0,
+        "arousalPartner": 20.0,
+        "dominanceShift": 3.0,
         "fluidProducedMl": 4.0
       },
-      "narrative": "You press forward into your partner's tight rear entrance, claiming them with assertive, rhythmic thrusts."
+      "narrative": "{actor} slides several fingers into {target}'s dripping slit, curling them upward to stimulate the textured ridge within.",
+      "continuousNarrative": "{actor} continues curling fingers deep inside {target}'s dripping channel."
+    },
+    {
+      "id": "partner_finger_anus",
+      "name": "Finger Anus",
+      "category": "Partner",
+      "isSolo": false,
+      "isContinuous": true,
+      "actorSlot": "HANDS",
+      "targetSlot": "ASS",
+      "minDominance": -100.0,
+      "maxDominance": 100.0,
+      "validStances": ["MISSIONARY", "FROM_BEHIND", "KNEELING", "PRONE_BONE"],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 14.0,
+        "arousalPartner": 18.0,
+        "dominanceShift": 4.0,
+        "fluidProducedMl": 2.0
+      },
+      "narrative": "{actor} works a slicked finger into {target}'s tight ring, slowly stretching the passage with patient, rhythmic thrusts.",
+      "continuousNarrative": "{actor} continues carefully massaging and stretching {target}'s tight rear entrance."
+    },
+    {
+      "id": "partner_spank",
+      "name": "Firm Spank",
+      "category": "Partner",
+      "isSolo": false,
+      "isContinuous": false,
+      "minDominance": 0.0,
+      "maxDominance": 100.0,
+      "validStances": ["FROM_BEHIND", "KNEELING", "STANDING", "PRONE_BONE", "LAP_SITTING"],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 12.0,
+        "arousalPartner": 15.0,
+        "dominanceShift": 6.0,
+        "fluidProducedMl": 1.0
+      },
+      "narrative": "{actor}'s palm cracks loudly across {target}'s soft buttock, leaving a rosy handprint and eliciting a sharp gasp of mixed shock and pleasure."
+    },
+    {
+      "id": "partner_choke_hold",
+      "name": "Hold Down & Pin",
+      "category": "Partner",
+      "isSolo": false,
+      "isContinuous": true,
+      "actorSlot": "HANDS",
+      "targetSlot": "ARMS",
+      "handsRequired": 2,
+      "minDominance": 15.0,
+      "maxDominance": 100.0,
+      "validStances": ["MISSIONARY", "FROM_BEHIND", "PRONE_BONE"],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 15.0,
+        "arousalPartner": 14.0,
+        "dominanceShift": 8.0,
+        "fluidProducedMl": 1.0
+      },
+      "narrative": "{actor} firmly pins {target}'s wrists to the surface, looming overhead with an assertive gaze that leaves no doubt as to who is in control.",
+      "continuousNarrative": "{actor} maintains a firm grip on {target}, keeping them firmly restrained."
+    },
+    {
+      "id": "partner_deny_climax",
+      "name": "Edge & Deny",
+      "category": "Partner",
+      "isSolo": false,
+      "isContinuous": false,
+      "minDominance": 20.0,
+      "maxDominance": 100.0,
+      "validStances": ["MISSIONARY", "FROM_BEHIND", "KNEELING", "STANDING", "LAP_SITTING", "COWGIRL", "PRONE_BONE"],
+      "requirements": {
+        "minArousal": 50.0
+      },
+      "values": {
+        "arousalSelf": 12.0,
+        "arousalPartner": 5.0,
+        "dominanceShift": 10.0,
+        "fluidProducedMl": 2.0
+      },
+      "narrative": "Just as {target} arches their back on the brink of release, {actor} abruptly pauses, holding them on the agonizing edge with a cruel smirk."
+    },
+    {
+      "id": "partner_face_slap",
+      "name": "Face Slap",
+      "category": "Partner",
+      "isSolo": false,
+      "isContinuous": false,
+      "minDominance": 25.0,
+      "maxDominance": 100.0,
+      "validStances": ["MISSIONARY", "KNEELING", "STANDING", "LAP_SITTING"],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 10.0,
+        "arousalPartner": 8.0,
+        "dominanceShift": 7.0,
+        "fluidProducedMl": 0.5
+      },
+      "narrative": "{actor} delivers a stinging slap across {target}'s cheek, forcing their head aside and demanding submissive eye contact."
+    },
+    {
+      "id": "sub_worship",
+      "name": "Worship Body",
+      "category": "Partner",
+      "isSolo": false,
+      "isContinuous": true,
+      "actorSlot": "MOUTH",
+      "targetSlot": "FEET",
+      "minDominance": -100.0,
+      "maxDominance": 0.0,
+      "validStances": ["MISSIONARY", "KNEELING", "STANDING", "LAP_SITTING"],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 14.0,
+        "arousalPartner": 22.0,
+        "dominanceShift": -6.0,
+        "fluidProducedMl": 2.0
+      },
+      "narrative": "{actor} showers {target}'s skin with reverent kisses, worshipping their dominant partner with devoted eagerness.",
+      "continuousNarrative": "{actor} continues showering {target}'s skin with reverent, devoted kisses."
+    },
+    {
+      "id": "sub_strip_offer",
+      "name": "Strip for Partner",
+      "category": "Partner",
+      "isSolo": false,
+      "isContinuous": false,
+      "minDominance": -100.0,
+      "maxDominance": 0.0,
+      "validStances": [],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 10.0,
+        "arousalPartner": 14.0,
+        "dominanceShift": -4.0,
+        "fluidProducedMl": 0.5
+      },
+      "narrative": "{actor} looks up submissively and strips off their clothing, offering their bare form to {target}."
+    },
+    {
+      "id": "sub_endure",
+      "name": "Endure Passively",
+      "category": "Partner",
+      "isSolo": false,
+      "isContinuous": true,
+      "actorSlot": "TORSO",
+      "targetSlot": "TORSO",
+      "minDominance": -100.0,
+      "maxDominance": 0.0,
+      "validStances": ["MISSIONARY", "FROM_BEHIND", "KNEELING", "STANDING", "LAP_SITTING", "COWGIRL", "PRONE_BONE"],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 15.0,
+        "arousalPartner": 15.0,
+        "dominanceShift": -5.0,
+        "fluidProducedMl": 2.0
+      },
+      "narrative": "{actor} shuts their eyes and endures {target}'s touch passively, shivering as pleasure builds beneath their submission.",
+      "continuousNarrative": "{actor} remains motionless beneath {target}, passively enduring their heavy touch."
+    },
+    {
+      "id": "sub_yield",
+      "name": "Yield Completely",
+      "category": "Partner",
+      "isSolo": false,
+      "isContinuous": true,
+      "actorSlot": "TORSO",
+      "targetSlot": "TORSO",
+      "minDominance": -100.0,
+      "maxDominance": -10.0,
+      "validStances": ["MISSIONARY", "FROM_BEHIND", "KNEELING", "STANDING", "LAP_SITTING", "PRONE_BONE"],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 18.0,
+        "arousalPartner": 20.0,
+        "dominanceShift": -8.0,
+        "fluidProducedMl": 3.0
+      },
+      "narrative": "{actor} relaxes all tension and goes limp beneath {target}, surrendering their body completely to their partner's desires.",
+      "continuousNarrative": "{actor} lies completely surrendered, offering their body unconditionally to {target}."
+    },
+    {
+      "id": "sub_plead",
+      "name": "Plead for Mercy",
+      "category": "Partner",
+      "isSolo": false,
+      "isContinuous": false,
+      "minDominance": -100.0,
+      "maxDominance": 0.0,
+      "validStances": ["MISSIONARY", "FROM_BEHIND", "KNEELING", "STANDING", "LAP_SITTING", "COWGIRL", "PRONE_BONE"],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 10.0,
+        "arousalPartner": 14.0,
+        "dominanceShift": -4.0,
+        "fluidProducedMl": 1.0
+      },
+      "narrative": "{actor} looks up with wide, pleading eyes, softly begging {target} to be gentle with them."
+    },
+    {
+      "id": "sub_beg_climax",
+      "name": "Beg for Climax",
+      "category": "Partner",
+      "isSolo": false,
+      "isContinuous": false,
+      "minDominance": -100.0,
+      "maxDominance": 0.0,
+      "validStances": ["MISSIONARY", "FROM_BEHIND", "KNEELING", "STANDING", "LAP_SITTING", "COWGIRL", "PRONE_BONE"],
+      "requirements": {
+        "minArousal": 50.0
+      },
+      "values": {
+        "arousalSelf": 10.0,
+        "arousalPartner": 15.0,
+        "dominanceShift": -6.0,
+        "fluidProducedMl": 2.0
+      },
+      "narrative": "{actor} whines desperately, clutching at {target} and begging for permission to climax."
+    },
+    {
+      "id": "sub_struggle",
+      "name": "Struggle for Control",
+      "category": "Partner",
+      "isSolo": false,
+      "isContinuous": false,
+      "minDominance": -100.0,
+      "maxDominance": 10.0,
+      "validStances": ["MISSIONARY", "FROM_BEHIND", "KNEELING", "PRONE_BONE"],
+      "requirements": {},
+      "values": {
+        "arousalSelf": 5.0,
+        "arousalPartner": 10.0,
+        "dominanceShift": 0.0,
+        "fluidProducedMl": 0.5
+      },
+      "narrative": "{actor} thrashes and attempts to break free from {target}'s grasp, testing their strength."
     }
   ]
 }

@@ -50,7 +50,7 @@ namespace TransformationView
     float render(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)
     {
         transformationState* state = dynamic_cast<transformationState*>(gameContext->getActiveState());
-        entity* player = gameContext->getPlayer();
+        entity* player = state ? state->getTargetEntity(gameContext) : gameContext->getPlayer();
         if (!state || !player) return 0.0f;
 
         float startY = curY;
@@ -62,7 +62,8 @@ namespace TransformationView
         // 1. Full-Width Header Banner
         float headerH = 28.0f * uiScale;
         SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
-        UIWidget::drawHeader(renderer, headerRect, std::format("BIOLOGICAL TRANSFORMATION STUDIO [{}]", transformationTabToString(state->currentTab)), Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
+        std::string entityTitle = (player != gameContext->getPlayer()) ? std::format("CUSTOMIZING {}", player->name) : "BIOLOGICAL TRANSFORMATION STUDIO";
+        UIWidget::drawHeader(renderer, headerRect, std::format("{} [{}]", entityTitle, transformationTabToString(state->currentTab)), Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
         curY += headerH + (10.0f * uiScale);
 
         auto mousePos = gameContext->input.getMousePosition();

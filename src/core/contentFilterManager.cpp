@@ -59,37 +59,46 @@ ContentTagStatus ContentFilterManager::evaluateTag(const ContentSettings& settin
     std::string norm = normalizeTag(tag);
     if (norm.empty()) return ContentTagStatus::ALLOWED;
 
-    // Fetish Preferences Lookup (Rating 0 = Never / Disabled) - checked first so 0-rating disables tag
+    auto makeBlockedOrWarn = [&]() {
+        if (settings.contentFilterMode == ContentFilterMode::WARN_CONFIRM)
+        {
+            return ContentTagStatus::WARN;
+        }
+        return ContentTagStatus::BLOCKED;
+    };
+
+    // 1. Check legacy/backward-compatible boolean flags first: if disabled, tag is blocked/warned
+    if ((norm == "non_con" || norm == "noncon" || norm == "rape") && !settings.nonConEnabled) return makeBlockedOrWarn();
+    if ((norm == "extreme" || norm == "sadism" || norm == "sadistic" || norm == "gore" || norm == "snuff") && !settings.extremeContentEnabled) return makeBlockedOrWarn();
+    if ((norm == "public_sex" || norm == "publicsex" || norm == "exhibitionism") && !settings.publicSexEnabled) return makeBlockedOrWarn();
+    if ((norm == "pregnancy" || norm == "impregnation" || norm == "insemination") && !settings.pregnancyEnabled) return makeBlockedOrWarn();
+    if ((norm == "lactation" || norm == "milk" || norm == "nursing") && !settings.lactationEnabled) return makeBlockedOrWarn();
+    if ((norm == "watersports" || norm == "urination" || norm == "piss") && !settings.watersportsEnabled) return makeBlockedOrWarn();
+    if ((norm == "spitting" || norm == "oral_degradation") && !settings.spittingEnabled) return makeBlockedOrWarn();
+    if ((norm == "forced_tf" || norm == "forcedtf" || norm == "involuntary_tf") && !settings.forcedTfEnabled) return makeBlockedOrWarn();
+    if ((norm == "tentacles" || norm == "monsters" || norm == "tentacle") && !settings.tentaclesEnabled) return makeBlockedOrWarn();
+    if ((norm == "bdsm" || norm == "bondage" || norm == "restraints") && !settings.bdsmEnabled) return makeBlockedOrWarn();
+    if ((norm == "incest") && !settings.incestEnabled) return makeBlockedOrWarn();
+    if ((norm == "size_diff" || norm == "size_difference" || norm == "macro" || norm == "micro") && !settings.sizeDifferenceEnabled) return makeBlockedOrWarn();
+    if ((norm == "prolapse" || norm == "stretching") && !settings.prolapseEnabled) return makeBlockedOrWarn();
+    if ((norm == "aphrodisiacs" || norm == "drugs") && !settings.aphrodisiacsEnabled) return makeBlockedOrWarn();
+    if ((norm == "hypnosis" || norm == "mind_control") && !settings.hypnosisEnabled) return makeBlockedOrWarn();
+    if ((norm == "cum_inflation" || norm == "inflation") && !settings.cumInflationEnabled) return makeBlockedOrWarn();
+    if ((norm == "feral" || norm == "bestiality") && !settings.feralEnabled) return makeBlockedOrWarn();
+
+    // 2. Check Fetish Preferences: rating 0 = Never
+    // Global filter handling setting (contentFilterMode) dictates how Never is treated!
     for (const auto& [fetName, rating] : settings.fetishPreferences)
     {
         std::string normFet = normalizeTag(fetName);
         if (normFet == norm || normFet.find(norm) != std::string::npos || norm.find(normFet) != std::string::npos)
         {
-            if (rating == 0) return ContentTagStatus::BLOCKED;
+            if (rating == 0)
+            {
+                return makeBlockedOrWarn();
+            }
         }
     }
-
-    auto stateToStatus = [](ContentToggleState state, bool enabled) {
-        if (!enabled) return ContentTagStatus::BLOCKED;
-        if (state == ContentToggleState::WARN) return ContentTagStatus::WARN;
-        return ContentTagStatus::ALLOWED;
-    };
-
-    // Explicit Core Content 3-State Toggles
-    if (norm == "non_con" || norm == "noncon" || norm == "rape") return stateToStatus(settings.nonConState, settings.nonConEnabled);
-    if (norm == "extreme" || norm == "sadism" || norm == "sadistic" || norm == "gore" || norm == "snuff") return stateToStatus(settings.extremeContentState, settings.extremeContentEnabled);
-    if (norm == "public_sex" || norm == "publicsex" || norm == "exhibitionism") return stateToStatus(settings.publicSexState, settings.publicSexEnabled);
-    if (norm == "pregnancy" || norm == "impregnation" || norm == "insemination") return stateToStatus(settings.pregnancyState, settings.pregnancyEnabled);
-    if (norm == "lactation" || norm == "milk" || norm == "nursing") return stateToStatus(settings.lactationState, settings.lactationEnabled);
-    if (norm == "watersports" || norm == "urination" || norm == "piss") return stateToStatus(settings.watersportsState, settings.watersportsEnabled);
-    if (norm == "spitting" || norm == "oral_degradation") return stateToStatus(settings.spittingState, settings.spittingEnabled);
-    if (norm == "forced_tf" || norm == "forcedtf" || norm == "involuntary_tf") return stateToStatus(settings.forcedTfState, settings.forcedTfEnabled);
-    if (norm == "tentacles" || norm == "monsters" || norm == "tentacle") return stateToStatus(settings.tentaclesState, settings.tentaclesEnabled);
-    if (norm == "bdsm" || norm == "bondage" || norm == "restraints") return stateToStatus(settings.bdsmState, settings.bdsmEnabled);
-    if (norm == "incest") return stateToStatus(settings.incestState, settings.incestEnabled);
-    if (norm == "size_diff" || norm == "size_difference" || norm == "macro" || norm == "micro") return stateToStatus(settings.sizeDifferenceState, settings.sizeDifferenceEnabled);
-    if (norm == "prolapse" || norm == "stretching") return stateToStatus(settings.prolapseState, settings.prolapseEnabled);
-    if (norm == "aphrodisiacs" || norm == "drugs") return stateToStatus(settings.aphrodisiacsState, settings.aphrodisiacsEnabled);
 
     return ContentTagStatus::ALLOWED;
 }

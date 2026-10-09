@@ -15,6 +15,8 @@
 #include "state/characterCreationState.h"
 #include "state/combatState.h"
 #include "state/eventState.h"
+#include "state/inventoryState.h"
+#include "state/sexState.h"
 #include "common/enums.h"
 #include "ui/theme.h"
 #include "ui/uiWidget.h"
@@ -43,7 +45,11 @@ namespace EntityListWidgets
                 return true;
         }
 
-        // 3. In active combat encounter enemy mode (e.g. encounter resolution)
+        // 3. In active sexState encounter
+        if (dynamic_cast<sexState*>(gameContext->getActiveState()) != nullptr)
+            return true;
+
+        // 4. In active combat encounter enemy mode (e.g. encounter resolution)
         if (gameContext->activeTargetMode == TargetMode::COMBAT_ENEMY)
             return true;
 
@@ -61,6 +67,16 @@ namespace EntityListWidgets
             for (const auto& p : cs->getEngine().getEnemyParty())
             {
                 if (p.character && std::find(npcs.begin(), npcs.end(), p.character) == npcs.end())
+                    npcs.push_back(p.character);
+            }
+        }
+
+        // 1b. From sexState if active
+        if (auto* ss = dynamic_cast<sexState*>(gameContext->getActiveState()))
+        {
+            for (const auto& p : ss->getParticipants())
+            {
+                if (!p.isPlayer && p.character && std::find(npcs.begin(), npcs.end(), p.character) == npcs.end())
                     npcs.push_back(p.character);
             }
         }
@@ -88,6 +104,11 @@ namespace EntityListWidgets
     float renderWidgetNPCCard(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
     {
         if (!gameContext) return 0.0f;
+
+        if (dynamic_cast<inventoryState*>(gameContext->getActiveState()) && gameContext->getActiveTargetNPC() == nullptr)
+        {
+            return 0.0f;
+        }
 
         auto npcs = getInteractingNPCs(gameContext);
         if (npcs.empty()) return 0.0f;
@@ -135,7 +156,7 @@ namespace EntityListWidgets
         float statusSectionH = (numEffectRows == 0) ? 0.0f : ((numEffectRows * chipSize) + ((numEffectRows - 1) * chipGap) + (6.0f * uiScale));
 
         float sub1H = 58.0f * uiScale;
-        float vitalsTopH = 80.0f * uiScale;
+        float vitalsTopH = 80.0f * uiScale; // "VITALS & STATUS" header + 4 progress bars (HP, STA, MP, Lust)
         float sub2H = vitalsTopH + statusSectionH + (4.0f * uiScale);
         float headerH = 20.0f * uiScale;
         float outerH = headerH + (3.0f * uiScale) + sub1H + (5.0f * uiScale) + sub2H + (5.0f * uiScale);
@@ -145,9 +166,10 @@ namespace EntityListWidgets
         UIWidget::drawPanel(renderer, outerRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
         // Header (No close button: "You shouldn't be able to close out a character card")
-        bool isHostile = (gameContext->activeTargetMode == TargetMode::COMBAT_ENEMY || dynamic_cast<CombatState*>(gameContext->getActiveState()) != nullptr);
-        SDL_Color headerCol = isHostile ? Theme::colors.enemy : Theme::colors.textGold;
-        std::string headerTitle = isHostile ? std::format("OPPONENT: {}", npc->name) : std::format("TARGET: {}", npc->name);
+        bool isSex = (dynamic_cast<sexState*>(gameContext->getActiveState()) != nullptr);
+        bool isHostile = !isSex && (gameContext->activeTargetMode == TargetMode::COMBAT_ENEMY || dynamic_cast<CombatState*>(gameContext->getActiveState()) != nullptr);
+        SDL_Color headerCol = isSex ? Theme::colors.textGold : (isHostile ? Theme::colors.enemy : Theme::colors.textGold);
+        std::string headerTitle = isSex ? std::format("PARTNER: {}", npc->name) : (isHostile ? std::format("OPPONENT: {}", npc->name) : std::format("TARGET: {}", npc->name));
 
         SDL_FRect headerRect = { padX, curY, availableW, headerH };
         UIWidget::drawHeader(renderer, headerRect, headerTitle, Theme::colors.bgHeader, headerCol, uiScale * 0.74f);
@@ -192,20 +214,22 @@ namespace EntityListWidgets
         std::string lvlStr = std::format("Lvl {} • {}", npc->stats.level, raceStr);
         UIWidget::drawText(renderer, lvlStr, s1ContentX + avatarSize + (6.0f * uiScale), s1Y + (15.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.70f);
 
-        // Gold & Gender Archetype
+        // Gold & Arcane Essence Spoils
         float goldVal = npc->getStat("currency");
         std::string goldText = std::format("Gold: {:.0f} ¤", goldVal);
         UIWidget::drawText(renderer, goldText, s1ContentX, s1Y + avatarSize + (4.0f * uiScale), Theme::colors.currency, uiScale * 0.72f);
         TooltipManager::setHoverTooltip({ s1ContentX, s1Y + avatarSize + (2.0f * uiScale), 70.0f * uiScale, 16.0f * uiScale },
                                         mousePos, "Enemy Spoils", "Carried coin that can be acquired through victory, bribery, or trade.", goldText);
 
-        std::string archStr = genderArchetypeToString(npc->genderArchetype);
-        float archW = UIWidget::getTextWidth(archStr, uiScale * 0.70f);
-        UIWidget::drawText(renderer, archStr, s1ContentX + s1ContentW - archW, s1Y + avatarSize + (4.0f * uiScale), Theme::colors.companion, uiScale * 0.70f);
-        TooltipManager::setHoverTooltip({ s1ContentX + s1ContentW - archW - (4.0f * uiScale), s1Y + avatarSize + (2.0f * uiScale), archW + (8.0f * uiScale), 16.0f * uiScale },
-                                        mousePos, "Gender & Archetype",
-                                        std::format("Orientation: {}", sexualOrientationToString(npc->orientation)),
-                                        archStr);
+        float essenceVal = npc->getStat("arcaneEssence");
+        if (essenceVal <= 0.0f) essenceVal = npc->getStat("essence");
+        std::string essenceText = std::format("Essence: {:.0f}", essenceVal);
+        float essW = UIWidget::getTextWidth(essenceText, uiScale * 0.72f);
+        UIWidget::drawText(renderer, essenceText, s1ContentX + s1ContentW - essW, s1Y + avatarSize + (4.0f * uiScale), Theme::colors.arcane, uiScale * 0.72f);
+        TooltipManager::setHoverTooltip({ s1ContentX + s1ContentW - essW - (4.0f * uiScale), s1Y + avatarSize + (2.0f * uiScale), essW + (8.0f * uiScale), 16.0f * uiScale },
+                                        mousePos, "Arcane Essence",
+                                        "Demonic essence and spiritual energy carried by this entity. Can be harvested upon defeat.",
+                                        std::format("{:.0f} Essence Carried", essenceVal));
 
         curY += sub1H + (5.0f * uiScale);
 
@@ -231,6 +255,7 @@ namespace EntityListWidgets
         float curHp = npc->getStat("health");
         float maxHp = npc->getStat("max_health");
         if (maxHp <= 0.0f) maxHp = std::max(curHp, 100.0f);
+        if (isSex && curHp <= 0.0f) curHp = std::max(20.0f, maxHp * 0.25f);
         curHp = std::clamp(curHp, 0.0f, maxHp);
 
         UIWidget::drawText(renderer, "Health", s2ContentX, s2Y, Theme::colors.health, uiScale * 0.65f);
@@ -242,7 +267,57 @@ namespace EntityListWidgets
                                         std::format("{:.0f} / {:.0f} HP", curHp, maxHp));
         s2Y += barH + barGap;
 
-        // 2. Mana Bar
+        // 2. Stamina Bar
+        float curSta = npc->getStat("stamina");
+        float maxSta = npc->getStat("max_stamina");
+        if (maxSta <= 0.0f) {
+            float physique = npc->getStat("physique");
+            float toughness = npc->getStat("toughness");
+            maxSta = 80.0f + (physique * 1.5f) + (toughness * 1.0f);
+        }
+        if (gameContext)
+        {
+            if (auto* cs = dynamic_cast<CombatState*>(gameContext->getActiveState()))
+            {
+                for (const auto& p : cs->getEngine().getEnemyParty())
+                {
+                    if (p.character && p.character.get() == npc)
+                    {
+                        curSta = p.currentStamina;
+                        maxSta = p.maxStamina;
+                        break;
+                    }
+                }
+            }
+            else if (auto* ss = dynamic_cast<sexState*>(gameContext->getActiveState()))
+            {
+                for (const auto& p : ss->getParticipants())
+                {
+                    if (p.getEntity() == npc)
+                    {
+                        curSta = p.stamina;
+                        maxSta = 100.0f;
+                        break;
+                    }
+                }
+            }
+        }
+        if (curSta <= 0.0f && (!gameContext || (dynamic_cast<CombatState*>(gameContext->getActiveState()) == nullptr && dynamic_cast<sexState*>(gameContext->getActiveState()) == nullptr)))
+        {
+            curSta = maxSta;
+        }
+        curSta = std::clamp(curSta, 0.0f, maxSta);
+
+        UIWidget::drawText(renderer, "Stamina", s2ContentX, s2Y, Theme::colors.stamina, uiScale * 0.65f);
+        UIWidget::drawProgressBar(renderer, { s2ContentX + labelW, s2Y, progressW, barH }, curSta, maxSta, Theme::colors.stamina, Theme::colors.bgHeader, "", uiScale);
+        std::string staStr = std::format("{:.0f}/{:.0f}", curSta, maxSta);
+        UIWidget::drawText(renderer, staStr, s2ContentX + labelW + progressW + (4.0f * uiScale), s2Y, Theme::colors.textPrimary, uiScale * 0.62f);
+        TooltipManager::setHoverTooltip({ s2ContentX, s2Y, s2ContentW, barH }, mousePos, "Stamina (STA)",
+                                        "Opponent action and endurance reserve consumed by attacks and maneuvers.",
+                                        std::format("{:.0f} / {:.0f} Stamina", curSta, maxSta));
+        s2Y += barH + barGap;
+
+        // 3. Mana Bar
         float curMp = npc->getStat("mana");
         float maxMp = npc->getStat("max_mana");
         if (maxMp <= 0.0f) maxMp = std::max(curMp, 100.0f);
@@ -257,32 +332,30 @@ namespace EntityListWidgets
                                         std::format("{:.0f} / {:.0f} MP", curMp, maxMp));
         s2Y += barH + barGap;
 
-        // 3. Lust Bar
+        // 4. Lust & Arousal Bar
         float curLust = std::clamp(npc->getStat("lust"), 0.0f, 100.0f);
         float maxLust = npc->getStat("max_lust");
         if (maxLust <= 0.0f) maxLust = 100.0f;
+        if (auto* ss = dynamic_cast<sexState*>(gameContext->getActiveState()))
+        {
+            for (const auto& p : ss->getParticipants())
+            {
+                if (p.getEntity() == npc)
+                {
+                    curLust = p.arousal;
+                    maxLust = 100.0f;
+                    break;
+                }
+            }
+        }
 
         UIWidget::drawText(renderer, "Lust", s2ContentX, s2Y, Theme::colors.lust, uiScale * 0.65f);
         UIWidget::drawProgressBar(renderer, { s2ContentX + labelW, s2Y, progressW, barH }, curLust, maxLust, Theme::colors.lust, Theme::colors.bgHeader, "", uiScale);
         std::string lustStr = std::format("{:.0f}%", (curLust / maxLust) * 100.0f);
         UIWidget::drawText(renderer, lustStr, s2ContentX + labelW + progressW + (4.0f * uiScale), s2Y, Theme::colors.textPrimary, uiScale * 0.62f);
-        TooltipManager::setHoverTooltip({ s2ContentX, s2Y, s2ContentW, barH }, mousePos, "Lust Level",
-                                        "Susceptibility to flirtation, seduction, and submission.",
-                                        std::format("{:.0f}% Lust", (curLust / maxLust) * 100.0f));
-        s2Y += barH + barGap;
-
-        // 4. Arousal Bar
-        float curArousal = std::clamp(npc->getStat("arousal"), 0.0f, 100.0f);
-        float maxArousal = npc->getStat("max_arousal");
-        if (maxArousal <= 0.0f) maxArousal = 100.0f;
-
-        UIWidget::drawText(renderer, "Arousal", s2ContentX, s2Y, Theme::colors.textGold, uiScale * 0.65f);
-        UIWidget::drawProgressBar(renderer, { s2ContentX + labelW, s2Y, progressW, barH }, curArousal, maxArousal, Theme::colors.textGold, Theme::colors.bgHeader, "", uiScale);
-        std::string arousalStr = std::format("{:.0f}%", (curArousal / maxArousal) * 100.0f);
-        UIWidget::drawText(renderer, arousalStr, s2ContentX + labelW + progressW + (4.0f * uiScale), s2Y, Theme::colors.textPrimary, uiScale * 0.62f);
-        TooltipManager::setHoverTooltip({ s2ContentX, s2Y, s2ContentW, barH }, mousePos, "Physical Arousal",
-                                        "Active physiological excitement during intimate encounters.",
-                                        std::format("{:.0f}% Arousal", (curArousal / maxArousal) * 100.0f));
+        TooltipManager::setHoverTooltip({ s2ContentX, s2Y, s2ContentW, barH }, mousePos, "Lust & Arousal",
+                                        "Susceptibility to flirtation, seduction, and erotic submission. Reaching 100% forces surrender.",
+                                        std::format("{:.0f}% Lust / Arousal", (curLust / maxLust) * 100.0f));
         s2Y += barH + (6.0f * uiScale);
 
         // Status Effects Chips
@@ -372,6 +445,17 @@ namespace EntityListWidgets
                 {
                     gameContext->activeTargetNPC = npcs[i];
                     gameContext->activeTargetMode = isHostile ? TargetMode::COMBAT_ENEMY : TargetMode::DIALOGUE;
+                    if (auto* ss = dynamic_cast<sexState*>(gameContext->getActiveState()))
+                    {
+                        for (size_t pIdx = 0; pIdx < ss->getParticipantCount(); ++pIdx)
+                        {
+                            if (ss->getParticipants()[pIdx].getEntity() == npcs[i].get())
+                            {
+                                ss->selectTargetParticipant(pIdx);
+                                break;
+                            }
+                        }
+                    }
                     gameContext->refreshActionGrid();
                     gameContext->input.consumeMouseClick();
                 }
@@ -386,6 +470,12 @@ namespace EntityListWidgets
     float renderWidgetCharactersPresent(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
     {
         if (!gameContext || !gameContext->getPlayer()) return 0.0f;
+
+        // If in inventory state with an active target NPC, suppress room widgets since NPC card and partner paperdoll occupy the right column
+        if (dynamic_cast<inventoryState*>(gameContext->getActiveState()) && gameContext->getActiveTargetNPC() != nullptr)
+        {
+            return 0.0f;
+        }
 
         // When interacting with an NPC, replace the normal boxes with the dedicated NPC Character Card
         if (isInteractingWithNPC(gameContext))
@@ -586,6 +676,11 @@ namespace EntityListWidgets
     {
         if (!gameContext || !gameContext->getPlayer()) return 0.0f;
 
+        if (dynamic_cast<inventoryState*>(gameContext->getActiveState()) && gameContext->getActiveTargetNPC() != nullptr)
+        {
+            return 0.0f;
+        }
+
         auto ground = gameContext->getTileInventoryStacked();
 
         // When interacting with an NPC, suppress empty items card to preserve vertical space
@@ -658,6 +753,11 @@ namespace EntityListWidgets
     float renderWidgetEventLog(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
     {
         if (!gameContext || !gameContext->getPlayer()) return 0.0f;
+
+        if (dynamic_cast<inventoryState*>(gameContext->getActiveState()) && gameContext->getActiveTargetNPC() != nullptr)
+        {
+            return 0.0f;
+        }
 
         float startY = curY;
         float padX = curX + (5.0f * uiScale);

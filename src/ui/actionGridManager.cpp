@@ -237,7 +237,7 @@ void ActionGridManager::refresh(game* gameContext)
         {
             addBtn(gameContext, "Misc.", [opt, gameContext]() { opt->contentCategory = ContentOptionsCategory::MISC; gameContext->refreshActionGrid(); }, true, opt->contentCategory == ContentOptionsCategory::MISC);
             addBtn(gameContext, "Gameplay", [opt, gameContext]() { opt->contentCategory = ContentOptionsCategory::GAMEPLAY; gameContext->refreshActionGrid(); }, true, opt->contentCategory == ContentOptionsCategory::GAMEPLAY);
-            addBtn(gameContext, "Sex & Fetishes", [opt, gameContext]() { opt->contentCategory = ContentOptionsCategory::SEX_AND_FETISHES; gameContext->refreshActionGrid(); }, true, opt->contentCategory == ContentOptionsCategory::SEX_AND_FETISHES);
+            addBtn(gameContext, "Fetishes", [opt, gameContext]() { opt->contentCategory = ContentOptionsCategory::FETISH_PREFS; gameContext->refreshActionGrid(); }, true, opt->contentCategory == ContentOptionsCategory::FETISH_PREFS);
             addBtn(gameContext, "Bodies", [opt, gameContext]() { opt->contentCategory = ContentOptionsCategory::BODIES; gameContext->refreshActionGrid(); }, true, opt->contentCategory == ContentOptionsCategory::BODIES);
             addBtn(gameContext, "Reset Category", [opt, gameContext]() { opt->resetCategoryDefaults(gameContext); });
 
@@ -245,7 +245,7 @@ void ActionGridManager::refresh(game* gameContext)
             addBtn(gameContext, "Orientation preferences", [opt, gameContext]() { opt->contentCategory = ContentOptionsCategory::ORIENTATION_PREFS; gameContext->refreshActionGrid(); }, true, opt->contentCategory == ContentOptionsCategory::ORIENTATION_PREFS);
             addBtn(gameContext, "Age preferences", [opt, gameContext]() { opt->contentCategory = ContentOptionsCategory::AGE_PREFS; gameContext->refreshActionGrid(); }, true, opt->contentCategory == ContentOptionsCategory::AGE_PREFS);
             addBtn(gameContext, "Furry preferences", [opt, gameContext]() { opt->contentCategory = ContentOptionsCategory::FURRY_PREFS; gameContext->refreshActionGrid(); }, true, opt->contentCategory == ContentOptionsCategory::FURRY_PREFS);
-            addBtn(gameContext, "Fetish preferences", [opt, gameContext]() { opt->contentCategory = ContentOptionsCategory::FETISH_PREFS; gameContext->refreshActionGrid(); }, true, opt->contentCategory == ContentOptionsCategory::FETISH_PREFS);
+            addBtn(gameContext, "", nullptr, false);
 
             addBtn(gameContext, "Reset All", [opt, gameContext]() { opt->resetAllDefaults(gameContext); });
 
@@ -440,39 +440,286 @@ void ActionGridManager::refresh(game* gameContext)
     // 7. Interactive Sex State
     if (auto sex = dynamic_cast<sexState*>(currentState))
     {
-        const auto& actions = sex->getAvailableActions();
-        for (size_t i = 0; i < actions.size(); ++i)
+        // -----------------------------------------------------------------
+        // 1. CLOTHING SELECTION MODE (When a paperdoll equipment tile is clicked)
+        // -----------------------------------------------------------------
+        if (gameContext->selectedEquipmentSlot != equipSlot::NONE)
         {
-            addBtn(gameContext, actions[i].name, [gameContext, i]() {
-                gameContext->handleCommand({ CommandType::EXECUTE_SEX_ACTION, static_cast<int>(i), 0, "" });
-            });
+            int side = gameContext->selectedEquipmentSide; // 0 = Player, 1 = Partner
+            entity* charEnt = (side == 0) ? gameContext->getPlayer() : (sex->isSolo() ? nullptr : sex->getTargetEntity());
+            std::shared_ptr<item> eqItem = charEnt ? charEnt->inventory.getEquippedItem(gameContext->selectedEquipmentSlot) : nullptr;
+
+            if (eqItem)
+            {
+                equipSlot selSlot = gameContext->selectedEquipmentSlot;
+                DisplacementMode currentDisp = charEnt->inventory.getDisplacement(selSlot);
+                std::string targetDesc = (side == 0) ? "your" : std::format("{}'s", charEnt->name);
+
+                // Slot 0: Remove Item (Fully strip this piece)
+                std::string removeLabel = "Remove " + eqItem->name;
+                addBtn(gameContext, removeLabel, [gameContext, sex, side, selSlot]() {
+                    sex->handleClothingAction(gameContext, side, selSlot, DisplacementMode::NONE, true);
+                }, true, false, std::format("Fully remove and strip {} {} from their body.", targetDesc, eqItem->name));
+
+                // Partial Undressing Options based on slot and item displacements
+                bool canPullDown = (selSlot == equipSlot::LEGS_OUTER ||
+                                    selSlot == equipSlot::GROIN_OVER ||
+                                    selSlot == equipSlot::HIPS_WEAR || selSlot == equipSlot::ASS_WEAR ||
+                                    selSlot == equipSlot::STOMACH_WEAR ||
+                                    eqItem->supportedDisplacements.contains(DisplacementMode::PULL_DOWN));
+                if (canPullDown)
+                {
+                    bool isDown = (currentDisp == DisplacementMode::PULL_DOWN);
+                    addBtn(gameContext, isDown ? "Pulled Down [*]" : "Pull Down", [gameContext, sex, side, selSlot]() {
+                        sex->handleClothingAction(gameContext, side, selSlot, DisplacementMode::PULL_DOWN, false);
+                    }, !isDown, isDown, std::format("Pull {} {} down to expose the groin and hips.", targetDesc, eqItem->name));
+                }
+
+                bool canPullAside = (selSlot == equipSlot::GROIN_OVER ||
+                                     selSlot == equipSlot::CHEST_WEAR || selSlot == equipSlot::NIPPLES_WEAR ||
+                                     selSlot == equipSlot::LEGS_OUTER || selSlot == equipSlot::PENIS_WEAR ||
+                                     selSlot == equipSlot::VAGINA_WEAR ||
+                                     eqItem->supportedDisplacements.contains(DisplacementMode::PULL_ASIDE));
+                if (canPullAside)
+                {
+                    bool isAside = (currentDisp == DisplacementMode::PULL_ASIDE);
+                    addBtn(gameContext, isAside ? "Pulled Aside [*]" : "Pull Aside", [gameContext, sex, side, selSlot]() {
+                        sex->handleClothingAction(gameContext, side, selSlot, DisplacementMode::PULL_ASIDE, false);
+                    }, !isAside, isAside, std::format("Slide {} {} aside to grant intimate access.", targetDesc, eqItem->name));
+                }
+
+                bool canLiftUp = (selSlot == equipSlot::TORSO_OVER || selSlot == equipSlot::TORSO_UNDER ||
+                                  selSlot == equipSlot::CHEST_WEAR || selSlot == equipSlot::NIPPLES_WEAR ||
+                                  selSlot == equipSlot::STOMACH_WEAR || selSlot == equipSlot::LEGS_OUTER ||
+                                  eqItem->supportedDisplacements.contains(DisplacementMode::LIFT_UP));
+                if (canLiftUp)
+                {
+                    bool isLifted = (currentDisp == DisplacementMode::LIFT_UP);
+                    addBtn(gameContext, isLifted ? "Lifted Up [*]" : "Lift Up", [gameContext, sex, side, selSlot]() {
+                        sex->handleClothingAction(gameContext, side, selSlot, DisplacementMode::LIFT_UP, false);
+                    }, !isLifted, isLifted, std::format("Lift {} {} up to expose chest and torso.", targetDesc, eqItem->name));
+                }
+
+                bool canUnbutton = (selSlot == equipSlot::TORSO_OVER || selSlot == equipSlot::TORSO_UNDER ||
+                                    selSlot == equipSlot::LEGS_OUTER ||
+                                    eqItem->supportedDisplacements.contains(DisplacementMode::UNBUTTON));
+                if (canUnbutton)
+                {
+                    bool isUnbuttoned = (currentDisp == DisplacementMode::UNBUTTON);
+                    addBtn(gameContext, isUnbuttoned ? "Unbuttoned [*]" : "Unbutton", [gameContext, sex, side, selSlot]() {
+                        sex->handleClothingAction(gameContext, side, selSlot, DisplacementMode::UNBUTTON, false);
+                    }, !isUnbuttoned, isUnbuttoned, std::format("Unfasten the buttons on {} {}.", targetDesc, eqItem->name));
+                }
+
+                bool canOpen = (selSlot == equipSlot::TORSO_OVER || selSlot == equipSlot::TORSO_UNDER ||
+                                selSlot == equipSlot::MOUTHWEAR ||
+                                eqItem->supportedDisplacements.contains(DisplacementMode::OPEN));
+                if (canOpen)
+                {
+                    bool isOpen = (currentDisp == DisplacementMode::OPEN);
+                    addBtn(gameContext, isOpen ? "Opened [*]" : "Open / Part", [gameContext, sex, side, selSlot]() {
+                        sex->handleClothingAction(gameContext, side, selSlot, DisplacementMode::OPEN, false);
+                    }, !isOpen, isOpen, std::format("Open and spread {} {}.", targetDesc, eqItem->name));
+                }
+
+                if (currentDisp != DisplacementMode::NONE)
+                {
+                    addBtn(gameContext, "Restore Fit", [gameContext, sex, side, selSlot]() {
+                        sex->handleClothingAction(gameContext, side, selSlot, DisplacementMode::NONE, false);
+                    }, true, false, std::format("Restore {} {} to its properly worn fit.", targetDesc, eqItem->name));
+                }
+
+                // Deselect / Back button
+                addBackBtn(gameContext, "Deselect Item", [gameContext]() {
+                    gameContext->selectedEquipmentSlot = equipSlot::NONE;
+                    gameContext->refreshActionGrid();
+                });
+
+                return;
+            }
+            else
+            {
+                gameContext->selectedEquipmentSlot = equipSlot::NONE;
+            }
         }
 
-        if (sex->isSolo())
+        std::string activeCat = gameContext->getActiveActionCategory();
+        if (activeCat.empty() || activeCat == "All")
         {
-            static constexpr SexStance soloStances[] = { SexStance::SOLO_BED, SexStance::SOLO_CHAIR, SexStance::SOLO_STANDING };
-            for (SexStance st : soloStances)
+            activeCat = "Generic";
+            gameContext->selectActionCategory("Generic");
+        }
+        const auto& actions = sex->getAvailableActions();
+
+        // 1. Position / Stances Tab
+        if (activeCat == "Position" || activeCat == "Stances" || activeCat == "Stance")
+        {
+            if (sex->isSolo())
             {
-                if (st != sex->getStance())
+                static constexpr SexStance soloStances[] = { SexStance::SOLO_BED, SexStance::SOLO_CHAIR, SexStance::SOLO_STANDING };
+                for (SexStance st : soloStances)
                 {
-                    addBtn(gameContext, std::format("Pos: {}", sexStanceToString(st)), [gameContext, sex, st]() {
+                    bool isCurrent = (st == sex->getStance());
+                    std::string label = (st == SexStance::SOLO_BED) ? "In Bed" : ((st == SexStance::SOLO_CHAIR) ? "Seated" : "Standing Solo");
+                    if (isCurrent) label += " [*]";
+                    addBtn(gameContext, label, [gameContext, sex, st]() {
                         sex->changeStance(st);
                         gameContext->refreshActionGrid();
-                    });
+                    }, !isCurrent, isCurrent, std::format("Assume the {} position.", sexStanceToString(st)));
+                }
+            }
+            else
+            {
+                float pDom = sex->getPlayerDominance();
+                struct StanceDef {
+                    SexStance stance;
+                    const char* domName;
+                    const char* subName;
+                    const char* switchName;
+                };
+
+                static constexpr StanceDef partnerStances[] = {
+                    { SexStance::MISSIONARY,  "Take Missionary",    "Request Missionary", "Shift to Missionary" },
+                    { SexStance::FROM_BEHIND, "Push to All Fours",  "Offer Backside",     "Shift to All Fours" },
+                    { SexStance::KNEELING,    "Force to Knees",     "Drop to Knees",      "Move to Kneeling" },
+                    { SexStance::STANDING,    "Stand & Press",      "Offer Standing",     "Stand Together" },
+                    { SexStance::LAP_SITTING, "Pull into Lap",      "Offer Lap",          "Guide into Lap" },
+                    { SexStance::COWGIRL,     "Demand Cowgirl",     "Beg to Ride",        "Switch to Cowgirl" },
+                    { SexStance::LOTUS,       "Pull into Lotus",    "Offer Embrace",      "Wrap in Lotus" },
+                    { SexStance::PRONE_BONE,  "Pin Face Down",      "Offer Prone",        "Lay Flat" }
+                };
+
+                for (const auto& sd : partnerStances)
+                {
+                    bool isCurrent = (sd.stance == sex->getStance());
+                    std::string label;
+                    if (pDom > 25.0f) label = sd.domName;
+                    else if (pDom < -25.0f) label = sd.subName;
+                    else label = sd.switchName;
+
+                    if (isCurrent) label += " [*]";
+                    SexStance targetStance = sd.stance;
+                    addBtn(gameContext, label, [gameContext, targetStance]() {
+                        gameContext->handleCommand({ CommandType::CHANGE_SEX_STANCE, static_cast<int>(targetStance), 0, "" });
+                    }, !isCurrent, isCurrent, std::format("Move or request to transition to {}.", sexStanceToString(targetStance)));
                 }
             }
         }
-        else if (sex->isPlayerDominant())
+        else
         {
-            static constexpr SexStance stances[] = { SexStance::MISSIONARY, SexStance::FROM_BEHIND, SexStance::KNEELING, SexStance::STANDING, SexStance::LAP_SITTING };
-            for (SexStance st : stances)
+            // Stop ongoing continuous action buttons for each active player action
+            auto playerOngoing = sex->getOngoingActionsForParticipant(0);
+            for (const auto* ongoing : playerOngoing)
             {
-                if (st != sex->getStance())
+                std::string stopLabel = std::format("Stop {}", ongoing->actionName);
+                std::string actId = ongoing->actionId;
+                addBtn(gameContext, stopLabel, [gameContext, sex, actId]() {
+                    sex->stopActionById(actId, gameContext);
+                }, true, true, std::format("Disengage and stop your ongoing action '{}'.", ongoing->actionName));
+            }
+
+            // Target Partner switching in multi-participant scenes (under Partner tab)
+            if (activeCat == "Partner" && sex->getParticipantCount() > 2)
+            {
+                const auto& parts = sex->getParticipants();
+                for (size_t pIdx = 0; pIdx < parts.size(); ++pIdx)
                 {
-                    addBtn(gameContext, std::format("Stance: {}", sexStanceToString(st)), [gameContext, st]() {
-                        gameContext->handleCommand({ CommandType::CHANGE_SEX_STANCE, static_cast<int>(st), 0, "" });
-                    });
+                    if (parts[pIdx].isPlayer) continue;
+                    bool isTarget = (pIdx == sex->getTargetParticipantIndex());
+                    addBtn(gameContext, std::format("Target: {}{}", parts[pIdx].getName(), isTarget ? " [*]" : ""), [gameContext, pIdx]() {
+                        gameContext->handleCommand({ CommandType::SELECT_SEX_TARGET, static_cast<int>(pIdx), 0, "" });
+                    }, !isTarget, isTarget, std::format("Focus interactions on {}.", parts[pIdx].getName()));
                 }
+            }
+
+            // In Generic tab, include Undress All buttons, Struggle, and End Encounter
+            if (activeCat == "Generic")
+            {
+                entity* playerEnt = gameContext->getPlayer();
+                entity* targetEnt = sex->isSolo() ? nullptr : sex->getTargetEntity();
+
+                bool playerHasClothes = playerEnt && !playerEnt->inventory.isFullyExposed();
+                std::string playerUndressTip = playerHasClothes
+                    ? "Strip away all your clothing to expose yourself completely."
+                    : "You are already unclothed.\n[Inaccessible: You are already unclothed.]";
+                addBtn(gameContext, "Undress All (Self)", [gameContext, sex]() {
+                    sex->handleUndressAll(gameContext, true);
+                }, playerHasClothes, false, playerUndressTip);
+
+                if (!sex->isSolo() && targetEnt)
+                {
+                    const SexParticipant* targetP = sex->getTargetParticipant();
+                    std::string pName = targetP ? targetP->getName() : "Partner";
+                    bool targetHasClothes = !targetEnt->inventory.isFullyExposed();
+                    std::string targetUndressTip = targetHasClothes
+                        ? std::format("Strip away all of {}'s clothing, exposing them completely.", pName)
+                        : std::format("{} is already unclothed.\n[Inaccessible: {} is already unclothed.]", pName, pName);
+                    addBtn(gameContext, "Undress All (Partner)", [gameContext, sex]() {
+                        sex->handleUndressAll(gameContext, false);
+                    }, targetHasClothes, false, targetUndressTip);
+                }
+
+                if (!sex->isConsensual() || sex->getPlayerDominance() < 25.0f)
+                {
+                    addBtn(gameContext, "Struggle", [gameContext, sex]() {
+                        sex->handleStruggle(gameContext);
+                    }, true, false, "Attempt to break free from your partner's hold and seize control.");
+                }
+
+                addBtn(gameContext, sex->isSolo() ? "Finish & Rest" : "End Encounter", [gameContext, sex]() {
+                    gameContext->handleCommand({ CommandType::END_SEX_SCENE, 0, 0, "" });
+                }, true, false, "Conclude the intimate encounter.");
+            }
+
+            const SexParticipant* playerP = sex->getPlayerParticipant();
+            const SexParticipant* targetP = sex->isSolo() ? playerP : sex->getTargetParticipant();
+
+            // Category Actions (Filtered strictly by active category)
+            for (size_t i = 0; i < actions.size(); ++i)
+            {
+                if (actions[i].category != activeCat) continue;
+
+                // Generic strip actions are filtered out so they only appear via paperdoll clothing selection and Undress All buttons
+                if (actions[i].id == "generic_cmd_strip" || actions[i].id == "generic_undress_mutual" ||
+                    actions[i].id == "partner_strip" || actions[i].id == "self_strip" || actions[i].id == "sub_strip_offer")
+                {
+                    continue;
+                }
+
+                std::string desc = actions[i].description;
+                std::string effects;
+                if (sex->isSolo())
+                {
+                    effects = std::format("Arousal: +{:.0f}", actions[i].arousalGainSelf);
+                }
+                else
+                {
+                    effects = std::format("Self Arousal: +{:.0f} | Partner: +{:.0f} | Dom Shift: {:+.0f}",
+                                          actions[i].arousalGainSelf, actions[i].arousalGainPartner, actions[i].dominanceShift);
+                }
+                if (actions[i].isContinuous)
+                {
+                    effects += " | [Continuous]";
+                }
+
+                // Check clothing & body part accessibility
+                std::string inaccReason;
+                bool accessible = true;
+                if (playerP && targetP)
+                {
+                    accessible = sex->isActionAccessible(actions[i], *playerP, *targetP, &inaccReason);
+                }
+
+                std::string fullDesc = desc.empty() ? effects : std::format("{}\n({})", desc, effects);
+                if (!accessible && !inaccReason.empty())
+                {
+                    fullDesc += std::format("\n[Inaccessible: {}]", inaccReason);
+                }
+
+                std::string actId = actions[i].id;
+                addBtn(gameContext, actions[i].name, [gameContext, i, actId]() {
+                    gameContext->handleCommand({ CommandType::EXECUTE_SEX_ACTION, static_cast<int>(i), 0, actId });
+                }, accessible, false, fullDesc);
             }
         }
 
@@ -743,47 +990,75 @@ void ActionGridManager::refresh(game* gameContext)
         const auto& records = resState->getDefeatedRecords();
         size_t selectedIdx = resState->getSelectedIndex();
 
-        if (records.size() > 1)
-        {
-            for (size_t i = 0; i < records.size(); ++i)
-            {
-                addBtn(gameContext, std::format("Target: {}", records[i].npc ? records[i].npc->name : "Enemy"), [gameContext, i]() {
-                    gameContext->handleCommand({ CommandType::SELECT_RESOLUTION_TARGET, static_cast<int>(i), 0, "" });
-                }, i != selectedIdx);
-            }
-        }
-
         if (selectedIdx < records.size())
         {
             const auto& rec = records[selectedIdx];
-            addBtn(gameContext, rec.isLooted ? "Looted" : "Loot Items & Gold", [gameContext]() {
-                gameContext->handleCommand({ CommandType::LOOT_ENEMY, 0, 0, "" });
-            }, !rec.isLooted);
+            bool canTransform = (rec.npc && rec.npc->canTransform());
 
-            addBtn(gameContext, rec.isStripped ? "Stripped" : "Strip Clothing", [gameContext]() {
-                gameContext->handleCommand({ CommandType::STRIP_ENEMY, 0, 0, "" });
-            }, !rec.isStripped);
+            // Slot 0: Inventory
+            addBtn(gameContext, "Loot & Equipment", [gameContext]() {
+                gameContext->handleCommand({ CommandType::OPEN_INVENTORY, 0, 0, "" });
+            }, true, false, "Open dual-inventory to inspect, unequip, and take the adversary's carried items and equipment.");
 
-            addBtn(gameContext, rec.hadSex ? "Erotic Interaction (Repeat)" : "Interactive Sex", [gameContext]() {
-                gameContext->handleCommand({ CommandType::INTERACTIVE_SEX, 0, 0, "" });
-            });
+            bool nonConNever = (gameContext->settings.content.getFetishRating("Non-Consent") == 0);
+            bool isNonConBlocked = (!gameContext->settings.content.nonConEnabled || nonConNever) &&
+                                   (gameContext->settings.content.contentFilterMode == ContentFilterMode::BLOCK_AND_SKIP);
+            bool isNonConWarn = nonConNever && (gameContext->settings.content.contentFilterMode == ContentFilterMode::WARN_CONFIRM);
 
-            addBtn(gameContext, rec.isSubjugated ? "Subjugated" : "Subjugate", [gameContext]() {
-                gameContext->handleCommand({ CommandType::SUBJUGATE_ENEMY, 0, 0, "" });
-            }, !rec.isSubjugated);
+            // Slot 1: Dom
+            std::string domLabel = isNonConBlocked ? "[Locked: Non-Con]" : (isNonConWarn ? "[!] Dom Scene" : "Dom Scene");
+            addBtn(gameContext, domLabel, [gameContext]() {
+                gameContext->handleCommand({ CommandType::INTERACTIVE_SEX_DOM, 0, 0, "" });
+            }, !isNonConBlocked, false, isNonConBlocked ? "Non-consensual scenes are blocked by your Content Settings." : "Initiate an intimate encounter taking the dominant lead.");
 
-            addBtn(gameContext, rec.isReleased ? "Released" : "Release", [gameContext]() {
-                gameContext->handleCommand({ CommandType::RELEASE_ENEMY, 0, 0, "" });
-            }, !rec.isReleased);
+            // Slot 2: Sub
+            std::string subLabel = isNonConBlocked ? "[Locked: Non-Con]" : (isNonConWarn ? "[!] Sub Scene" : "Sub Scene");
+            addBtn(gameContext, subLabel, [gameContext]() {
+                gameContext->handleCommand({ CommandType::INTERACTIVE_SEX_SUB, 0, 0, "" });
+            }, !isNonConBlocked, false, isNonConBlocked ? "Non-consensual scenes are blocked by your Content Settings." : "Initiate an intimate encounter in a submissive role.");
 
-            addBtn(gameContext, rec.isPermanentlyRemoved ? "Permanently Removed" : "Permanently Remove", [gameContext]() {
+            // Slot 3: Transform (enabled if enemy can transform itself)
+            addBtn(gameContext, "Transform", [gameContext]() {
+                gameContext->handleCommand({ CommandType::TRANSFORM_ENEMY, 0, 0, "" });
+            }, canTransform, false, canTransform
+                ? "Enter transformation studio to customize this adversary's anatomy to your liking."
+                : "This enemy does not possess metamorphic abilities to transform.");
+
+            // Slot 4: Talk
+            addBtn(gameContext, "Talk", [gameContext]() {
+                gameContext->handleCommand({ CommandType::TALK_ENEMY, 0, 0, "" });
+            }, true, false, "Speak with the defeated adversary to build rapport and befriend them.");
+
+            // Row 1 (Slots 5..9): Target Selection if multiple enemies
+            if (records.size() > 1)
+            {
+                padButtonsTo(gameContext, 5);
+                for (size_t i = 0; i < records.size() && i < 5; ++i)
+                {
+                    addBtn(gameContext, std::format("Target: {}", records[i].npc ? records[i].npc->name : "Enemy"), [gameContext, i]() {
+                        gameContext->handleCommand({ CommandType::SELECT_RESOLUTION_TARGET, static_cast<int>(i), 0, "" });
+                    }, i != selectedIdx);
+                }
+            }
+
+            // Row 2: Slot 10 (Bottom-Left) = Remove Character
+            padButtonsTo(gameContext, 10);
+            addBtn(gameContext, rec.isPermanentlyRemoved ? "Removed" : "Remove Character", [gameContext]() {
                 gameContext->handleCommand({ CommandType::PERMANENTLY_REMOVE_ENEMY, 0, 0, "" });
-            }, !rec.isPermanentlyRemoved);
-        }
+            }, !rec.isPermanentlyRemoved, false, "Permanently remove this defeated enemy from the area, preventing respawns.");
 
-        addBackBtn(gameContext, "Leave Resolution Hub", [gameContext]() {
-            gameContext->handleCommand({ CommandType::CLOSE_MENU, 0, 0, "" });
-        });
+            // Row 2: Slot 14 (Bottom-Right) = Continue
+            padButtonsTo(gameContext, 14);
+            addBtn(gameContext, "Continue", [gameContext]() {
+                gameContext->handleCommand({ CommandType::CLOSE_MENU, 0, 0, "" });
+            }, true, false, "Leave the resolution hub and return to exploration.");
+        }
+        else
+        {
+            addBackBtn(gameContext, "Continue", [gameContext]() {
+                gameContext->handleCommand({ CommandType::CLOSE_MENU, 0, 0, "" });
+            });
+        }
         return;
     }
 
@@ -825,46 +1100,82 @@ void ActionGridManager::refresh(game* gameContext)
         else if (gameContext->map)
         {
             const auto& td = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
-            hasGroundItems = !td.droppedItems.empty();
+            hasGroundItems = !td.droppedItems.empty() || td.droppedCurrency > 0.0f;
         }
 
         if (gameContext->selectedEquipmentSlot != equipSlot::NONE)
         {
-            auto eqItem = p ? p->inventory.getEquippedItem(gameContext->selectedEquipmentSlot) : nullptr;
-            DisplacementMode currentDisp = p ? p->inventory.getDisplacement(gameContext->selectedEquipmentSlot) : DisplacementMode::NONE;
+            if (gameContext->selectedEquipmentSide == 1 && gameContext->getActiveTargetNPC())
+            {
+                entity* targetNpc = gameContext->getActiveTargetNPC();
+                auto eqItem = targetNpc->inventory.getEquippedItem(gameContext->selectedEquipmentSlot);
+                bool canTake = (eqItem != nullptr);
+                std::string takeDesc = canTake ? ("Transfer " + eqItem->name + " directly into your backpack.") : "No item equipped in this slot.";
+                addBtn(gameContext, "Take Equipment", [gameContext]() {
+                    gameContext->handleTakeNPCEquipmentAction(gameContext->selectedEquipmentSlot);
+                }, canTake, false, takeDesc);
 
-            bool canUnequip = (eqItem != nullptr);
-            std::string unequipDesc = canUnequip ? ("Unequip " + eqItem->name + " back into inventory.") : "No item equipped in this socket to unequip.";
-            addBtn(gameContext, "Unequip", [gameContext]() { gameContext->handleUnequipAction(gameContext->selectedEquipmentSlot); }, canUnequip, false, unequipDesc);
+                bool canUnequip = (eqItem != nullptr);
+                std::string unequipDesc = canUnequip ? ("Unequip " + eqItem->name + " into " + targetNpc->name + "'s backpack.") : "No item equipped in this slot.";
+                addBtn(gameContext, "Unequip to NPC Bag", [gameContext]() {
+                    gameContext->handleUnequipNPCAction(gameContext->selectedEquipmentSlot);
+                }, canUnequip, false, unequipDesc);
 
-            bool canPullAside = (eqItem != nullptr && eqItem->supportedDisplacements.contains(DisplacementMode::PULL_ASIDE));
-            addBtn(gameContext, "Pull Aside", [gameContext]() {
-                if (auto pl = gameContext->getPlayer()) { pl->inventory.setDisplacement(gameContext->selectedEquipmentSlot, DisplacementMode::PULL_ASIDE); gameContext->refreshActionGrid(); }
-            }, canPullAside, false, canPullAside ? "Pull garment aside to expose underlying body." : "Garment does not support pulling aside.");
+                // If player has an item selected in backpack that matches this NPC slot, allow equipping directly
+                if (gameContext->selectedInventorySide == 0 && gameContext->selectedInventoryIndex != -1)
+                {
+                    auto selSlot = gameContext->getInventorySlotItem(0, gameContext->selectedInventoryIndex);
+                    if (selSlot.isValid && selSlot.itemPtr && selSlot.itemPtr->isEquippable)
+                    {
+                        auto vSlots = selSlot.itemPtr->getValidEquipSlots();
+                        if (std::find(vSlots.begin(), vSlots.end(), gameContext->selectedEquipmentSlot) != vSlots.end())
+                        {
+                            std::string eqLabel = std::format("Equip {} here", selSlot.itemPtr->name);
+                            bool isEnslave = gameContext->isEnslavingItem(selSlot.itemPtr.get());
+                            std::string desc = isEnslave
+                                ? std::format("Equip enslaving {} on {} to bind them in servitude!", selSlot.itemPtr->name, targetNpc->name)
+                                : std::format("Equip {} onto {}.", selSlot.itemPtr->name, targetNpc->name);
 
-            bool canLift = (eqItem != nullptr && (eqItem->supportedDisplacements.contains(DisplacementMode::LIFT_UP) || eqItem->supportedDisplacements.contains(DisplacementMode::PULL_DOWN)));
-            addBtn(gameContext, "Pull Up / Down", [gameContext]() {
-                if (auto pl = gameContext->getPlayer()) { pl->inventory.setDisplacement(gameContext->selectedEquipmentSlot, DisplacementMode::LIFT_UP); gameContext->refreshActionGrid(); }
-            }, canLift, false, canLift ? "Lift or lower garment." : "Garment does not support pulling up or down.");
+                            addBtn(gameContext, eqLabel, [gameContext]() {
+                                gameContext->handleEquipOnNPCAction(gameContext->selectedInventoryIndex, gameContext->selectedEquipmentSlot);
+                            }, true, false, desc);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                auto eqItem = p ? p->inventory.getEquippedItem(gameContext->selectedEquipmentSlot) : nullptr;
+                DisplacementMode currentDisp = p ? p->inventory.getDisplacement(gameContext->selectedEquipmentSlot) : DisplacementMode::NONE;
 
-            bool canUnbutton = (eqItem != nullptr && eqItem->supportedDisplacements.contains(DisplacementMode::UNBUTTON));
-            addBtn(gameContext, "Unbutton / Open", [gameContext]() {
-                if (auto pl = gameContext->getPlayer()) { pl->inventory.setDisplacement(gameContext->selectedEquipmentSlot, DisplacementMode::UNBUTTON); gameContext->refreshActionGrid(); }
-            }, canUnbutton, false, canUnbutton ? "Unfasten buttons or open closures." : "Garment does not have buttons or openings.");
+                bool canUnequip = (eqItem != nullptr);
+                std::string unequipDesc = canUnequip ? ("Unequip " + eqItem->name + " back into inventory.") : "No item equipped in this socket to unequip.";
+                addBtn(gameContext, "Unequip", [gameContext]() { gameContext->handleUnequipAction(gameContext->selectedEquipmentSlot); }, canUnequip, false, unequipDesc);
 
-            bool canReset = (eqItem != nullptr && currentDisp != DisplacementMode::NONE);
-            addBtn(gameContext, "Reset Fit", [gameContext]() {
-                if (auto pl = gameContext->getPlayer()) { pl->inventory.setDisplacement(gameContext->selectedEquipmentSlot, DisplacementMode::NONE); gameContext->refreshActionGrid(); }
-            }, canReset, false, canReset ? "Restore garment to properly worn placement." : "Garment is already worn normally.");
+                bool canPullAside = (eqItem != nullptr && eqItem->supportedDisplacements.contains(DisplacementMode::PULL_ASIDE));
+                addBtn(gameContext, "Pull Aside", [gameContext]() {
+                    if (auto pl = gameContext->getPlayer()) { pl->inventory.setDisplacement(gameContext->selectedEquipmentSlot, DisplacementMode::PULL_ASIDE); gameContext->refreshActionGrid(); }
+                }, canPullAside, false, canPullAside ? "Pull garment aside to expose underlying body." : "Garment does not support pulling aside.");
 
-            addBtn(gameContext, "Reset All Fits", [gameContext]() {
-                gameContext->handleResetAllDisplacementsAction();
-            }, hasDisplacement, false, "Restore all displaced garments to properly worn placement.");
+                bool canLift = (eqItem != nullptr && (eqItem->supportedDisplacements.contains(DisplacementMode::LIFT_UP) || eqItem->supportedDisplacements.contains(DisplacementMode::PULL_DOWN)));
+                addBtn(gameContext, "Pull Up / Down", [gameContext]() {
+                    if (auto pl = gameContext->getPlayer()) { pl->inventory.setDisplacement(gameContext->selectedEquipmentSlot, DisplacementMode::LIFT_UP); gameContext->refreshActionGrid(); }
+                }, canLift, false, canLift ? "Lift or lower garment." : "Garment does not support pulling up or down.");
 
-            addBtn(gameContext, "Deselect Slot", [gameContext]() {
-                gameContext->selectedEquipmentSlot = equipSlot::NONE;
-                gameContext->refreshActionGrid();
-            }, true, false, "Clear slot selection and return to general inventory actions.");
+                bool canUnbutton = (eqItem != nullptr && eqItem->supportedDisplacements.contains(DisplacementMode::UNBUTTON));
+                addBtn(gameContext, "Unbutton / Open", [gameContext]() {
+                    if (auto pl = gameContext->getPlayer()) { pl->inventory.setDisplacement(gameContext->selectedEquipmentSlot, DisplacementMode::UNBUTTON); gameContext->refreshActionGrid(); }
+                }, canUnbutton, false, canUnbutton ? "Unfasten buttons or open closures." : "Garment does not have buttons or openings.");
+
+                bool canReset = (eqItem != nullptr && currentDisp != DisplacementMode::NONE);
+                addBtn(gameContext, "Reset Fit", [gameContext]() {
+                    if (auto pl = gameContext->getPlayer()) { pl->inventory.setDisplacement(gameContext->selectedEquipmentSlot, DisplacementMode::NONE); gameContext->refreshActionGrid(); }
+                }, canReset, false, canReset ? "Restore garment to properly worn placement." : "Garment is already worn normally.");
+
+                addBtn(gameContext, "Reset All Fits", [gameContext]() {
+                    gameContext->handleResetAllDisplacementsAction();
+                }, hasDisplacement, false, "Restore all displaced garments to properly worn placement.");
+            }
         }
         else if (gameContext->selectedInventoryIndex != -1)
         {
@@ -889,6 +1200,24 @@ void ActionGridManager::refresh(game* gameContext)
                             addBtn(gameContext, btnLabel, [gameContext, s]() {
                                 gameContext->handleEquipAction(gameContext->selectedInventoryIndex, s);
                             }, true, false, desc);
+                        }
+
+                        if (hasNpc)
+                        {
+                            entity* targetNpc = gameContext->getActiveTargetNPC();
+                            bool isEnslave = gameContext->isEnslavingItem(slotInfo.itemPtr.get());
+                            for (equipSlot s : validSlots)
+                            {
+                                std::string slotName = gameContext->formatEquipSlotName(s);
+                                std::string btnLabel = std::format("Equip on {} ({})", targetNpc ? targetNpc->name : "NPC", slotName);
+                                std::string desc = isEnslave
+                                    ? std::format("Equip enslaving {} on {} to bind them in servitude!", slotInfo.itemPtr->name, targetNpc ? targetNpc->name : "enemy")
+                                    : std::format("Equip {} onto {}.", slotInfo.itemPtr->name, targetNpc ? targetNpc->name : "enemy");
+
+                                addBtn(gameContext, btnLabel, [gameContext, s]() {
+                                    gameContext->handleEquipOnNPCAction(gameContext->selectedInventoryIndex, s);
+                                }, true, false, desc);
+                            }
                         }
                     }
 
@@ -952,12 +1281,15 @@ void ActionGridManager::refresh(game* gameContext)
             {
                 std::string take1 = hasNpc ? "Take 1" : "Pickup 1";
                 std::string takeAll = hasNpc ? "Take All" : "Pickup All";
-                addBtn(gameContext, take1, [gameContext]() { gameContext->handlePickupAction(gameContext->selectedInventoryIndex, 1); }, slotInfo.isValid, false, "Take 1 item into your backpack.");
-                addBtn(gameContext, takeAll, [gameContext]() { gameContext->handlePickupAction(gameContext->selectedInventoryIndex, 999); }, slotInfo.isValid, false, "Take entire stack into your backpack.");
+                addBtn(gameContext, take1, [gameContext]() { gameContext->handlePickupAction(gameContext->selectedInventoryIndex, 1); }, slotInfo.isValid, false, hasNpc ? "Take 1 item into your backpack." : "Pick up 1 item from the ground.");
+                addBtn(gameContext, takeAll, [gameContext]() { gameContext->handlePickupAction(gameContext->selectedInventoryIndex, 999); }, slotInfo.isValid, false, hasNpc ? "Take entire stack into your backpack." : "Pick up entire stack from the ground.");
 
-                addBtn(gameContext, "Loot All", [gameContext]() {
-                    gameContext->handleLootAllAction();
-                }, hasGroundItems, false, "Pick up all items from the ground into your backpack.");
+                if (!hasNpc)
+                {
+                    addBtn(gameContext, "Loot All", [gameContext]() {
+                        gameContext->handleLootAllAction();
+                    }, hasGroundItems, false, "Pick up all items from the ground into your backpack.");
+                }
 
                 if (slotInfo.isValid && slotInfo.itemPtr && slotInfo.itemPtr->isEquippable)
                 {
@@ -966,7 +1298,7 @@ void ActionGridManager::refresh(game* gameContext)
                     {
                         std::string slotName = gameContext->formatEquipSlotName(s);
                         std::string btnLabel = std::format("Equip ({})", slotName);
-                        std::string desc = std::format("Pick up and equip {} to {}.", slotInfo.itemPtr->name, slotName);
+                        std::string desc = std::format("{} and equip {} to {}.", hasNpc ? "Take" : "Pick up", slotInfo.itemPtr->name, slotName);
                         if (!slotInfo.itemPtr->tooltip.empty()) desc += " " + slotInfo.itemPtr->tooltip;
                         else if (!slotInfo.itemPtr->description.empty()) desc += " " + slotInfo.itemPtr->description;
 
@@ -985,9 +1317,49 @@ void ActionGridManager::refresh(game* gameContext)
         else
         {
             // Global Inventory Actions (nothing selected)
-            addBtn(gameContext, "Loot All", [gameContext]() {
-                gameContext->handleLootAllAction();
-            }, hasGroundItems, false, hasGroundItems ? "Transfer all items from the ground into your backpack." : "No items on the ground to loot.");
+            entity* targetNpc = gameContext->getActiveTargetNPC();
+            if (targetNpc)
+            {
+                float npcGold = targetNpc->getStat("currency");
+                bool hasNpcGold = (npcGold > 0.0f);
+                std::string goldLabel = std::format("Take Gold ({:.0f}¤)", npcGold);
+                addBtn(gameContext, goldLabel, [gameContext]() {
+                    gameContext->handleTakeNPCGoldAction();
+                }, hasNpcGold, false, hasNpcGold ? "Transfer all gold from the adversary to your purse." : "Adversary carries no gold.");
+
+                size_t npcBagCount = 0;
+                for (const auto& it : targetNpc->inventory.backpack) if (it) npcBagCount++;
+                bool hasNpcBag = (npcBagCount > 0);
+                addBtn(gameContext, "Take All Bag Items", [gameContext]() {
+                    gameContext->handleTakeAllNPCItemsAction();
+                }, hasNpcBag, false, hasNpcBag ? "Loot all backpack items from the adversary." : "Adversary backpack is empty.");
+
+                int npcEqCount = 0;
+                for (size_t s = 0; s < EQUIP_SLOT_COUNT; ++s)
+                {
+                    if (targetNpc->inventory.isEquipped(static_cast<equipSlot>(s))) npcEqCount++;
+                }
+                bool hasNpcEq = (npcEqCount > 0);
+                addBtn(gameContext, "Strip All Equipment", [gameContext]() {
+                    gameContext->handleStripAllNPCEquipmentAction();
+                }, hasNpcEq, false, hasNpcEq ? "Unequip and take all worn equipment and garments from the adversary." : "Adversary wears no equipment.");
+            }
+            else
+            {
+                float groundGold = gameContext->getTileCurrency();
+                bool hasGroundGold = (groundGold > 0.0f);
+                if (hasGroundGold)
+                {
+                    std::string goldLabel = std::format("Take Gold ({:.0f}¤)", groundGold);
+                    addBtn(gameContext, goldLabel, [gameContext, groundGold]() {
+                        gameContext->transferCurrencyFromSide1(groundGold);
+                    }, true, false, "Pick up all gold from the ground into your purse.");
+                }
+
+                addBtn(gameContext, "Loot All", [gameContext]() {
+                    gameContext->handleLootAllAction();
+                }, hasGroundItems, false, hasGroundItems ? "Transfer all items and gold from the ground into your backpack." : "No items on the ground to loot.");
+            }
 
             addBtn(gameContext, "Unequip All", [gameContext]() {
                 gameContext->handleUnequipAllAction();
@@ -1004,8 +1376,26 @@ void ActionGridManager::refresh(game* gameContext)
 
         auto inv = dynamic_cast<inventoryState*>(currentState);
         bool isSubmenu = (inv && inv->getReturnState() != nullptr);
-        std::string backLabel = isSubmenu ? "Back to Creation" : "Close (I / ESC)";
-        std::string backDesc = isSubmenu ? "Return to Character Creation." : "Return to exploration view.";
+        std::string backLabel = "Close (I / ESC)";
+        std::string backDesc = "Return to exploration view.";
+        if (isSubmenu)
+        {
+            if (dynamic_cast<encounterResolutionState*>(inv->getReturnState()))
+            {
+                backLabel = "Back to Resolution Hub";
+                backDesc = "Return to post-combat resolution hub.";
+            }
+            else if (dynamic_cast<characterCreationState*>(inv->getReturnState()))
+            {
+                backLabel = "Back to Creation";
+                backDesc = "Return to Character Creation.";
+            }
+            else
+            {
+                backLabel = "Back";
+                backDesc = "Return to previous screen.";
+            }
+        }
         addBackBtn(gameContext, backLabel, [gameContext, inv]() {
             if (inv) inv->goBack(gameContext);
             else gameContext->changeState(std::make_unique<explorationState>());
@@ -1017,7 +1407,6 @@ void ActionGridManager::refresh(game* gameContext)
     if (auto combat = dynamic_cast<CombatState*>(currentState))
     {
         auto& players = combat->getEngine().getPlayerParty();
-        int curAp = (!players.empty()) ? players[0].currentAp : 0;
         float curStamina = (!players.empty()) ? players[0].currentStamina : 0.0f;
         bool hasQueuedActions = (!players.empty() && !players[0].turnQueue.empty());
 
@@ -1066,7 +1455,7 @@ void ActionGridManager::refresh(game* gameContext)
 
             addBtn(gameContext, "Clear Queue", [combat, gameContext]() {
                 combat->handleClearQueue(gameContext);
-            }, hasQueuedActions, false, hasQueuedActions ? "Clear all queued actions and refund spent AP/Stamina/Mana." : "No actions currently queued.");
+            }, hasQueuedActions, false, hasQueuedActions ? "Clear all queued actions and refund spent Stamina/Mana." : "No actions currently queued.");
 
             addBtn(gameContext, "Surrender", [gameContext]() {
                 gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SURRENDER" });
@@ -1097,9 +1486,9 @@ void ActionGridManager::refresh(game* gameContext)
                 const WeaponSkill* ws = WeaponSkillDatabase::getSkill(sId);
                 if (ws)
                 {
-                    bool canAfford = (curStamina >= ws->staminaCost && curAp >= 1);
+                    bool canAfford = (curStamina >= ws->staminaCost);
                     std::string label = std::format("{} ({:.0f} Sta)", ws->name, ws->staminaCost);
-                    std::string tip = std::format("{}\nDamage: {:.0f}%\nType: {}\nCost: {:.0f} Stamina, 1 AP",
+                    std::string tip = std::format("{}\nDamage: {:.0f}%\nType: {}\nCost: {:.0f} Stamina",
                                                   ws->description, ws->damageMult * 100.0f, ws->damageType, ws->staminaCost);
                     addBtn(gameContext, label, [gameContext, sId]() {
                         gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, sId });
@@ -1136,7 +1525,7 @@ void ActionGridManager::refresh(game* gameContext)
 
             for (const auto& sp : spells)
             {
-                bool canAfford = (curAp >= 1 && curMp >= sp.mp && curStamina >= sp.sta);
+                bool canAfford = (curMp >= sp.mp && curStamina >= sp.sta);
                 std::string label = std::format("{} ({:.0f} MP)", sp.name, sp.mp);
                 addBtn(gameContext, label, [gameContext, sp]() {
                     gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, sp.id });
@@ -1150,7 +1539,7 @@ void ActionGridManager::refresh(game* gameContext)
 
             addBtn(gameContext, "Clear Queue", [combat, gameContext]() {
                 combat->handleClearQueue(gameContext);
-            }, hasQueuedActions, false, "Clear all queued actions and refund mana.");
+            }, hasQueuedActions, false, "Clear all queued actions and refund mana/stamina.");
 
             addBtn(gameContext, "End Turn", [combat, gameContext]() {
                 combat->handleEndTurn(gameContext);
@@ -1161,17 +1550,17 @@ void ActionGridManager::refresh(game* gameContext)
 
         if (combat->getCombatFocus() == CombatFocus::DEFENSE)
         {
-            bool canGuard = (curAp >= 1 && curStamina >= 15.0f);
+            bool canGuard = (curStamina >= 15.0f);
             addBtn(gameContext, "Guard (15 Sta)", [gameContext]() {
                 gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, "DEFENSE_GUARD" });
             }, canGuard, false, "Raise your guard to absorb incoming damage with stamina.");
 
-            bool canDodge = (curAp >= 1 && curStamina >= 20.0f);
+            bool canDodge = (curStamina >= 20.0f);
             addBtn(gameContext, "Dodge (20 Sta)", [gameContext]() {
                 gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, "DEFENSE_DODGE" });
             }, canDodge, false, "Prepare to nimbly evade enemy attacks.");
 
-            bool canParry = (curAp >= 1 && curStamina >= 25.0f);
+            bool canParry = (curStamina >= 25.0f);
             addBtn(gameContext, "Parry (25 Sta)", [gameContext]() {
                 gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, "DEFENSE_PARRY" });
             }, canParry, false, "Time a deflection to deliver counter damage.");
@@ -1194,17 +1583,17 @@ void ActionGridManager::refresh(game* gameContext)
 
         if (combat->getCombatFocus() == CombatFocus::SEDUCTION)
         {
-            bool canTease = (curAp >= 1 && curStamina >= 10.0f);
+            bool canTease = (curStamina >= 10.0f);
             addBtn(gameContext, "Tease (10 Sta)", [gameContext]() {
                 gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, "SEDUCE_TEASE" });
             }, canTease, false, "Tease target with seductive body movements (+15 Lust).");
 
-            bool canFlirt = (curAp >= 1 && curStamina >= 15.0f);
+            bool canFlirt = (curStamina >= 15.0f);
             addBtn(gameContext, "Flirt (15 Sta)", [gameContext]() {
                 gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, "SEDUCE_FLIRT" });
             }, canFlirt, false, "Whisper tantalizing promises (+25 Lust).");
 
-            bool canExpose = (curAp >= 1 && curStamina >= 20.0f);
+            bool canExpose = (curStamina >= 20.0f);
             addBtn(gameContext, "Expose Flesh (20 Sta)", [gameContext]() {
                 gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, "SEDUCE_EXPOSE" });
             }, canExpose, false, "Expose sensitive anatomy to drive foe wild (+35 Lust).");
@@ -1227,7 +1616,7 @@ void ActionGridManager::refresh(game* gameContext)
 
         if (combat->getCombatFocus() == CombatFocus::COMPANION)
         {
-            bool canCompAtk = (curAp >= 1 && curStamina >= 15.0f);
+            bool canCompAtk = (curStamina >= 15.0f);
             addBtn(gameContext, "Familiar Strike (15 Sta)", [gameContext]() {
                 gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, "COMPANION_ATTACK" });
             }, canCompAtk, false, "Command your elemental companion to unleash an elemental burst.");
@@ -1250,15 +1639,15 @@ void ActionGridManager::refresh(game* gameContext)
 
         if (combat->getCombatFocus() == CombatFocus::ITEM)
         {
-            bool canPot = (curAp >= 1 && potionCount > 0);
-            addBtn(gameContext, "Potion (1 AP)", [gameContext]() {
+            bool canPot = (potionCount > 0 && curStamina >= 5.0f);
+            addBtn(gameContext, "Health Potion (5 Sta)", [gameContext]() {
                 gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, "ITEM_POTION" });
-            }, canPot, false, canPot ? "Queue drinking a healing potion to restore 50 HP." : (curAp < 1 ? "Insufficient AP." : "No healing potions in inventory."));
+            }, canPot, false, canPot ? "Queue drinking a healing potion to restore 50 HP (costs 5 Sta)." : "No healing potions in inventory or insufficient stamina.");
 
-            bool canMana = (curAp >= 1);
-            addBtn(gameContext, "Mana Crystal (1 AP)", [gameContext]() {
+            bool canMana = (curStamina >= 5.0f);
+            addBtn(gameContext, "Mana Crystal (5 Sta)", [gameContext]() {
                 gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, "ITEM_MANA" });
-            }, canMana, false, "Queue consuming a mana crystal to restore 50 MP.");
+            }, canMana, false, "Queue consuming a mana crystal to restore 50 MP (costs 5 Sta).");
 
             addBtn(gameContext, "Back (Reset)", [combat, gameContext]() {
                 combat->setCombatFocus(CombatFocus::ROOT);
@@ -1284,6 +1673,10 @@ void ActionGridManager::refresh(game* gameContext)
         for (const auto& choice : scene.choices)
         {
             bool meetsReqs = gameContext->checkConditions(choice.requirements);
+            if (!meetsReqs && choice.hiddenUnlessMet)
+            {
+                continue;
+            }
             std::string tooltipText = choice.tooltip;
 
             ContentTagStatus choiceStatus = ContentFilterManager::evaluateChoice(gameContext->settings.content, choice);

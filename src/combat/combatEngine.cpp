@@ -93,17 +93,6 @@ float combatEngine::getElementalMultiplier(const std::string& attackElement, con
     return 1.0f;
 }
 
-int combatEngine::calculateParticipantMaxAp(const entity* ent) const
-{
-    if (!ent) return 3;
-
-    float physique = ent->getStat("physique");
-    float agility = ent->getStat("agility");
-    int bonusAp = static_cast<int>((physique + agility) / 20.0f);
-
-    return std::clamp(3 + bonusAp, 1, 6);
-}
-
 float combatEngine::calculateParticipantMaxStamina(const entity* ent) const
 {
     if (!ent) return 100.0f;
@@ -130,8 +119,6 @@ void combatEngine::initialiseCombat(const std::vector<std::shared_ptr<entity>>& 
         CombatParticipant p;
         p.character = ent;
         p.isEnemy = false;
-        p.maxAp = calculateParticipantMaxAp(ent.get());
-        p.currentAp = p.maxAp;
         p.maxStamina = calculateParticipantMaxStamina(ent.get());
         p.currentStamina = p.maxStamina;
         m_playerParty.push_back(p);
@@ -144,8 +131,6 @@ void combatEngine::initialiseCombat(const std::vector<std::shared_ptr<entity>>& 
         CombatParticipant p;
         p.character = ent;
         p.isEnemy = true;
-        p.maxAp = calculateParticipantMaxAp(ent.get());
-        p.currentAp = p.maxAp;
         p.maxStamina = calculateParticipantMaxStamina(ent.get());
         p.currentStamina = p.maxStamina;
         m_enemyParty.push_back(p);
@@ -163,27 +148,25 @@ void combatEngine::startNewRound()
 
     for (auto& p : m_playerParty)
     {
-        p.maxAp = calculateParticipantMaxAp(p.character.get());
-        p.currentAp = p.maxAp;
         p.turnQueue.clear();
         p.isGuarding = false;
         p.isDodging = false;
         p.isParrying = false;
-        float regen = 35.0f + (p.character ? p.character->getStat("agility") * 0.5f : 0.0f);
+        float regen = 40.0f + (p.character ? p.character->getStat("agility") * 0.5f : 0.0f);
         p.currentStamina = std::min(p.maxStamina, p.currentStamina + regen);
     }
 
     for (auto& p : m_enemyParty)
     {
-        p.maxAp = calculateParticipantMaxAp(p.character.get());
-        p.currentAp = p.maxAp;
         p.turnQueue.clear();
         p.isGuarding = false;
         p.isDodging = false;
         p.isParrying = false;
-        float regen = 35.0f + (p.character ? p.character->getStat("agility") * 0.5f : 0.0f);
+        float regen = 40.0f + (p.character ? p.character->getStat("agility") * 0.5f : 0.0f);
         p.currentStamina = std::min(p.maxStamina, p.currentStamina + regen);
     }
+
+    generateCompanionQueues();
 }
 
 bool combatEngine::queuePlayerAction(size_t participantIndex, const CombatAction& action, entity* target, bool isFromSecondaryGrid)
@@ -191,9 +174,7 @@ bool combatEngine::queuePlayerAction(size_t participantIndex, const CombatAction
     if (participantIndex >= m_playerParty.size()) return false;
 
     auto& p = m_playerParty[participantIndex];
-    int apCost = action.baseApCost + (isFromSecondaryGrid ? 1 : 0);
 
-    if (p.currentAp < apCost) return false;
     if (action.staminaCost > 0.0f && p.currentStamina < action.staminaCost) return false;
     if (action.manaCost > 0.0f && p.character && p.character->getStat("mana") < action.manaCost) return false;
 
@@ -201,10 +182,8 @@ bool combatEngine::queuePlayerAction(size_t participantIndex, const CombatAction
     qa.action = action;
     qa.user = p.character.get();
     qa.target = target;
-    qa.actualApCost = apCost;
 
     p.turnQueue.push_back(qa);
-    p.currentAp -= apCost;
     if (action.staminaCost > 0.0f) p.currentStamina -= action.staminaCost;
     if (action.manaCost > 0.0f && p.character) p.character->stats.modifyBaseStat("mana", -action.manaCost);
 
@@ -225,10 +204,53 @@ void combatEngine::clearPlayerQueue(size_t participantIndex)
         if (qa.action.manaCost > 0.0f && p.character) p.character->stats.modifyBaseStat("mana", qa.action.manaCost);
     }
     p.turnQueue.clear();
-    p.currentAp = p.maxAp;
     p.isGuarding = false;
     p.isDodging = false;
     p.isParrying = false;
+}
+
+void combatEngine::generateCompanionQueues()
+{
+    for (size_t i = 1; i < m_playerParty.size(); ++i)
+    {
+        auto& compP = m_playerParty[i];
+        if (!compP.character || compP.character->getStat("health") <= 0) continue;
+        if (m_enemyParty.empty()) continue;
+
+        // Target first living enemy
+        entity* enemyTarget = nullptr;
+        for (const auto& ep : m_enemyParty)
+        {
+            if (ep.character && ep.character->getStat("health") > 0 && ep.character->getStat("lust") < 100)
+            {
+                enemyTarget = ep.character.get();
+                break;
+            }
+        }
+        if (!enemyTarget && !m_enemyParty.empty()) enemyTarget = m_enemyParty[0].character.get();
+        if (!enemyTarget) continue;
+
+        if (compP.turnQueue.empty() && compP.currentStamina >= 15.0f)
+        {
+            CombatAction cAct;
+            std::string cElem = compP.character->elementalType.empty() ? "air" : compP.character->elementalType;
+            cAct.id = "companion_strike_" + cElem;
+            cAct.name = compP.character->name + " " + (cElem == "fire" ? "Flame Burst" : (cElem == "water" ? "Aqua Splash" : (cElem == "earth" ? "Rock Toss" : "Gale Gust")));
+            cAct.staminaCost = 15.0f;
+            SpellEffectNode dmgNode;
+            dmgNode.effectType = "DAMAGE";
+            dmgNode.element = cElem;
+            dmgNode.baseMagnitude = std::max(12.0f, compP.character->getStat("arcane") * 0.8f + compP.character->getStat("physique") * 0.5f);
+            cAct.effectNodes.push_back(dmgNode);
+
+            QueuedAction qa;
+            qa.action = cAct;
+            qa.user = compP.character.get();
+            qa.target = enemyTarget;
+            compP.turnQueue.push_back(qa);
+            compP.currentStamina -= 15.0f;
+        }
+    }
 }
 
 void combatEngine::generateNpcQueues()
@@ -240,13 +262,12 @@ void combatEngine::generateNpcQueues()
 
         entity* playerTarget = m_playerParty[0].character.get();
 
-        while (enemyP.currentAp >= 1)
+        while (enemyP.currentStamina >= 20.0f)
         {
             CombatAction strike;
             strike.id = "action_basic_strike";
             strike.name = "Strike";
-            strike.baseApCost = 1;
-            strike.staminaCost = 15.0f;
+            strike.staminaCost = 20.0f;
 
             SpellEffectNode dmgNode;
             dmgNode.effectType = "DAMAGE";
@@ -258,16 +279,16 @@ void combatEngine::generateNpcQueues()
             qa.action = strike;
             qa.user = enemyP.character.get();
             qa.target = playerTarget;
-            qa.actualApCost = 1;
 
             enemyP.turnQueue.push_back(qa);
-            enemyP.currentAp -= 1;
+            enemyP.currentStamina -= 20.0f;
         }
     }
 }
 
 void combatEngine::resolveTurn(game* g)
 {
+    generateCompanionQueues();
     generateNpcQueues();
 
     std::vector<QueuedAction> allActions;

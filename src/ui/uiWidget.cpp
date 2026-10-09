@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <sstream>
 #include <string_view>
+#include <unordered_map>
+#include <SDL3_image/SDL_image.h>
 
 namespace UIWidget
 {
@@ -244,5 +246,29 @@ namespace UIWidget
     float getLineHeight(float scale)
     {
         return ::fontManager::getInstance().getLineHeight(scale);
+    }
+
+    static std::unordered_map<std::string, SDL_Texture*> s_itemTextureCache;
+
+    SDL_Texture* getItemTexture(SDL_Renderer* renderer, const std::string& imagePath)
+    {
+        if (imagePath.empty() || !renderer) return nullptr;
+        auto it = s_itemTextureCache.find(imagePath);
+        if (it != s_itemTextureCache.end())
+        {
+            return it->second;
+        }
+        SDL_Texture* tex = IMG_LoadTexture(renderer, imagePath.c_str());
+        s_itemTextureCache[imagePath] = tex;
+        return tex;
+    }
+
+    void clearTextureCache()
+    {
+        for (auto& [path, tex] : s_itemTextureCache)
+        {
+            if (tex) SDL_DestroyTexture(tex);
+        }
+        s_itemTextureCache.clear();
     }
 }

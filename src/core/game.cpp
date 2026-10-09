@@ -28,7 +28,10 @@
 #include "state/mainMenuState.h"
 #include "state/optionsState.h"
 #include "state/phoneAppsState.h"
+#include "state/sexState.h"
 #include "state/shopState.h"
+#include "state/enchantingState.h"
+#include "state/encounterResolutionState.h"
 #include "state/transformationState.h"
 #include "ui/actionGridManager.h"
 
@@ -57,6 +60,7 @@ void game::changeState(std::unique_ptr<iGameState> newState)
         activeGameState->initialise(this);
         activeGameState->onEnter(this);
     }
+    refreshActionGrid();
 }
 
 void game::triggerActionButton(int slotIndex)
@@ -71,6 +75,45 @@ void game::triggerActionButton(int slotIndex)
             cb();
         }
     }
+}
+
+void game::setActionCategories(const std::vector<std::string>& categories, const std::string& defaultCategory)
+{
+    actionCategories = categories;
+    bool currentStillValid = (!activeActionCategory.empty() &&
+        std::find(actionCategories.begin(), actionCategories.end(), activeActionCategory) != actionCategories.end());
+
+    if (!currentStillValid)
+    {
+        if (!defaultCategory.empty() && std::find(actionCategories.begin(), actionCategories.end(), defaultCategory) != actionCategories.end())
+        {
+            activeActionCategory = defaultCategory;
+        }
+        else if (!actionCategories.empty())
+        {
+            activeActionCategory = actionCategories.front();
+        }
+        else
+        {
+            activeActionCategory = "";
+        }
+        currentActionPage = 0;
+    }
+}
+
+void game::clearActionCategories()
+{
+    actionCategories.clear();
+    activeActionCategory = "";
+    currentActionPage = 0;
+}
+
+void game::selectActionCategory(const std::string& category)
+{
+    activeActionCategory = category;
+    currentActionPage = 0;
+    selectedEquipmentSlot = equipSlot::NONE;
+    refreshActionGrid();
 }
 
 void game::previousActionPage()
@@ -923,6 +966,12 @@ void game::handleLootAllAction()
             if (entry.itemPtr) Player->inventory.addItem(std::make_shared<item>(*entry.itemPtr));
         }
         tileData.droppedItems.clear();
+        if (tileData.droppedCurrency > 0.0f)
+        {
+            Player->stats.modifyBaseStat("currency", tileData.droppedCurrency);
+            addLogEntry("[LOOT]", std::format("Picked up {:.0f}¤ from the ground.", tileData.droppedCurrency), { 220, 180, 80, 255 });
+            tileData.droppedCurrency = 0.0f;
+        }
     }
 
     selectedInventoryIndex = -1;
@@ -979,6 +1028,283 @@ void game::handleResetAllDisplacementsAction()
     refreshActionGrid();
 }
 
+void game::handleUnequipNPCAction(equipSlot slot)
+{
+    if (!activeTargetNPC || slot == equipSlot::NONE) return;
+    auto itemPtr = activeTargetNPC->inventory.getEquippedItem(slot);
+    if (!itemPtr) return;
+
+    if (activeTargetNPC->inventory.unequipItem(slot))
+    {
+        addLogEntry("[ITEM]", std::format("Unequipped {} to {}'s backpack.", itemPtr->name, activeTargetNPC->name), { 180, 180, 190, 255 });
+        selectedEquipmentSlot = equipSlot::NONE;
+        refreshActionGrid();
+    }
+}
+
+void game::handleTakeNPCEquipmentAction(equipSlot slot)
+{
+    if (!Player || !activeTargetNPC || slot == equipSlot::NONE) return;
+    auto itemPtr = activeTargetNPC->inventory.getEquippedItem(slot);
+    if (!itemPtr) return;
+
+    activeTargetNPC->inventory.equipped[static_cast<size_t>(slot)] = nullptr;
+    activeTargetNPC->inventory.equipVersion++;
+    activeTargetNPC->inventory.activeDisplacements.erase(slot);
+
+    Player->inventory.addItem(itemPtr);
+    addLogEntry("[LOOT]", std::format("Took {} from {}.", itemPtr->name, activeTargetNPC->name), { 220, 180, 80, 255 });
+
+    selectedEquipmentSlot = equipSlot::NONE;
+    refreshActionGrid();
+}
+
+void game::handleStripAllNPCEquipmentAction()
+{
+    if (!Player || !activeTargetNPC) return;
+    int takenCount = 0;
+    for (size_t s = 0; s < EQUIP_SLOT_COUNT; ++s)
+    {
+        equipSlot slot = static_cast<equipSlot>(s);
+        auto itemPtr = activeTargetNPC->inventory.getEquippedItem(slot);
+        if (itemPtr)
+        {
+            activeTargetNPC->inventory.equipped[s] = nullptr;
+            activeTargetNPC->inventory.activeDisplacements.erase(slot);
+            Player->inventory.addItem(itemPtr);
+            takenCount++;
+        }
+    }
+    if (takenCount > 0)
+    {
+        activeTargetNPC->inventory.equipVersion++;
+        addLogEntry("[LOOT]", std::format("Stripped {} pieces of equipment from {}.", takenCount, activeTargetNPC->name), { 220, 180, 80, 255 });
+    }
+    selectedEquipmentSlot = equipSlot::NONE;
+    refreshActionGrid();
+}
+
+bool game::isEnslavingItem(const item* it)
+{
+    if (!it) return false;
+    for (const auto& inf : it->infusionEffects)
+    {
+        if (inf.property == AspectProperty::SERVITUDE_INHIBITION) return true;
+    }
+    for (const auto& ench : it->enchantments)
+    {
+        std::string eId = ench.id;
+        for (char& c : eId) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+        std::string eName = ench.name;
+        for (char& c : eName) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+        if (eId.find("servitude") != std::string::npos || eId.find("enslav") != std::string::npos || eId.find("subjugat") != std::string::npos ||
+            eName.find("servitude") != std::string::npos || eName.find("enslav") != std::string::npos || eName.find("subjugat") != std::string::npos)
+        {
+            return true;
+        }
+    }
+    std::string itemId = it->id;
+    for (char& c : itemId) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    if (itemId.find("slave") != std::string::npos || itemId.find("servitude") != std::string::npos || itemId.find("collar_enslave") != std::string::npos)
+    {
+        return true;
+    }
+    return false;
+}
+
+bool game::handleEquipOnNPCAction(int backpackIndex, equipSlot targetSlotOverride, entity* targetNpc)
+{
+    if (!Player) return false;
+    entity* npc = targetNpc ? targetNpc : activeTargetNPC.get();
+    if (!npc) return false;
+
+    int actualIdx = backpackIndex;
+    auto stackedView = Player->inventory.getStackedView();
+    if (backpackIndex >= 0 && static_cast<size_t>(backpackIndex) < stackedView.size())
+    {
+        actualIdx = stackedView[backpackIndex].firstBackpackIndex;
+    }
+
+    if (actualIdx < 0 || static_cast<size_t>(actualIdx) >= Player->inventory.backpack.size()) return false;
+
+    std::shared_ptr<item> targetItem = Player->inventory.backpack[actualIdx];
+    if (!targetItem || !targetItem->isEquippable) return false;
+
+    equipSlot slot = (targetSlotOverride != equipSlot::NONE) ? targetSlotOverride : targetItem->targetSlot;
+    if (slot == equipSlot::NONE) return false;
+
+    // Check if NPC slot is occupied; if so, unequip existing item into NPC backpack
+    if (npc->inventory.isEquipped(slot))
+    {
+        npc->inventory.unequipItem(slot);
+    }
+
+    // Equip item onto NPC
+    npc->inventory.equipped[static_cast<size_t>(slot)] = targetItem;
+    npc->inventory.equipVersion++;
+
+    // Remove 1 copy of item from player backpack
+    if (targetItem->isStackable && targetItem->count > 1)
+    {
+        targetItem->count--;
+    }
+    else
+    {
+        Player->inventory.backpack.erase(Player->inventory.backpack.begin() + actualIdx);
+    }
+    Player->inventory.equipVersion++;
+
+    addLogEntry("[ITEM]", std::format("Equipped {} onto {}.", targetItem->name, npc->name), { 120, 180, 240, 255 });
+    selectedInventoryIndex = -1;
+    selectedEquipmentSlot = slot;
+    selectedEquipmentSide = 1;
+
+    // Check if the equipped item has an enslaving enchantment
+    if (isEnslavingItem(targetItem.get()))
+    {
+        npc->quests.setQuestStage("subjugated", 1);
+        addLogEntry("[ENSLAVEMENT]", std::format("{} has been bound in magical servitude by {}!", npc->name, targetItem->name), { 220, 100, 220, 255 });
+
+        // Update encounter resolution record if in resolution state
+        if (auto inv = dynamic_cast<inventoryState*>(getActiveState()))
+        {
+            if (auto resState = dynamic_cast<encounterResolutionState*>(inv->getReturnState()))
+            {
+                for (size_t i = 0; i < resState->getDefeatedRecords().size(); ++i)
+                {
+                    if (resState->getDefeatedRecords()[i].npc.get() == npc)
+                    {
+                        const_cast<DefeatedEnemyRecord&>(resState->getDefeatedRecords()[i]).isSubjugated = true;
+                    }
+                }
+            }
+        }
+
+        // Clear ambush hazard on tile
+        if (map)
+        {
+            auto& tData = map->getRuntimeData(gridX, gridY);
+            if (tData.ambushState.npc.get() == npc)
+            {
+                tData.ambushState.isDefeated = true;
+                tData.ambushState.restockMinutesRemaining = 1440;
+                tData.persistentNPC = nullptr;
+            }
+        }
+
+        // Load enslavement narrative text scene which ends encounter and returns to exploration
+        loadScene("scene_enslavement_success");
+        return true;
+    }
+
+    refreshActionGrid();
+    return true;
+}
+
+void game::handleTakeAllNPCItemsAction()
+{
+    if (!Player || !activeTargetNPC) return;
+    int takenCount = 0;
+    for (const auto& itemPtr : activeTargetNPC->inventory.backpack)
+    {
+        if (itemPtr)
+        {
+            Player->inventory.addItem(itemPtr);
+            takenCount++;
+        }
+    }
+    activeTargetNPC->inventory.backpack.clear();
+    if (takenCount > 0)
+    {
+        addLogEntry("[LOOT]", std::format("Took {} items from {}'s backpack.", takenCount, activeTargetNPC->name), { 220, 180, 80, 255 });
+    }
+    selectedInventoryIndex = -1;
+    refreshActionGrid();
+}
+
+void game::handleTakeNPCGoldAction()
+{
+    if (!Player || !activeTargetNPC) return;
+    float gold = activeTargetNPC->getStat("currency");
+    if (gold > 0.0f)
+    {
+        Player->stats.modifyBaseStat("currency", gold);
+        activeTargetNPC->stats.setBaseStat("currency", 0.0f);
+        addLogEntry("[LOOT]", std::format("Took {:.0f}¤ from {}.", gold, activeTargetNPC->name), { 220, 180, 80, 255 });
+        refreshActionGrid();
+    }
+}
+
+float game::getTileCurrency() const
+{
+    if (!map) return 0.0f;
+    const TileRuntimeData& tileData = const_cast<gameMap*>(map)->getRuntimeData(gridX, gridY);
+    return tileData.droppedCurrency;
+}
+
+void game::modifyTileCurrency(float delta)
+{
+    if (!map) return;
+    TileRuntimeData& tileData = const_cast<gameMap*>(map)->getRuntimeData(gridX, gridY);
+    tileData.droppedCurrency = std::max(0.0f, tileData.droppedCurrency + delta);
+    if (tileData.droppedCurrency > 0.0f)
+    {
+        tileData.currencyMinutesRemaining = 120;
+    }
+}
+
+bool game::isCurrentTileStorageSafe() const
+{
+    if (!map) return true;
+    return const_cast<gameMap*>(map)->isStorageSafe(gridX, gridY);
+}
+
+void game::transferCurrencyToSide1(float amount)
+{
+    if (!Player || amount <= 0.0f) return;
+    float pGold = Player->getStat("currency");
+    if (pGold <= 0.0f) return;
+    float transferAmt = std::min(pGold, amount);
+    Player->stats.modifyBaseStat("currency", -transferAmt);
+
+    if (activeTargetNPC)
+    {
+        activeTargetNPC->stats.modifyBaseStat("currency", transferAmt);
+        addLogEntry("[TRANSFER]", std::format("Gave {:.0f}¤ to {}.", transferAmt, activeTargetNPC->name), { 220, 180, 80, 255 });
+    }
+    else
+    {
+        modifyTileCurrency(transferAmt);
+        addLogEntry("[DROP]", std::format("Dropped {:.0f}¤ on the ground.", transferAmt), { 220, 180, 80, 255 });
+    }
+    refreshActionGrid();
+}
+
+void game::transferCurrencyFromSide1(float amount)
+{
+    if (!Player || amount <= 0.0f) return;
+
+    if (activeTargetNPC)
+    {
+        float npcGold = activeTargetNPC->getStat("currency");
+        if (npcGold <= 0.0f) return;
+        float transferAmt = std::min(npcGold, amount);
+        activeTargetNPC->stats.modifyBaseStat("currency", -transferAmt);
+        Player->stats.modifyBaseStat("currency", transferAmt);
+        addLogEntry("[TRANSFER]", std::format("Took {:.0f}¤ from {}.", transferAmt, activeTargetNPC->name), { 220, 180, 80, 255 });
+    }
+    else
+    {
+        float tileGold = getTileCurrency();
+        if (tileGold <= 0.0f) return;
+        float transferAmt = std::min(tileGold, amount);
+        modifyTileCurrency(-transferAmt);
+        Player->stats.modifyBaseStat("currency", transferAmt);
+        addLogEntry("[LOOT]", std::format("Picked up {:.0f}¤ from the ground.", transferAmt), { 220, 180, 80, 255 });
+    }
+    refreshActionGrid();
+}
+
 bool game::checkSingleCondition(const gameCondition& cond) const
 {
     if (!Player) return false;
@@ -996,9 +1322,17 @@ bool game::checkSingleCondition(const gameCondition& cond) const
         int req = cond.requiredValue > 0 ? cond.requiredValue : 1;
         return count >= req;
     }
-    else if (cond.type == "QUEST_STAGE" || cond.type == "QUEST_FLAG")
+    else if (cond.type == "QUEST_STAGE" || cond.type == "QUEST_FLAG" || cond.type == "VAR_EQUALS" || cond.type == "CHECK_VAR")
     {
         return Player->quests.getQuestStage(cond.target) == cond.requiredValue;
+    }
+    else if (cond.type == "VAR_MIN")
+    {
+        return Player->quests.getQuestStage(cond.target) >= cond.requiredValue;
+    }
+    else if (cond.type == "VAR_MAX")
+    {
+        return Player->quests.getQuestStage(cond.target) <= cond.requiredValue;
     }
     else if (cond.type == "TIME_PHASE")
     {
@@ -1337,15 +1671,47 @@ void game::processChoice(const dialogueChoice& choice)
         return;
     }
 
-    if (choice.nextSceneId == "VICTORY_INVENTORY")
-    {
-        changeState(std::make_unique<inventoryState>());
-        return;
-    }
-
     for (const auto& effect : choice.results)
     {
         processEffect(effect);
+    }
+
+    if (choice.nextSceneId == "START_SEX" || choice.nextSceneId == "INTERACTIVE_SEX")
+    {
+        sceneStack.clear();
+        if (activeTargetNPC)
+        {
+            changeState(std::make_unique<sexState>(activeTargetNPC));
+        }
+        else
+        {
+            changeState(std::make_unique<sexState>());
+        }
+        return;
+    }
+    if (choice.nextSceneId == "OPEN_SHOP" || choice.nextSceneId == "START_BARTER")
+    {
+        sceneStack.clear();
+        changeState(std::make_unique<shopState>());
+        return;
+    }
+    if (choice.nextSceneId == "OPEN_ENCHANTER" || choice.nextSceneId == "ENCHANTING_ALTAR")
+    {
+        sceneStack.clear();
+        changeState(std::make_unique<enchantingState>());
+        return;
+    }
+    if (choice.nextSceneId == "OPEN_TRANSFORMATION" || choice.nextSceneId == "TRANSFORMATION_CHAMBER")
+    {
+        sceneStack.clear();
+        changeState(std::make_unique<transformationState>());
+        return;
+    }
+    if (choice.nextSceneId == "VICTORY_INVENTORY" || choice.nextSceneId == "OPEN_INVENTORY")
+    {
+        sceneStack.clear();
+        changeState(std::make_unique<inventoryState>());
+        return;
     }
 
     if (choice.nextSceneId == "POP_SCENE" || choice.nextSceneId == "RETURN")
@@ -1491,9 +1857,14 @@ void game::processEffect(const gameEffect& eff)
     {
         Player->inventory.resetAllDisplacements();
     }
-    else if (eff.action == "SET_FLAG" || eff.action == "SET_QUEST" || eff.action == "SET_QUEST_STAGE")
+    else if (eff.action == "SET_FLAG" || eff.action == "SET_QUEST" || eff.action == "SET_QUEST_STAGE" || eff.action == "SET_VAR")
     {
         Player->quests.setQuestStage(eff.target, eff.amount);
+    }
+    else if (eff.action == "ADD_VAR" || eff.action == "MODIFY_VAR")
+    {
+        int curVal = Player->quests.getQuestStage(eff.target);
+        Player->quests.setQuestStage(eff.target, curVal + eff.amount);
     }
     else if (eff.action == "CALL_SUB_SCENE")
     {
@@ -1738,6 +2109,11 @@ void game::handleCommand(const UICommand& cmd)
     }
     else if (cmd.type == CommandType::OPEN_INVENTORY)
     {
+        if (auto res = dynamic_cast<encounterResolutionState*>(activeGameState.get()))
+        {
+            res->handleOpenLootInventory(this);
+            return;
+        }
         if (auto cc = dynamic_cast<characterCreationState*>(activeGameState.get()))
         {
             auto curState = std::move(activeGameState);

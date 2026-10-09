@@ -39,6 +39,9 @@ inline const char* transformationTabToString(TransformationTab tab)
     }
 }
 
+class game;
+class entity;
+
 /**
  * Headless state controller for Full Body Transformations and Anatomy Customization.
  */
@@ -49,7 +52,7 @@ public:
     std::string presetInputName = "Demon_Form";
     std::string statusMessage = "";
 
-    explicit transformationState(TransformationTab initialTab = TransformationTab::CORE, std::unique_ptr<iGameState> previousState = nullptr);
+    explicit transformationState(TransformationTab initialTab = TransformationTab::CORE, std::unique_ptr<iGameState> previousState = nullptr, std::shared_ptr<entity> targetEntity = nullptr);
     ~transformationState() override = default;
 
     void initialise(game* gameContext) override;
@@ -70,7 +73,11 @@ public:
     void randomizeForm(game* gameContext);
     void returnToPreviousOrExploration(game* gameContext);
 
+    entity* getTargetEntity(game* gameContext) const;
+    std::shared_ptr<entity> getTargetEntityShared() const { return m_targetEntity; }
+
 private:
     std::vector<std::string> m_presetNames;
     std::unique_ptr<iGameState> m_previousState;
+    std::shared_ptr<entity> m_targetEntity;
 };

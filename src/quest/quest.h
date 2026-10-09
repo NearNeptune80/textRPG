@@ -39,6 +39,7 @@ struct dialogueChoice {
     std::vector<std::string> contentTags;
     std::vector<conditionNode> requirements;
     std::vector<gameEffect> results;
+    bool hiddenUnlessMet{ false };
 };
 
 struct questScene {

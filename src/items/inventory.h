@@ -43,4 +43,6 @@ public:
     DisplacementMode getDisplacement(equipSlot slot) const;
     void resetAllDisplacements();
     bool isSlotExposed(bodySlot slot) const;
+    bool hasAnyClothingEquipped() const;
+    bool isFullyExposed() const;
 };

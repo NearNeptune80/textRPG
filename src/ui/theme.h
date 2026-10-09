@@ -54,6 +54,14 @@ struct ThemeColors
     SDL_Color enemy{ 255, 120, 170, 255 };
     SDL_Color friendly{ 100, 210, 255, 255 };
     SDL_Color companion{ 120, 240, 150, 255 };
+
+    SDL_Color stamina{ 50, 190, 90, 255 };
+    SDL_Color elementFire{ 255, 90, 50, 255 };
+    SDL_Color elementWater{ 60, 160, 255, 255 };
+    SDL_Color elementAir{ 180, 230, 255, 255 };
+    SDL_Color elementEarth{ 160, 190, 90, 255 };
+    SDL_Color elementArcane{ 190, 120, 255, 255 };
+    SDL_Color elementLust{ 255, 105, 180, 255 };
 };
 
 /**

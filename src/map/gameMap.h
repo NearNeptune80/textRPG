@@ -34,7 +34,10 @@ public:
     {
         if (!isStorageSafe(x, y))
         {
-            getRuntimeData(x, y).droppedItems.clear();
+            auto& data = getRuntimeData(x, y);
+            data.droppedItems.clear();
+            data.droppedCurrency = 0.0f;
+            data.currencyMinutesRemaining = 120;
         }
     }
 

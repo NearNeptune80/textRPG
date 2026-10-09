@@ -16,8 +16,10 @@ void from_json(const json& j, item& itemObj)
     j.at("id").get_to(itemObj.id);
     j.at("name").get_to(itemObj.name);
     itemObj.description = j.value("description", "");
-    itemObj.tooltip = j.value("tooltip", "");
+    itemObj.briefDescription = j.value("briefDescription", j.value("brief", j.value("tooltip", "")));
+    itemObj.tooltip = itemObj.briefDescription;
     itemObj.baseValue = j.value("baseValue", 0);
+    itemObj.imagePath = j.value("imagePath", j.value("image", j.value("icon", "")));
 
     itemObj.isConsumable = j.value("isConsumable", false);
     itemObj.isFood = j.value("isFood", false);

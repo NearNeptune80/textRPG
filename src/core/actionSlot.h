@@ -7,6 +7,7 @@ struct ActionSlot
 {
     std::string label;
     std::string description;
+    std::string category = "";
     int slotIndex = -1;
     bool pinnedAllPages = false;
     bool isEnabled = true;

@@ -366,6 +366,15 @@ std::shared_ptr<entity> npcGenerator::generateFromTemplate(const std::string& te
         npc->unlockPerk(perkId);
     }
 
+    npc->personalityTraits = tpl.tags;
+    for (const auto& tag : tpl.tags)
+    {
+        if (tag == "shapeshifter" || tag == "transform" || tag == "can_transform")
+        {
+            npc->canSelfTransform = true;
+        }
+    }
+
     return npc;
 }
 

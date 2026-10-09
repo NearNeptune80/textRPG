@@ -71,6 +71,8 @@ struct TileRuntimeData
 	std::vector<std::shared_ptr<entity>> namedNPCs;
 	PersistentAmbushState ambushState;
 	std::vector<DroppedItemEntry> droppedItems;
+	float droppedCurrency{ 0.0f };
+	int currencyMinutesRemaining{ 120 }; // Minutes until currency decays on unsafe tile
 	std::string iconId = "";
 	int baseDangerLevel{ 0 };
 	bool isStorageSafe{ false };
@@ -108,16 +110,22 @@ struct TileRuntimeData
 	}
 
 	/**
-	 * Decrements lifespans of dropped items on unsafe tiles and despawns expired loot.
+	 * Places currency on the tile ground with a time-to-decay lifespan in minutes.
 	 */
-	void processItemDecay(int minutesPassed)
+	void addDroppedCurrency(float amount, int lifespanMinutes = 120)
 	{
-		if (getIsEffectiveStorageSafe() || minutesPassed <= 0) return;
+		if (amount <= 0.0f) return;
+		droppedCurrency += amount;
+		currencyMinutesRemaining = lifespanMinutes;
+	}
 
-		std::erase_if(droppedItems, [minutesPassed](DroppedItemEntry& entry) {
-			entry.minutesRemaining -= minutesPassed;
-			return entry.minutesRemaining <= 0;
-		});
+	/**
+	 * Unsafe tiles clear when the player moves, not after a timer.
+	 * Dropped items and currency stay right up until the player moves away.
+	 */
+	void processItemDecay(int /*minutesPassed*/)
+	{
+		// No timer-based decay: items stay right up until player movement.
 	}
 };
 

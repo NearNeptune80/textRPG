@@ -45,7 +45,7 @@
         "type": "LEAF",
         "name": "Partner Status & Paperdoll",
         "widgets": [
-          "widget_target_inspector",
+          "widget_lt_npc_card",
           "widget_partner_paperdoll"
         ]
       }

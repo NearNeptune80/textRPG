@@ -179,6 +179,9 @@ struct ContentSettings
     ContentToggleState sizeDifferenceState = ContentToggleState::ON;
     ContentToggleState prolapseState = ContentToggleState::OFF;
     ContentToggleState aphrodisiacsState = ContentToggleState::ON;
+    ContentToggleState hypnosisState = ContentToggleState::OFF;
+    ContentToggleState cumInflationState = ContentToggleState::OFF;
+    ContentToggleState feralState = ContentToggleState::OFF;
 
     // Synchronized boolean flags for fast query & backward compatibility
     bool pregnancyEnabled = true;
@@ -195,23 +198,89 @@ struct ContentSettings
     bool sizeDifferenceEnabled = true;
     bool prolapseEnabled = false;
     bool aphrodisiacsEnabled = true;
+    bool hypnosisEnabled = false;
+    bool cumInflationEnabled = false;
+    bool feralEnabled = false;
+    std::string furryGenitalStyle = "Humanoid"; // "Humanoid" vs "Animalistic"
+
+    int getFetishRating(const std::string& name) const
+    {
+        auto it = fetishPreferences.find(name);
+        if (it != fetishPreferences.end()) return it->second;
+
+        std::string norm = name;
+        std::transform(norm.begin(), norm.end(), norm.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        for (const auto& [k, v] : fetishPreferences)
+        {
+            std::string kNorm = k;
+            std::transform(kNorm.begin(), kNorm.end(), kNorm.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+            if (kNorm == norm || kNorm.find(norm) != std::string::npos || norm.find(kNorm) != std::string::npos)
+            {
+                return v;
+            }
+        }
+        return 3;
+    }
+
+    void setFetishPreference(const std::string& name, int rating)
+    {
+        fetishPreferences[name] = rating;
+
+        // Keep aliases synchronized
+        if (name == "Tentacles & Monsters") fetishPreferences["Tentacles"] = rating;
+        else if (name == "Tentacles") fetishPreferences["Tentacles & Monsters"] = rating;
+
+        if (name == "Exhibitionism / Public Sex" || name == "Public Sex Exposure") fetishPreferences["Exhibitionism"] = rating;
+        else if (name == "Exhibitionism") { fetishPreferences["Exhibitionism / Public Sex"] = rating; fetishPreferences["Public Sex Exposure"] = rating; }
+
+        if (name == "Transformations") fetishPreferences["Forced Transformation"] = rating;
+        else if (name == "Forced Transformation") fetishPreferences["Transformations"] = rating;
+
+        if (name == "Insemination / Cum") fetishPreferences["Insemination"] = rating;
+        else if (name == "Insemination") fetishPreferences["Insemination / Cum"] = rating;
+
+        if (name == "BDSM & Restraints") { fetishPreferences["Bondage"] = rating; fetishPreferences["BDSM / Sadism"] = rating; }
+
+        syncBools();
+    }
 
     void syncBools()
     {
-        pregnancyEnabled = (pregnancyState != ContentToggleState::OFF);
-        lactationEnabled = (lactationState != ContentToggleState::OFF);
-        nonConEnabled = (nonConState != ContentToggleState::OFF);
-        publicSexEnabled = (publicSexState != ContentToggleState::OFF);
-        extremeContentEnabled = (extremeContentState != ContentToggleState::OFF);
-        watersportsEnabled = (watersportsState != ContentToggleState::OFF);
-        spittingEnabled = (spittingState != ContentToggleState::OFF);
-        forcedTfEnabled = (forcedTfState != ContentToggleState::OFF);
-        tentaclesEnabled = (tentaclesState != ContentToggleState::OFF);
-        bdsmEnabled = (bdsmState != ContentToggleState::OFF);
-        incestEnabled = (incestState != ContentToggleState::OFF);
-        sizeDifferenceEnabled = (sizeDifferenceState != ContentToggleState::OFF);
-        prolapseEnabled = (prolapseState != ContentToggleState::OFF);
-        aphrodisiacsEnabled = (aphrodisiacsState != ContentToggleState::OFF);
+        pregnancyEnabled = (getFetishRating("Pregnancy") > 0);
+        lactationEnabled = (getFetishRating("Lactation") > 0);
+        nonConEnabled = (getFetishRating("Non-Consent") > 0);
+        publicSexEnabled = (getFetishRating("Exhibitionism / Public Sex") > 0 || getFetishRating("Public Sex") > 0 || getFetishRating("Exhibitionism") > 0);
+        extremeContentEnabled = (getFetishRating("Sadistic sex / Extreme") > 0 || getFetishRating("Sadism") > 0);
+        watersportsEnabled = (getFetishRating("Watersports") > 0);
+        spittingEnabled = (getFetishRating("Spitting") > 0);
+        forcedTfEnabled = (getFetishRating("Transformations") > 0 || getFetishRating("Forced Transformation") > 0);
+        tentaclesEnabled = (getFetishRating("Tentacles & Monsters") > 0 || getFetishRating("Tentacles") > 0);
+        bdsmEnabled = (getFetishRating("BDSM & Restraints") > 0 || getFetishRating("BDSM") > 0 || getFetishRating("Bondage") > 0);
+        incestEnabled = (getFetishRating("Incest") > 0);
+        sizeDifferenceEnabled = (getFetishRating("Size Difference") > 0);
+        prolapseEnabled = (getFetishRating("Prolapse") > 0);
+        aphrodisiacsEnabled = (getFetishRating("Aphrodisiacs & Drugs") > 0);
+        hypnosisEnabled = (getFetishRating("Hypnosis & Mind Control") > 0);
+        cumInflationEnabled = (getFetishRating("Cum Inflation & Expansion") > 0);
+        feralEnabled = (getFetishRating("Feral / Bestiality") > 0);
+
+        pregnancyState = pregnancyEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
+        lactationState = lactationEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
+        nonConState = nonConEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
+        publicSexState = publicSexEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
+        extremeContentState = extremeContentEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
+        watersportsState = watersportsEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
+        spittingState = spittingEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
+        forcedTfState = forcedTfEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
+        tentaclesState = tentaclesEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
+        bdsmState = bdsmEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
+        incestState = incestEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
+        sizeDifferenceState = sizeDifferenceEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
+        prolapseState = prolapseEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
+        aphrodisiacsState = aphrodisiacsEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
+        hypnosisState = hypnosisEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
+        cumInflationState = cumInflationEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
+        feralState = feralEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
     }
 
     void syncStatesFromBools()
@@ -230,6 +299,9 @@ struct ContentSettings
         sizeDifferenceState = sizeDifferenceEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
         prolapseState = prolapseEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
         aphrodisiacsState = aphrodisiacsEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
+        hypnosisState = hypnosisEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
+        cumInflationState = cumInflationEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
+        feralState = feralEnabled ? ContentToggleState::ON : ContentToggleState::OFF;
     }
 
     void setToggle(ContentToggleState& stateVar, bool& boolVar, ContentToggleState newState)
@@ -242,45 +314,45 @@ struct ContentSettings
     float transformationSpeedMultiplier = 1.0f;
     ContentFilterMode contentFilterMode = ContentFilterMode::DROPDOWN;
 
-    // 28 Lilith's Throne Fetishes: 0=Never, 1=V.Rare, 2=Rare, 3=Average, 4=Common, 5=V.Common, 6=Always
+    // Desires & Frequency Fetish Preferences: 0=Never, 1=V.Rare, 2=Rare, 3=Average, 4=Common, 5=V.Common, 6=Always
     std::unordered_map<std::string, int> fetishPreferences = {
-        { "Anal", 3 }, { "Buttslut", 3 }, { "Vaginal", 3 }, { "Pussy slut", 3 },
-        { "Oral", 3 }, { "Oral performer", 3 }, { "Breasts lover", 3 }, { "Breasts", 3 },
-        { "Milk lover", 3 }, { "Lactation", 3 }, { "Foot worship", 3 }, { "Feet", 3 },
-        { "Dominance", 3 }, { "Submission", 3 }, { "BDSM / Sadism", 3 }, { "Masochism", 3 },
-        { "Bondage", 3 }, { "Exhibitionism", 3 }, { "Voyeurism", 3 }, { "Insemination", 3 },
-        { "Pregnancy", 3 }, { "Transformations", 3 }, { "Watersports", 3 }, { "Spitting", 3 },
-        { "Tentacles", 3 }, { "Size Difference", 3 }, { "Crossdressing", 3 }, { "Denial & Edging", 3 }
+        { "Anal", 3 }, { "Aphrodisiacs & Drugs", 3 }, { "BDSM & Restraints", 3 }, { "BDSM / Sadism", 3 },
+        { "Bondage", 3 }, { "Breasts", 3 }, { "Breasts lover", 3 }, { "Buttslut", 3 },
+        { "Crossdressing", 3 }, { "Cum Inflation & Expansion", 3 }, { "Defloration", 3 }, { "Denial & Edging", 3 },
+        { "Dominance", 3 }, { "Exhibitionism / Public Sex", 3 }, { "Exhibitionism", 3 }, { "Feet", 3 },
+        { "Foot worship", 3 }, { "Feral / Bestiality", 3 }, { "Hypnosis & Mind Control", 3 }, { "Incest", 3 },
+        { "Insemination / Cum", 3 }, { "Insemination", 3 }, { "Lactation", 3 }, { "Masochism", 3 },
+        { "Milk lover", 3 }, { "Non-Consent", 3 }, { "Oral", 3 }, { "Oral performer", 3 },
+        { "Penetration", 3 }, { "Pregnancy", 3 }, { "Prolapse", 3 }, { "Pussy slut", 3 },
+        { "Sadistic sex / Extreme", 3 }, { "Size Difference", 3 }, { "Spitting", 3 }, { "Submission", 3 },
+        { "Tentacles & Monsters", 3 }, { "Tentacles", 3 }, { "Transformations", 3 }, { "Vaginal", 3 },
+        { "Voyeurism", 3 }, { "Watersports", 3 }
     };
 };
 
 struct GameplaySettings
 {
     float difficultyMultiplier = 1.0f;
-    int difficultyLevel = 0; // 0=Human, 1=Morph, 2=Demon, 3=Lilin, 4=Lilith
+    int difficultyLevel = 2; // 0=Very Easy (0.75x), 1=Easy (0.85x), 2=Normal (1.0x), 3=Hard (1.5x), 4=Nightmare (2.5x)
     float currencyLossOnDefeatPercent = 0.15f;
     bool autoSaveOnMapChange = true;
     bool autoSaveOnSceneExit = true;
-    int autoSaveFrequency = 0; // 0=Always, 1=Daily, 2=Weekly, 3=Off
     int maxAutoSaves = 3;
     std::string unitPreference = "Metric"; // Metric vs Imperial
     std::string genderPronounMode = "Normal"; // Normal vs Custom
-    bool enchantmentInstability = true;
     bool badEndsEnabled = true;
     bool levelDrainEnabled = true;
     bool opportunisticAttackers = true;
     bool autoLoot = true;
     bool sharedEncyclopedia = false;
-    bool stormInterruptions = true;
 };
 
 struct DisplaySettings
 {
     int fontSize = 18; // 12..36
-    bool fadeInEnabled = false;
+    float uiScaleMultiplier = 1.0f; // 1.0f, 1.25f, 1.5f, 0.8f
     bool showArtwork = true;
     bool showThumbnails = true;
-    int descriptionVerbosity = 0; // 0 = Full, 1 = Condensed, 2 = Minimal
     std::string activeTheme = "default";
     std::string activeLayout = "data/layouts/default_layout.json";
 };
@@ -313,6 +385,10 @@ struct GameSettings
         syncToSerialize(cSync.sizeDifferenceState, cSync.sizeDifferenceEnabled);
         syncToSerialize(cSync.prolapseState, cSync.prolapseEnabled);
         syncToSerialize(cSync.aphrodisiacsState, cSync.aphrodisiacsEnabled);
+
+        syncToSerialize(cSync.hypnosisState, cSync.hypnosisEnabled);
+        syncToSerialize(cSync.cumInflationState, cSync.cumInflationEnabled);
+        syncToSerialize(cSync.feralState, cSync.feralEnabled);
 
         return nlohmann::json{
             {"demographics", {
@@ -364,6 +440,13 @@ struct GameSettings
                 {"prolapseState", static_cast<int>(cSync.prolapseState)},
                 {"aphrodisiacsEnabled", cSync.aphrodisiacsEnabled},
                 {"aphrodisiacsState", static_cast<int>(cSync.aphrodisiacsState)},
+                {"hypnosisEnabled", cSync.hypnosisEnabled},
+                {"hypnosisState", static_cast<int>(cSync.hypnosisState)},
+                {"cumInflationEnabled", cSync.cumInflationEnabled},
+                {"cumInflationState", static_cast<int>(cSync.cumInflationState)},
+                {"feralEnabled", cSync.feralEnabled},
+                {"feralState", static_cast<int>(cSync.feralState)},
+                {"furryGenitalStyle", content.furryGenitalStyle},
                 {"contentFilterMode", static_cast<int>(content.contentFilterMode)},
                 {"fluidMultiplier", content.fluidMultiplier},
                 {"transformationSpeedMultiplier", content.transformationSpeedMultiplier},
@@ -375,24 +458,20 @@ struct GameSettings
                 {"currencyLossOnDefeatPercent", gameplay.currencyLossOnDefeatPercent},
                 {"autoSaveOnMapChange", gameplay.autoSaveOnMapChange},
                 {"autoSaveOnSceneExit", gameplay.autoSaveOnSceneExit},
-                {"autoSaveFrequency", gameplay.autoSaveFrequency},
                 {"maxAutoSaves", gameplay.maxAutoSaves},
                 {"unitPreference", gameplay.unitPreference},
                 {"genderPronounMode", gameplay.genderPronounMode},
-                {"enchantmentInstability", gameplay.enchantmentInstability},
                 {"badEndsEnabled", gameplay.badEndsEnabled},
                 {"levelDrainEnabled", gameplay.levelDrainEnabled},
                 {"opportunisticAttackers", gameplay.opportunisticAttackers},
                 {"autoLoot", gameplay.autoLoot},
-                {"sharedEncyclopedia", gameplay.sharedEncyclopedia},
-                {"stormInterruptions", gameplay.stormInterruptions}
+                {"sharedEncyclopedia", gameplay.sharedEncyclopedia}
             }},
             {"display", {
                 {"fontSize", display.fontSize},
-                {"fadeInEnabled", display.fadeInEnabled},
+                {"uiScaleMultiplier", display.uiScaleMultiplier},
                 {"showArtwork", display.showArtwork},
                 {"showThumbnails", display.showThumbnails},
-                {"descriptionVerbosity", display.descriptionVerbosity},
                 {"activeTheme", display.activeTheme},
                 {"activeLayout", display.activeLayout}
             }}
@@ -457,6 +536,10 @@ struct GameSettings
             parseToggle("sizeDifferenceState", "sizeDifferenceEnabled", content.sizeDifferenceState, content.sizeDifferenceEnabled);
             parseToggle("prolapseState", "prolapseEnabled", content.prolapseState, content.prolapseEnabled);
             parseToggle("aphrodisiacsState", "aphrodisiacsEnabled", content.aphrodisiacsState, content.aphrodisiacsEnabled);
+            parseToggle("hypnosisState", "hypnosisEnabled", content.hypnosisState, content.hypnosisEnabled);
+            parseToggle("cumInflationState", "cumInflationEnabled", content.cumInflationState, content.cumInflationEnabled);
+            parseToggle("feralState", "feralEnabled", content.feralState, content.feralEnabled);
+            if (c.contains("furryGenitalStyle")) content.furryGenitalStyle = c["furryGenitalStyle"].get<std::string>();
             if (c.contains("contentFilterMode")) content.contentFilterMode = static_cast<ContentFilterMode>(c["contentFilterMode"].get<int>());
             if (c.contains("fluidMultiplier")) content.fluidMultiplier = c["fluidMultiplier"].get<float>();
             if (c.contains("transformationSpeedMultiplier")) content.transformationSpeedMultiplier = c["transformationSpeedMultiplier"].get<float>();
@@ -478,27 +561,23 @@ struct GameSettings
             if (g.contains("currencyLossOnDefeatPercent")) gameplay.currencyLossOnDefeatPercent = g["currencyLossOnDefeatPercent"].get<float>();
             if (g.contains("autoSaveOnMapChange")) gameplay.autoSaveOnMapChange = g["autoSaveOnMapChange"].get<bool>();
             if (g.contains("autoSaveOnSceneExit")) gameplay.autoSaveOnSceneExit = g["autoSaveOnSceneExit"].get<bool>();
-            if (g.contains("autoSaveFrequency")) gameplay.autoSaveFrequency = g["autoSaveFrequency"].get<int>();
             if (g.contains("maxAutoSaves")) gameplay.maxAutoSaves = g["maxAutoSaves"].get<int>();
             if (g.contains("unitPreference")) gameplay.unitPreference = g["unitPreference"].get<std::string>();
             if (g.contains("genderPronounMode")) gameplay.genderPronounMode = g["genderPronounMode"].get<std::string>();
-            if (g.contains("enchantmentInstability")) gameplay.enchantmentInstability = g["enchantmentInstability"].get<bool>();
             if (g.contains("badEndsEnabled")) gameplay.badEndsEnabled = g["badEndsEnabled"].get<bool>();
             if (g.contains("levelDrainEnabled")) gameplay.levelDrainEnabled = g["levelDrainEnabled"].get<bool>();
             if (g.contains("opportunisticAttackers")) gameplay.opportunisticAttackers = g["opportunisticAttackers"].get<bool>();
             if (g.contains("autoLoot")) gameplay.autoLoot = g["autoLoot"].get<bool>();
             if (g.contains("sharedEncyclopedia")) gameplay.sharedEncyclopedia = g["sharedEncyclopedia"].get<bool>();
-            if (g.contains("stormInterruptions")) gameplay.stormInterruptions = g["stormInterruptions"].get<bool>();
         }
 
         if (j.contains("display"))
         {
             const auto& disp = j["display"];
             if (disp.contains("fontSize")) display.fontSize = disp["fontSize"].get<int>();
-            if (disp.contains("fadeInEnabled")) display.fadeInEnabled = disp["fadeInEnabled"].get<bool>();
+            if (disp.contains("uiScaleMultiplier")) display.uiScaleMultiplier = disp["uiScaleMultiplier"].get<float>();
             if (disp.contains("showArtwork")) display.showArtwork = disp["showArtwork"].get<bool>();
             if (disp.contains("showThumbnails")) display.showThumbnails = disp["showThumbnails"].get<bool>();
-            if (disp.contains("descriptionVerbosity")) display.descriptionVerbosity = disp["descriptionVerbosity"].get<int>();
             if (disp.contains("activeTheme")) display.activeTheme = disp["activeTheme"].get<std::string>();
             if (disp.contains("activeLayout")) display.activeLayout = disp["activeLayout"].get<std::string>();
         }

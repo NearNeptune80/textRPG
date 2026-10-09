@@ -37,7 +37,6 @@ struct CombatAction {
 	std::string name;
 	std::string description;
 
-	int baseApCost = 1;
 	float staminaCost = 0.0f;
 	float manaCost = 0.0f;
 	float lustCost = 0.0f;
@@ -63,5 +62,4 @@ struct QueuedAction {
 	CombatAction action;
 	entity* user = nullptr;
 	entity* target = nullptr;
-	int actualApCost = 1;
 };

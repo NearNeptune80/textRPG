@@ -25,6 +25,8 @@ bool statsComponent::addXp(float amount)
 void statsComponent::setBaseStat(const std::string& name, float value)
 {
 	baseValues[name] = value;
+	if (name == "lust") baseValues["arousal"] = value;
+	else if (name == "arousal") baseValues["lust"] = value;
 	statsVersion++;
 }
 
@@ -35,6 +37,17 @@ float statsComponent::getBaseStat(const std::string& name) const
 {
 	auto it = baseValues.find(name);
 	if (it != baseValues.end()) return it->second;
+
+	if (name == "arousal")
+	{
+		auto lustIt = baseValues.find("lust");
+		if (lustIt != baseValues.end()) return lustIt->second;
+	}
+	else if (name == "lust")
+	{
+		auto arIt = baseValues.find("arousal");
+		if (arIt != baseValues.end()) return arIt->second;
+	}
 
 	// Dynamic fallback for derived maximum limits when unconfigured
 	if (name == "max_health")
@@ -60,6 +73,8 @@ float statsComponent::getBaseStat(const std::string& name) const
 void statsComponent::modifyBaseStat(const std::string& name, float amount)
 {
 	baseValues[name] += amount;
+	if (name == "lust") baseValues["arousal"] = baseValues[name];
+	else if (name == "arousal") baseValues["lust"] = baseValues[name];
 	statsVersion++;
 }
 
@@ -77,7 +92,9 @@ float statsComponent::getEffectiveStat(const std::string& name, const std::vecto
 	{
 		for (const auto& mod : fx.statModifiers)
 		{
-			if (mod.statName == name)
+			bool matches = (mod.statName == name) ||
+			               ((name == "lust" || name == "arousal") && (mod.statName == "lust" || mod.statName == "arousal"));
+			if (matches)
 			{
 				flatMod += mod.flatValue;
 				percentMod += mod.percentValue;

@@ -14,6 +14,8 @@
 #include "state/shopState.h"
 #include "state/transformationState.h"
 #include "state/enchantingState.h"
+#include "state/sexState.h"
+#include "state/encounterResolutionState.h"
 #include "items/itemDatabase.h"
 #include "save/saveManager.h"
 #include "ui/theme.h"
@@ -72,7 +74,15 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    SDL_SetRenderVSync(renderer, 1);
+    bool vsyncActive = SDL_SetRenderVSync(renderer, 1);
+    if (!vsyncActive)
+    {
+        std::cout << "[Video] VSync unavailable or failed. Using strict 60 FPS frame cap fallback.\n";
+    }
+    else
+    {
+        std::cout << "[Video] VSync active at monitor native refresh rate.\n";
+    }
     SDL_SetRenderLogicalPresentation(renderer, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED);
 
     // 3. Initialise UI Theme (Attempt Dark Fantasy default, fallback to theme.json)
@@ -105,11 +115,16 @@ int main(int argc, char* argv[])
             opt->isKeybindsOpen = true;
             engine.changeState(std::move(opt));
         }
-        else if (screenshotState.starts_with("options_content"))
+        else if (screenshotState.starts_with("options_content") || screenshotState == "options_fetishes_unified")
         {
             auto opt = std::make_unique<optionsState>(OptionsScreenMode::CONTENT_OPTIONS, std::make_unique<mainMenuState>());
-            int catIdx = 0;
-            if (screenshotState.length() > 16) catIdx = screenshotState[16] - '0';
+            int catIdx = (screenshotState == "options_fetishes_unified") ? static_cast<int>(ContentOptionsCategory::FETISH_PREFS) : 0;
+            if (screenshotState != "options_fetishes_unified")
+            {
+                std::string sub = screenshotState.substr(15);
+                if (!sub.empty() && sub[0] == '_') sub = sub.substr(1);
+                if (!sub.empty() && std::isdigit(static_cast<unsigned char>(sub[0]))) catIdx = std::stoi(sub);
+            }
             if (catIdx >= 0 && catIdx <= 8) opt->contentCategory = static_cast<ContentOptionsCategory>(catIdx);
             engine.changeState(std::move(opt));
         }
@@ -355,6 +370,14 @@ int main(int argc, char* argv[])
                 engine.selectedInventoryIndex = 1;
                 engine.selectedEquipmentSlot = equipSlot::NONE;
             }
+            else if (screenshotState == "inventory_npc")
+            {
+                auto bandit = std::make_shared<entity>("npc_bandit", "Alleyway Bandit");
+                bandit->stats.setBaseStat("currency", 500.0f);
+                engine.activeTargetNPC = bandit;
+                engine.selectedInventorySide = 1;
+                engine.selectedInventoryIndex = -1;
+            }
             else if (screenshotState == "inventory_companion" || screenshotState == "inventory_status")
             {
                 auto lyra = std::make_shared<entity>("companion_lyra", "Lyra");
@@ -583,6 +606,116 @@ int main(int argc, char* argv[])
                 }
             }
         }
+        else if (screenshotState.starts_with("sex"))
+        {
+            if (!engine.getPlayer())
+            {
+                auto p = std::make_shared<entity>("hero_player", "Aria Vesper");
+                p->genderArchetype = GenderArchetype::FEMALE;
+                p->stats.level = 1;
+                p->stats.setBaseStat("arousal", 35.0f);
+                p->stats.setBaseStat("stamina", 85.0f);
+                engine.playerEntity = p;
+                engine.Player = p.get();
+            }
+
+            if (auto p = engine.getPlayer())
+            {
+                auto shirt = std::make_shared<item>();
+                shirt->id = "player_top";
+                shirt->name = "Cotton Camisole";
+                shirt->targetSlot = equipSlot::TORSO_UNDER;
+                shirt->isEquippable = true;
+                shirt->supportedDisplacements[DisplacementMode::LIFT_UP] = { bodySlot::TORSO, bodySlot::BREASTS };
+                shirt->supportedDisplacements[DisplacementMode::PULL_ASIDE] = { bodySlot::BREASTS };
+                p->inventory.addItem(shirt);
+                p->inventory.equipItem(0, equipSlot::TORSO_UNDER);
+            }
+
+            auto partner = std::make_shared<entity>("npc_succubus", "Morrigan");
+            partner->genderArchetype = GenderArchetype::FEMALE;
+            partner->stats.setBaseStat("arousal", 45.0f);
+            partner->stats.setBaseStat("stamina", 90.0f);
+            partner->addTrait("Cruel");
+            partner->addTrait("Lewd");
+            partner->setFetishDesire("Oral", 2);
+
+            auto skirt = std::make_shared<item>();
+            skirt->id = "morrigan_skirt";
+            skirt->name = "Leather Skirt";
+            skirt->targetSlot = equipSlot::LEGS_OUTER;
+            skirt->isEquippable = true;
+            skirt->supportedDisplacements[DisplacementMode::PULL_DOWN] = { bodySlot::GROIN, bodySlot::ASS, bodySlot::LEGS };
+            skirt->supportedDisplacements[DisplacementMode::PULL_ASIDE] = { bodySlot::GROIN };
+            skirt->supportedDisplacements[DisplacementMode::LIFT_UP] = { bodySlot::GROIN, bodySlot::ASS };
+            partner->inventory.addItem(skirt);
+            partner->inventory.equipItem(0, equipSlot::LEGS_OUTER);
+
+            auto blouse = std::make_shared<item>();
+            blouse->id = "morrigan_blouse";
+            blouse->name = "Silk Blouse";
+            blouse->targetSlot = equipSlot::TORSO_OVER;
+            blouse->isEquippable = true;
+            blouse->supportedDisplacements[DisplacementMode::UNBUTTON] = { bodySlot::TORSO, bodySlot::BREASTS };
+            blouse->supportedDisplacements[DisplacementMode::OPEN] = { bodySlot::TORSO, bodySlot::BREASTS };
+            partner->inventory.addItem(blouse);
+            partner->inventory.equipItem(1, equipSlot::TORSO_OVER);
+
+            auto sState = std::make_unique<sexState>(partner, SexStance::MISSIONARY, 30.0f);
+            auto* rawS = sState.get();
+            engine.changeState(std::move(sState));
+
+            // Execute an action to populate rich narrative cards in the log
+            auto actions = rawS->getAvailableActions();
+            for (const auto& a : actions)
+            {
+                if (a.id == "partner_kiss" || a.id == "generic_kiss" || a.id == "partner_caress_body")
+                {
+                    rawS->executeAction(&engine, a);
+                    break;
+                }
+            }
+
+            if (screenshotState == "sex_clothing_selected")
+            {
+                engine.selectedEquipmentSlot = equipSlot::LEGS_OUTER;
+                engine.selectedEquipmentSide = 1;
+            }
+            else if (screenshotState == "sex_generic")
+            {
+                engine.selectActionCategory("Generic");
+            }
+            else if (screenshotState == "sex_partner" || screenshotState == "sex_oral" || screenshotState == "sex_penetration")
+            {
+                engine.selectActionCategory("Partner");
+            }
+            else if (screenshotState == "sex_position" || screenshotState == "sex_stances")
+            {
+                engine.selectActionCategory("Position");
+            }
+            else if (screenshotState == "sex_self")
+            {
+                engine.selectActionCategory("Self");
+            }
+        }
+        else if (screenshotState.starts_with("encounter_resolution"))
+        {
+            if (!engine.getPlayer())
+            {
+                auto p = std::make_shared<entity>("hero_player", "Aria Vesper");
+                p->genderArchetype = GenderArchetype::FEMALE;
+                p->stats.level = 1;
+                engine.playerEntity = p;
+                engine.Player = p.get();
+            }
+
+            auto enemyA = std::make_shared<entity>("enemy_a", "Goblin Scout");
+            auto enemyB = std::make_shared<entity>("enemy_b", "Goblin Shaman");
+            enemyB->canSelfTransform = true;
+
+            auto resState = std::make_unique<encounterResolutionState>(std::vector<std::shared_ptr<entity>>{ enemyA, enemyB });
+            engine.changeState(std::move(resState));
+        }
 
         engine.refreshActionGrid();
 
@@ -601,7 +734,7 @@ int main(int argc, char* argv[])
             }
             else if (screenshotState == "tooltip_inventory")
             {
-                engine.input.setMousePosition(580.0f, 75.0f); // Hover over Evening Stilettos slot
+                engine.input.setMousePosition(505.0f, 90.0f); // Hover over Evening Stilettos slot
             }
             else if (screenshotState == "tooltip_inventory_empty")
             {
@@ -650,12 +783,14 @@ int main(int argc, char* argv[])
 
     uint64_t lastTime = SDL_GetTicks();
 
+    constexpr uint64_t TARGET_FRAME_MS = 1000 / 60; // ~16.6ms for 60 FPS fallback
+
     // 6. Main Decoupled Loop
     while (engine.isRunning)
     {
-        uint64_t currentTime = SDL_GetTicks();
-        float deltaTime = static_cast<float>(currentTime - lastTime) / 1000.0f;
-        lastTime = currentTime;
+        uint64_t frameStart = SDL_GetTicks();
+        float deltaTime = static_cast<float>(frameStart - lastTime) / 1000.0f;
+        lastTime = frameStart;
 
         // Step A: Input Processing
         engine.handleEvents();
@@ -666,8 +801,20 @@ int main(int argc, char* argv[])
         // Step C: Isolated UI View Render
         view.render(renderer, &engine);
 
-        // Frame pacing fallback for low-spec hardware without active VSync
-        SDL_Delay(1);
+        // Frame pacing: If VSync is active, presentation is synced to monitor refresh.
+        // If VSync is unavailable/disabled, clamp to 60 FPS to prevent runaway CPU/GPU usage.
+        if (!vsyncActive)
+        {
+            uint64_t frameElapsed = SDL_GetTicks() - frameStart;
+            if (frameElapsed < TARGET_FRAME_MS)
+            {
+                SDL_Delay(static_cast<uint32_t>(TARGET_FRAME_MS - frameElapsed));
+            }
+        }
+        else
+        {
+            SDL_Delay(1);
+        }
     }
 
     // 7. Cleanup & Exit

@@ -13,8 +13,6 @@ class game;
 struct CombatParticipant
 {
 	std::shared_ptr<entity> character = nullptr;
-	int maxAp = 3;
-	int currentAp = 3;
 	float maxStamina = 100.0f;
 	float currentStamina = 100.0f;
 	bool isEnemy = false;
@@ -50,7 +48,6 @@ public:
 
 	void resolveTurn(game* g);
 
-	int calculateParticipantMaxAp(const entity* ent) const;
 	float calculateParticipantMaxStamina(const entity* ent) const;
 
 	std::vector<CombatParticipant>& getPlayerParty() { return m_playerParty; }
@@ -83,4 +80,5 @@ private:
 	std::unordered_map<std::string, ElementalReactionDef> m_elementalReactions;
 
 	void generateNpcQueues();
+	void generateCompanionQueues();
 };

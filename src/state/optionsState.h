@@ -14,13 +14,13 @@ enum class ContentOptionsCategory
 {
     MISC,
     GAMEPLAY,
-    SEX_AND_FETISHES,
+    FETISH_PREFS,
+    SEX_AND_FETISHES = FETISH_PREFS, // Backward-compatibility alias
     BODIES,
     GENDER_PREFS,
     ORIENTATION_PREFS,
     AGE_PREFS,
-    FURRY_PREFS,
-    FETISH_PREFS
+    FURRY_PREFS
 };
 
 /**
@@ -36,8 +36,7 @@ public:
     ContentOptionsCategory contentCategory{ ContentOptionsCategory::MISC };
 
     int fontSize = 18;
-    bool fadeInEnabled = false;
-    int difficultyLevel = 0; // 0: Human, 1: Morph, 2: Demon, 3: Lilin, 4: Lilith
+    int difficultyLevel = 2; // 0: Very Easy, 1: Easy, 2: Normal, 3: Hard, 4: Nightmare
     std::string genderPronounMode = "Normal";
     std::string unitPreference = "Metric";
     bool isKeybindsOpen = false;

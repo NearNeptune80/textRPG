@@ -12,7 +12,6 @@ CombatAction WeaponSkill::toCombatAction(const std::string& weaponElement) const
     act.id = id;
     act.name = name;
     act.description = description;
-    act.baseApCost = 1;
     act.staminaCost = staminaCost;
     act.damageMultiplier = damageMult;
     act.damageType = (weaponElement.empty() || weaponElement == "physical") ? damageType : weaponElement;

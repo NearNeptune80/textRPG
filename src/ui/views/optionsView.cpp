@@ -77,34 +77,55 @@ namespace OptionsView
             float textW = availableW;
             float textX = padX;
 
-            // Section: Active Theme
-            std::string curThemeName = gameContext->settings.display.activeTheme;
-            if (curThemeName.empty() || curThemeName == "default") curThemeName = "Lilith Midnight";
-            else if (curThemeName == "theme_cyber_neon") curThemeName = "Cyber Neon";
-            else if (curThemeName == "theme_dark_fantasy") curThemeName = "Dark Fantasy";
-            else if (curThemeName == "theme_parchment") curThemeName = "Arcane Parchment";
-
+            // Section: Active Theme (4 direct pills)
             SDL_FRect themeCardRect = { textX, curY, textW, 44.0f * uiScale };
-            bool themeHovered = isInView(themeCardRect) && (mousePos.x >= themeCardRect.x && mousePos.x <= themeCardRect.x + themeCardRect.w &&
-                                 mousePos.y >= themeCardRect.y && mousePos.y <= themeCardRect.y + themeCardRect.h);
-            UIWidget::drawPanel(renderer, themeCardRect, Theme::colors.bgSlot, themeHovered ? Theme::colors.borderSelected : Theme::colors.borderNormal);
-
+            UIWidget::drawPanel(renderer, themeCardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
             UIWidget::drawText(renderer, "Visual Theme:", textX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.92f);
-            std::string themeDesc = std::format("Currently Active Theme: {} (Click anywhere to cycle themes).", curThemeName);
-            UIWidget::drawText(renderer, themeDesc, textX + (10.0f * uiScale), curY + (24.0f * uiScale), themeHovered ? Theme::colors.textGold : Theme::colors.textSecondary, uiScale * 0.82f);
+            UIWidget::drawText(renderer, "Select application color palette and UI theme styling.", textX + (10.0f * uiScale), curY + (24.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.82f);
 
-            if (themeHovered && clicked)
+            struct ThemeChoice { const char* id; const char* label; };
+            static constexpr ThemeChoice themeChoices[] = {
+                { "default", "Midnight" },
+                { "theme_cyber_neon", "Cyber" },
+                { "theme_dark_fantasy", "Fantasy" },
+                { "theme_parchment", "Parchment" }
+            };
+
+            float themePillTotalW = 280.0f * uiScale;
+            float themePillH = 24.0f * uiScale;
+            float themePillItemW = (themePillTotalW - (3.0f * 4.0f * uiScale)) / 4.0f;
+            float themePillStartX = textX + textW - themePillTotalW - (12.0f * uiScale);
+            float themePillY = curY + (10.0f * uiScale);
+
+            std::string curTheme = gameContext->settings.display.activeTheme;
+            if (curTheme.empty()) curTheme = "default";
+
+            for (size_t t = 0; t < 4; ++t)
             {
-                auto& cur = gameContext->settings.display.activeTheme;
-                if (cur == "theme_dark_fantasy" || cur == "dark_fantasy") cur = "theme_cyber_neon";
-                else if (cur == "theme_cyber_neon" || cur == "cyber_neon") cur = "theme_parchment";
-                else if (cur == "theme_parchment" || cur == "parchment") cur = "default";
-                else cur = "theme_dark_fantasy";
+                SDL_FRect tRect = { themePillStartX + (t * (themePillItemW + 4.0f * uiScale)), themePillY, themePillItemW, themePillH };
+                bool tHovered = isInView(tRect) && (mousePos.x >= tRect.x && mousePos.x <= tRect.x + tRect.w && mousePos.y >= tRect.y && mousePos.y <= tRect.y + tRect.h);
+                bool isSelected = (curTheme == themeChoices[t].id || (curTheme == "default" && t == 0));
 
-                Theme::applyTheme(cur);
-                gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
-                gameContext->refreshActionGrid();
-                gameContext->input.consumeMouseClick();
+                SDL_Color bgCol = isSelected ? Theme::colors.bgSlotSelected : (tHovered ? Theme::colors.bgButtonHover : Theme::colors.bgButton);
+                SDL_Color borderCol = isSelected ? Theme::colors.borderSelected : (tHovered ? Theme::colors.borderButtonHover : Theme::colors.borderButton);
+
+                SDL_SetRenderDrawColor(renderer, bgCol.r, bgCol.g, bgCol.b, bgCol.a);
+                SDL_RenderFillRect(renderer, &tRect);
+                SDL_SetRenderDrawColor(renderer, borderCol.r, borderCol.g, borderCol.b, borderCol.a);
+                SDL_RenderRect(renderer, &tRect);
+
+                SDL_Color tTextCol = isSelected ? Theme::colors.textGold : (tHovered ? Theme::colors.textPrimary : Theme::colors.textMuted);
+                float labelW = UIWidget::getTextWidth(themeChoices[t].label, uiScale * 0.76f);
+                UIWidget::drawText(renderer, themeChoices[t].label, tRect.x + ((tRect.w - labelW) / 2.0f), tRect.y + (4.0f * uiScale), tTextCol, uiScale * 0.76f);
+
+                if (tHovered && clicked)
+                {
+                    gameContext->settings.display.activeTheme = themeChoices[t].id;
+                    Theme::applyTheme(themeChoices[t].id);
+                    gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
+                    gameContext->refreshActionGrid();
+                    gameContext->input.consumeMouseClick();
+                }
             }
             curY += themeCardRect.h + (10.0f * uiScale);
 
@@ -150,42 +171,6 @@ namespace OptionsView
                 gameContext->input.consumeMouseClick();
             }
             curY += fontCardRect.h + (10.0f * uiScale);
-
-            // Section: Fade-in
-            SDL_FRect fadeInRect = { textX, curY, textW, 44.0f * uiScale };
-            UIWidget::drawPanel(renderer, fadeInRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
-            UIWidget::drawText(renderer, "Fade-in:", textX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.92f);
-            UIWidget::drawText(renderer, "Fades in main narrative text upon entering new scenes.", textX + (10.0f * uiScale), curY + (24.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.82f);
-
-            float fadeW = 55.0f * uiScale;
-            float fadeStartX = textX + textW - (fadeW * 2.0f) - (12.0f * uiScale);
-            SDL_FRect offPill = { fadeStartX, curY + (10.0f * uiScale), fadeW, 24.0f * uiScale };
-            SDL_FRect onPill = { fadeStartX + fadeW, curY + (10.0f * uiScale), fadeW, 24.0f * uiScale };
-
-            bool offHovered = isInView(offPill) && (mousePos.x >= offPill.x && mousePos.x <= offPill.x + offPill.w && mousePos.y >= offPill.y && mousePos.y <= offPill.y + offPill.h);
-            bool onHovered = isInView(onPill) && (mousePos.x >= onPill.x && mousePos.x <= onPill.x + onPill.w && mousePos.y >= onPill.y && mousePos.y <= onPill.y + onPill.h);
-
-            bool isFadeOn = gameContext->settings.display.fadeInEnabled;
-            UIWidget::drawColoredButton(renderer, offPill, "OFF", !isFadeOn ? Theme::colors.toggleOff : Theme::colors.bgButton, !isFadeOn ? Theme::colors.textPrimary : Theme::colors.textMuted, !isFadeOn, uiScale * 0.72f);
-            UIWidget::drawColoredButton(renderer, onPill, "ON", isFadeOn ? Theme::colors.toggleOn : Theme::colors.bgButton, isFadeOn ? Theme::colors.textPrimary : Theme::colors.textMuted, isFadeOn, uiScale * 0.72f);
-
-            if (offHovered && clicked)
-            {
-                gameContext->settings.display.fadeInEnabled = false;
-                opt->fadeInEnabled = false;
-                gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
-                gameContext->refreshActionGrid();
-                gameContext->input.consumeMouseClick();
-            }
-            else if (onHovered && clicked)
-            {
-                gameContext->settings.display.fadeInEnabled = true;
-                opt->fadeInEnabled = true;
-                gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
-                gameContext->refreshActionGrid();
-                gameContext->input.consumeMouseClick();
-            }
-            curY += fadeInRect.h + (10.0f * uiScale);
 
             // Section: Pronouns
             SDL_FRect pronounRect = { textX, curY, textW, 44.0f * uiScale };
@@ -263,6 +248,72 @@ namespace OptionsView
             }
             curY += unitsRect.h + (10.0f * uiScale);
 
+            // Section: Artwork Display
+            SDL_FRect artRect = { textX, curY, textW, 44.0f * uiScale };
+            UIWidget::drawPanel(renderer, artRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+            UIWidget::drawText(renderer, "Artwork & Portraits:", textX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.92f);
+            UIWidget::drawText(renderer, "Enables character portraits and illustrations in information panels.", textX + (10.0f * uiScale), curY + (24.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.82f);
+
+            float pillW = 55.0f * uiScale;
+            float pillStartX = textX + textW - (pillW * 2.0f) - (12.0f * uiScale);
+            SDL_FRect artOff = { pillStartX, curY + (10.0f * uiScale), pillW, 24.0f * uiScale };
+            SDL_FRect artOn = { pillStartX + pillW, curY + (10.0f * uiScale), pillW, 24.0f * uiScale };
+
+            bool artOffHov = isInView(artOff) && (mousePos.x >= artOff.x && mousePos.x <= artOff.x + artOff.w && mousePos.y >= artOff.y && mousePos.y <= artOff.y + artOff.h);
+            bool artOnHov = isInView(artOn) && (mousePos.x >= artOn.x && mousePos.x <= artOn.x + artOn.w && mousePos.y >= artOn.y && mousePos.y <= artOn.y + artOn.h);
+            bool isArtOn = gameContext->settings.display.showArtwork;
+
+            UIWidget::drawColoredButton(renderer, artOff, "OFF", !isArtOn ? Theme::colors.toggleOff : Theme::colors.bgButton, !isArtOn ? Theme::colors.textPrimary : Theme::colors.textMuted, !isArtOn, uiScale * 0.72f);
+            UIWidget::drawColoredButton(renderer, artOn, "ON", isArtOn ? Theme::colors.toggleOn : Theme::colors.bgButton, isArtOn ? Theme::colors.textPrimary : Theme::colors.textMuted, isArtOn, uiScale * 0.72f);
+
+            if (artOffHov && clicked)
+            {
+                gameContext->settings.display.showArtwork = false;
+                gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
+                gameContext->refreshActionGrid();
+                gameContext->input.consumeMouseClick();
+            }
+            else if (artOnHov && clicked)
+            {
+                gameContext->settings.display.showArtwork = true;
+                gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
+                gameContext->refreshActionGrid();
+                gameContext->input.consumeMouseClick();
+            }
+            curY += artRect.h + (10.0f * uiScale);
+
+            // Section: Hover Thumbnails
+            SDL_FRect thumbRect = { textX, curY, textW, 44.0f * uiScale };
+            UIWidget::drawPanel(renderer, thumbRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+            UIWidget::drawText(renderer, "Hover Thumbnails:", textX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.92f);
+            UIWidget::drawText(renderer, "Enables tooltip popup thumbnails when inspecting characters or items.", textX + (10.0f * uiScale), curY + (24.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.82f);
+
+            SDL_FRect thOff = { pillStartX, curY + (10.0f * uiScale), pillW, 24.0f * uiScale };
+            SDL_FRect thOn = { pillStartX + pillW, curY + (10.0f * uiScale), pillW, 24.0f * uiScale };
+
+            bool thOffHov = isInView(thOff) && (mousePos.x >= thOff.x && mousePos.x <= thOff.x + thOff.w && mousePos.y >= thOff.y && mousePos.y <= thOff.y + thOff.h);
+            bool thOnHov = isInView(thOn) && (mousePos.x >= thOn.x && mousePos.x <= thOn.x + thOn.w && mousePos.y >= thOn.y && mousePos.y <= thOn.y + thOn.h);
+            bool isThOn = gameContext->settings.display.showThumbnails;
+
+            UIWidget::drawColoredButton(renderer, thOff, "OFF", !isThOn ? Theme::colors.toggleOff : Theme::colors.bgButton, !isThOn ? Theme::colors.textPrimary : Theme::colors.textMuted, !isThOn, uiScale * 0.72f);
+            UIWidget::drawColoredButton(renderer, thOn, "ON", isThOn ? Theme::colors.toggleOn : Theme::colors.bgButton, isThOn ? Theme::colors.textPrimary : Theme::colors.textMuted, isThOn, uiScale * 0.72f);
+
+            if (thOffHov && clicked)
+            {
+                gameContext->settings.display.showThumbnails = false;
+                gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
+                gameContext->refreshActionGrid();
+                gameContext->input.consumeMouseClick();
+            }
+            else if (thOnHov && clicked)
+            {
+                gameContext->settings.display.showThumbnails = true;
+                gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
+                gameContext->refreshActionGrid();
+                gameContext->input.consumeMouseClick();
+            }
+            curY += thumbRect.h + (10.0f * uiScale);
+
             // Section: Difficulty Tiers
             SDL_FRect diffHeaderRect = { textX, curY, textW, 24.0f * uiScale };
             UIWidget::drawText(renderer, "Gameplay Difficulty Tiers:", textX, curY + (4.0f * uiScale), Theme::colors.textGold, uiScale * 0.95f);
@@ -271,11 +322,11 @@ namespace OptionsView
             // Colored difficulty tiers (interactive cards)
             struct DiffTier { std::string name; std::string desc; SDL_Color col; };
             const DiffTier tiers[5] = {
-                { "Human", "The standard gameplay experience. Balanced level progression and baseline enemy stats.", Theme::colors.textPrimary },
-                { "Morph", "Enemies level up alongside your character, but do normal damage.", Theme::colors.textAccent },
-                { "Demon", "Enemies level up alongside your character and do 200% damage.", Theme::colors.arcane },
-                { "Lilin", "Enemies level up alongside your character, do 200% damage, and take only 50% damage from all sources.", Theme::colors.corruption },
-                { "Lilith", "Enemies are always 2x your character's level, do 400% damage, and take only 25% damage from all sources. Prepare for intense challenge.", Theme::colors.enemy }
+                { "Very Easy", "Relaxed narrative focus; enemies deal 75% damage and have reduced resilience.", Theme::colors.friendly },
+                { "Easy", "Mild combat challenge with reduced enemy damage (85%).", Theme::colors.companion },
+                { "Normal", "The standard balanced adventure experience (1.0x baseline stats).", Theme::colors.textPrimary },
+                { "Hard", "Enemies level up aggressively and deal 150% damage. Tactical skill required.", Theme::colors.textAccent },
+                { "Nightmare", "Brutal, uncompromising challenge; enemies deal 250% damage and fight ruthlessly.", Theme::colors.enemy }
             };
 
             for (int i = 0; i < 5; ++i)
@@ -300,7 +351,7 @@ namespace OptionsView
                 {
                     gameContext->settings.gameplay.difficultyLevel = i;
                     opt->difficultyLevel = i;
-                    static constexpr float diffMults[] = { 1.0f, 1.25f, 2.0f, 2.5f, 4.0f };
+                    static constexpr float diffMults[] = { 0.75f, 0.85f, 1.0f, 1.5f, 2.5f };
                     gameContext->settings.gameplay.difficultyMultiplier = diffMults[i];
                     gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
                     gameContext->refreshActionGrid();
@@ -317,13 +368,12 @@ namespace OptionsView
         {
             std::string catName = "Misc.";
             if (opt->contentCategory == ContentOptionsCategory::GAMEPLAY) catName = "Gameplay";
-            else if (opt->contentCategory == ContentOptionsCategory::SEX_AND_FETISHES) catName = "Sex & Fetishes";
+            else if (opt->contentCategory == ContentOptionsCategory::FETISH_PREFS) catName = "Fetish preferences";
             else if (opt->contentCategory == ContentOptionsCategory::BODIES) catName = "Bodies";
             else if (opt->contentCategory == ContentOptionsCategory::GENDER_PREFS) catName = "Gender preferences";
             else if (opt->contentCategory == ContentOptionsCategory::ORIENTATION_PREFS) catName = "Orientation preferences";
             else if (opt->contentCategory == ContentOptionsCategory::AGE_PREFS) catName = "Age preferences";
             else if (opt->contentCategory == ContentOptionsCategory::FURRY_PREFS) catName = "Furry preferences";
-            else if (opt->contentCategory == ContentOptionsCategory::FETISH_PREFS) catName = "Fetish preferences";
 
             // Centered Header Card
             std::string headerTitle = (opt->contentCategory == ContentOptionsCategory::GENDER_PREFS ||
@@ -373,7 +423,14 @@ namespace OptionsView
             // Helper lambda: Setting Row with Segments (e.g. OFF / ON)
             auto renderOptionCard = [&](const std::string& title, SDL_Color titleCol, const std::string& description, const std::vector<std::string>& pillLabels, int selectedIndex, std::function<void(int)> onSelect) {
                 float cardWidth = availableW;
-                float leftW = cardWidth - (180.0f * uiScale);
+                float maxItemTextW = 0.0f;
+                for (const auto& l : pillLabels)
+                {
+                    maxItemTextW = std::max(maxItemTextW, UIWidget::getTextWidth(l, uiScale * 0.78f));
+                }
+                float pillItemW = std::max(56.0f * uiScale, maxItemTextW + (18.0f * uiScale));
+                float pillTotalW = pillItemW * pillLabels.size();
+                float leftW = cardWidth - pillTotalW - (20.0f * uiScale);
                 float cardMinH = 48.0f * uiScale;
 
                 SDL_FRect cardRect = { padX, curY, cardWidth, cardMinH };
@@ -384,9 +441,7 @@ namespace OptionsView
 
                 float descH = UIWidget::drawTextWrapped(renderer, description, padX + (10.0f * uiScale) + titleW + (8.0f * uiScale), curY + (7.0f * uiScale), leftW - titleW - (18.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.82f);
 
-                float pillTotalW = 150.0f * uiScale;
                 float pillH = 24.0f * uiScale;
-                float pillItemW = pillTotalW / pillLabels.size();
                 float pillStartX = padX + cardWidth - pillTotalW - (12.0f * uiScale);
                 float pillY = curY + ((cardMinH - pillH) / 2.0f);
 
@@ -530,25 +585,6 @@ namespace OptionsView
                 }
             };
 
-            struct StateToggleDef {
-                std::string title;
-                SDL_Color color;
-                std::string description;
-                ContentToggleState* pState;
-                bool* pBool;
-            };
-
-            auto renderStateToggles = [&](const std::vector<StateToggleDef>& defs) {
-                for (const auto& def : defs)
-                {
-                    renderOptionCard(def.title, def.color, def.description, { "OFF", "WARN", "ON" }, static_cast<int>(*def.pState),
-                                     [&, pS = def.pState, pB = def.pBool](int idx) {
-                                         *pS = intToContentToggleState(idx);
-                                         *pB = (*pS != ContentToggleState::OFF);
-                                         gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
-                                     });
-                }
-            };
 
             auto renderDemographicCategory = [&](const std::vector<std::tuple<std::string, SDL_Color, std::string, float*>>& items) {
                 renderInfoDropdown();
@@ -567,25 +603,26 @@ namespace OptionsView
 
             if (opt->contentCategory == ContentOptionsCategory::MISC)
             {
-                renderOptionCard("Autosave Frequency", Theme::colors.companion, "Choose how often want the game to autosave when you transition from one map to another.",
-                                 { "Always", "Daily", "Weekly", "Off" },
-                                 gameContext->settings.gameplay.autoSaveFrequency,
+                renderToggles({
+                    { "Autosave on Map Transition", Theme::colors.companion, "Automatically saves the game when travelling between world zones.", &gameContext->settings.gameplay.autoSaveOnMapChange },
+                    { "Autosave on Scene Exit", Theme::colors.companion, "Automatically saves when finishing an intimate scene, combat, or dialogue.", &gameContext->settings.gameplay.autoSaveOnSceneExit },
+                    { "Shared Encyclopedia", Theme::colors.textGold, "When enabled, your character will use the shared Encyclopedia across playthroughs.", &gameContext->settings.gameplay.sharedEncyclopedia }
+                });
+
+                int maxSlotsIdx = (gameContext->settings.gameplay.maxAutoSaves <= 1) ? 0 :
+                                  (gameContext->settings.gameplay.maxAutoSaves <= 3 ? 1 : 2);
+                renderOptionCard("Max Autosave Slots", Theme::colors.friendly, "Number of rotating autosave files before older ones are overwritten.",
+                                 { "1 Slot", "3 Slots", "5 Slots" },
+                                 maxSlotsIdx,
                                  [&](int idx) {
-                                     gameContext->settings.gameplay.autoSaveFrequency = idx;
+                                     static constexpr int slotCounts[] = { 1, 3, 5 };
+                                     gameContext->settings.gameplay.maxAutoSaves = slotCounts[idx];
                                      gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
                                  });
-
-                renderToggles({
-                    { "Artwork", Theme::colors.friendly, "Enables artwork to be displayed in characters' information screens.", &gameContext->settings.display.showArtwork },
-                    { "Thumbnails", Theme::colors.friendly, "Enables tooltips containing thumbnail images of the character.", &gameContext->settings.display.showThumbnails },
-                    { "Shared Encyclopedia", Theme::colors.textGold, "When enabled, your character will use the shared Encyclopedia across playthroughs.", &gameContext->settings.gameplay.sharedEncyclopedia },
-                    { "Storm interruptions", Theme::colors.arcane, "When enabled, arcane storms will interrupt dialogue to let you know that they've started.", &gameContext->settings.gameplay.stormInterruptions }
-                });
             }
             else if (opt->contentCategory == ContentOptionsCategory::GAMEPLAY)
             {
                 renderToggles({
-                    { "Enchantment Instability", Theme::colors.arcane, "Toggle the 'enchantment instability' mechanic, restricting enchanted items.", &gameContext->settings.gameplay.enchantmentInstability },
                     { "Bad Ends", Theme::colors.enemy, "Toggle the ability to trigger 'bad ends', which end the game when encountered.", &gameContext->settings.gameplay.badEndsEnabled },
                     { "Level Drain", Theme::colors.enemy, "Toggle the use of the 'orgasmic level drain' perk by unique NPCs.", &gameContext->settings.gameplay.levelDrainEnabled },
                     { "Opportunistic attackers", Theme::colors.enemy, "Makes random attacks more likely when you're high on lust, low health, or exposed.", &gameContext->settings.gameplay.opportunisticAttackers },
@@ -604,51 +641,17 @@ namespace OptionsView
                                      gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
                                  });
             }
-            else if (opt->contentCategory == ContentOptionsCategory::SEX_AND_FETISHES)
-            {
-                int filterIdx = static_cast<int>(gameContext->settings.content.contentFilterMode);
-                renderOptionCard("Content Filter Handling", Theme::colors.textGold, "Governs how disabled content is handled in narrative scenes and dialogue choices.",
-                                 { "Dropdown", "Warn & Confirm", "Block & Skip" },
-                                 filterIdx,
-                                 [&](int idx) {
-                                     gameContext->settings.content.contentFilterMode = static_cast<ContentFilterMode>(idx);
-                                     gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
-                                 });
-
-                renderStateToggles({
-                    { "Non-consent", Theme::colors.enemy, "Enables non-consensual encounters, struggles, and rough sexual dialogue.", &gameContext->settings.content.nonConState, &gameContext->settings.content.nonConEnabled },
-                    { "Sadistic sex / Extreme", Theme::colors.enemy, "Unlocks extreme sadistic sex actions, severe violence, and heavy pain.", &gameContext->settings.content.extremeContentState, &gameContext->settings.content.extremeContentEnabled },
-                    { "Public Sex Exposure", Theme::colors.lust, "Allows public exhibitionism and onlookers during intimate encounters in open zones.", &gameContext->settings.content.publicSexState, &gameContext->settings.content.publicSexEnabled },
-                    { "Watersports", Theme::colors.currency, "Enables urination, golden showers, and related bladder interactions.", &gameContext->settings.content.watersportsState, &gameContext->settings.content.watersportsEnabled },
-                    { "Spitting", Theme::colors.friendly, "Enables spitting, oral degradation, and saliva exchange scenes.", &gameContext->settings.content.spittingState, &gameContext->settings.content.spittingEnabled },
-                    { "Forced Transformation", Theme::colors.arcane, "Allows involuntary anatomical mutations and forced corruption by enemies.", &gameContext->settings.content.forcedTfState, &gameContext->settings.content.forcedTfEnabled },
-                    { "Tentacles & Monsters", Theme::colors.arcane, "Enables monster, creature, and tentacle encounters.", &gameContext->settings.content.tentaclesState, &gameContext->settings.content.tentaclesEnabled },
-                    { "BDSM & Restraints", Theme::colors.enemy, "Enables bondage, leather bindings, gags, and heavy restraint mechanics.", &gameContext->settings.content.bdsmState, &gameContext->settings.content.bdsmEnabled },
-                    { "Incest", Theme::colors.enemy, "Allows romantic or intimate encounters involving blood relatives.", &gameContext->settings.content.incestState, &gameContext->settings.content.incestEnabled },
-                    { "Size Difference", Theme::colors.companion, "Enables extreme height and anatomical scale discrepancies.", &gameContext->settings.content.sizeDifferenceState, &gameContext->settings.content.sizeDifferenceEnabled },
-                    { "Prolapse", Theme::colors.enemy, "Enables heavy anal or vaginal stretching and prolapse descriptions.", &gameContext->settings.content.prolapseState, &gameContext->settings.content.prolapseEnabled },
-                    { "Aphrodisiacs & Drugs", Theme::colors.lust, "Enables involuntary administration of heat-inducing potions and alchemical drugs.", &gameContext->settings.content.aphrodisiacsState, &gameContext->settings.content.aphrodisiacsEnabled }
-                });
-
-                int fluidIdx = (gameContext->settings.content.fluidMultiplier <= 0.3f) ? 0 :
-                               (gameContext->settings.content.fluidMultiplier <= 0.7f ? 1 :
-                               (gameContext->settings.content.fluidMultiplier <= 1.5f ? 2 :
-                               (gameContext->settings.content.fluidMultiplier <= 3.0f ? 3 : 4)));
-                renderOptionCard("Fluid Multiplier", Theme::colors.friendly, "Scales fluid volume generated during climax and bodily transformations.",
-                                 { "0.25x", "0.5x", "1.0x", "2.0x", "4.0x" },
-                                 fluidIdx,
-                                 [&](int idx) {
-                                     static constexpr float flVals[] = { 0.25f, 0.5f, 1.0f, 2.0f, 4.0f };
-                                     gameContext->settings.content.fluidMultiplier = flVals[idx];
-                                     gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
-                                 });
-            }
             else if (opt->contentCategory == ContentOptionsCategory::BODIES)
             {
-                renderStateToggles({
-                    { "Pregnancy", Theme::colors.companion, "Enables insemination, gestation progression, and progeny generation mechanics.", &gameContext->settings.content.pregnancyState, &gameContext->settings.content.pregnancyEnabled },
-                    { "Lactation", Theme::colors.friendly, "Enables breast engorgement, milk production, and related dialogue / feeding actions.", &gameContext->settings.content.lactationState, &gameContext->settings.content.lactationEnabled }
-                });
+
+                int styleIdx = (gameContext->settings.content.furryGenitalStyle == "Animalistic") ? 1 : 0;
+                renderOptionCard("Furry Genitalia Style", Theme::colors.arcane, "Toggles between standard humanoid anatomy and animalistic traits (knots, sheaths, barbs).",
+                                 { "Humanoid", "Animalistic" },
+                                 styleIdx,
+                                 [&](int idx) {
+                                     gameContext->settings.content.furryGenitalStyle = (idx == 1) ? "Animalistic" : "Humanoid";
+                                     gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
+                                 });
 
                 int tfIdx = (gameContext->settings.content.transformationSpeedMultiplier >= 5.0f) ? 0 :
                             (gameContext->settings.content.transformationSpeedMultiplier >= 1.5f ? 1 :
@@ -707,15 +710,47 @@ namespace OptionsView
             }
             else if (opt->contentCategory == ContentOptionsCategory::FETISH_PREFS)
             {
+                int filterIdx = static_cast<int>(gameContext->settings.content.contentFilterMode);
+                renderOptionCard("Content Filter Handling", Theme::colors.textGold, "Governs how content set to 'Never' is handled in narrative scenes and dialogue choices.",
+                                 { "Dropdown", "Warn & Confirm", "Block & Skip" },
+                                 filterIdx,
+                                 [&](int idx) {
+                                     gameContext->settings.content.contentFilterMode = static_cast<ContentFilterMode>(idx);
+                                     gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
+                                 });
+
+                int fluidIdx = (gameContext->settings.content.fluidMultiplier <= 0.3f) ? 0 :
+                               (gameContext->settings.content.fluidMultiplier <= 0.7f ? 1 :
+                               (gameContext->settings.content.fluidMultiplier <= 1.5f ? 2 :
+                               (gameContext->settings.content.fluidMultiplier <= 3.0f ? 3 : 4)));
+                renderOptionCard("Fluid Multiplier", Theme::colors.friendly, "Scales fluid volume generated during climax and bodily transformations.",
+                                 { "0.25x", "0.5x", "1.0x", "2.0x", "4.0x" },
+                                 fluidIdx,
+                                 [&](int idx) {
+                                     static constexpr float flVals[] = { 0.25f, 0.5f, 1.0f, 2.0f, 4.0f };
+                                     gameContext->settings.content.fluidMultiplier = flVals[idx];
+                                     gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
+                                 });
+
+                curY += 8.0f * uiScale;
+                float subW = std::min(availableW, 400.0f * uiScale);
+                float subH = 30.0f * uiScale;
+                UIWidget::drawCenteredHeaderCard(renderer, centerX, curY, subW, subH, "Fetish Desires & Frequency", Theme::colors.textGold, uiScale);
+                curY += subH + (10.0f * uiScale);
+
                 renderInfoDropdown();
 
                 static const char* fetishes[] = {
-                    "Anal", "Buttslut", "Vaginal", "Pussy slut", "Oral",
-                    "Oral performer", "Breasts lover", "Breasts", "Milk lover", "Lactation",
-                    "Foot worship", "Feet", "Dominance", "Submission", "BDSM / Sadism",
-                    "Masochism", "Bondage", "Exhibitionism", "Voyeurism", "Insemination",
-                    "Pregnancy", "Transformations", "Watersports", "Spitting", "Tentacles",
-                    "Size Difference", "Crossdressing", "Denial & Edging"
+                    "Anal", "Aphrodisiacs & Drugs", "BDSM & Restraints", "Bondage",
+                    "Breasts", "Breasts lover", "Buttslut", "Crossdressing",
+                    "Cum Inflation & Expansion", "Defloration", "Denial & Edging", "Dominance",
+                    "Exhibitionism / Public Sex", "Feet", "Foot worship", "Feral / Bestiality",
+                    "Forced Transformation", "Hypnosis & Mind Control", "Incest", "Insemination",
+                    "Lactation", "Masochism", "Milk lover", "Non-Consent",
+                    "Oral", "Oral performer", "Penetration", "Pregnancy",
+                    "Prolapse", "Pussy slut", "Sadistic sex / Extreme", "Size Difference",
+                    "Spitting", "Submission", "Tentacles & Monsters", "Transformations",
+                    "Vaginal", "Voyeurism", "Watersports"
                 };
 
                 static constexpr std::string_view fetPills[] = {
@@ -732,18 +767,13 @@ namespace OptionsView
                     UIWidget::drawText(renderer, "[i]", padX + (10.0f * uiScale), curY + (8.0f * uiScale), Theme::colors.textMuted, uiScale * 0.85f);
                     UIWidget::drawText(renderer, fetishes[i], padX + (36.0f * uiScale), curY + (8.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.88f);
 
-                    float pillTotalW = 340.0f * uiScale;
+                    float pillTotalW = 390.0f * uiScale;
                     float pillH = 22.0f * uiScale;
                     float pillItemW = (pillTotalW - (6.0f * 4.0f * uiScale)) / 7.0f;
                     float pillStartX = padX + cardWidth - pillTotalW - (10.0f * uiScale);
                     float pillY = curY + (6.0f * uiScale);
 
-                    int curRating = 3;
-                    auto it = gameContext->settings.content.fetishPreferences.find(fetishes[i]);
-                    if (it != gameContext->settings.content.fetishPreferences.end())
-                    {
-                        curRating = it->second;
-                    }
+                    int curRating = gameContext->settings.content.getFetishRating(fetishes[i]);
 
                     for (size_t p = 0; p < std::size(fetPills); ++p)
                     {
@@ -778,12 +808,12 @@ namespace OptionsView
                         SDL_SetRenderDrawColor(renderer, borderCol.r, borderCol.g, borderCol.b, borderCol.a);
                         SDL_RenderRect(renderer, &pRect);
 
-                        float labelW = UIWidget::getTextWidth(std::string(fetPills[p]), uiScale * 0.72f);
-                        UIWidget::drawText(renderer, std::string(fetPills[p]), pRect.x + ((pRect.w - labelW) / 2.0f), pRect.y + (3.0f * uiScale), pTextCol, uiScale * 0.72f);
+                        float labelW = UIWidget::getTextWidth(std::string(fetPills[p]), uiScale * 0.70f);
+                        UIWidget::drawText(renderer, std::string(fetPills[p]), pRect.x + ((pRect.w - labelW) / 2.0f), pRect.y + (3.0f * uiScale), pTextCol, uiScale * 0.70f);
 
                         if (pHovered && clicked)
                         {
-                            gameContext->settings.content.fetishPreferences[fetishes[i]] = static_cast<int>(p);
+                            gameContext->settings.content.setFetishPreference(fetishes[i], static_cast<int>(p));
                             gameContext->handleCommand({ CommandType::SAVE_SETTINGS });
                             gameContext->input.consumeMouseClick();
                         }

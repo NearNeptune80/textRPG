@@ -75,6 +75,7 @@ public:
     int selectedInventoryIndex = -1;
     int selectedInventorySide = 0;
     equipSlot selectedEquipmentSlot = equipSlot::NONE;
+    int selectedEquipmentSide = 0; // 0 for player, 1 for target NPC
 
     gameMap* map = nullptr;
     std::shared_ptr<entity> playerEntity = nullptr;
@@ -96,6 +97,15 @@ public:
     std::vector<std::shared_ptr<entity>> partyCompanions;
 
     int currentActionPage = 0;
+    std::vector<std::string> actionCategories;
+    std::string activeActionCategory = "";
+
+    void setActionCategories(const std::vector<std::string>& categories, const std::string& defaultCategory = "");
+    void clearActionCategories();
+    void selectActionCategory(const std::string& category);
+    const std::vector<std::string>& getActionCategories() const { return actionCategories; }
+    const std::string& getActiveActionCategory() const { return activeActionCategory; }
+
     void triggerActionButton(int slotIndex);
     void previousActionPage();
     void nextActionPage();
@@ -135,6 +145,18 @@ public:
     void handleUnequipAllAction();
     void handleStripToUnderwearAction();
     void handleResetAllDisplacementsAction();
+    void handleUnequipNPCAction(equipSlot slot);
+    void handleTakeNPCEquipmentAction(equipSlot slot);
+    void handleStripAllNPCEquipmentAction();
+    bool handleEquipOnNPCAction(int backpackIndex, equipSlot targetSlotOverride = equipSlot::NONE, entity* targetNpc = nullptr);
+    static bool isEnslavingItem(const item* it);
+    void handleTakeAllNPCItemsAction();
+    void handleTakeNPCGoldAction();
+    float getTileCurrency() const;
+    void modifyTileCurrency(float delta);
+    bool isCurrentTileStorageSafe() const;
+    void transferCurrencyToSide1(float amount);
+    void transferCurrencyFromSide1(float amount);
     bool checkSingleCondition(const gameCondition &cond) const;
 
     void loadScene(const std::string& sceneId, bool bypassWarning = false);

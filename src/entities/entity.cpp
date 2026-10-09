@@ -209,6 +209,7 @@ json entity::toJson() const
     j["spiritRank"] = spiritRank;
     j["bondLevel"] = bondLevel;
     j["resonance"] = resonance;
+    j["canSelfTransform"] = canSelfTransform;
 
     json statsJson;
     statsJson["level"] = stats.level;
@@ -350,6 +351,7 @@ void entity::fromJson(const json& j)
     spiritRank = j.value("spiritRank", 1);
     bondLevel = j.value("bondLevel", 10);
     resonance = j.value("resonance", 80.0f);
+    canSelfTransform = j.value("canSelfTransform", false);
 
     if (j.contains("fetishDesires") && j["fetishDesires"].is_object())
     {
@@ -649,6 +651,50 @@ bool entity::hasFetish(const std::string& fetishKey) const
     return (it != fetishDesires.end() && it->second >= 3); // 3=Like, 4=Love
 }
 
+bool entity::hasTrait(const std::string& traitName) const
+{
+    for (const auto& t : personalityTraits)
+    {
+        if (t.size() == traitName.size())
+        {
+            bool match = true;
+            for (size_t i = 0; i < t.size(); ++i)
+            {
+                if (std::tolower(static_cast<unsigned char>(t[i])) != std::tolower(static_cast<unsigned char>(traitName[i])))
+                {
+                    match = false;
+                    break;
+                }
+            }
+            if (match) return true;
+        }
+    }
+    return false;
+}
+
+void entity::addTrait(const std::string& traitName)
+{
+    if (!hasTrait(traitName))
+    {
+        personalityTraits.push_back(traitName);
+    }
+}
+
+void entity::removeTrait(const std::string& traitName)
+{
+    std::erase_if(personalityTraits, [&](const std::string& t) {
+        if (t.size() != traitName.size()) return false;
+        for (size_t i = 0; i < t.size(); ++i)
+        {
+            if (std::tolower(static_cast<unsigned char>(t[i])) != std::tolower(static_cast<unsigned char>(traitName[i])))
+            {
+                return false;
+            }
+        }
+        return true;
+    });
+}
+
 std::string entity::handleMasturbation(const std::string& actionId, int baseDurationMinutes, timeManager* timeMgr)
 {
     if (timeMgr && baseDurationMinutes > 0)
@@ -756,4 +802,29 @@ std::string entity::handleFamiliarAction(const std::string& actionId, int baseDu
     }
 
     return narrative;
+}
+
+bool entity::canTransform() const
+{
+    if (canSelfTransform) return true;
+    if (hasPerk("metamorphosis") || hasPerk("shapeshifter") || hasPerk("transformation")) return true;
+    if (hasPerkFlag("can_transform") || hasPerkFlag("shapeshifter")) return true;
+
+    for (const auto& trait : personalityTraits)
+    {
+        if (trait == "shapeshifter" || trait == "metamorph" || trait == "changeling" || trait == "transform" || trait == "can_transform")
+        {
+            return true;
+        }
+    }
+
+    std::string race = anatomy.getDominantRace();
+    for (char& c : race) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    if (race == "slime" || race == "demon" || race == "succubus" || race == "incubus" ||
+        race == "kitsune" || race == "doppelganger" || race == "changeling")
+    {
+        return true;
+    }
+
+    return false;
 }

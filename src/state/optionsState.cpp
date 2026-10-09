@@ -19,7 +19,6 @@ void optionsState::onEnter(game* gameContext)
     if (gameContext)
     {
         fontSize = gameContext->settings.display.fontSize;
-        fadeInEnabled = gameContext->settings.display.fadeInEnabled;
         difficultyLevel = gameContext->settings.gameplay.difficultyLevel;
         genderPronounMode = gameContext->settings.gameplay.genderPronounMode;
         unitPreference = gameContext->settings.gameplay.unitPreference;
@@ -88,7 +87,7 @@ void optionsState::handleCommand(game* gameContext, const UICommand& cmd)
         {
             difficultyLevel = (difficultyLevel + 1) % 5;
             gameContext->settings.gameplay.difficultyLevel = difficultyLevel;
-            static constexpr float diffMults[] = { 1.0f, 1.25f, 2.0f, 2.5f, 4.0f };
+            static constexpr float diffMults[] = { 0.75f, 0.85f, 1.0f, 1.5f, 2.5f };
             gameContext->settings.gameplay.difficultyMultiplier = diffMults[difficultyLevel];
         }
         settingsManager::saveToFile(gameContext->settings, "data/settings.json");
@@ -135,36 +134,45 @@ void optionsState::resetCategoryDefaults(game* gameContext)
         {
             v = 3; // Neutral
         }
-    }
-    else if (contentCategory == ContentOptionsCategory::GAMEPLAY)
-    {
-        gameContext->settings.gameplay.enchantmentInstability = true;
-        gameContext->settings.gameplay.badEndsEnabled = true;
-        gameContext->settings.gameplay.levelDrainEnabled = true;
-        gameContext->settings.gameplay.opportunisticAttackers = true;
-        gameContext->settings.gameplay.autoLoot = true;
-        gameContext->settings.gameplay.currencyLossOnDefeatPercent = 0.15f;
-    }
-    else if (contentCategory == ContentOptionsCategory::MISC)
-    {
-        gameContext->settings.gameplay.autoSaveFrequency = 0;
-        gameContext->settings.display.showArtwork = true;
-        gameContext->settings.display.showThumbnails = true;
-        gameContext->settings.gameplay.sharedEncyclopedia = false;
-        gameContext->settings.gameplay.stormInterruptions = true;
-    }
-    else if (contentCategory == ContentOptionsCategory::SEX_AND_FETISHES)
-    {
+        gameContext->settings.content.contentFilterMode = ContentFilterMode::DROPDOWN;
         gameContext->settings.content.nonConEnabled = false;
-        gameContext->settings.content.publicSexEnabled = true;
+        gameContext->settings.content.nonConState = ContentToggleState::OFF;
         gameContext->settings.content.extremeContentEnabled = false;
+        gameContext->settings.content.extremeContentState = ContentToggleState::OFF;
+        gameContext->settings.content.publicSexEnabled = true;
+        gameContext->settings.content.publicSexState = ContentToggleState::ON;
         gameContext->settings.content.fluidMultiplier = 1.0f;
+        gameContext->settings.content.watersportsEnabled = false;
+        gameContext->settings.content.watersportsState = ContentToggleState::OFF;
+        gameContext->settings.content.spittingEnabled = false;
+        gameContext->settings.content.spittingState = ContentToggleState::OFF;
+        gameContext->settings.content.forcedTfEnabled = false;
+        gameContext->settings.content.forcedTfState = ContentToggleState::OFF;
+        gameContext->settings.content.tentaclesEnabled = false;
+        gameContext->settings.content.tentaclesState = ContentToggleState::OFF;
+        gameContext->settings.content.bdsmEnabled = false;
+        gameContext->settings.content.bdsmState = ContentToggleState::OFF;
+        gameContext->settings.content.incestEnabled = false;
+        gameContext->settings.content.incestState = ContentToggleState::OFF;
+        gameContext->settings.content.sizeDifferenceEnabled = false;
+        gameContext->settings.content.sizeDifferenceState = ContentToggleState::OFF;
+        gameContext->settings.content.prolapseEnabled = false;
+        gameContext->settings.content.prolapseState = ContentToggleState::OFF;
+        gameContext->settings.content.aphrodisiacsEnabled = false;
+        gameContext->settings.content.aphrodisiacsState = ContentToggleState::OFF;
+        gameContext->settings.content.hypnosisEnabled = false;
+        gameContext->settings.content.hypnosisState = ContentToggleState::OFF;
+        gameContext->settings.content.cumInflationEnabled = false;
+        gameContext->settings.content.cumInflationState = ContentToggleState::OFF;
+        gameContext->settings.content.feralEnabled = false;
+        gameContext->settings.content.feralState = ContentToggleState::OFF;
     }
     else if (contentCategory == ContentOptionsCategory::BODIES)
     {
         gameContext->settings.content.pregnancyEnabled = true;
         gameContext->settings.content.lactationEnabled = true;
         gameContext->settings.content.transformationSpeedMultiplier = 1.0f;
+        gameContext->settings.content.furryGenitalStyle = "Humanoid";
     }
 
     settingsManager::saveToFile(gameContext->settings, "data/settings.json");
@@ -175,9 +183,8 @@ void optionsState::resetAllDefaults(game* gameContext)
 {
     if (!gameContext) return;
     gameContext->settings = GameSettings{};
-    difficultyLevel = 0;
+    difficultyLevel = 2;
     fontSize = 18;
-    fadeInEnabled = false;
     genderPronounMode = "Normal";
     unitPreference = "Metric";
     settingsManager::saveToFile(gameContext->settings, "data/settings.json");

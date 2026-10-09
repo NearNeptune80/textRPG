@@ -32,4 +32,12 @@ namespace EngineTests
     bool testEnchantingAltarParityAndLimits();
     bool testFocusCombatElementalReactionsAndDecoupling();
     bool testModularScreensAndWidgetCatalog();
+    bool testSceneEnhancementsAndEncounterResolutionHub();
+    bool testDualInventoryEquipmentLooting();
+    bool testDualInventoryCurrencyTransferAndStorage();
+    bool testDefeatResolutionAndEnslavementCapture();
+    bool testCategoryTabsAndAdaptiveSexEncounters();
+    bool testUnitFormatterAndRefinedSettings();
+    bool testUnifiedFetishesAndCombatResolutionSex();
 }
+
