@@ -131,7 +131,7 @@ inline ItemCategory determineItemCategory(const item& it)
 {
     if (it.category != ItemCategory::MISC) return it.category;
 
-    if (it.isKeyItem || (!it.id.empty() && it.id.find("key") != std::string::npos && it.targetSlot == equipSlot::NONE))
+    if (it.isKeyItem)
     {
         return ItemCategory::KEY_ITEM;
     }
@@ -161,12 +161,6 @@ inline ItemCategory determineItemCategory(const item& it)
     if (it.isConsumable || it.isFood)
     {
         return ItemCategory::CONSUMABLE;
-    }
-    if (it.id.find("gem") != std::string::npos || it.id.find("ore") != std::string::npos ||
-        it.id.find("stone") != std::string::npos || it.id.find("essence") != std::string::npos ||
-        it.id.find("material") != std::string::npos)
-    {
-        return ItemCategory::MATERIAL;
     }
     return ItemCategory::MISC;
 }

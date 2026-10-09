@@ -7,7 +7,17 @@
       "description": "Focuses infusion upon cranial contours, facial features, muzzle, or predatory senses.",
       "affix": "Predator's",
       "rarity": "UNCOMMON",
-      "properties": []
+      "properties": [
+        "prop_face_shape",
+        "prop_nose_size",
+        "prop_facial_beard",
+        "prop_eyebrow_shape",
+        "prop_racial_face",
+        "prop_racial_muzzle",
+        "prop_predatory_perception",
+        "prop_alluring_gaze"
+      ],
+      "suffix": "of Predator's Instinct"
     },
     {
       "id": "focus_horns",
@@ -16,7 +26,17 @@
       "description": "Focuses infusion upon cranial horns, crests, and sensory antennae.",
       "affix": "Curved",
       "rarity": "UNCOMMON",
-      "properties": []
+      "properties": [
+        "prop_horn_size",
+        "prop_horn_shape",
+        "prop_horn_texture",
+        "prop_racial_horn_primary",
+        "prop_racial_horn_variant",
+        "prop_antennae_morph",
+        "prop_antennae_length",
+        "prop_antennae_type",
+        "prop_part_removal"
+      ]
     },
     {
       "id": "focus_hair",
@@ -25,7 +45,14 @@
       "description": "Focuses infusion upon hair volume, length, and coloration.",
       "affix": "Flowing",
       "rarity": "COMMON",
-      "properties": []
+      "properties": [
+        "prop_hair_growth_rate",
+        "prop_hair_length",
+        "prop_hair_volume",
+        "prop_hair_style",
+        "prop_hair_color",
+        "prop_racial_mane"
+      ]
     },
     {
       "id": "focus_eyes",
@@ -34,7 +61,12 @@
       "description": "Focuses infusion upon eye hue, pupil configuration, and darkvision.",
       "affix": "Piercing",
       "rarity": "UNCOMMON",
-      "properties": []
+      "properties": [
+        "prop_eye_pupils",
+        "prop_eye_color",
+        "prop_darkvision",
+        "prop_alluring_gaze"
+      ]
     },
     {
       "id": "focus_ears",
@@ -43,7 +75,11 @@
       "description": "Focuses infusion upon ear morphology and heightened auditory perception.",
       "affix": "Keen",
       "rarity": "COMMON",
-      "properties": []
+      "properties": [
+        "prop_ear_size",
+        "prop_racial_ears",
+        "prop_keen_hearing"
+      ]
     },
     {
       "id": "focus_mouth",
@@ -52,7 +88,13 @@
       "description": "Focuses infusion upon lip fullness, dentition, tongue agility, and throat capacity.",
       "affix": "Hungering",
       "rarity": "UNCOMMON",
-      "properties": []
+      "properties": [
+        "prop_lip_fullness",
+        "prop_racial_dentition",
+        "prop_racial_tongue",
+        "prop_throat_depth",
+        "prop_saliva_prod"
+      ]
     },
     {
       "id": "focus_face",
@@ -61,7 +103,15 @@
       "description": "Focuses infusion upon visage contours, softness, or feral muzzle shape.",
       "affix": "Feral",
       "rarity": "UNCOMMON",
-      "properties": []
+      "properties": [
+        "prop_lip_fullness",
+        "prop_nose_size",
+        "prop_facial_beard",
+        "prop_eyebrow_shape",
+        "prop_face_shape",
+        "prop_racial_muzzle",
+        "prop_alluring_gaze"
+      ]
     },
     {
       "id": "focus_skin",
@@ -70,7 +120,12 @@
       "description": "Focuses infusion upon epidermal texture, skin sheen, scales, or fur.",
       "affix": "Silken",
       "rarity": "UNCOMMON",
-      "properties": []
+      "properties": [
+        "prop_racial_covering",
+        "prop_racial_pattern",
+        "prop_dermis_elasticity",
+        "prop_natural_armor"
+      ]
     },
     {
       "id": "focus_arms",
@@ -79,7 +134,13 @@
       "description": "Focuses infusion upon forearm power, claws, and grip strength.",
       "affix": "Mighty",
       "rarity": "COMMON",
-      "properties": []
+      "properties": [
+        "prop_arm_muscle",
+        "prop_underarm_hair",
+        "prop_grip_strength",
+        "prop_claws_nails",
+        "prop_manual_dexterity"
+      ]
     },
     {
       "id": "focus_torso",
@@ -88,7 +149,15 @@
       "description": "Focuses infusion upon the torso, abdominal wall, and muscular stature.",
       "affix": "Titan's",
       "rarity": "RARE",
-      "properties": []
+      "properties": [
+        "prop_height",
+        "prop_muscle_physique",
+        "prop_waist_taper",
+        "prop_fem_masc",
+        "prop_body_hair",
+        "prop_stomach_tone",
+        "prop_health_vitality"
+      ]
     },
     {
       "id": "focus_breasts",
@@ -97,7 +166,25 @@
       "description": "Focuses infusion upon breasts, nipples, udders, teats, and lactation.",
       "affix": "Voluptuous",
       "rarity": "RARE",
-      "properties": []
+      "properties": [
+        "prop_breast_size",
+        "prop_breast_shape",
+        "prop_nipple_length",
+        "prop_nipple_girth",
+        "prop_nipple_type",
+        "prop_nipple_capacity",
+        "prop_areola_size",
+        "prop_lactation_volume",
+        "prop_lactation_regen",
+        "prop_fluid_type",
+        "prop_milk_flavor",
+        "prop_udder_size",
+        "prop_teat_length",
+        "prop_teat_count",
+        "prop_udder_capacity",
+        "prop_udder_regen",
+        "prop_crotch_mammary"
+      ]
     },
     {
       "id": "focus_wings",
@@ -106,7 +193,14 @@
       "description": "Focuses infusion upon bat or feather wing structures.",
       "affix": "Soaring",
       "rarity": "EPIC",
-      "properties": []
+      "properties": [
+        "prop_wing_size",
+        "prop_wing_type",
+        "prop_gliding_flight",
+        "prop_racial_wing_primary",
+        "prop_racial_wing_variant",
+        "prop_part_removal"
+      ]
     },
     {
       "id": "focus_tail",
@@ -115,7 +209,14 @@
       "description": "Focuses infusion upon tail morphology, fur tufts, or prehensile grace.",
       "affix": "Sinewy",
       "rarity": "UNCOMMON",
-      "properties": []
+      "properties": [
+        "prop_tail_length",
+        "prop_tail_girth",
+        "prop_tail_type",
+        "prop_racial_tail_primary",
+        "prop_racial_tail_variant",
+        "prop_part_removal"
+      ]
     },
     {
       "id": "focus_genitalia_primary",
@@ -124,7 +225,17 @@
       "description": "Focuses infusion upon virile member length, girth, and fluid emission.",
       "affix": "Stallion's",
       "rarity": "RARE",
-      "properties": []
+      "properties": [
+        "prop_penis_length",
+        "prop_penis_girth",
+        "prop_knot_size",
+        "prop_testes_size",
+        "prop_cum_volume",
+        "prop_cum_regen",
+        "prop_virility_potency",
+        "prop_racial_phallus",
+        "prop_racial_sheath"
+      ]
     },
     {
       "id": "focus_genitalia_secondary",
@@ -133,7 +244,15 @@
       "description": "Focuses infusion upon vaginal elasticity, depth, and fertile receptivity.",
       "affix": "Lush",
       "rarity": "RARE",
-      "properties": []
+      "properties": [
+        "prop_vagina_depth",
+        "prop_vagina_tightness",
+        "prop_clit_size",
+        "prop_labia_size",
+        "prop_lube_wetness",
+        "prop_fertility_receptivity",
+        "prop_racial_yoni"
+      ]
     },
     {
       "id": "focus_hips_ass",
@@ -142,7 +261,14 @@
       "description": "Focuses infusion upon pelvic width, gluteal curvature, and posterior fullness.",
       "affix": "Curvaceous",
       "rarity": "UNCOMMON",
-      "properties": []
+      "properties": [
+        "prop_butt_size",
+        "prop_hip_width",
+        "prop_anus_capacity",
+        "prop_anus_depth",
+        "prop_anus_elasticity",
+        "prop_anus_wetness"
+      ]
     },
     {
       "id": "focus_legs_feet",
@@ -151,7 +277,16 @@
       "description": "Focuses infusion upon stride length, digitigrade/unguligrade stance, or taur body.",
       "affix": "Fleet",
       "rarity": "UNCOMMON",
-      "properties": []
+      "properties": [
+        "prop_racial_legs_biped",
+        "prop_racial_stance",
+        "prop_racial_body_config",
+        "prop_foot_morph",
+        "prop_leg_length",
+        "prop_thigh_fullness",
+        "prop_leg_hair",
+        "prop_sprint_agility"
+      ]
     },
     {
       "id": "focus_armor",
@@ -160,7 +295,11 @@
       "description": "Focuses infusion upon garment resilience, weave density, and deflection.",
       "affix": "Warded",
       "rarity": "RARE",
-      "properties": []
+      "properties": [
+        "prop_armor_rating",
+        "prop_fortitude",
+        "prop_health_vitality"
+      ]
     },
     {
       "id": "focus_weapon",
@@ -169,7 +308,16 @@
       "description": "Focuses infusion upon edge sharpness, impact velocity, and critical trauma.",
       "affix": "Striking",
       "rarity": "RARE",
-      "properties": []
+      "properties": [
+        "prop_attack_power",
+        "prop_strike_velocity",
+        "prop_damage_physical",
+        "prop_damage_elemental",
+        "prop_critical_power",
+        "prop_life_leech",
+        "prop_armor_piercing",
+        "prop_weapon_bleed"
+      ]
     },
     {
       "id": "focus_arcane",
@@ -178,7 +326,13 @@
       "description": "Focuses infusion upon magical resonance, spell potency, and aura capacity.",
       "affix": "Eldritch",
       "rarity": "EPIC",
-      "properties": []
+      "properties": [
+        "prop_arcane",
+        "prop_mana_ceiling",
+        "prop_mana_regen",
+        "prop_damage_elemental"
+      ],
+      "suffix": "of Eldritch Clarity"
     },
     {
       "id": "focus_resistance",
@@ -187,7 +341,11 @@
       "description": "Focuses infusion upon shielding against elemental and physical harm.",
       "affix": "Impenetrable",
       "rarity": "RARE",
-      "properties": []
+      "properties": [
+        "prop_ward_resistance",
+        "prop_mind_ward",
+        "prop_fortitude"
+      ]
     },
     {
       "id": "focus_binding",
@@ -210,7 +368,14 @@
       "description": "Focuses infusion upon baseline vitality, mana aura, stamina, and physical might.",
       "affix": "Primal",
       "rarity": "COMMON",
-      "properties": []
+      "properties": [
+        "prop_core_health",
+        "prop_core_mana",
+        "prop_core_stamina",
+        "prop_core_physique",
+        "prop_core_arcane",
+        "prop_core_corruption"
+      ]
     },
     {
       "id": "focus_gen_attr",
@@ -219,7 +384,16 @@
       "description": "Focuses infusion upon combat ratings, spell power, defenses, agility, and fertility.",
       "affix": "Ascendant",
       "rarity": "COMMON",
-      "properties": []
+      "properties": [
+        "prop_attr_phys_dmg",
+        "prop_attr_spell_pwr",
+        "prop_attr_armor",
+        "prop_attr_warding",
+        "prop_attr_fertility",
+        "prop_attr_virility",
+        "prop_attr_critical",
+        "prop_attr_agility"
+      ]
     },
     {
       "id": "focus_special_fx",
@@ -228,7 +402,12 @@
       "description": "Focuses infusion upon soulbound bindings, identity concealment, and servitude runes.",
       "affix": "Enigmatic",
       "rarity": "EPIC",
-      "properties": []
+      "properties": [
+        "prop_soulbound",
+        "prop_conceal_identity",
+        "prop_servitude",
+        "prop_vibration"
+      ]
     },
     {
       "id": "focus_retention",
@@ -237,7 +416,12 @@
       "description": "Focuses infusion upon bodily fluid containment, pregnancy capacity, and fullness.",
       "affix": "Retentive",
       "rarity": "UNCOMMON",
-      "properties": []
+      "properties": [
+        "prop_retention_stomach",
+        "prop_retention_mammary",
+        "prop_retention_yoni",
+        "prop_retention_anal"
+      ]
     },
     {
       "id": "focus_body_desires",
@@ -246,7 +430,13 @@
       "description": "Focuses infusion upon primal erotic attunement and bodily fixations.",
       "affix": "Yearning",
       "rarity": "RARE",
-      "properties": []
+      "properties": [
+        "prop_desire_anal",
+        "prop_desire_mammary",
+        "prop_desire_phallic",
+        "prop_desire_yoni",
+        "prop_desire_feet"
+      ]
     },
     {
       "id": "focus_behav_desires",
@@ -255,7 +445,15 @@
       "description": "Focuses infusion upon personality inclinations, dominance, and surrender.",
       "affix": "Compelling",
       "rarity": "RARE",
-      "properties": []
+      "properties": [
+        "prop_desire_dominant",
+        "prop_desire_submissive",
+        "prop_desire_bondage",
+        "prop_desire_exhibitionism",
+        "prop_desire_chastity",
+        "prop_desire_masochism",
+        "prop_desire_sadism"
+      ]
     },
     {
       "id": "focus_crotch_mammaries",
@@ -264,7 +462,13 @@
       "description": "Focuses infusion upon inguinal udders, teats, and pastoral milk generation.",
       "affix": "Pastoral",
       "rarity": "EPIC",
-      "properties": []
+      "properties": [
+        "prop_udder_size",
+        "prop_teat_length",
+        "prop_teat_count",
+        "prop_udder_capacity",
+        "prop_udder_regen"
+      ]
     },
     {
       "id": "focus_antennae",
@@ -273,7 +477,12 @@
       "description": "Focuses infusion upon sensory antennae feelers and insectoid plumes.",
       "affix": "Sensitive",
       "rarity": "UNCOMMON",
-      "properties": []
+      "properties": [
+        "prop_antennae_morph",
+        "prop_antennae_length",
+        "prop_antennae_type",
+        "prop_part_removal"
+      ]
     },
     {
       "id": "focus_fluids_cum",
@@ -282,7 +491,11 @@
       "description": "Focuses infusion upon virile seed volume, replenishment velocity, and potency.",
       "affix": "Virile",
       "rarity": "RARE",
-      "properties": []
+      "properties": [
+        "prop_cum_volume",
+        "prop_cum_regen",
+        "prop_virility_potency"
+      ]
     },
     {
       "id": "focus_fluids_milk",
@@ -291,7 +504,12 @@
       "description": "Focuses infusion upon breast milk volume, replenishment rate, and sweetness.",
       "affix": "Lacteal",
       "rarity": "RARE",
-      "properties": []
+      "properties": [
+        "prop_lactation_volume",
+        "prop_lactation_regen",
+        "prop_fluid_type",
+        "prop_milk_flavor"
+      ]
     },
     {
       "id": "focus_fluids_girlcum",
@@ -300,7 +518,10 @@
       "description": "Focuses infusion upon vaginal lubrication, nectar flow, and arousal aroma.",
       "affix": "Nectareous",
       "rarity": "RARE",
-      "properties": []
+      "properties": [
+        "prop_lube_wetness",
+        "prop_fertility_receptivity"
+      ]
     },
     {
       "id": "focus_race_awaken",
@@ -309,7 +530,9 @@
       "description": "Awakens the primal morphology and racial essence of the reagent.",
       "affix": "Awakened",
       "rarity": "EPIC",
-      "properties": []
+      "properties": [
+        "prop_racial_tf"
+      ]
     }
   ],
   "properties": [
@@ -330,7 +553,8 @@
         "massive",
         "titanic"
       ],
-      "focus": "BREASTS"
+      "focus": "BREASTS",
+      "suffix": "of Voluptuous Bloom"
     },
     {
       "id": "prop_breast_shape",
@@ -880,7 +1104,8 @@
       "shortLabel": "Biped",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "LEGS_FEET"
+      "focus": "LEGS_FEET",
+      "suffix": "of Primal Awakening"
     },
     {
       "id": "prop_racial_stance",
@@ -892,7 +1117,8 @@
       "shortLabel": "Stance",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "LEGS_FEET"
+      "focus": "LEGS_FEET",
+      "suffix": "of Primal Awakening"
     },
     {
       "id": "prop_racial_body_config",
@@ -904,7 +1130,8 @@
       "shortLabel": "Taur",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "LEGS_FEET"
+      "focus": "LEGS_FEET",
+      "suffix": "of Primal Awakening"
     },
     {
       "id": "prop_sprint_agility",
@@ -1289,7 +1516,8 @@
       "shortLabel": "Vitality",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "TORSO"
+      "focus": "TORSO",
+      "suffix": "of Primal Vitality"
     },
     {
       "id": "prop_racial_covering",
@@ -1612,7 +1840,8 @@
       "shortLabel": "Damage",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "WEAPON_LETHALITY"
+      "focus": "WEAPON_LETHALITY",
+      "suffix": "of Slaughter"
     },
     {
       "id": "prop_attack_power",
@@ -1624,7 +1853,8 @@
       "shortLabel": "Power",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "WEAPON_LETHALITY"
+      "focus": "WEAPON_LETHALITY",
+      "suffix": "of Carnage"
     },
     {
       "id": "prop_strike_velocity",
@@ -1636,7 +1866,8 @@
       "shortLabel": "Velocity",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "WEAPON_LETHALITY"
+      "focus": "WEAPON_LETHALITY",
+      "suffix": "of Celerity"
     },
     {
       "id": "prop_critical_power",
@@ -1648,7 +1879,8 @@
       "shortLabel": "Critical",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "WEAPON_LETHALITY"
+      "focus": "WEAPON_LETHALITY",
+      "suffix": "of Precision"
     },
     {
       "id": "prop_life_leech",
@@ -1660,7 +1892,8 @@
       "shortLabel": "Leech",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "WEAPON_LETHALITY"
+      "focus": "WEAPON_LETHALITY",
+      "suffix": "of the Leech"
     },
     {
       "id": "prop_damage_elemental",
@@ -1672,7 +1905,8 @@
       "shortLabel": "Elements",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "WEAPON_LETHALITY"
+      "focus": "WEAPON_LETHALITY",
+      "suffix": "of the Elements"
     },
     {
       "id": "prop_arcane",
@@ -1684,7 +1918,8 @@
       "shortLabel": "Arcane",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "ARCANE_AMPLIFICATION"
+      "focus": "ARCANE_AMPLIFICATION",
+      "suffix": "of Eldritch Clarity"
     },
     {
       "id": "prop_mana_ceiling",
@@ -1696,7 +1931,8 @@
       "shortLabel": "Mana",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "ARCANE_AMPLIFICATION"
+      "focus": "ARCANE_AMPLIFICATION",
+      "suffix": "of Resonant Aura"
     },
     {
       "id": "prop_mana_regen",
@@ -1708,7 +1944,8 @@
       "shortLabel": "Mana Regen",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "ARCANE_AMPLIFICATION"
+      "focus": "ARCANE_AMPLIFICATION",
+      "suffix": "of Astral Flux"
     },
     {
       "id": "prop_armor_rating",
@@ -1732,7 +1969,8 @@
       "shortLabel": "Fortitude",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "ARMOR_REINFORCEMENT"
+      "focus": "ARMOR_REINFORCEMENT",
+      "suffix": "of Iron Bastion"
     },
     {
       "id": "prop_ward_resistance",
@@ -1756,7 +1994,8 @@
       "shortLabel": "Mind Ward",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "RESISTANCE_WARDING"
+      "focus": "RESISTANCE_WARDING",
+      "suffix": "of Mental Sanctuary"
     },
     {
       "id": "prop_soulbound",
@@ -1900,7 +2139,8 @@
       "shortLabel": "Physique",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "NONE"
+      "focus": "NONE",
+      "suffix": "of Colossus Might"
     },
     {
       "id": "prop_agility",
@@ -1912,7 +2152,8 @@
       "shortLabel": "Agility",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "NONE"
+      "focus": "NONE",
+      "suffix": "of Predator's Instinct"
     },
     {
       "id": "prop_health_ceiling",
@@ -1924,7 +2165,8 @@
       "shortLabel": "Health",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "NONE"
+      "focus": "NONE",
+      "suffix": "of Vitality"
     },
     {
       "id": "prop_virility",
@@ -1936,7 +2178,8 @@
       "shortLabel": "Virility",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "NONE"
+      "focus": "NONE",
+      "suffix": "of Primal Surge"
     },
     {
       "id": "prop_fertility",
@@ -1948,7 +2191,8 @@
       "shortLabel": "Fertility",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "NONE"
+      "focus": "NONE",
+      "suffix": "of Primal Surge"
     },
     {
       "id": "prop_corruption",
@@ -1960,7 +2204,8 @@
       "shortLabel": "Corrupt",
       "isContinuous": false,
       "limitSteps": [],
-      "focus": "NONE"
+      "focus": "NONE",
+      "suffix": "of Alchemical Trance"
     },
     {
       "id": "prop_racial_tf",

@@ -77,6 +77,7 @@ public:
     float merchantAffinity = 1.0f; // Merchant affinity modifier
     int lastRestockDay = -1;       // Last day merchant restocked gold/inventory
     float baseMerchantGold = 500.0f;// Base gold stock
+    std::vector<std::string> restockItemIds; // Data-driven merchant restock item IDs
 
     std::vector<std::string> unlockedPerks;
     void unlockPerk(const std::string& perkId);

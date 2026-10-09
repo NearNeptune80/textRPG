@@ -2,8 +2,10 @@
 
 #include <algorithm>
 #include <format>
+#include <fstream>
 #include <memory>
 #include <vector>
+#include <nlohmann/json.hpp>
 
 #include "core/game.h"
 #include "entities/namedCharacter.h"
@@ -29,15 +31,32 @@ void shopState::onEnter(game* gameContext)
         }
         else
         {
-            auto namedMarcus = NamedCharacterManager::getCharacter("marcus");
-            if (!namedMarcus || !namedMarcus->characterEntity)
+            std::string merchantId = "";
+            std::ifstream sFile("data/shops.json");
+            if (!sFile.is_open()) sFile.open("../data/shops.json");
+            if (sFile.is_open())
             {
-                NamedCharacterManager::loadFromDirectory("data/characters");
-                namedMarcus = NamedCharacterManager::getCharacter("marcus");
+                try
+                {
+                    nlohmann::json sJson;
+                    sFile >> sJson;
+                    merchantId = sJson.value("defaultMerchantId", "");
+                }
+                catch (...) {}
             }
-            if (namedMarcus && namedMarcus->characterEntity)
+
+            if (!merchantId.empty())
             {
-                m_merchant = namedMarcus->characterEntity;
+                auto namedMerchant = NamedCharacterManager::getCharacter(merchantId);
+                if (!namedMerchant || !namedMerchant->characterEntity)
+                {
+                    NamedCharacterManager::loadFromDirectory("data/characters");
+                    namedMerchant = NamedCharacterManager::getCharacter(merchantId);
+                }
+                if (namedMerchant && namedMerchant->characterEntity)
+                {
+                    m_merchant = namedMerchant->characterEntity;
+                }
             }
         }
     }

@@ -278,6 +278,7 @@ struct AspectDefinition
     std::string description;
     std::string affixDescriptor;
     ItemRarity rarity = ItemRarity::COMMON;
+    std::string suffix = "";
 
     int getEssenceWeight() const
     {

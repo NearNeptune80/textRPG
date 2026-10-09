@@ -188,6 +188,11 @@ bool NamedCharacterManager::loadFromDirectory(const std::string& dirPath)
         ent->buyMarkup = nc->buyMarkup;
         ent->sellMarkdown = nc->sellMarkdown;
 
+        if (cJson.contains("restockItems") && cJson["restockItems"].is_array())
+        {
+            ent->restockItemIds = cJson["restockItems"].get<std::vector<std::string>>();
+        }
+
         if (cJson.contains("baseStats") && cJson["baseStats"].is_object())
         {
             for (auto& [sKey, sVal] : cJson["baseStats"].items())

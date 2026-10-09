@@ -177,6 +177,7 @@ json entity::toJson() const
     j["merchantAffinity"] = merchantAffinity;
     j["lastRestockDay"] = lastRestockDay;
     j["baseMerchantGold"] = baseMerchantGold;
+    j["restockItemIds"] = restockItemIds;
     j["buyMarkup"] = buyMarkup;
     j["sellMarkdown"] = sellMarkdown;
     j["tradePerkModifier"] = tradePerkModifier;
@@ -321,6 +322,7 @@ void entity::fromJson(const json& j)
     merchantAffinity = j.value("merchantAffinity", 1.0f);
     lastRestockDay = j.value("lastRestockDay", -1);
     baseMerchantGold = j.value("baseMerchantGold", 500.0f);
+    restockItemIds = j.value("restockItemIds", std::vector<std::string>{});
     buyMarkup = j.value("buyMarkup", 1.25f);
     sellMarkdown = j.value("sellMarkdown", 0.50f);
     tradePerkModifier = j.value("tradePerkModifier", 0.0f);

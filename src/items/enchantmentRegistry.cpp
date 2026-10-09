@@ -54,8 +54,10 @@ bool EnchantmentRegistry::load(const std::string& aspectsPath, const std::string
 
         m_focusesById.clear();
         m_focusesByEnum.clear();
+        m_focusesByFocusEnum.clear();
         m_propsById.clear();
         m_propsByEnum.clear();
+        m_propsByPropEnum.clear();
         m_propShortLabels.clear();
         m_propContinuous.clear();
         m_propLimitSteps.clear();
@@ -72,9 +74,14 @@ bool EnchantmentRegistry::load(const std::string& aspectsPath, const std::string
                 std::string affix = fj.value("affix", "");
                 ItemRarity rar = stringToRarity(fj.value("rarity", "COMMON"));
 
-                AspectDefinition def{ id, name, desc, affix, rar };
+                std::string suffix = fj.value("suffix", "");
+                AspectDefinition def{ id, name, desc, affix, rar, suffix };
                 if (!id.empty()) m_focusesById[id] = def;
                 if (!enumStr.empty()) m_focusesByEnum[enumStr] = def;
+
+                EnchantmentFocus fEnum = enumStringToFocus(enumStr);
+                if (fEnum == EnchantmentFocus::NONE) fEnum = enumStringToFocus(id);
+                if (fEnum != EnchantmentFocus::NONE) m_focusesByFocusEnum[fEnum] = def;
 
                 if (fj.contains("properties") && fj["properties"].is_array())
                 {
@@ -98,10 +105,15 @@ bool EnchantmentRegistry::load(const std::string& aspectsPath, const std::string
                 std::string desc = pj.value("description", "");
                 std::string affix = pj.value("affix", "");
                 ItemRarity rar = stringToRarity(pj.value("rarity", "COMMON"));
+                std::string suffix = pj.value("suffix", "");
 
-                AspectDefinition def{ id, name, desc, affix, rar };
+                AspectDefinition def{ id, name, desc, affix, rar, suffix };
                 if (!id.empty()) m_propsById[id] = def;
                 if (!enumStr.empty()) m_propsByEnum[enumStr] = def;
+
+                AspectProperty pEnum = enumStringToProp(enumStr);
+                if (pEnum == AspectProperty::NONE) pEnum = enumStringToProp(id);
+                if (pEnum != AspectProperty::NONE) m_propsByPropEnum[pEnum] = def;
 
                 if (pj.contains("shortLabel"))
                 {
@@ -129,7 +141,7 @@ bool EnchantmentRegistry::load(const std::string& aspectsPath, const std::string
                 {
                     std::string fEnum = pj["focus"].get<std::string>();
                     auto& list = m_focusToProps[fEnum];
-                    if (std::find(list.begin(), list.end(), id) == list.end())
+                    if (list.empty())
                     {
                         list.push_back(id);
                     }
@@ -203,12 +215,26 @@ const AspectDefinition* EnchantmentRegistry::getFocusDef(const std::string& idOr
     return nullptr;
 }
 
+const AspectDefinition* EnchantmentRegistry::getFocusDef(EnchantmentFocus focus) const
+{
+    auto it = m_focusesByFocusEnum.find(focus);
+    if (it != m_focusesByFocusEnum.end()) return &it->second;
+    return nullptr;
+}
+
 const AspectDefinition* EnchantmentRegistry::getPropertyDef(const std::string& idOrEnum) const
 {
     auto it1 = m_propsById.find(idOrEnum);
     if (it1 != m_propsById.end()) return &it1->second;
     auto it2 = m_propsByEnum.find(idOrEnum);
     if (it2 != m_propsByEnum.end()) return &it2->second;
+    return nullptr;
+}
+
+const AspectDefinition* EnchantmentRegistry::getPropertyDef(AspectProperty prop) const
+{
+    auto it = m_propsByPropEnum.find(prop);
+    if (it != m_propsByPropEnum.end()) return &it->second;
     return nullptr;
 }
 

@@ -10,17 +10,35 @@
       "isStackable": false,
       "count": 1,
       "targetSlot": "TORSO_UNDER",
-      "validSlots": ["TORSO_UNDER", "TORSO_OVER"],
+      "validSlots": [
+        "TORSO_UNDER",
+        "TORSO_OVER"
+      ],
       "requiredTags": [],
       "forbiddenTags": [],
       "statModifiers": [
-        { "statName": "physique", "flatValue": 1.0, "percentValue": 0.0 }
+        {
+          "statName": "physique",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
       ],
       "supportedDisplacements": {
-        "UNBUTTON": ["TORSO", "BREASTS"],
-        "LIFT_UP": ["TORSO", "BREASTS", "STOMACH"],
-        "OPEN": ["TORSO", "BREASTS"]
-      }
+        "UNBUTTON": [
+          "TORSO",
+          "BREASTS"
+        ],
+        "LIFT_UP": [
+          "TORSO",
+          "BREASTS",
+          "STOMACH"
+        ],
+        "OPEN": [
+          "TORSO",
+          "BREASTS"
+        ]
+      },
+      "category": "CLOTHING"
     },
     {
       "id": "item_leather_trousers",
@@ -35,12 +53,23 @@
       "requiredTags": [],
       "forbiddenTags": [],
       "statModifiers": [
-        { "statName": "physique", "flatValue": 2.0, "percentValue": 0.0 }
+        {
+          "statName": "physique",
+          "flatValue": 2.0,
+          "percentValue": 0.0
+        }
       ],
       "supportedDisplacements": {
-        "UNBUTTON": ["GROIN"],
-        "PULL_DOWN": ["LEGS", "GROIN", "ASS"]
-      }
+        "UNBUTTON": [
+          "GROIN"
+        ],
+        "PULL_DOWN": [
+          "LEGS",
+          "GROIN",
+          "ASS"
+        ]
+      },
+      "category": "CLOTHING"
     },
     {
       "id": "item_leather_boots",
@@ -55,9 +84,14 @@
       "requiredTags": [],
       "forbiddenTags": [],
       "statModifiers": [
-        { "statName": "agility", "flatValue": 1.0, "percentValue": 0.0 }
+        {
+          "statName": "agility",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
       ],
-      "supportedDisplacements": {}
+      "supportedDisplacements": {},
+      "category": "CLOTHING"
     },
     {
       "id": "item_leather_choker",
@@ -73,8 +107,11 @@
       "forbiddenTags": [],
       "statModifiers": [],
       "supportedDisplacements": {
-        "UNBUTTON": ["NECK"]
-      }
+        "UNBUTTON": [
+          "NECK"
+        ]
+      },
+      "category": "ACCESSORY"
     },
     {
       "id": "item_cloth_gloves",
@@ -89,7 +126,8 @@
       "requiredTags": [],
       "forbiddenTags": [],
       "statModifiers": [],
-      "supportedDisplacements": {}
+      "supportedDisplacements": {},
+      "category": "CLOTHING"
     },
     {
       "id": "item_silk_panties",
@@ -105,9 +143,16 @@
       "forbiddenTags": [],
       "statModifiers": [],
       "supportedDisplacements": {
-        "PULL_ASIDE": ["GROIN", "ASS"],
-        "PULL_DOWN": ["GROIN", "ASS"]
-      }
+        "PULL_ASIDE": [
+          "GROIN",
+          "ASS"
+        ],
+        "PULL_DOWN": [
+          "GROIN",
+          "ASS"
+        ]
+      },
+      "category": "UNDERWEAR"
     },
     {
       "id": "item_silk_bra",
@@ -123,10 +168,20 @@
       "forbiddenTags": [],
       "statModifiers": [],
       "supportedDisplacements": {
-        "PULL_ASIDE": ["BREASTS", "NIPPLES"],
-        "UNBUTTON": ["BREASTS", "NIPPLES"],
-        "LIFT_UP": ["BREASTS", "NIPPLES"]
-      }
+        "PULL_ASIDE": [
+          "BREASTS",
+          "NIPPLES"
+        ],
+        "UNBUTTON": [
+          "BREASTS",
+          "NIPPLES"
+        ],
+        "LIFT_UP": [
+          "BREASTS",
+          "NIPPLES"
+        ]
+      },
+      "category": "UNDERWEAR"
     },
     {
       "id": "item_ancient_tome",
@@ -141,7 +196,8 @@
       "requiredTags": [],
       "forbiddenTags": [],
       "statModifiers": [],
-      "supportedDisplacements": {}
+      "supportedDisplacements": {},
+      "category": "KEY_ITEM"
     },
     {
       "id": "item_canis_root",
@@ -157,7 +213,8 @@
       "requiredTags": [],
       "forbiddenTags": [],
       "statModifiers": [],
-      "supportedDisplacements": {}
+      "supportedDisplacements": {},
+      "category": "CONSUMABLE"
     },
     {
       "id": "item_golden_pendant",
@@ -172,9 +229,14 @@
       "requiredTags": [],
       "forbiddenTags": [],
       "statModifiers": [
-        { "statName": "arcane", "flatValue": 3.0, "percentValue": 0.05 }
+        {
+          "statName": "arcane",
+          "flatValue": 3.0,
+          "percentValue": 0.05
+        }
       ],
-      "supportedDisplacements": {}
+      "supportedDisplacements": {},
+      "category": "ACCESSORY"
     },
     {
       "id": "item_cotton_boxers",
@@ -190,9 +252,16 @@
       "forbiddenTags": [],
       "statModifiers": [],
       "supportedDisplacements": {
-        "PULL_DOWN": ["GROIN", "ASS"],
-        "PULL_ASIDE": ["GROIN", "ASS"]
-      }
+        "PULL_DOWN": [
+          "GROIN",
+          "ASS"
+        ],
+        "PULL_ASIDE": [
+          "GROIN",
+          "ASS"
+        ]
+      },
+      "category": "UNDERWEAR"
     },
     {
       "id": "item_evening_dress",
@@ -207,12 +276,24 @@
       "requiredTags": [],
       "forbiddenTags": [],
       "statModifiers": [
-        { "statName": "allure", "flatValue": 2.0, "percentValue": 0.0 }
+        {
+          "statName": "allure",
+          "flatValue": 2.0,
+          "percentValue": 0.0
+        }
       ],
       "supportedDisplacements": {
-        "LIFT_UP": ["TORSO", "BREASTS", "GROIN", "ASS"],
-        "PULL_ASIDE": ["BREASTS"]
-      }
+        "LIFT_UP": [
+          "TORSO",
+          "BREASTS",
+          "GROIN",
+          "ASS"
+        ],
+        "PULL_ASIDE": [
+          "BREASTS"
+        ]
+      },
+      "category": "CLOTHING"
     },
     {
       "id": "item_formal_suit",
@@ -228,11 +309,19 @@
       "requiredTags": [],
       "forbiddenTags": [],
       "statModifiers": [
-        { "statName": "physique", "flatValue": 1.0, "percentValue": 0.0 }
+        {
+          "statName": "physique",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
       ],
       "supportedDisplacements": {
-        "UNBUTTON": ["TORSO", "BREASTS"]
-      }
+        "UNBUTTON": [
+          "TORSO",
+          "BREASTS"
+        ]
+      },
+      "category": "CLOTHING"
     },
     {
       "id": "item_leather_skirt",
@@ -249,8 +338,12 @@
       "forbiddenTags": [],
       "statModifiers": [],
       "supportedDisplacements": {
-        "LIFT_UP": ["GROIN", "ASS"]
-      }
+        "LIFT_UP": [
+          "GROIN",
+          "ASS"
+        ]
+      },
+      "category": "CLOTHING"
     },
     {
       "id": "item_high_heels",
@@ -266,7 +359,8 @@
       "requiredTags": [],
       "forbiddenTags": [],
       "statModifiers": [],
-      "supportedDisplacements": {}
+      "supportedDisplacements": {},
+      "category": "CLOTHING"
     },
     {
       "id": "item_dress_shoes",
@@ -281,7 +375,8 @@
       "requiredTags": [],
       "forbiddenTags": [],
       "statModifiers": [],
-      "supportedDisplacements": {}
+      "supportedDisplacements": {},
+      "category": "CLOTHING"
     },
     {
       "id": "item_plain_elixir",
@@ -297,7 +392,8 @@
       "requiredTags": [],
       "forbiddenTags": [],
       "statModifiers": [],
-      "supportedDisplacements": {}
+      "supportedDisplacements": {},
+      "category": "CONSUMABLE"
     },
     {
       "id": "item_potion_health",
@@ -313,9 +409,14 @@
       "requiredTags": [],
       "forbiddenTags": [],
       "statModifiers": [
-        { "statName": "health", "flatValue": 50.0, "percentValue": 0.0 }
+        {
+          "statName": "health",
+          "flatValue": 50.0,
+          "percentValue": 0.0
+        }
       ],
-      "supportedDisplacements": {}
+      "supportedDisplacements": {},
+      "category": "CONSUMABLE"
     },
     {
       "id": "item_potion_mana",
@@ -331,9 +432,14 @@
       "requiredTags": [],
       "forbiddenTags": [],
       "statModifiers": [
-        { "statName": "mana", "flatValue": 40.0, "percentValue": 0.0 }
+        {
+          "statName": "mana",
+          "flatValue": 40.0,
+          "percentValue": 0.0
+        }
       ],
-      "supportedDisplacements": {}
+      "supportedDisplacements": {},
+      "category": "CONSUMABLE"
     },
     {
       "id": "item_dagger_iron",
@@ -346,14 +452,26 @@
       "isStackable": false,
       "count": 1,
       "targetSlot": "WEAPON_MAIN",
-      "validSlots": ["WEAPON_MAIN", "WEAPON_OFF"],
+      "validSlots": [
+        "WEAPON_MAIN",
+        "WEAPON_OFF"
+      ],
       "requiredTags": [],
       "forbiddenTags": [],
-      "weaponSkills": ["skill_thrust", "skill_quick_flurry", "skill_parry_riposte"],
-      "statModifiers": [
-        { "statName": "physique", "flatValue": 2.0, "percentValue": 0.0 }
+      "weaponSkills": [
+        "skill_thrust",
+        "skill_quick_flurry",
+        "skill_parry_riposte"
       ],
-      "supportedDisplacements": {}
+      "statModifiers": [
+        {
+          "statName": "physique",
+          "flatValue": 2.0,
+          "percentValue": 0.0
+        }
+      ],
+      "supportedDisplacements": {},
+      "category": "WEAPON"
     },
     {
       "id": "item_iron_sword",
@@ -366,15 +484,30 @@
       "isStackable": false,
       "count": 1,
       "targetSlot": "WEAPON_MAIN",
-      "validSlots": ["WEAPON_MAIN"],
+      "validSlots": [
+        "WEAPON_MAIN"
+      ],
       "requiredTags": [],
       "forbiddenTags": [],
-      "weaponSkills": ["skill_slash", "skill_thrust", "skill_pommel_strike"],
-      "statModifiers": [
-        { "statName": "physique", "flatValue": 3.0, "percentValue": 0.0 },
-        { "statName": "agility", "flatValue": 1.0, "percentValue": 0.0 }
+      "weaponSkills": [
+        "skill_slash",
+        "skill_thrust",
+        "skill_pommel_strike"
       ],
-      "supportedDisplacements": {}
+      "statModifiers": [
+        {
+          "statName": "physique",
+          "flatValue": 3.0,
+          "percentValue": 0.0
+        },
+        {
+          "statName": "agility",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "supportedDisplacements": {},
+      "category": "WEAPON"
     },
     {
       "id": "item_war_hammer",
@@ -387,15 +520,30 @@
       "isStackable": false,
       "count": 1,
       "targetSlot": "WEAPON_MAIN",
-      "validSlots": ["WEAPON_MAIN"],
+      "validSlots": [
+        "WEAPON_MAIN"
+      ],
       "requiredTags": [],
       "forbiddenTags": [],
-      "weaponSkills": ["skill_crush", "skill_heavy_cleave", "skill_pommel_strike"],
-      "statModifiers": [
-        { "statName": "physique", "flatValue": 5.0, "percentValue": 0.0 },
-        { "statName": "agility", "flatValue": -1.0, "percentValue": 0.0 }
+      "weaponSkills": [
+        "skill_crush",
+        "skill_heavy_cleave",
+        "skill_pommel_strike"
       ],
-      "supportedDisplacements": {}
+      "statModifiers": [
+        {
+          "statName": "physique",
+          "flatValue": 5.0,
+          "percentValue": 0.0
+        },
+        {
+          "statName": "agility",
+          "flatValue": -1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "supportedDisplacements": {},
+      "category": "WEAPON"
     },
     {
       "id": "item_apple_crisp",
@@ -412,9 +560,14 @@
       "requiredTags": [],
       "forbiddenTags": [],
       "statModifiers": [
-        { "statName": "health", "flatValue": 15.0, "percentValue": 0.0 }
+        {
+          "statName": "health",
+          "flatValue": 15.0,
+          "percentValue": 0.0
+        }
       ],
-      "supportedDisplacements": {}
+      "supportedDisplacements": {},
+      "category": "CONSUMABLE"
     },
     {
       "id": "item_travel_bread",
@@ -431,9 +584,14 @@
       "requiredTags": [],
       "forbiddenTags": [],
       "statModifiers": [
-        { "statName": "health", "flatValue": 25.0, "percentValue": 0.0 }
+        {
+          "statName": "health",
+          "flatValue": 25.0,
+          "percentValue": 0.0
+        }
       ],
-      "supportedDisplacements": {}
+      "supportedDisplacements": {},
+      "category": "CONSUMABLE"
     },
     {
       "id": "item_feline_mint",
@@ -451,7 +609,8 @@
       "requiredTags": [],
       "forbiddenTags": [],
       "statModifiers": [],
-      "supportedDisplacements": {}
+      "supportedDisplacements": {},
+      "category": "CONSUMABLE"
     },
     {
       "id": "item_bovine_milk",
@@ -469,9 +628,14 @@
       "requiredTags": [],
       "forbiddenTags": [],
       "statModifiers": [
-        { "statName": "health", "flatValue": 20.0, "percentValue": 0.0 }
+        {
+          "statName": "health",
+          "flatValue": 20.0,
+          "percentValue": 0.0
+        }
       ],
-      "supportedDisplacements": {}
+      "supportedDisplacements": {},
+      "category": "CONSUMABLE"
     }
   ]
 }

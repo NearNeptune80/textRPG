@@ -49,16 +49,16 @@ This audit inspects all C++ header (`.h`) and source (`.cpp`) files across the c
 
 ### 1.3 Inventory (10 items)
 
-- [ ] `src/items/item.h:134, 165-167`: Substring searches on item IDs (`"key"`, `"gem"`, `"ore"`, `"stone"`, `"essence"`, `"material"`) hardcoded for category classification fallback. `[Hardcoded Mock Data]`
-- [ ] `src/items/merchantValuation.cpp:63-67`: Hardcoded restock items (`"item_canis_root"` and `"item_linen_shirt"`) directly added to merchant inventory. `[Hardcoded Mock Data]`
-- [ ] `src/items/enchantingEngine.cpp:86-180`: `composeItemName()` hardcodes extensive name affixes and suffixes directly in C++ (`"of Colossus Might"`, `"of Predator's Instinct"`, `"of Eldritch Clarity"`, `"of Primal Surge"`, etc.). `[Hardcoded Mock Data]`
-- [ ] `src/items/enchantingEngine.cpp:297-302`: `craftInfusedItem()` instantiates a hardcoded fallback item (`"infused_tonic"`, `"Infused Tonic"`) in C++ when `baseItem` is null. `[Hardcoded Mock Data]`
-- [ ] `src/items/enchantmentAspects.cpp:12-50`: `s_focusDefs` contains 25 hardcoded `AspectDefinition` records (IDs, display names, descriptions, prefixes, rarities) directly in C++. `[Hardcoded Mock Data]`
-- [ ] `src/items/enchantmentAspects.cpp:51-240`: `s_propDefs` contains over 100 hardcoded `AspectDefinition` records for body/attribute properties instead of loading from `data/enchantments/aspects.json`. `[Hardcoded Mock Data]`
-- [ ] `src/items/enchantmentAspects.cpp:280-315`: `getPropertyDefinition()` directly queries the hardcoded `s_propDefs` map rather than querying `EnchantmentRegistry`. `[Hardcoded Mock Data]`
-- [ ] `src/items/enchantmentAspects.cpp:337-470, 480-1550`: Massive hardcoded fallback vectors for compatible focuses, properties, and equipment slot restrictions in C++. `[Hardcoded Mock Data]`
-- [ ] `src/state/shopState.cpp:33-44`: Default merchant is hardcoded to named character `"marcus"` if no merchant entity is passed. `[Hardcoded Mock Data]`
-- [ ] `src/items/item.h:11` / `src/items/itemDatabase.cpp:30-120`: `item.h` declares `infusionEffects`, but `itemDatabase::from_json` never deserializes `infusionEffects` from JSON; pre-infused equipment cannot be created via data files. `[Unwired State]`
+- [x] `src/items/item.h:134, 165-167`: Substring searches on item IDs (`"key"`, `"gem"`, `"ore"`, `"stone"`, `"essence"`, `"material"`) hardcoded for category classification fallback. `[Hardcoded Mock Data]`
+- [x] `src/items/merchantValuation.cpp:63-67`: Hardcoded restock items (`"item_canis_root"` and `"item_linen_shirt"`) directly added to merchant inventory. `[Hardcoded Mock Data]`
+- [x] `src/items/enchantingEngine.cpp:86-180`: `composeItemName()` hardcodes extensive name affixes and suffixes directly in C++ (`"of Colossus Might"`, `"of Predator's Instinct"`, `"of Eldritch Clarity"`, `"of Primal Surge"`, etc.). `[Hardcoded Mock Data]`
+- [x] `src/items/enchantingEngine.cpp:297-302`: `craftInfusedItem()` instantiates a hardcoded fallback item (`"infused_tonic"`, `"Infused Tonic"`) in C++ when `baseItem` is null. `[Hardcoded Mock Data]`
+- [x] `src/items/enchantmentAspects.cpp:12-50`: `s_focusDefs` contains 25 hardcoded `AspectDefinition` records (IDs, display names, descriptions, prefixes, rarities) directly in C++. `[Hardcoded Mock Data]`
+- [x] `src/items/enchantmentAspects.cpp:51-240`: `s_propDefs` contains over 100 hardcoded `AspectDefinition` records for body/attribute properties instead of loading from `data/enchantments/aspects.json`. `[Hardcoded Mock Data]`
+- [x] `src/items/enchantmentAspects.cpp:280-315`: `getPropertyDefinition()` directly queries the hardcoded `s_propDefs` map rather than querying `EnchantmentRegistry`. `[Hardcoded Mock Data]`
+- [x] `src/items/enchantmentAspects.cpp:337-470, 480-1550`: Massive hardcoded fallback vectors for compatible focuses, properties, and equipment slot restrictions in C++. `[Hardcoded Mock Data]`
+- [x] `src/state/shopState.cpp:33-44`: Default merchant is hardcoded to named character `"marcus"` if no merchant entity is passed. `[Hardcoded Mock Data]`
+- [x] `src/items/item.h:11` / `src/items/itemDatabase.cpp:30-120`: `item.h` declares `infusionEffects`, but `itemDatabase::from_json` never deserializes `infusionEffects` from JSON; pre-infused equipment cannot be created via data files. `[Unwired State]`
 
 ### 1.4 Dialogue (16 items)
 

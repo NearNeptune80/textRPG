@@ -1,0 +1,18 @@
+{
+  "defaultMerchantId": "marcus",
+  "defaultRestockItems": [
+    "item_canis_root",
+    "item_linen_shirt"
+  ],
+  "shops": [
+    {
+      "id": "shop_town_curio",
+      "name": "Marcus's Curio Stall",
+      "merchantId": "marcus",
+      "restockItems": [
+        "item_canis_root",
+        "item_linen_shirt"
+      ]
+    }
+  ]
+}

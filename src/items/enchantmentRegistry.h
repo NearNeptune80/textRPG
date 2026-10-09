@@ -28,7 +28,9 @@ public:
     bool isLoaded() const { return m_loaded; }
 
     const AspectDefinition* getFocusDef(const std::string& idOrEnum) const;
+    const AspectDefinition* getFocusDef(EnchantmentFocus focus) const;
     const AspectDefinition* getPropertyDef(const std::string& idOrEnum) const;
+    const AspectDefinition* getPropertyDef(AspectProperty prop) const;
 
     const EnchantmentGroupDef* getGroup(const std::string& groupId) const;
     const std::unordered_map<std::string, EnchantmentGroupDef>& getAllGroups() const { return m_groups; }
@@ -50,9 +52,11 @@ private:
     bool m_loaded{ false };
     std::unordered_map<std::string, AspectDefinition> m_focusesById;
     std::unordered_map<std::string, AspectDefinition> m_focusesByEnum;
+    std::unordered_map<EnchantmentFocus, AspectDefinition> m_focusesByFocusEnum;
 
     std::unordered_map<std::string, AspectDefinition> m_propsById;
     std::unordered_map<std::string, AspectDefinition> m_propsByEnum;
+    std::unordered_map<AspectProperty, AspectDefinition> m_propsByPropEnum;
 
     std::unordered_map<std::string, std::string> m_propShortLabels;
     std::unordered_map<std::string, bool> m_propContinuous;

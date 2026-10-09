@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <fstream>
+#include <nlohmann/json.hpp>
 
 #include "entities/entity.h"
 #include "items/item.h"
@@ -65,11 +67,31 @@ void merchantValuation::merchantRestock(entity* merchant, int currentDay)
 
     if (merchant->inventory.backpack.size() < 3)
     {
-        auto potion = itemDatabase::getItem("item_canis_root");
-        if (potion) merchant->inventory.addItem(potion);
+        std::vector<std::string> restockList = merchant->restockItemIds;
+        if (restockList.empty())
+        {
+            std::ifstream sFile("data/shops.json");
+            if (!sFile.is_open()) sFile.open("../data/shops.json");
+            if (sFile.is_open())
+            {
+                try
+                {
+                    nlohmann::json sJson;
+                    sFile >> sJson;
+                    if (sJson.contains("defaultRestockItems") && sJson["defaultRestockItems"].is_array())
+                    {
+                        restockList = sJson["defaultRestockItems"].get<std::vector<std::string>>();
+                    }
+                }
+                catch (...) {}
+            }
+        }
 
-        auto shirt = itemDatabase::getItem("item_linen_shirt");
-        if (shirt) merchant->inventory.addItem(shirt);
+        for (const auto& itemId : restockList)
+        {
+            auto itm = itemDatabase::getItem(itemId);
+            if (itm) merchant->inventory.addItem(itm);
+        }
     }
 
     merchant->lastRestockDay = currentDay;

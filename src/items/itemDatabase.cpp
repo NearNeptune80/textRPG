@@ -112,6 +112,15 @@ void from_json(const json& j, item& itemObj)
             }
         }
     }
+
+    if (j.contains("infusionEffects") && j["infusionEffects"].is_array())
+    {
+        itemObj.infusionEffects.clear();
+        for (const auto& effJson : j["infusionEffects"])
+        {
+            itemObj.infusionEffects.push_back(InfusionEffect::fromJson(effJson));
+        }
+    }
 }
 
 bool itemDatabase::loadDatabase(const std::string& filePath)

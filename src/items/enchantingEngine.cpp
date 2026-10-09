@@ -4,6 +4,8 @@
 #include <format>
 #include <unordered_map>
 #include "items/item.h"
+#include "items/itemDatabase.h"
+#include "items/enchantmentRegistry.h"
 #include "entities/entity.h"
 
 namespace EnchantingEngine
@@ -77,85 +79,23 @@ namespace EnchantingEngine
         const auto& primEff = effects.front();
 
         std::string suffix = "";
-        if (primEff.property == AspectProperty::PHYSIQUE_STAT)
+        auto& reg = EnchantmentRegistry::getInstance();
+        const auto* pDef = reg.getPropertyDef(primEff.property);
+        const auto* fDef = reg.getFocusDef(primEff.focus);
+
+        if (pDef && !pDef->suffix.empty())
         {
-            suffix = "of Colossus Might";
+            suffix = pDef->suffix;
         }
-        else if (primEff.property == AspectProperty::AGILITY_STAT || primEff.focus == EnchantmentFocus::HEAD_FEATURE)
+        else if (fDef && !fDef->suffix.empty())
         {
-            suffix = "of Predator's Instinct";
-        }
-        else if (primEff.property == AspectProperty::ARCANE_STAT || primEff.focus == EnchantmentFocus::ARCANE_AMPLIFICATION)
-        {
-            suffix = "of Eldritch Clarity";
-        }
-        else if (primEff.property == AspectProperty::VIRILITY_FACTOR || primEff.property == AspectProperty::FERTILITY_FACTOR)
-        {
-            suffix = "of Primal Surge";
-        }
-        else if (primEff.property == AspectProperty::CORRUPTION_AURA)
-        {
-            suffix = "of Alchemical Trance";
-        }
-        else if (primEff.property == AspectProperty::HEALTH_CEILING)
-        {
-            suffix = "of Vitality";
-        }
-        else if (primEff.property == AspectProperty::MANA_CEILING)
-        {
-            suffix = "of Resonant Aura";
-        }
-        else if (primEff.property == AspectProperty::DAMAGE_PHYSICAL)
-        {
-            suffix = "of Slaughter";
-        }
-        else if (primEff.property == AspectProperty::DAMAGE_ELEMENTAL)
-        {
-            suffix = "of the Elements";
-        }
-        else if (primEff.property == AspectProperty::CRITICAL_POWER)
-        {
-            suffix = "of Precision";
-        }
-        else if (primEff.property == AspectProperty::LIFE_LEECH)
-        {
-            suffix = "of the Leech";
-        }
-        else if (primEff.property == AspectProperty::ATTACK_POWER)
-        {
-            suffix = "of Carnage";
-        }
-        else if (primEff.property == AspectProperty::STRIKE_VELOCITY)
-        {
-            suffix = "of Celerity";
-        }
-        else if (primEff.property == AspectProperty::FORTITUDE_STAT)
-        {
-            suffix = "of Iron Bastion";
-        }
-        else if (primEff.property == AspectProperty::MIND_WARD)
-        {
-            suffix = "of Mental Sanctuary";
-        }
-        else if (primEff.property == AspectProperty::MANA_REGENERATION)
-        {
-            suffix = "of Astral Flux";
-        }
-        else if (primEff.property == AspectProperty::HEALTH_VITALITY)
-        {
-            suffix = "of Primal Vitality";
-        }
-        else if (primEff.property == AspectProperty::BREAST_SIZE)
-        {
-            suffix = "of Voluptuous Bloom";
-        }
-        else if (primEff.property == AspectProperty::RACIAL_LEGS_BIPED || primEff.property == AspectProperty::RACIAL_STANCE_MORPH || primEff.property == AspectProperty::RACIAL_BODY_CONFIG)
-        {
-            suffix = "of Primal Awakening";
+            suffix = fDef->suffix;
         }
         else
         {
-            suffix = std::format("of {} {}", getPropertyDefinition(primEff.property).affixDescriptor, getFocusDefinition(primEff.focus).displayName);
+            std::string pAffix = pDef ? pDef->affixDescriptor : "";
+            std::string fName = fDef ? fDef->displayName : "";
+            suffix = std::format("of {} {}", pAffix, fName);
         }
 
         if (baseItem && (baseItem->isConsumable || baseItem->isFood))
@@ -291,11 +231,16 @@ namespace EnchantingEngine
         }
         else
         {
-            crafted->id = "infused_tonic";
-            crafted->name = "Infused Tonic";
-            crafted->isConsumable = true;
-            crafted->isStackable = false;
-            crafted->baseValue = 50;
+            const item* templateItem = itemDatabase::getItemTemplate("item_plain_elixir");
+            if (templateItem)
+            {
+                *crafted = *templateItem;
+            }
+            else
+            {
+                crafted->isConsumable = true;
+                crafted->category = ItemCategory::CONSUMABLE;
+            }
         }
 
         if (baseItem && baseItem->isFood)

@@ -9,6 +9,10 @@
   "isMerchant": true,
   "buyMarkup": 1.20,
   "sellMarkdown": 0.55,
+  "restockItems": [
+    "item_canis_root",
+    "item_linen_shirt"
+  ],
   "description": "A seasoned merchant trading in rare alchemical reagents, raw crystals, exploration rations, and imported curiosities.",
   "dialogueSceneId": "scene_marcus_dialogue",
   "unlockedPerks": [
