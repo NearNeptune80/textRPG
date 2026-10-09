@@ -29,7 +29,6 @@ static ItemRarity stringToRarity(const std::string& str)
 
 bool EnchantmentRegistry::load(const std::string& aspectsPath, const std::string& groupsPath)
 {
-    // Try provided paths first, then fallback to relative or source paths
     std::string actualAspectsPath = aspectsPath;
     if (!fs::exists(actualAspectsPath) && fs::exists("../" + aspectsPath))
     {
@@ -257,7 +256,6 @@ std::vector<EnchantmentFocus> EnchantmentRegistry::getCompatibleFocuses(const it
         {
             if (baseItem->category == ItemCategory::ACCESSORY)
             {
-                // Accessories can use apparel or jewelry
                 targetGroupId = "apparel";
             }
             else
@@ -290,7 +288,6 @@ std::vector<EnchantmentFocus> EnchantmentRegistry::getCompatibleFocuses(const it
         return result;
     }
 
-    // Fallback: all primary focuses
     return {
         EnchantmentFocus::CORE_ATTRIBUTES,
         EnchantmentFocus::GENERAL_ATTRIBUTES,
@@ -332,7 +329,6 @@ std::vector<AspectProperty> EnchantmentRegistry::getAvailablePropertiesForFocus(
             AspectProperty prop = enumStringToProp(pIdOrEnum);
             if (prop == AspectProperty::NONE)
             {
-                // Try looking up by ID in m_propsById
                 auto pDef = m_propsById.find(pIdOrEnum);
                 if (pDef != m_propsById.end())
                 {
@@ -341,7 +337,6 @@ std::vector<AspectProperty> EnchantmentRegistry::getAvailablePropertiesForFocus(
             }
             if (prop == AspectProperty::NONE) continue;
 
-            // Filter racial morph properties if not a racial reagent
             if (!isRacial)
             {
                 if (prop == AspectProperty::CROTCH_MAMMARY_MORPH ||
@@ -378,7 +373,6 @@ std::vector<AspectProperty> EnchantmentRegistry::getAvailablePropertiesForFocus(
         if (!result.empty()) return result;
     }
 
-    // Default fallback to legacy C++ properties if not found in JSON
     return {};
 }
 

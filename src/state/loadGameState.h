@@ -12,11 +12,6 @@ enum class SaveMenuMode
     SAVE_AND_LOAD
 };
 
-/**
- * Headless state controller for the unified Save & Load Screen.
- * Groups saves by character with collapsible dropdowns, newest-to-oldest sorting,
- * save creation with overwrite checks, and save deletion.
- */
 class loadGameState : public iGameState
 {
 public:

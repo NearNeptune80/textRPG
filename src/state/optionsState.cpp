@@ -40,7 +40,6 @@ void optionsState::goBack(game* gameContext)
 {
     if (!gameContext) return;
 
-    // Persist settings on leaving options
     settingsManager::saveToFile(gameContext->settings, "data/settings.json");
 
     if (m_returnState)
@@ -132,7 +131,7 @@ void optionsState::resetCategoryDefaults(game* gameContext)
     {
         for (auto& [k, v] : gameContext->settings.content.fetishPreferences)
         {
-            v = 3; // Neutral
+            v = 3;
         }
         gameContext->settings.content.contentFilterMode = ContentFilterMode::DROPDOWN;
         gameContext->settings.content.nonConEnabled = false;

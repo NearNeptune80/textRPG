@@ -40,7 +40,6 @@ namespace CharacterCreationView
 
         float startY = curY;
 
-        // Content spans layout pane width with crisp inner padding
         float padX = rect.x + (10.0f * uiScale);
         float availableW = rect.w - (20.0f * uiScale);
 
@@ -49,14 +48,12 @@ namespace CharacterCreationView
         if (cc->step >= tabCount) cc->step = std::max(0, tabCount - 1);
         EditorTabId currentTab = activeTabs[cc->step];
 
-        // 1. Top Header Banner
         float headerH = 28.0f * uiScale;
         SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
         std::string headerTitle = std::format("{} [{}]", cc->config.title, cc->getTabName(currentTab));
         UIWidget::drawHeader(renderer, headerRect, headerTitle, Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
         curY += headerH + (12.0f * uiScale);
 
-        // 2. Character Live Preview Summary Banner
         float prevH = 44.0f * uiScale;
         SDL_FRect prevRect = { padX, curY, availableW, prevH };
         UIWidget::drawPanel(renderer, prevRect, Theme::colors.bgDark, Theme::colors.borderButton);
@@ -75,7 +72,6 @@ namespace CharacterCreationView
 
         if (currentTab == EditorTabId::IDENTITY)
         {
-            // 1. Biological Sex
             if (cc->config.isOptionEnabled("gender"))
             {
                 static const std::vector<std::string> genderOpts = { "Male", "Female" };
@@ -84,7 +80,6 @@ namespace CharacterCreationView
                 }, uiScale, 2);
             }
 
-            // 2. Femininity
             if (cc->config.isOptionEnabled("femininity"))
             {
                 static const std::vector<std::string> allFem = { "Very Masculine", "Masculine", "Androgynous", "Feminine", "Very Feminine" };
@@ -93,7 +88,6 @@ namespace CharacterCreationView
                 }, uiScale, 5);
             }
 
-            // 3. Orientation
             if (cc->config.isOptionEnabled("orientation"))
             {
                 static const std::vector<std::string> allOri = { "Androphilic", "Ambiphilic", "Gynephilic" };
@@ -102,7 +96,6 @@ namespace CharacterCreationView
                 }, uiScale, 3);
             }
 
-            // 4. Starting Month
             if (cc->config.isOptionEnabled("start_month"))
             {
                 static const std::vector<std::string> fullMonths = { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" };
@@ -112,7 +105,6 @@ namespace CharacterCreationView
                 }, uiScale, 6);
             }
 
-            // 5. Birthday (Month, Day & Age Steppers)
             if (cc->config.isOptionEnabled("birth_month"))
             {
                 static const std::vector<std::string> fullMonths = { "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December" };
@@ -145,7 +137,6 @@ namespace CharacterCreationView
                 cc->birthDay = std::clamp(cc->birthDay, 1, maxD);
             }, uiScale, 1, 5, 10);
 
-            // 6. Personality Traits
             if (cc->config.isOptionEnabled("personality_traits"))
             {
                 static const std::vector<std::string> allP = { "Confident", "Shy", "Kind", "Selfish", "Naive", "Cynical", "Brave", "Cowardly", "Lewd", "Innocent", "Prude" };
@@ -157,7 +148,6 @@ namespace CharacterCreationView
         }
         else if (currentTab == EditorTabId::BODY)
         {
-            // 1. Height (Human Range: 140cm to 210cm)
             if (cc->config.isOptionEnabled("height"))
             {
                 auto* rule = cc->config.getRule("height");
@@ -168,7 +158,6 @@ namespace CharacterCreationView
                 }, uiScale, 1, 5, 10);
             }
 
-            // 2. Skin Tone
             if (cc->config.isOptionEnabled("skin_tone"))
             {
                 curY += drawColorSwatchCard(renderer, gameContext, rect, padX, curY, availableW, "Skin Tone", "Natural human skin tone covering your body.", s_skinTones, cc->skinPrimaryColor, [&](const std::string& s) {
@@ -176,7 +165,6 @@ namespace CharacterCreationView
                 }, uiScale);
             }
 
-            // 3. Body Size
             if (cc->config.isOptionEnabled("body_size"))
             {
                 static const std::vector<std::string> allSizes = { "Skinny", "Slender", "Average", "Muscular", "Chubby" };
@@ -185,7 +173,6 @@ namespace CharacterCreationView
                 }, uiScale, 5);
             }
 
-            // 4. Muscle Definition
             if (cc->config.isOptionEnabled("muscle"))
             {
                 static const std::vector<std::string> allMusc = { "Soft", "Lightly muscled", "Toned", "Muscular", "Ripped" };
@@ -194,25 +181,21 @@ namespace CharacterCreationView
                 }, uiScale, 5);
             }
 
-            // 5. Ass Size (Normal Human 0..4)
             static const std::vector<std::string> allSizes5 = { "Tiny", "Small", "Average", "Large", "Huge" };
             int assIdx = std::clamp(cc->assSize, 0, 4);
             curY += drawPillCard(renderer, gameContext, rect, padX, curY, availableW, "Ass Dimensions", "Rear cheek volume and fullness.", allSizes5, allSizes5[assIdx], [&](const std::string& a) {
                 for (size_t i = 0; i < allSizes5.size(); ++i) if (allSizes5[i] == a) cc->assSize = static_cast<int>(i);
             }, uiScale, 5);
 
-            // 6. Hip Size (Normal Human 0..4)
             int hipIdx = std::clamp(cc->hipSize, 0, 4);
             curY += drawPillCard(renderer, gameContext, rect, padX, curY, availableW, "Hip Breadth", "Pelvic width and hourglass curvature.", allSizes5, allSizes5[hipIdx], [&](const std::string& h) {
                 for (size_t i = 0; i < allSizes5.size(); ++i) if (allSizes5[i] == h) cc->hipSize = static_cast<int>(i);
             }, uiScale, 5);
 
-            // 7. Bleached Anus Toggle
             curY += drawToggleCard(renderer, gameContext, rect, padX, curY, availableW, "Bleached Anus", "Cosmetic treatment around anal sphincter.", cc->anusBleached, [&](bool b) {
                 cc->anusBleached = b;
             }, uiScale, "Bleached", "Natural");
 
-            // 8. Composite Body Shape Card
             std::string shapeRating = EditorConfig::calculateBodyShape(cc->muscleDefinition, cc->bodySize);
             SDL_FRect shapeRect = { padX, curY, availableW, 38.0f * uiScale };
             UIWidget::drawPanel(renderer, shapeRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
@@ -223,7 +206,6 @@ namespace CharacterCreationView
         }
         else if (currentTab == EditorTabId::FACE_HAIR)
         {
-            // 1. Iris Colour
             if (cc->config.isOptionEnabled("eye_color"))
             {
                 curY += drawColorSwatchCard(renderer, gameContext, rect, padX, curY, availableW, "Iris Colour", "Natural eye color.", s_eyeColors, cc->eyeColor, [&](const std::string& e) {
@@ -231,19 +213,16 @@ namespace CharacterCreationView
                 }, uiScale);
             }
 
-            // 2. Lip Size
             static const std::vector<std::string> allLips = { "Thin", "Average", "Full", "Plump", "Huge" };
             int lipIdx = std::clamp(cc->lipSize, 0, 4);
             curY += drawPillCard(renderer, gameContext, rect, padX, curY, availableW, "Lip Dimensions", "Size and plumpness of lips.", allLips, allLips[lipIdx], [&](const std::string& l) {
                 for (size_t i = 0; i < allLips.size(); ++i) if (allLips[i] == l) cc->lipSize = static_cast<int>(i);
             }, uiScale, 5);
 
-            // 3. Puffy Lips Toggle
             curY += drawToggleCard(renderer, gameContext, rect, padX, curY, availableW, "Puffy Lips", "Extra softness and swelling.", cc->puffyLips, [&](bool p) {
                 cc->puffyLips = p;
             }, uiScale, "Puffy", "Natural");
 
-            // 4. Hair Length (Human Range: 0 to 100 cm)
             if (cc->config.isOptionEnabled("hair_length"))
             {
                 curY += drawStepperCard<int>(renderer, gameContext, rect, padX, curY, availableW, "Hair Length (cm)", "Normal human head hair length (0 - 100 cm).", std::format("{} cm", cc->hairLengthCm), [&](int delta) {
@@ -251,7 +230,6 @@ namespace CharacterCreationView
                 }, uiScale, 1, 5, 15);
             }
 
-            // 5. Hair Style (Filtered by Length Requirement)
             if (cc->config.isOptionEnabled("hair_style"))
             {
                 auto validStyles = EditorConfig::getValidHairstyles(cc->hairLengthCm);
@@ -268,7 +246,6 @@ namespace CharacterCreationView
                 }, uiScale, 6);
             }
 
-            // 6. Hair Color
             if (cc->config.isOptionEnabled("hair_color"))
             {
                 curY += drawColorSwatchCard(renderer, gameContext, rect, padX, curY, availableW, "Hair Colour", "Select natural hair pigment.", s_hairColors, cc->hairColor, [&](const std::string& h) {
@@ -276,7 +253,6 @@ namespace CharacterCreationView
                 }, uiScale);
             }
 
-            // 7. Ear Type (Only show if multiple choices available, e.g. in salon/transformation)
             if (cc->config.isOptionEnabled("ear_type"))
             {
                 static const std::vector<std::string> allEars = { "Human" };
@@ -291,7 +267,6 @@ namespace CharacterCreationView
         }
         else if (currentTab == EditorTabId::BREASTS)
         {
-            // 1. Human Breast Cup Size (Flat through G-cup)
             static const std::vector<std::string> humanCups = { "Flat", "AA", "A", "B", "C", "D", "DD", "E", "F", "FF", "G" };
             auto cupOpts = cc->config.filterChoices("chest_size", humanCups);
             int cupIdx = std::clamp(cc->breastCupSize, 0, static_cast<int>(cupOpts.size()) - 1);
@@ -299,13 +274,11 @@ namespace CharacterCreationView
                 for (size_t i = 0; i < cupOpts.size(); ++i) if (cupOpts[i] == c) cc->breastCupSize = static_cast<int>(i);
             }, uiScale, 6);
 
-            // 2. Breast Shape
             static const std::vector<std::string> allBShapes = { "Round", "Pointy", "Perky", "Side-set", "Wide", "Narrow" };
             curY += drawPillCard(renderer, gameContext, rect, padX, curY, availableW, "Breast Shape", "Contour and projection of breasts.", allBShapes, cc->breastShape, [&](const std::string& s) {
                 cc->breastShape = s;
             }, uiScale, 6);
 
-            // 3. Nipple & Areolae Sizes (Human 0..4)
             static const std::vector<std::string> allSizes5 = { "Tiny", "Small", "Average", "Large", "Huge" };
             int nipIdx = std::clamp(cc->nippleSize, 0, 4);
             curY += drawPillCard(renderer, gameContext, rect, padX, curY, availableW, "Nipple Size", "Prominence of nipples.", allSizes5, allSizes5[nipIdx], [&](const std::string& n) {
@@ -317,12 +290,10 @@ namespace CharacterCreationView
                 for (size_t i = 0; i < allSizes5.size(); ++i) if (allSizes5[i] == a) cc->areolaeSize = static_cast<int>(i);
             }, uiScale, 5);
 
-            // 4. Puffy Nipples Toggle
             curY += drawToggleCard(renderer, gameContext, rect, padX, curY, availableW, "Puffy Nipples", "Extra softness and swelling.", cc->puffyNipples, [&](bool p) {
                 cc->puffyNipples = p;
             }, uiScale, "Puffy", "Natural");
 
-            // 5. Lactation Status
             static const std::vector<std::string> lactTiers = { "None", "Trickle", "Small Amount" };
             int lactIdx = std::clamp(cc->lactationTier, 0, static_cast<int>(lactTiers.size()) - 1);
             curY += drawPillCard(renderer, gameContext, rect, padX, curY, availableW, "Lactation Production", "Mammary milk production level at start.", lactTiers, lactTiers[lactIdx], [&](const std::string& l) {
@@ -356,7 +327,6 @@ namespace CharacterCreationView
             }
             else
             {
-                // Normal Human Penis Length: 8.0 cm to 24.0 cm
                 curY += drawStepperCard<float>(renderer, gameContext, rect, padX, curY, availableW, "Penis Length (cm)", "Normal human erect length (8.0 - 24.0 cm).", std::format("{:.1f} cm", cc->penisLengthCm), [&](float delta) {
                     cc->penisLengthCm = std::clamp(cc->penisLengthCm + delta, 8.0f, 24.0f);
                 }, uiScale, 0.5f, 1.0f, 2.5f);
@@ -376,7 +346,6 @@ namespace CharacterCreationView
         }
         else if (currentTab == EditorTabId::COSMETICS)
         {
-            // Cosmetics Palettes
             curY += drawColorSwatchCard(renderer, gameContext, rect, padX, curY, availableW, "Lipstick", "Cosmetic pigment applied to lips.", s_makeupColors, cc->lipstick, [&](const std::string& c) {
                 cc->lipstick = c;
             }, uiScale);
@@ -401,7 +370,6 @@ namespace CharacterCreationView
                 cc->toenailPolish = c;
             }, uiScale);
 
-            // Piercings
             static const std::vector<std::string> pSockets = { "ear", "nose", "lip", "tongue", "navel", "nipple" };
             for (const auto& s : pSockets)
             {
@@ -412,7 +380,6 @@ namespace CharacterCreationView
                 }, uiScale, "Pierced", "Unpierced");
             }
 
-            // Body Hair
             static const std::vector<std::string> bhGroom = { "None", "Stubble", "Manicured", "Trimmed", "Natural", "Unkempt", "Bushy", "Wild" };
             curY += drawPillCard(renderer, gameContext, rect, padX, curY, availableW, "Pubic Hair Grooming", "Hair grooming in the groin area.", bhGroom, cc->pubicHair, [&](const std::string& ph) {
                 cc->pubicHair = ph;
@@ -430,7 +397,6 @@ namespace CharacterCreationView
         {
             if (!cc->wardrobeInitialized) cc->initializeWardrobe();
 
-            // 1. Decency Status Banner
             bool decent = cc->isClothedEnough();
             std::string decencyStatus = cc->getDecencyStatus();
             float bannerH = 34.0f * uiScale;
@@ -443,7 +409,6 @@ namespace CharacterCreationView
                                decent ? Theme::colors.companion : Theme::colors.enemy, uiScale * 0.85f);
             curY += bannerH + (12.0f * uiScale);
 
-            // 2. Dressing Room & Inventory Submenu Card
             float cardH = 136.0f * uiScale;
             SDL_FRect dressCard = { padX, curY, availableW, cardH };
             UIWidget::drawPanel(renderer, dressCard, Theme::colors.bgSlot, Theme::colors.borderNormal);
@@ -457,7 +422,6 @@ namespace CharacterCreationView
             float hDesc = UIWidget::drawTextWrapped(renderer, pDesc, tX, tY, availableW - (28.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.80f);
             tY += hDesc + (14.0f * uiScale);
 
-            // Large Action Button to Open Inventory
             float btnW = 260.0f * uiScale;
             float btnH = 34.0f * uiScale;
             SDL_FRect openBtn = { tX, tY, btnW, btnH };
@@ -476,7 +440,6 @@ namespace CharacterCreationView
 
             curY += cardH + (14.0f * uiScale);
 
-            // 3. Current Attire Breakdown Card
             float summaryH = 150.0f * uiScale;
             SDL_FRect sumCard = { padX, curY, availableW, summaryH };
             UIWidget::drawPanel(renderer, sumCard, Theme::colors.bgSlot, Theme::colors.borderNormal);
@@ -509,7 +472,6 @@ namespace CharacterCreationView
         }
         else if (currentTab == EditorTabId::NAME_FINISH)
         {
-            // 1. Name Input Box Card
             if (cc->config.isOptionEnabled("first_name") || cc->config.isOptionEnabled("surname"))
             {
                 float nameCardH = 92.0f * uiScale;
@@ -526,7 +488,6 @@ namespace CharacterCreationView
                 float colW = labelW + inputW + (6.0f * uiScale) + rBtnW;
                 bool inPanel = (mousePos.y >= rect.y && mousePos.y <= rect.y + rect.h);
 
-                // First Name Field
                 UIWidget::drawText(renderer, "First:", padX + (12.0f * uiScale), fieldY + (4.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.82f);
                 SDL_FRect firstBox = { padX + (12.0f * uiScale) + labelW, fieldY, inputW, boxH };
                 std::string chosenFirst = (cc->gender == "Female") ? cc->feminineName : cc->masculineName;
@@ -548,7 +509,6 @@ namespace CharacterCreationView
                     gameContext->input.consumeMouseClick();
                 }
 
-                // Surname Field
                 float lastX = padX + (12.0f * uiScale) + colW + (40.0f * uiScale);
                 if (lastX + colW <= padX + availableW)
                 {
@@ -577,7 +537,6 @@ namespace CharacterCreationView
                 curY += nameCardH + (12.0f * uiScale);
             }
 
-            // 2. Character Body Inspection & Profile Sheet
             std::string fullDesc = cc->generateAppearanceDescription();
             std::vector<std::string> paragraphs;
             size_t startP = 0;
@@ -600,13 +559,12 @@ namespace CharacterCreationView
             float cardHeaderH = 26.0f * uiScale;
             float paragraphGap = 10.0f * uiScale;
 
-            // Pre-calculate height of all paragraphs
             float contentH = cardHeaderH + (12.0f * uiScale);
             for (const auto& p : paragraphs)
             {
                 contentH += fontManager::getInstance().getTextWrappedHeight(p, textAvailableW, uiScale * 0.82f) + paragraphGap;
             }
-            contentH += (38.0f * uiScale); // traits & summary lines
+            contentH += (38.0f * uiScale);
 
             SDL_FRect sumCardRect = { padX, curY, availableW, contentH };
             UIWidget::drawPanel(renderer, sumCardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
@@ -619,7 +577,6 @@ namespace CharacterCreationView
                 pY += pH + paragraphGap;
             }
 
-            // Summary Footer
             std::string traitList = "";
             for (const auto& tr : cc->personalityTraits) {
                 if (!traitList.empty()) traitList += ", ";

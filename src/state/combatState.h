@@ -8,10 +8,6 @@
 
 class game;
 
-/**
- * Headless state controller for turn-based combat execution.
- * Manages turn queue updates, party lifecycle, debug stubs, and sexuality-driven defeat resolution.
- */
 class CombatState : public iGameState
 {
 public:
@@ -27,20 +23,16 @@ public:
 	void onEnter(game* gameContext) override;
 	void onExit(game* gameContext) override;
 
-	// Action Handlers
 	void handleEndTurn(game* gameContext);
 	void handleClearQueue(game* gameContext);
 	void handleRunAttempt(game* gameContext);
 	void handleSurrender(game* gameContext);
 
-	// Focus-based Combat
 	CombatFocus getCombatFocus() const { return m_currentFocus; }
 	void setCombatFocus(CombatFocus focus);
 
-	// Defeat Resolution
 	void resolveDefeat(game* gameContext);
 
-	// Snapshot APIs for UI View Layer
 	const combatEngine& getEngine() const { return m_engine; }
 	combatEngine& getEngineMutable() { return m_engine; }
 	int getSelectedTargetIndex() const { return m_selectedTargetIndex; }

@@ -26,7 +26,6 @@
 
 namespace PaperdollWidgets
 {
-    // Mode tracker for Player and Partner grids
     static bool s_playerTattooMode = false;
     static bool s_partnerTattooMode = false;
 
@@ -38,7 +37,6 @@ namespace PaperdollWidgets
     };
 
     static const std::array<EquipGridSlotDef, 36> s_equipmentGrid = {{
-        // Row 0: Eyes, Head, Hair, Horns, Main Hand, Off Hand
         { "EYES", "Eyes / Eyewear", equipSlot::EYEWEAR },
         { "HEAD", "Headwear / Hat", equipSlot::HEADWEAR },
         { "HAIR", "Hair Accessory", equipSlot::HAIR_WEAR },
@@ -46,7 +44,6 @@ namespace PaperdollWidgets
         { "MAIN", "Main Hand Weapon", equipSlot::WEAPON_MAIN },
         { "OFF", "Off-Hand / Shield", equipSlot::WEAPON_OFF },
 
-        // Row 1: Mouth, Neck, Over-Torso, Wings, Ear Piercing, Nose Piercing
         { "MOUTH", "Mouth / Mask", equipSlot::MOUTHWEAR },
         { "NECK", "Neck / Scarf", equipSlot::NECKWEAR },
         { "COAT", "Over-Torso / Coat", equipSlot::TORSO_OVER },
@@ -54,7 +51,6 @@ namespace PaperdollWidgets
         { "P.EAR", "Ear Piercing", equipSlot::PIERCING_EAR },
         { "P.NOS", "Nose Piercing", equipSlot::PIERCING_NOSE },
 
-        // Row 2: Wrists, Torso Under, Bra, Nipples, Lip Piercing, Tongue Piercing
         { "WRIST", "Wrists / Cuffs", equipSlot::WRISTS },
         { "SHIRT", "Torso / Shirt", equipSlot::TORSO_UNDER },
         { "BRA", "Chest / Bra", equipSlot::CHEST_WEAR },
@@ -62,7 +58,6 @@ namespace PaperdollWidgets
         { "P.LIP", "Lip Piercing", equipSlot::PIERCING_LIP },
         { "P.TNG", "Tongue Piercing", equipSlot::PIERCING_TONGUE },
 
-        // Row 3: Hands, Belt, Stomach, Ring, Nipple Piercing, Navel Piercing
         { "HAND", "Hands / Gloves", equipSlot::HANDS },
         { "BELT", "Waist / Belt", equipSlot::HIPS_WEAR },
         { "STOM", "Stomach / Corset", equipSlot::STOMACH_WEAR },
@@ -70,7 +65,6 @@ namespace PaperdollWidgets
         { "P.NIP", "Nipple Piercing", equipSlot::PIERCING_NIPPLE },
         { "P.NAV", "Navel Piercing", equipSlot::PIERCING_NAVEL },
 
-        // Row 4: Ankles, Pants, Underwear, Tail, Penis Piercing, Vagina Piercing
         { "ANKL", "Ankles / Bands", equipSlot::ANKLES },
         { "PANT", "Legs / Pants", equipSlot::LEGS_OUTER },
         { "UNDY", "Groin / Panties", equipSlot::GROIN_OVER },
@@ -78,7 +72,6 @@ namespace PaperdollWidgets
         { "P.COK", "Cock Piercing", equipSlot::PIERCING_COCK },
         { "P.VAG", "Vagina Piercing", equipSlot::PIERCING_VAGINA },
 
-        // Row 5: Socks, Shoes, Anus Plug, Penis Wear, Vagina Wear, TATTOO SWAP BUTTON
         { "SOCK", "Socks / Calves", equipSlot::CALVES },
         { "SHOE", "Feet / Shoes", equipSlot::FEET },
         { "PLUG", "Anus / Plug", equipSlot::ASS_WEAR },
@@ -97,7 +90,6 @@ namespace PaperdollWidgets
     };
 
     static const std::array<TattooGridSlotDef, 36> s_tattooGrid = {{
-        // Row 0: Head & Neck
         { "FACE", "Face / Forehead", tattooSlot::FACE, bodySlot::HEAD, false },
         { "CHK.L", "Left Cheek", tattooSlot::FACE, bodySlot::HEAD, false },
         { "CHK.R", "Right Cheek", tattooSlot::FACE, bodySlot::HEAD, false },
@@ -105,7 +97,6 @@ namespace PaperdollWidgets
         { "HORN", "Horns", tattooSlot::NONE, bodySlot::HORNS, true },
         { "EARS", "Ears", tattooSlot::NONE, bodySlot::EARS, false },
 
-        // Row 1: Shoulders & Upper Chest
         { "SHL.L", "Left Shoulder", tattooSlot::SHOULDERS, bodySlot::TORSO, false },
         { "ARM.L", "Upper Left Arm", tattooSlot::ARM_LEFT, bodySlot::ARMS, false },
         { "CHST", "Chest / Sternum", tattooSlot::CHEST, bodySlot::BREASTS, false },
@@ -113,7 +104,6 @@ namespace PaperdollWidgets
         { "SHL.R", "Right Shoulder", tattooSlot::SHOULDERS, bodySlot::TORSO, false },
         { "WING", "Wings", tattooSlot::NONE, bodySlot::WINGS, true },
 
-        // Row 2: Breasts & Forearms
         { "FOR.L", "Left Forearm", tattooSlot::ARM_LEFT, bodySlot::ARMS, false },
         { "BST.L", "Left Breast", tattooSlot::BREASTS, bodySlot::BREASTS, true },
         { "CLEV", "Cleavage", tattooSlot::CHEST, bodySlot::BREASTS, false },
@@ -121,7 +111,6 @@ namespace PaperdollWidgets
         { "FOR.R", "Right Forearm", tattooSlot::ARM_RIGHT, bodySlot::ARMS, false },
         { "HAND", "Hands / Knuckles", tattooSlot::HANDS, bodySlot::HANDS, false },
 
-        // Row 3: Stomach & Back
         { "STOM", "Stomach", tattooSlot::STOMACH, bodySlot::STOMACH, false },
         { "NAVL", "Belly Button", tattooSlot::STOMACH, bodySlot::STOMACH, false },
         { "U.BCK", "Upper Back", tattooSlot::BACK, bodySlot::BACK, false },
@@ -129,7 +118,6 @@ namespace PaperdollWidgets
         { "L.BCK", "Lower Back (Tramp Stamp)", tattooSlot::BACK, bodySlot::BACK, false },
         { "HIPS", "Hips / Pelvis", tattooSlot::HIPS, bodySlot::HIPS, false },
 
-        // Row 4: Lower Body & Intimates
         { "BUT.L", "Left Buttock", tattooSlot::ASS, bodySlot::ASS, false },
         { "BUT.R", "Right Buttock", tattooSlot::ASS, bodySlot::ASS, false },
         { "PUBC", "Pubic Mound", tattooSlot::GROIN, bodySlot::GROIN, false },
@@ -137,7 +125,6 @@ namespace PaperdollWidgets
         { "VAGN", "Vagina / Labia", tattooSlot::GROIN, bodySlot::GROIN, true },
         { "TAIL", "Tail Base", tattooSlot::NONE, bodySlot::TAIL, true },
 
-        // Row 5: Legs, Feet & Swap Button
         { "THG.L", "Left Thigh", tattooSlot::LEG_LEFT, bodySlot::LEGS, false },
         { "THG.R", "Right Thigh", tattooSlot::LEG_RIGHT, bodySlot::LEGS, false },
         { "CAL.L", "Left Calf", tattooSlot::LEG_LEFT, bodySlot::LEGS, false },
@@ -207,7 +194,6 @@ namespace PaperdollWidgets
         auto mousePos = gameContext->input.getMousePosition();
         bool clicked = gameContext->input.isLeftMouseJustClicked();
 
-        // Calculate square dimensions for 6x6 tile grid filling the container
         const int cols = 6;
         const int rows = 6;
         const float boxSize = SidebarGeometry::getBoxSize(panelRect, uiScale);
@@ -219,26 +205,20 @@ namespace PaperdollWidgets
             ? SidebarGeometry::getSquareCardH(panelRect, uiScale)
             : ((18.0f * uiScale) + boxSize + (6.0f * uiScale));
 
-        // Pin to the bottom of the sidebar panel (matching mini-map radar positioning exactly)
         float bottomPinnedY = SidebarGeometry::getBottomPinnedY(panelRect, uiScale);
         float startY = curY;
 
         if (isPlayer)
         {
             curY = std::max(curY, bottomPinnedY);
-            // Render Date & Time Bar (only above player equipment grid)
             curY += RadarWidgets::renderWidgetTimeBar(renderer, gameContext, panelRect.x, curY, panelRect.w, uiScale);
             curY += SidebarGeometry::getGapBetweenCards(uiScale);
         }
         else
         {
-            // Align NPC equipment grid with player equipment grid without duplicate calendar/clock
             curY = std::max(curY, bottomPinnedY + SidebarGeometry::getTimeBarH(uiScale) + SidebarGeometry::getGapBetweenCards(uiScale));
         }
 
-        // =========================================================================
-        // OVERARCHING CONTAINER: Equipment / Tattoo Grid Box
-        // =========================================================================
         SDL_FRect mainCardRect = { padX, curY, availableW, cardH };
         UIWidget::drawPanel(renderer, mainCardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
@@ -251,7 +231,6 @@ namespace PaperdollWidgets
         UIWidget::drawText(renderer, headerTitle, innerX, cardCurY, Theme::colors.textGold, uiScale * 0.74f);
         cardCurY += (15.0f * uiScale);
 
-        // Centered 6x6 Grid Container Box matching Mini-Map Radar
         float gridStartX = SidebarGeometry::getGridStartX(panelRect, uiScale);
         SDL_FRect gridBox = { gridStartX - (1.0f * uiScale), cardCurY - (1.0f * uiScale), boxSize + (2.0f * uiScale), boxSize + (2.0f * uiScale) };
         UIWidget::drawPanel(renderer, gridBox, Theme::colors.bgDark, Theme::colors.borderButton);
@@ -270,16 +249,12 @@ namespace PaperdollWidgets
 
                 if (inTattooMode)
                 {
-                    // -----------------------------------------------------------------
-                    // TATTOO MODE TILES
-                    // -----------------------------------------------------------------
                     const auto& def = s_tattooGrid[index];
                     bool isAvailable = def.isSwapButton || isTattooSlotAvailable(character, def.reqPart, def.requiresGating);
                     bool isSelected = (!def.isSwapButton && isPlayer && gameContext->selectedEquipmentSlot == equipSlot::NONE);
 
                     if (def.isSwapButton)
                     {
-                        // Swap Button: Switches back to Equipment mode
                         SDL_Color fill = hovered ? Theme::colors.bgHeader : Theme::colors.bgHeader;
                         SDL_Color bd = hovered ? Theme::colors.borderSelected : Theme::colors.borderButton;
                         UIWidget::drawPanel(renderer, slotRect, fill, bd);
@@ -299,14 +274,12 @@ namespace PaperdollWidgets
                     }
                     else if (!isAvailable)
                     {
-                        // Disabled / Locked
                         UIWidget::drawPanel(renderer, slotRect, Theme::colors.bgDark, Theme::colors.slotEmptyBorder);
                         float lW = UIWidget::getTextWidth("·", uiScale * 0.65f);
                         UIWidget::drawText(renderer, "·", slotX + ((tileSize - lW) / 2.0f), slotY + (tileSize * 0.25f), Theme::colors.textDisabled, uiScale * 0.65f);
                     }
                     else
                     {
-                        // Active Tattoo Slot
                         bool hasTat = character->anatomy.hasTattoo(def.slot);
                         SDL_Color fill = hasTat ? Theme::colors.bgSlotOccupied : (hovered ? Theme::colors.bgHeader : Theme::colors.bgDark);
                         SDL_Color bd = hovered ? Theme::colors.borderButton : Theme::colors.borderNormal;
@@ -324,9 +297,6 @@ namespace PaperdollWidgets
                 }
                 else
                 {
-                    // -----------------------------------------------------------------
-                    // EQUIPMENT MODE TILES
-                    // -----------------------------------------------------------------
                     const auto& def = s_equipmentGrid[index];
                     bool isAvailable = def.isSwapButton || isEquipSlotAvailable(character, def.slot);
                     int currentSide = isPlayer ? 0 : 1;
@@ -334,7 +304,6 @@ namespace PaperdollWidgets
 
                     if (def.isSwapButton)
                     {
-                        // Swap Button: Switches to Tattoo mode
                         SDL_Color fill = hovered ? Theme::colors.bgHeader : Theme::colors.bgHeader;
                         SDL_Color bd = hovered ? Theme::colors.borderSelected : Theme::colors.borderButton;
                         UIWidget::drawPanel(renderer, slotRect, fill, bd);
@@ -354,14 +323,12 @@ namespace PaperdollWidgets
                     }
                     else if (!isAvailable)
                     {
-                        // Disabled / Anatomically Locked
                         UIWidget::drawPanel(renderer, slotRect, Theme::colors.bgDark, Theme::colors.slotEmptyBorder);
                         float lW = UIWidget::getTextWidth("·", uiScale * 0.65f);
                         UIWidget::drawText(renderer, "·", slotX + ((tileSize - lW) / 2.0f), slotY + (tileSize * 0.25f), Theme::colors.textDisabled, uiScale * 0.65f);
                     }
                     else
                     {
-                        // Active Equipment Socket
                         auto eqItem = character->inventory.getEquippedItem(def.slot);
                         DisplacementMode disp = character->inventory.getDisplacement(def.slot);
 
@@ -376,12 +343,10 @@ namespace PaperdollWidgets
                             SDL_RenderRect(renderer, &innerRect);
                         }
 
-                        // Label
                         float lW = UIWidget::getTextWidth(def.shortName, uiScale * 0.52f);
                         SDL_Color textCol = isSelected ? Theme::colors.textGold : (eqItem ? Theme::colors.textGold : Theme::colors.textSecondary);
                         UIWidget::drawText(renderer, def.shortName, slotX + ((tileSize - lW) / 2.0f), slotY + (3.0f * uiScale), textCol, uiScale * 0.52f);
 
-                        // Item indicator or displacement dot
                         if (eqItem)
                         {
                             if (disp != DisplacementMode::NONE)
@@ -425,9 +390,6 @@ namespace PaperdollWidgets
             }
         }
 
-        // =========================================================================
-        // TOOLBAR BUTTONS UNDER THE 6x6 GRID (Player only)
-        // =========================================================================
         if (isPlayer)
         {
             SidebarGeometry::renderNavigationToolbar(renderer, gameContext, panelRect, curY, uiScale);
@@ -449,8 +411,6 @@ namespace PaperdollWidgets
         float innerPad = 8.0f * uiScale;
         float boxGap = 10.0f * uiScale;
 
-        // Match horizontal alignment with the box at 4,4 in the floor/NPC inventory (Side 1 grid)
-        // 5 columns x 4 rows: column 4 is index c = 3
         float gapBetweenSides = 8.0f * uiScale;
         float halfW = std::floor((availableW - gapBetweenSides) / 2.0f);
         float side1X = padX + halfW + gapBetweenSides;
@@ -493,16 +453,12 @@ namespace PaperdollWidgets
         float iX = padX + innerPad;
         float iY = curY + innerPad;
 
-        // Title line
         UIWidget::drawText(renderer, title, iX, iY, titleCol, uiScale * 0.85f);
 
-        // Metadata line
         UIWidget::drawText(renderer, metaLine, iX, iY + (18.0f * uiScale), metaCol, uiScale * 0.74f);
 
-        // Wrapped Description
         UIWidget::drawTextWrapped(renderer, effectiveDesc, iX, iY + (36.0f * uiScale), textContentW, descCol, uiScale * 0.74f);
 
-        // Right side: Square Item Image Box within the text pane (close-up preview)
         float boxY = curY + ((cardH - imageBoxSize) / 2.0f);
         SDL_FRect imageBoxRect = { boxX, boxY, imageBoxSize, imageBoxSize };
 
@@ -517,7 +473,6 @@ namespace PaperdollWidgets
         }
         else
         {
-            // Placeholder inner subtle frame & centered "No Image" text
             SDL_FRect innerFrame = { boxX + (3.0f * uiScale), boxY + (3.0f * uiScale), imageBoxSize - (6.0f * uiScale), imageBoxSize - (6.0f * uiScale) };
             SDL_SetRenderDrawColor(renderer, Theme::colors.borderButton.r, Theme::colors.borderButton.g, Theme::colors.borderButton.b, 60);
             SDL_RenderRect(renderer, &innerFrame);
@@ -552,9 +507,6 @@ namespace PaperdollWidgets
         auto mousePos = gameContext->input.getMousePosition();
         bool clicked = gameContext->input.isLeftMouseJustClicked();
 
-        // =========================================================================
-        // CASE A: Selected Equipment Slot
-        // =========================================================================
         if (gameContext->selectedEquipmentSlot != equipSlot::NONE)
         {
             equipSlot slot = gameContext->selectedEquipmentSlot;
@@ -602,9 +554,6 @@ namespace PaperdollWidgets
             }
         }
 
-        // =========================================================================
-        // CASE B: Selected Item from Backpack or Ground
-        // =========================================================================
         if (gameContext->selectedInventoryIndex >= 0)
         {
             auto items = (gameContext->selectedInventorySide == 0)
@@ -633,7 +582,6 @@ namespace PaperdollWidgets
             }
         }
 
-        // Default hint card when nothing is selected
         float hintH = 32.0f * uiScale;
         SDL_FRect hintRect = { padX, curY, availableW, hintH };
         UIWidget::drawPanel(renderer, hintRect, Theme::colors.bgDark, Theme::colors.borderNormal);

@@ -87,13 +87,11 @@ struct bodyPart
     int cupSize = 0;
     std::string style = "";
 
-    // Fluid Production & Storage
     float currentFluidMl = 0.0f;
     float maxFluidMl = 0.0f;
     float fluidRegenPerHour = 0.0f;
     bool isLactating = false;
 
-    // Attached Orifice (e.g., Throat on MOUTH, Nipple on BREASTS, Vagina on GROIN, Anus on ASS)
     OrificeData orifice;
 
     std::vector<std::string> tags;

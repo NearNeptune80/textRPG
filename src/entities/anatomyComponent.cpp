@@ -157,7 +157,6 @@ void anatomyComponent::processMutations(int minutesPassed)
     }
 }
 
-// Orifices and Bodily Fluids
 bool anatomyComponent::hasOrifice(bodySlot slot) const
 {
     const bodyPart* part = getPart(slot);
@@ -209,20 +208,17 @@ void anatomyComponent::processBiologicalRecovery(int minutesPassed)
     if (minutesPassed <= 0) return;
     float hours = static_cast<float>(minutesPassed) / 60.0f;
 
-    // Orifice Stretch Recovery & Fluid Production
     for (auto& optPart : parts)
     {
         if (!optPart.has_value()) continue;
         bodyPart& part = optPart.value();
 
-        // 1. Orifice stretch recovery
         if (part.orifice.exists && part.orifice.currentStretch > 0.0f)
         {
             float recoveryRate = (part.orifice.elasticity / 20.0f) * hours;
             part.orifice.currentStretch = std::max(0.0f, part.orifice.currentStretch - recoveryRate);
         }
 
-        // 2. Fluid regeneration (Milk, Cum, Girlcum)
         if (part.fluidRegenPerHour > 0.0f && part.maxFluidMl > 0.0f)
         {
             part.currentFluidMl = std::min(part.maxFluidMl, part.currentFluidMl + (part.fluidRegenPerHour * hours));
@@ -230,7 +226,6 @@ void anatomyComponent::processBiologicalRecovery(int minutesPassed)
     }
 }
 
-// 3-Tier Weighted Racial Classification
 std::unordered_map<std::string, float> anatomyComponent::calculateRacePercentages() const
 {
     return calculateWeightedRacePercentages();
@@ -286,7 +281,6 @@ RacialClassification anatomyComponent::getRacialClassification() const
         result.secondaryPercentage = sorted[1].second;
     }
 
-    // Tier 1: Dominant Morph (>= 50%)
     if (result.primaryPercentage >= 50.0f)
     {
         result.tier = RacialTier::DOMINANT_MORPH;
@@ -299,13 +293,11 @@ RacialClassification anatomyComponent::getRacialClassification() const
             result.title = result.primaryRace + "-Morph";
         }
     }
-    // Tier 2: Dual-Hybrid (Top 2 both >= 40%)
     else if (sorted.size() >= 2 && sorted[0].second >= 40.0f && sorted[1].second >= 40.0f)
     {
         result.tier = RacialTier::DUAL_HYBRID;
         result.title = sorted[0].first + "-" + sorted[1].first + " Hybrid";
     }
-    // Tier 3: Chaotic Chimera (< 40% across 3+ species)
     else
     {
         result.tier = RacialTier::CHAOTIC_CHIMERA;
@@ -335,7 +327,6 @@ bool anatomyComponent::isChaoticChimera() const
     return getRacialClassification().tier == RacialTier::CHAOTIC_CHIMERA;
 }
 
-// Gender Archetypes
 bool anatomyComponent::hasPenis() const
 {
     const bodyPart* groin = getPart(bodySlot::GROIN);

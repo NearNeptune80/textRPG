@@ -5,10 +5,6 @@
 #include <random>
 #include <vector>
 
-/**
- * High-performance, uniform pseudo-random number generator utility.
- * Eliminates C-style rand() modulo bias and provides clean modern C++26 distributions.
- */
 class dice
 {
 public:
@@ -27,7 +23,6 @@ public:
         return dist(getEngine());
     }
 
-    // Roll a float in the range [min, max]
     template<std::floating_point T>
     [[nodiscard]] static T rollFloat(T min, T max)
     {
@@ -50,7 +45,6 @@ public:
         return rollFloat(0.0f, 100.0f) < chance;
     }
 
-    // Select a random element from a vector
     template<typename T>
     [[nodiscard]] static const T* choose(const std::vector<T>& vec)
     {

@@ -137,7 +137,6 @@ std::vector<CharacterSaveGroup> saveManager::getSavesGroupedByCharacter()
         result.push_back({charName, saveList});
     }
 
-    // Sort character groups from most recently played to oldest
     std::sort(result.begin(), result.end(), [](const CharacterSaveGroup& a, const CharacterSaveGroup& b) {
         if (a.saves.empty()) return false;
         if (b.saves.empty()) return true;
@@ -204,9 +203,7 @@ json saveManager::buildPayload(game* g, const std::string& customSaveName)
     return j;
 }
 
-/**
- * Atomically writes JSON content to disk using a temporary file and rename to prevent corruption on crash.
- */
+// Atomically writes JSON content to disk using a temporary file and rename to prevent corruption on crash.
 bool saveManager::writeAtomicJson(const std::string& targetPath, const json& payload)
 {
     std::string tmpPath = targetPath + ".tmp";
@@ -228,9 +225,6 @@ bool saveManager::writeAtomicJson(const std::string& targetPath, const json& pay
     return !ec;
 }
 
-/**
- * Writes a user-named manual save file.
- */
 bool saveManager::saveNamedGame(game* g, const std::string& customSaveName)
 {
     std::string savesDir = getSavesDirectory();
@@ -242,9 +236,6 @@ bool saveManager::saveNamedGame(game* g, const std::string& customSaveName)
     return writeAtomicJson(fileName, payload);
 }
 
-/**
- * Rolls rotating auto-save slots (Autosave_1 becomes newest, oldest evicted).
- */
 bool saveManager::saveAutosave(game* g, int maxAutosaves)
 {
     if (!g || !g->getPlayer()) return false;
@@ -305,9 +296,6 @@ bool saveManager::deleteSave(const std::string& fileName)
     return false;
 }
 
-/**
- * Loads world state, player attributes, quests, and discovery maps from a JSON save file.
- */
 bool saveManager::loadFromFile(game* g, const std::string& fileName)
 {
     if (!g) return false;
@@ -389,7 +377,6 @@ bool saveManager::loadFromFile(game* g, const std::string& fileName)
 
             g->settings.fromJson(j["settings"]);
 
-            // Retain global client settings rather than clobbering them with the save file
             g->settings.display = currentDisplay;
             g->settings.content = currentContent;
             g->settings.demographics = currentDemographics;
@@ -459,17 +446,14 @@ void saveManager::grantStarterTestKit(entity* player)
         }
     };
 
-    // 1. Uninfused Tonics for Enchanting at the Altar
     addIfMissing("item_plain_elixir", 3);
 
-    // 2. Consumable Potions & Foods for Testing Vitals, Status Effects & Transmutation
     addIfMissing("item_canis_root", 2);
     addIfMissing("item_potion_health", 2);
     addIfMissing("item_potion_mana", 2);
     addIfMissing("item_apple_crisp", 2);
     addIfMissing("item_feline_mint", 2);
 
-    // 3. Equippable Garments & Weapons across slots
     addIfMissing("item_golden_pendant", 1);
     addIfMissing("item_dagger_iron", 1);
     addIfMissing("item_cloth_gloves", 1);
@@ -478,7 +462,6 @@ void saveManager::grantStarterTestKit(entity* player)
     addIfMissing("item_leather_skirt", 1);
     addIfMissing("item_ancient_tome", 1);
 
-    // 4. Pre-infused sample potions for live status effect testing
     bool hasPredator = false;
     bool hasPrimal = false;
     for (const auto& it : player->inventory.backpack)
@@ -517,7 +500,6 @@ void saveManager::grantStarterTestKit(entity* player)
         player->inventory.addItem(infusedPrimal);
     }
 
-    // 5. Arcane Essence and Gold for Crafting
     if (player->getStat("arcaneEssence") < 50.0f)
     {
         player->stats.setBaseStat("arcaneEssence", 50.0f);

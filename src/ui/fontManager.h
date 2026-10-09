@@ -6,12 +6,6 @@
 #include <SDL3/SDL.h>
 #include <SDL3_ttf/SDL_ttf.h>
 
-/**
- * Font Manager with Automatic Bitmap Fallback.
- * Loads and renders TrueType vector fonts (TTF/OTF) specified by themes/skins.
- * Automatically falls back to the embedded 8x8 pixel font if the font file is missing,
- * corrupted, or running in an environment without external assets.
- */
 class fontManager
 {
 public:

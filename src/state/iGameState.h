@@ -4,11 +4,6 @@
 
 class game;
 
-/**
- * Headless Base Interface for Engine State Controllers.
- * Manages game simulation state, input routing, and UI commands.
- * Contains ZERO rendering calls or graphics layout dependencies.
- */
 class iGameState
 {
 public:

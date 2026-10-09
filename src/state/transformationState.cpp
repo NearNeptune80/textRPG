@@ -195,7 +195,6 @@ void transformationState::loadPreset(game* gameContext, const std::string& name)
         player->anatomy.heightMeters = j.value("heightMeters", 1.75f);
         if (j.contains("parts"))
         {
-            // Clear current parts first
             for (size_t i = 0; i < BODY_SLOT_COUNT; ++i)
             {
                 player->anatomy.removePart(static_cast<bodySlot>(i));
@@ -292,12 +291,10 @@ void transformationState::resetToHuman(game* gameContext)
 
     p->anatomy.heightMeters = 1.78f;
 
-    // Torso & Skin
     bodyPart torso;
     torso.id = "torso_human"; torso.name = "Torso"; torso.race = "Human"; torso.covering = CoveringType::SKIN; torso.primaryColor = "Fair";
     p->anatomy.setPart(bodySlot::TORSO, torso);
 
-    // Head, Face & Hair
     bodyPart head; head.id = "head_human"; head.name = "Head"; head.race = "Human"; head.covering = CoveringType::SKIN; head.primaryColor = "Fair";
     p->anatomy.setPart(bodySlot::HEAD, head);
 
@@ -314,16 +311,13 @@ void transformationState::resetToHuman(game* gameContext)
     mouth.orifice.exists = true; mouth.orifice.depthCm = 18.0f; mouth.orifice.elasticity = 40.0f; mouth.orifice.wetnessLevel = 2;
     p->anatomy.setPart(bodySlot::MOUTH, mouth);
 
-    // Breasts
     bodyPart breasts; breasts.id = "breasts_human"; breasts.name = "Breasts"; breasts.race = "Human"; breasts.cupSize = 0; breasts.primaryColor = "Fair";
     p->anatomy.setPart(bodySlot::BREASTS, breasts);
 
-    // Ass & Anus
     bodyPart ass; ass.id = "ass_human"; ass.name = "Ass"; ass.race = "Human"; ass.primaryColor = "Fair";
     ass.orifice.exists = true; ass.orifice.depthCm = 20.0f; ass.orifice.elasticity = 30.0f; ass.orifice.wetnessLevel = 1;
     p->anatomy.setPart(bodySlot::ASS, ass);
 
-    // Genitalia
     bodyPart groin; groin.id = "groin_human"; groin.name = "Groin"; groin.race = "Human"; groin.primaryColor = "Fair";
     if (p->genderArchetype == GenderArchetype::FEMALE)
     {
@@ -337,7 +331,6 @@ void transformationState::resetToHuman(game* gameContext)
     }
     p->anatomy.setPart(bodySlot::GROIN, groin);
 
-    // Limbs
     bodyPart arms; arms.id = "arms_human"; arms.name = "Arms"; arms.race = "Human"; arms.count = 2; arms.primaryColor = "Fair";
     p->anatomy.setPart(bodySlot::ARMS, arms);
 
@@ -372,11 +365,9 @@ void transformationState::randomizeForm(game* gameContext)
     std::string primaryRace = races[rDist(rng)];
     p->anatomy.heightMeters = hDist(rng);
 
-    // Torso
     bodyPart torso; torso.id = "torso_" + primaryRace; torso.name = "Torso"; torso.race = primaryRace; torso.covering = (primaryRace.find("morph") != std::string::npos ? CoveringType::FUR : CoveringType::SKIN); torso.primaryColor = skinColors[scDist(rng)];
     p->anatomy.setPart(bodySlot::TORSO, torso);
 
-    // Head, Hair & Eyes
     bodyPart hair; hair.id = "hair_" + primaryRace; hair.name = "Hair"; hair.race = primaryRace; hair.covering = CoveringType::HAIR_COVERING; hair.primaryColor = hairColors[hcDist(rng)]; hair.style = "Long Wavy"; hair.length = 35.0f;
     p->anatomy.setPart(bodySlot::HAIR, hair);
 
@@ -386,7 +377,6 @@ void transformationState::randomizeForm(game* gameContext)
     bodyPart ears; ears.id = "ears_" + primaryRace; ears.name = "Ears"; ears.race = primaryRace; ears.primaryColor = hair.primaryColor;
     p->anatomy.setPart(bodySlot::EARS, ears);
 
-    // Horns (if Demon or Dragon or Bovine)
     if (primaryRace == "Demon" || primaryRace == "Dragon-morph" || primaryRace == "Bovine-morph")
     {
         bodyPart horns; horns.id = "horns_" + primaryRace; horns.name = "Horns"; horns.race = primaryRace; horns.count = 2; horns.length = 22.0f; horns.primaryColor = "Obsidian Black";
@@ -397,7 +387,6 @@ void transformationState::randomizeForm(game* gameContext)
         p->anatomy.removePart(bodySlot::HORNS);
     }
 
-    // Wings (if Demon, Harpy or Dragon)
     if (primaryRace == "Demon" || primaryRace == "Harpy" || primaryRace == "Dragon-morph")
     {
         bodyPart wings; wings.id = "wings_" + primaryRace; wings.name = "Wings"; wings.race = primaryRace; wings.count = 2; wings.primaryColor = primaryRace == "Harpy" ? hair.primaryColor : "Dark Violet";
@@ -408,11 +397,9 @@ void transformationState::randomizeForm(game* gameContext)
         p->anatomy.removePart(bodySlot::WINGS);
     }
 
-    // Tail
     bodyPart tail; tail.id = "tail_" + primaryRace; tail.name = "Tail"; tail.race = primaryRace; tail.count = 1; tail.length = 90.0f; tail.diameter = 6.0f; tail.primaryColor = hair.primaryColor;
     p->anatomy.setPart(bodySlot::TAIL, tail);
 
-    // Breasts
     bodyPart breasts; breasts.id = "breasts_" + primaryRace; breasts.name = "Breasts"; breasts.race = primaryRace; breasts.cupSize = cupDist(rng); breasts.primaryColor = torso.primaryColor;
     if (breasts.cupSize >= 3)
     {

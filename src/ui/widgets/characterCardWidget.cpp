@@ -38,10 +38,8 @@ namespace CharacterCardWidget
             const auto& eff = effects[i];
             SDL_Color bdCol = isHov ? Theme::colors.borderSelected : (eff.isDebuff ? Theme::colors.health : Theme::colors.companion);
 
-            // 1. Base dark background panel
             UIWidget::drawPanel(renderer, chipRect, Theme::colors.bgDark, bdCol);
 
-            // 2. Interior horizontal shading (0hrs on left to 24hrs on right)
             int remMins = eff.getRemainingMinutes();
             float fillRatio = std::clamp(static_cast<float>(remMins) / 1440.0f, 0.0f, 1.0f);
             if (fillRatio > 0.0f)
@@ -51,7 +49,6 @@ namespace CharacterCardWidget
                 float shadeH = chipSize - (borderInset * 2.0f);
                 SDL_FRect shadeRect = { chipX + borderInset, chipY + borderInset, shadeW, shadeH };
 
-                // Color gradient transitioning from rich green (24h) to bright red (0h)
                 uint8_t r, g, b;
                 if (fillRatio >= 0.5f)
                 {
@@ -74,7 +71,6 @@ namespace CharacterCardWidget
                 SDL_RenderFillRect(renderer, &shadeRect);
             }
 
-            // 3. Centered icon / glyph abbreviation
             std::string code;
             if (!eff.iconId.empty() && eff.iconId.length() <= 3)
             {
@@ -99,11 +95,9 @@ namespace CharacterCardWidget
             float tX = chipX + ((chipSize - cW) / 2.0f);
             float tY = chipY + ((chipSize - textH) / 2.0f) - (1.0f * uiScale);
 
-            // Drop shadow for legibility over shaded background
             UIWidget::drawText(renderer, code, tX + (1.0f * uiScale), tY + (1.0f * uiScale), SDL_Color{ 10, 10, 15, 240 }, textScale);
             UIWidget::drawText(renderer, code, tX, tY, Theme::colors.textPrimary, textScale);
 
-            // 4. Hover Tooltip
             std::string timeStr;
             if (eff.durationMinutes > 0)
             {
@@ -138,7 +132,6 @@ namespace CharacterCardWidget
         SDL_FRect cardRect = { padX, curY, availableW, cardH };
         UIWidget::drawPanel(renderer, cardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
-        // Header: COMPANION: Name
         SDL_FRect headerRect = { padX, curY, availableW, headerH };
         std::string compHeader = std::format("COMPANION: {}", companion->name);
         UIWidget::drawHeader(renderer, headerRect, compHeader, Theme::colors.bgHeader, Theme::colors.companion, uiScale * 0.68f);
@@ -148,7 +141,6 @@ namespace CharacterCardWidget
         float cX = padX + innerPad;
         float cW = availableW - (innerPad * 2.0f);
 
-        // Avatar Badge
         float avatarSize = 22.0f * uiScale;
         SDL_FRect avatarRect = { cX, curY, avatarSize, avatarSize };
         UIWidget::drawPanel(renderer, avatarRect, Theme::colors.bgDark, Theme::colors.borderButton);
@@ -157,7 +149,6 @@ namespace CharacterCardWidget
         float initW = UIWidget::getTextWidth(initials, uiScale * 0.68f);
         UIWidget::drawText(renderer, initials, avatarRect.x + ((avatarSize - initW) / 2.0f), avatarRect.y + (2.0f * uiScale), Theme::colors.companion, uiScale * 0.68f);
 
-        // Level & Species
         std::string lvlStr = std::format("Lvl {} • {}", companion->stats.level, companion->anatomy.getRacialTitle());
         UIWidget::drawText(renderer, lvlStr, cX + avatarSize + (4.0f * uiScale), curY + (2.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.66f);
 
@@ -167,14 +158,12 @@ namespace CharacterCardWidget
 
         curY += avatarSize + (2.0f * uiScale);
 
-        // Compact Health, Stamina & Lust Vitals
         float barH = 7.0f * uiScale;
         float barGap = 2.0f * uiScale;
         float labelW = 36.0f * uiScale;
         float valW = 42.0f * uiScale;
         float progressW = cW - labelW - valW - (4.0f * uiScale);
 
-        // Health
         float curHp = companion->getStat("health");
         float maxHp = companion->getStat("max_health");
         if (maxHp <= 0.0f) maxHp = std::max(curHp, 100.0f);
@@ -192,7 +181,6 @@ namespace CharacterCardWidget
 
         curY += barH + barGap;
 
-        // Stamina
         float curSta = companion->getStat("stamina");
         float maxSta = companion->getStat("max_stamina");
         if (maxSta <= 0.0f) {
@@ -233,7 +221,6 @@ namespace CharacterCardWidget
 
         curY += barH + barGap;
 
-        // Lust
         float curLust = std::clamp(companion->getStat("lust"), 0.0f, 100.0f);
         float maxLust = companion->getStat("max_lust");
         if (maxLust <= 0.0f) maxLust = 100.0f;
@@ -262,9 +249,6 @@ namespace CharacterCardWidget
         bool inPrologue = (dynamic_cast<characterCreationState*>(gameContext->getActiveState()) != nullptr);
         auto mousePos = gameContext->input.getMousePosition();
 
-        // =========================================================================
-        // DYNAMIC STATUS EFFECTS ROWS CALCULATION
-        // =========================================================================
         float innerPad = 4.0f * uiScale;
         float subW = availableW - (innerPad * 2.0f);
         float s2Pad = 5.0f * uiScale;
@@ -278,27 +262,19 @@ namespace CharacterCardWidget
         int numEffectRows = effects.empty() ? 0 : static_cast<int>(std::ceil(effects.size() / static_cast<float>(chipsPerRow)));
         float statusSectionH = (numEffectRows == 0) ? 0.0f : ((numEffectRows * chipSize) + ((numEffectRows - 1) * chipGap) + (6.0f * uiScale));
 
-        // Calculate heights dynamically with generous vertical headroom
         float sub1H = 58.0f * uiScale;
-        float vitalsTopH = 80.0f * uiScale; // "VITALS & STATUS" header + 4 progress bars (HP, STA, MP, Lust)
+        float vitalsTopH = 80.0f * uiScale;;
         float sub2H = vitalsTopH + statusSectionH + (4.0f * uiScale);
         float headerH = 20.0f * uiScale;
         float outerH = headerH + (3.0f * uiScale) + sub1H + (5.0f * uiScale) + sub2H + (5.0f * uiScale);
 
-        // =========================================================================
-        // OVERARCHING CONTAINER: Player Overview Card
-        // =========================================================================
         SDL_FRect outerRect = { padX, curY, availableW, outerH };
         UIWidget::drawPanel(renderer, outerRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
-        // Overarching Header
         SDL_FRect headerRect = { padX, curY, availableW, headerH };
         UIWidget::drawHeader(renderer, headerRect, "PLAYER CHARACTER", Theme::colors.bgHeader, Theme::colors.textGold, uiScale * 0.76f);
         curY += headerH + (3.0f * uiScale);
 
-        // -------------------------------------------------------------------------
-        // SUB-BOX 1: Identity & Wealth Box
-        // -------------------------------------------------------------------------
         float sub1X = padX + innerPad;
         float sub1Y = curY;
         SDL_FRect sub1Rect = { sub1X, sub1Y, subW, sub1H };
@@ -309,7 +285,6 @@ namespace CharacterCardWidget
         float s1ContentW = subW - (s1Pad * 2.0f);
         float s1Y = sub1Y + (4.0f * uiScale);
 
-        // Avatar Badge
         float avatarSize = 30.0f * uiScale;
         SDL_FRect avatarRect = { s1ContentX, s1Y, avatarSize, avatarSize };
         UIWidget::drawPanel(renderer, avatarRect, Theme::colors.bgHeader, Theme::colors.borderButton);
@@ -331,13 +306,11 @@ namespace CharacterCardWidget
                                         "Player protagonist exploring the realm.",
                                         std::format("Level {} • {}", player->stats.level, player->anatomy.getRacialTitle()));
 
-        // Name & Level / Species
         std::string dispName = player->name.empty() ? "Hero" : player->name;
         UIWidget::drawText(renderer, dispName, s1ContentX + avatarSize + (6.0f * uiScale), s1Y + (1.0f * uiScale), Theme::colors.textGold, uiScale * 0.84f);
         std::string lvlStr = std::format("Lvl {} • {}", player->stats.level, player->anatomy.getRacialTitle());
         UIWidget::drawText(renderer, lvlStr, s1ContentX + avatarSize + (6.0f * uiScale), s1Y + (15.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.70f);
 
-        // Gold & Essence
         float goldVal = player->getStat("currency");
         std::string goldText = std::format("Gold: {:.0f} ¤", goldVal);
         UIWidget::drawText(renderer, goldText, s1ContentX, s1Y + avatarSize + (4.0f * uiScale), Theme::colors.currency, uiScale * 0.72f);
@@ -358,9 +331,6 @@ namespace CharacterCardWidget
 
         curY += sub1H + (5.0f * uiScale);
 
-        // -------------------------------------------------------------------------
-        // SUB-BOX 2: Vitals & Status Gauges Box
-        // -------------------------------------------------------------------------
         float sub2X = padX + innerPad;
         float sub2Y = curY;
         SDL_FRect sub2Rect = { sub2X, sub2Y, subW, sub2H };
@@ -378,7 +348,6 @@ namespace CharacterCardWidget
         float valW = 44.0f * uiScale;
         float progressW = s2ContentW - labelW - valW - (4.0f * uiScale);
 
-        // 1. Health Bar
         float curHp = player->getStat("health");
         float maxHp = player->getStat("max_health");
         if (maxHp <= 0.0f) maxHp = std::max(curHp, 100.0f);
@@ -393,7 +362,6 @@ namespace CharacterCardWidget
                                         std::format("{:.0f} / {:.0f} HP", curHp, maxHp));
         s2Y += barH + barGap;
 
-        // 2. Stamina Bar
         float curSta = player->getStat("stamina");
         float maxSta = player->getStat("max_stamina");
         if (maxSta <= 0.0f) {
@@ -431,7 +399,6 @@ namespace CharacterCardWidget
                                         std::format("{:.0f} / {:.0f} Stamina", curSta, maxSta));
         s2Y += barH + barGap;
 
-        // 3. Mana Bar
         float curMp = player->getStat("mana");
         float maxMp = player->getStat("max_mana");
         if (maxMp <= 0.0f) maxMp = std::max(curMp, 100.0f);
@@ -446,7 +413,6 @@ namespace CharacterCardWidget
                                         std::format("{:.0f} / {:.0f} MP", curMp, maxMp));
         s2Y += barH + barGap;
 
-        // 4. Lust & Arousal Bar
         float curLust = std::clamp(player->getStat("lust"), 0.0f, 100.0f);
         float maxLust = player->getStat("max_lust");
         if (maxLust <= 0.0f) maxLust = 100.0f;
@@ -460,9 +426,6 @@ namespace CharacterCardWidget
                                         std::format("{:.0f}% Lust / Arousal", (curLust / maxLust) * 100.0f));
         s2Y += barH + (6.0f * uiScale);
 
-        // -------------------------------------------------------------------------
-        // DYNAMIC STATUS EFFECT SQUARE CHIP ROWS
-        // -------------------------------------------------------------------------
         if (!effects.empty())
         {
             renderStatusEffectsGrid(renderer, effects, s2ContentX, s2Y, s2ContentW, chipSize, chipGap, chipsPerRow, uiScale, mousePos);
@@ -471,9 +434,6 @@ namespace CharacterCardWidget
         curY += sub2H + (5.0f * uiScale);
         curY += (6.0f * uiScale);
 
-        // =========================================================================
-        // COMPANION CARDS (If any active party companions)
-        // =========================================================================
         const auto& companions = gameContext->getCompanions();
         for (const auto& comp : companions)
         {

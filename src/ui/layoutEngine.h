@@ -7,9 +7,6 @@
 #include <SDL3/SDL.h>
 #include <nlohmann/json.hpp>
 
-/**
- * Anchor types for legacy layout panel positioning.
- */
 enum class PanelAnchor
 {
     TOP_BAR,
@@ -20,9 +17,6 @@ enum class PanelAnchor
     FLOATING_RECT
 };
 
-/**
- * Configuration descriptor for a single UI panel.
- */
 struct PanelConfig
 {
     std::string id;
@@ -38,9 +32,6 @@ struct PanelConfig
     std::vector<std::string> visibleInStates;
 };
 
-/**
- * N-Way Container Node (exported from textRPG-studio).
- */
 struct StudioLayoutNode
 {
     std::string id;
@@ -52,9 +43,6 @@ struct StudioLayoutNode
     std::string name;
 };
 
-/**
- * Calculated pixel bounding box for rendering at native screen resolution.
- */
 struct PanelComputedBounds
 {
     std::string id;
@@ -64,11 +52,6 @@ struct PanelComputedBounds
     std::vector<std::string> widgets;
 };
 
-/**
- * Responsive Layout Engine.
- * Loads layout definitions from JSON (both textRPG-studio N-way container format and legacy panel format)
- * and calculates crisp, responsive pixel bounds for all panels at any screen resolution or aspect ratio.
- */
 class layoutEngine
 {
 public:

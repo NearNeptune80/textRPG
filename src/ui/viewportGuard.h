@@ -2,9 +2,6 @@
 
 #include <SDL3/SDL.h>
 
-/**
- * RAII Guard to handle temporary viewport changes cleanly.
- */
 class ViewportGuard
 {
 public:

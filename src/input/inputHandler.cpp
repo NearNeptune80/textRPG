@@ -42,7 +42,6 @@ void inputHandler::update(game* g)
 
         processKeyEvent(event);
 
-        // Forward text input to UICommand
         if (event.type == SDL_EVENT_TEXT_INPUT)
         {
             g->handleCommand(UICommand::textInput(event.text.text));
@@ -131,7 +130,6 @@ void inputHandler::update(game* g)
                     }
                 }
 
-                // Global hotkey routing for Action Grid buttons (1..5, SHIFT+1..5, CTRL+1..5, Q, E)
                 SDL_Keymod mod = SDL_GetModState();
                 bool isShift = (mod & SDL_KMOD_SHIFT) != 0;
                 bool isCtrl = (mod & SDL_KMOD_CTRL) != 0;

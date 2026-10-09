@@ -23,9 +23,6 @@ enum class ContentOptionsCategory
     FURRY_PREFS
 };
 
-/**
- * Headless state controller for Game Options and Content Options.
- */
 class optionsState : public iGameState
 {
 public:

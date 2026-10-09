@@ -29,7 +29,6 @@ std::vector<std::string> InfusionEffect::getEffectDescriptions(const entity* tar
     int bonus = getTierStatBonus(tier);
     std::string sign = bonus >= 0 ? std::format("+{}", bonus) : std::format("{}", bonus);
 
-    // Continuous Sizing & Gradual Transformations on Apparel
     if (propertySupportsLimits(property, nullptr))
     {
         if (targetType == InfusionTargetType::APPAREL)
@@ -290,7 +289,6 @@ std::string InfusionEffect::applyToEntity(entity* user, entity* target)
             narrative += std::format("You absorb the infused alchemical essence ({} minutes).\n", duration);
         }
 
-        // Direct stat modification if applicable
         if (property == AspectProperty::HEALTH_CEILING)
         {
             target->stats.modifyBaseStat("max_health", bonus * 15.0f);
@@ -302,7 +300,6 @@ std::string InfusionEffect::applyToEntity(entity* user, entity* target)
     }
     else
     {
-        // Apparel or Weapon passive attachment
         if (property == AspectProperty::PHYSIQUE_STAT)
         {
             target->stats.modifyBaseStat("physique", bonus);

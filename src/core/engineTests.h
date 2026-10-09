@@ -4,11 +4,7 @@
 
 namespace EngineTests
 {
-    /**
-     * Executes the complete autonomous engine regression test suite.
-     * Returns true if all tests pass, false if any test fails.
-     */
-    bool runAllTests();
+        bool runAllTests();
 
     bool testStateNavigation();
     bool testCharacterCreation();

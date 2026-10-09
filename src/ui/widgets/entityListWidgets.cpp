@@ -29,7 +29,6 @@ namespace EntityListWidgets
     {
         if (!gameContext) return false;
 
-        // 1. In CombatState with enemy party
         if (auto* cs = dynamic_cast<CombatState*>(gameContext->getActiveState()))
         {
             for (const auto& p : cs->getEngine().getEnemyParty())
@@ -38,18 +37,15 @@ namespace EntityListWidgets
             }
         }
 
-        // 2. In dialogue scene (eventState) with an active target
         if (dynamic_cast<eventState*>(gameContext->getActiveState()) != nullptr)
         {
             if (gameContext->getActiveTargetNPC() != nullptr)
                 return true;
         }
 
-        // 3. In active sexState encounter
         if (dynamic_cast<sexState*>(gameContext->getActiveState()) != nullptr)
             return true;
 
-        // 4. In active combat encounter enemy mode (e.g. encounter resolution)
         if (gameContext->activeTargetMode == TargetMode::COMBAT_ENEMY)
             return true;
 
@@ -61,7 +57,6 @@ namespace EntityListWidgets
         std::vector<std::shared_ptr<entity>> npcs;
         if (!gameContext) return npcs;
 
-        // 1. From CombatState if active
         if (auto* cs = dynamic_cast<CombatState*>(gameContext->getActiveState()))
         {
             for (const auto& p : cs->getEngine().getEnemyParty())
@@ -71,7 +66,6 @@ namespace EntityListWidgets
             }
         }
 
-        // 1b. From sexState if active
         if (auto* ss = dynamic_cast<sexState*>(gameContext->getActiveState()))
         {
             for (const auto& p : ss->getParticipants())
@@ -81,7 +75,6 @@ namespace EntityListWidgets
             }
         }
 
-        // 2. Tile NPCs in stable order
         auto tileNPCs = gameContext->getTileNPCs();
         for (const auto& n : tileNPCs)
         {
@@ -89,7 +82,6 @@ namespace EntityListWidgets
                 npcs.push_back(n);
         }
 
-        // 3. Active target NPC if set and not already in list
         if (auto active = gameContext->getActiveTargetNPCShared())
         {
             if (std::find(npcs.begin(), npcs.end(), active) == npcs.end())
@@ -113,8 +105,6 @@ namespace EntityListWidgets
         auto npcs = getInteractingNPCs(gameContext);
         if (npcs.empty()) return 0.0f;
 
-        // Determine currently selected character:
-        // "If theres only one character, obviously they are selected. More than one should default to the top of the list."
         std::shared_ptr<entity> selectedShared = nullptr;
         if (gameContext->activeTargetNPC)
         {
@@ -141,7 +131,6 @@ namespace EntityListWidgets
         auto mousePos = gameContext->input.getMousePosition();
         bool clicked = gameContext->input.isLeftMouseJustClicked();
 
-        // Dynamic Status Effects calculation
         float innerPad = 4.0f * uiScale;
         float subW = availableW - (innerPad * 2.0f);
         float s2Pad = 5.0f * uiScale;
@@ -156,16 +145,14 @@ namespace EntityListWidgets
         float statusSectionH = (numEffectRows == 0) ? 0.0f : ((numEffectRows * chipSize) + ((numEffectRows - 1) * chipGap) + (6.0f * uiScale));
 
         float sub1H = 58.0f * uiScale;
-        float vitalsTopH = 80.0f * uiScale; // "VITALS & STATUS" header + 4 progress bars (HP, STA, MP, Lust)
+        float vitalsTopH = 80.0f * uiScale;;
         float sub2H = vitalsTopH + statusSectionH + (4.0f * uiScale);
         float headerH = 20.0f * uiScale;
         float outerH = headerH + (3.0f * uiScale) + sub1H + (5.0f * uiScale) + sub2H + (5.0f * uiScale);
 
-        // Outer Container: NPC Overview Card
         SDL_FRect outerRect = { padX, curY, availableW, outerH };
         UIWidget::drawPanel(renderer, outerRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
-        // Header (No close button: "You shouldn't be able to close out a character card")
         bool isSex = (dynamic_cast<sexState*>(gameContext->getActiveState()) != nullptr);
         bool isHostile = !isSex && (gameContext->activeTargetMode == TargetMode::COMBAT_ENEMY || dynamic_cast<CombatState*>(gameContext->getActiveState()) != nullptr);
         SDL_Color headerCol = isSex ? Theme::colors.textGold : (isHostile ? Theme::colors.enemy : Theme::colors.textGold);
@@ -175,7 +162,6 @@ namespace EntityListWidgets
         UIWidget::drawHeader(renderer, headerRect, headerTitle, Theme::colors.bgHeader, headerCol, uiScale * 0.74f);
         curY += headerH + (3.0f * uiScale);
 
-        // Sub-Box 1: Identity & Wealth
         float sub1X = padX + innerPad;
         float sub1Y = curY;
         SDL_FRect sub1Rect = { sub1X, sub1Y, subW, sub1H };
@@ -186,7 +172,6 @@ namespace EntityListWidgets
         float s1ContentW = subW - (s1Pad * 2.0f);
         float s1Y = sub1Y + (4.0f * uiScale);
 
-        // Avatar Badge
         float avatarSize = 30.0f * uiScale;
         SDL_FRect avatarRect = { s1ContentX, s1Y, avatarSize, avatarSize };
         UIWidget::drawPanel(renderer, avatarRect, Theme::colors.bgHeader, Theme::colors.borderButton);
@@ -209,12 +194,10 @@ namespace EntityListWidgets
                                         "Character engaged in active interaction or combat.",
                                         std::format("Level {} • {}", npc->stats.level, raceStr));
 
-        // Name & Level / Species
         UIWidget::drawText(renderer, npc->name, s1ContentX + avatarSize + (6.0f * uiScale), s1Y + (1.0f * uiScale), Theme::colors.textGold, uiScale * 0.84f);
         std::string lvlStr = std::format("Lvl {} • {}", npc->stats.level, raceStr);
         UIWidget::drawText(renderer, lvlStr, s1ContentX + avatarSize + (6.0f * uiScale), s1Y + (15.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.70f);
 
-        // Gold & Arcane Essence Spoils
         float goldVal = npc->getStat("currency");
         std::string goldText = std::format("Gold: {:.0f} ¤", goldVal);
         UIWidget::drawText(renderer, goldText, s1ContentX, s1Y + avatarSize + (4.0f * uiScale), Theme::colors.currency, uiScale * 0.72f);
@@ -233,7 +216,6 @@ namespace EntityListWidgets
 
         curY += sub1H + (5.0f * uiScale);
 
-        // Sub-Box 2: Vitals & Status Gauges
         float sub2X = padX + innerPad;
         float sub2Y = curY;
         SDL_FRect sub2Rect = { sub2X, sub2Y, subW, sub2H };
@@ -251,7 +233,6 @@ namespace EntityListWidgets
         float valW = 44.0f * uiScale;
         float progressW = s2ContentW - labelW - valW - (4.0f * uiScale);
 
-        // 1. Health Bar
         float curHp = npc->getStat("health");
         float maxHp = npc->getStat("max_health");
         if (maxHp <= 0.0f) maxHp = std::max(curHp, 100.0f);
@@ -267,7 +248,6 @@ namespace EntityListWidgets
                                         std::format("{:.0f} / {:.0f} HP", curHp, maxHp));
         s2Y += barH + barGap;
 
-        // 2. Stamina Bar
         float curSta = npc->getStat("stamina");
         float maxSta = npc->getStat("max_stamina");
         if (maxSta <= 0.0f) {
@@ -317,7 +297,6 @@ namespace EntityListWidgets
                                         std::format("{:.0f} / {:.0f} Stamina", curSta, maxSta));
         s2Y += barH + barGap;
 
-        // 3. Mana Bar
         float curMp = npc->getStat("mana");
         float maxMp = npc->getStat("max_mana");
         if (maxMp <= 0.0f) maxMp = std::max(curMp, 100.0f);
@@ -332,7 +311,6 @@ namespace EntityListWidgets
                                         std::format("{:.0f} / {:.0f} MP", curMp, maxMp));
         s2Y += barH + barGap;
 
-        // 4. Lust & Arousal Bar
         float curLust = std::clamp(npc->getStat("lust"), 0.0f, 100.0f);
         float maxLust = npc->getStat("max_lust");
         if (maxLust <= 0.0f) maxLust = 100.0f;
@@ -358,7 +336,6 @@ namespace EntityListWidgets
                                         std::format("{:.0f}% Lust / Arousal", (curLust / maxLust) * 100.0f));
         s2Y += barH + (6.0f * uiScale);
 
-        // Status Effects Chips
         if (!effects.empty())
         {
             CharacterCardWidget::renderStatusEffectsGrid(renderer, effects, s2ContentX, s2Y, s2ContentW, chipSize, chipGap, chipsPerRow, uiScale, mousePos);
@@ -367,7 +344,6 @@ namespace EntityListWidgets
         curY += sub2H + (5.0f * uiScale);
         curY += (6.0f * uiScale);
 
-        // Multi-character list (when npcs.size() > 1)
         if (npcs.size() > 1)
         {
             float listHeaderH = 18.0f * uiScale;
@@ -387,7 +363,6 @@ namespace EntityListWidgets
                 bool itemHov = (mousePos.x >= itemRect.x && mousePos.x <= itemRect.x + itemRect.w &&
                                 mousePos.y >= itemRect.y && mousePos.y <= itemRect.y + itemRect.h);
 
-                // Distinct selection outline around the selected character ("there will be an outline around the selected character")
                 SDL_Color cardBg = isSelected ? SDL_Color{ 36, 44, 62, 255 } : Theme::colors.bgSlot;
                 SDL_Color cardBorder = isSelected ? Theme::colors.borderSelected : (itemHov ? Theme::colors.borderButtonHover : Theme::colors.borderNormal);
                 UIWidget::drawPanel(renderer, itemRect, cardBg, cardBorder);
@@ -424,7 +399,6 @@ namespace EntityListWidgets
                     UIWidget::drawText(renderer, selBadge, padX + availableW - selW - (6.0f * uiScale), curY + (5.0f * uiScale), Theme::colors.textMuted, uiScale * 0.58f);
                 }
 
-                // Mini Vitals (Health & Lust)
                 float oHp = std::clamp(ent->getStat("health"), 0.0f, std::max(1.0f, ent->getStat("max_health")));
                 float oMaxHp = std::max(1.0f, ent->getStat("max_health"));
                 float miniBarW = availableW - (10.0f * uiScale);
@@ -440,7 +414,6 @@ namespace EntityListWidgets
                                                 std::format("Health: {:.0f}/{:.0f} • Lust: {:.0f}%. Click to select as active target.", oHp, oMaxHp, (oLust / oMaxLust) * 100.0f),
                                                 subStr, isSelected ? "Active Target" : "Select Target");
 
-                // Clicking selects this character without altering layout
                 if (itemHov && clicked && !isSelected)
                 {
                     gameContext->activeTargetNPC = npcs[i];
@@ -471,13 +444,11 @@ namespace EntityListWidgets
     {
         if (!gameContext || !gameContext->getPlayer()) return 0.0f;
 
-        // If in inventory state with an active target NPC, suppress room widgets since NPC card and partner paperdoll occupy the right column
         if (dynamic_cast<inventoryState*>(gameContext->getActiveState()) && gameContext->getActiveTargetNPC() != nullptr)
         {
             return 0.0f;
         }
 
-        // When interacting with an NPC, replace the normal boxes with the dedicated NPC Character Card
         if (isInteractingWithNPC(gameContext))
         {
             return renderWidgetNPCCard(renderer, gameContext, curX, curY, innerW, uiScale);
@@ -497,9 +468,6 @@ namespace EntityListWidgets
         int pY = gameContext->gridY;
         gameMap* m = gameContext->map;
 
-        // ==========================================
-        // CARD 1: Zone & Environment Status Card
-        // ==========================================
         float card1H = 44.0f * uiScale;
         SDL_FRect card1Rect = { padX, curY, availableW, card1H };
         UIWidget::drawPanel(renderer, card1Rect, Theme::colors.bgSlot, Theme::colors.borderNormal);
@@ -539,7 +507,6 @@ namespace EntityListWidgets
             safeCol = Theme::colors.companion;
         }
 
-        // Subtext loaded 100% data-driven from map JSON (tileTitles, warps, triggers, tagTitles, or defaultTileTitle)
         std::string subText = m ? m->getTileTitle(pX, pY) : "Sanctuary interior";
 
         UIWidget::drawText(renderer, locName, innerX, curY + (5.0f * uiScale), Theme::colors.textGold, uiScale * 0.78f);
@@ -557,9 +524,6 @@ namespace EntityListWidgets
 
         curY += card1H + (8.0f * uiScale);
 
-        // ==========================================
-        // CARD 2: Characters Present Card (Basic Info)
-        // ==========================================
         auto tileNPCs = gameContext->getTileNPCs();
 
         if (tileNPCs.empty())
@@ -584,7 +548,6 @@ namespace EntityListWidgets
         std::string charHeader = std::format("CHARACTERS PRESENT ({})", tileNPCs.size());
         UIWidget::drawText(renderer, charHeader, innerX, curY + (5.0f * uiScale), Theme::colors.textGold, uiScale * 0.74f);
 
-        // Ensure default selection: if unassigned or invalid, default to top of list
         if (!gameContext->activeTargetNPC || std::find(tileNPCs.begin(), tileNPCs.end(), gameContext->activeTargetNPC) == tileNPCs.end())
         {
             gameContext->activeTargetNPC = tileNPCs.front();
@@ -615,17 +578,14 @@ namespace EntityListWidgets
 
             float rowInnerX = innerX + (6.0f * uiScale);
 
-            // Name in gold
             UIWidget::drawText(renderer, npc->name, rowInnerX, rowY + (3.0f * uiScale), Theme::colors.textGold, uiScale * 0.72f);
 
-            // Basic Info (Lvl, Race, Title)
             std::string raceStr = npc->anatomy.getRacialTitle().empty() ? "Human" : npc->anatomy.getRacialTitle();
             auto nc = NamedCharacterManager::getCharacter(npc->id);
             std::string titleStr = (nc && !nc->title.empty()) ? (" • " + nc->title) : "";
             std::string subStr = std::format("Lvl {} • {}{}", npc->stats.level, raceStr, titleStr);
             UIWidget::drawText(renderer, subStr, rowInnerX, rowY + (17.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.60f);
 
-            // Selected badge or Gender Archetype
             if (isSelected)
             {
                 std::string selBadge = "[Selected]";
@@ -639,7 +599,6 @@ namespace EntityListWidgets
                 UIWidget::drawText(renderer, genderStr, innerX + cW - gW - (6.0f * uiScale), rowY + (4.0f * uiScale), Theme::colors.textMuted, uiScale * 0.56f);
             }
 
-            // Mini Vitals (Health & Lust)
             float hp = std::clamp(npc->getStat("health"), 0.0f, std::max(1.0f, npc->getStat("max_health")));
             float maxHp = std::max(1.0f, npc->getStat("max_health"));
             float miniBarW = cW - (12.0f * uiScale);
@@ -650,13 +609,11 @@ namespace EntityListWidgets
             float maxLust = std::max(1.0f, npc->getStat("max_lust"));
             UIWidget::drawProgressBar(renderer, { rowInnerX + halfBarW + (4.0f * uiScale), rowY + (31.0f * uiScale), halfBarW, miniBarH }, lust, maxLust, Theme::colors.lust, Theme::colors.bgDark, "", uiScale);
 
-            // Tooltip
             TooltipManager::setHoverTooltip(rowRect, mousePos, npc->name,
                 std::format("Lvl {} • {}{}\nHealth: {:.0f}/{:.0f} • Lust: {:.0f}%\nClick to select as active target.",
                             npc->stats.level, raceStr, titleStr, hp, maxHp, (lust / maxLust) * 100.0f),
                 "Character Present", isSelected ? "Active Selection" : "Click to Select");
 
-            // Clicking row selects this character without altering layout or initiating interaction
             if (rowHov && clicked && !isSelected)
             {
                 gameContext->activeTargetNPC = npcShared;
@@ -683,7 +640,6 @@ namespace EntityListWidgets
 
         auto ground = gameContext->getTileInventoryStacked();
 
-        // When interacting with an NPC, suppress empty items card to preserve vertical space
         if (isInteractingWithNPC(gameContext) && ground.empty()) return 0.0f;
 
         float startY = curY;
@@ -696,9 +652,6 @@ namespace EntityListWidgets
         auto mousePos = gameContext->input.getMousePosition();
         bool clicked = gameContext->input.isLeftMouseJustClicked();
 
-        // ==========================================
-        // CARD 3: Items on Ground Card
-        // ==========================================
         float card3H = ground.empty() ? (48.0f * uiScale) : ((28.0f * uiScale) + (ground.size() * (26.0f * uiScale)));
         card3H = std::min(card3H, 130.0f * uiScale);
 
@@ -768,9 +721,6 @@ namespace EntityListWidgets
         auto mousePos = gameContext->input.getMousePosition();
         bool clicked = gameContext->input.isLeftMouseJustClicked();
 
-        // ==========================================
-        // CARD 4: Activity & Event Log Card
-        // ==========================================
         float card4H = 145.0f * uiScale;
         SDL_FRect logBox = { padX, curY, availableW, card4H };
         UIWidget::drawPanel(renderer, logBox, Theme::colors.bgSlot, Theme::colors.borderNormal);
@@ -784,7 +734,7 @@ namespace EntityListWidgets
         static size_t s_lastLogCount = 0;
         if (allLogs.size() > s_lastLogCount)
         {
-            s_eventLogScrollOffset = 0; // Automatically snap to newest entries on top
+            s_eventLogScrollOffset = 0;;
             s_lastLogCount = allLogs.size();
         }
         s_eventLogScrollOffset = std::clamp(s_eventLogScrollOffset, 0, maxOffset);
@@ -792,7 +742,6 @@ namespace EntityListWidgets
         bool logBoxHovered = (mousePos.x >= logBox.x && mousePos.x <= logBox.x + logBox.w &&
                               mousePos.y >= logBox.y && mousePos.y <= logBox.y + logBox.h);
 
-        // Mouse wheel scrolling
         if (logBoxHovered && maxOffset > 0)
         {
             float wheelY = gameContext->input.getMouseWheelY();
@@ -805,7 +754,6 @@ namespace EntityListWidgets
             }
         }
 
-        // Header with title and scroll arrow buttons
         UIWidget::drawText(renderer, "ACTIVITY & EVENT LOG", innerX, curY + (5.0f * uiScale), Theme::colors.textGold, uiScale * 0.74f);
 
         if (totalLogs > maxVisible)
@@ -850,8 +798,6 @@ namespace EntityListWidgets
         }
         else
         {
-            // Render entries with MOST RECENT ON TOP (reverse chronological order)
-            // When s_eventLogScrollOffset == 0, row 0 is allLogs[N - 1] (newest)
             for (int r = 0; r < maxVisible; ++r)
             {
                 int entryIdx = (totalLogs - 1) - (s_eventLogScrollOffset + r);
@@ -881,7 +827,6 @@ namespace EntityListWidgets
                 logCurY += (18.0f * uiScale);
             }
 
-            // Draw scrollbar track and thumb with full mouse click jumping and drag support
             if (totalLogs > maxVisible)
             {
                 float barW = 5.0f * uiScale;
@@ -909,7 +854,6 @@ namespace EntityListWidgets
                     s_dragStartMouseY = mousePos.y;
                     s_dragStartOffset = s_eventLogScrollOffset;
 
-                    // If clicked directly on track outside thumb, jump immediately
                     bool onThumb = (mousePos.y >= thumbY && mousePos.y <= thumbY + thumbH);
                     if (!onThumb && travelH > 0.0f)
                     {

@@ -3,10 +3,6 @@
 #include <algorithm>
 #include <iostream>
 
-/**
- * Awards XP to character and processes level advancement.
- * Returns true if character leveled up.
- */
 bool statsComponent::addXp(float amount)
 {
 	currentXp += amount;
@@ -30,9 +26,6 @@ void statsComponent::setBaseStat(const std::string& name, float value)
 	statsVersion++;
 }
 
-/**
- * Retrieves the base value of a named stat (single hash lookup).
- */
 float statsComponent::getBaseStat(const std::string& name) const
 {
 	auto it = baseValues.find(name);
@@ -49,7 +42,6 @@ float statsComponent::getBaseStat(const std::string& name) const
 		if (arIt != baseValues.end()) return arIt->second;
 	}
 
-	// Dynamic fallback for derived maximum limits when unconfigured
 	if (name == "max_health")
 	{
 		auto hpIt = baseValues.find("health");
@@ -78,10 +70,6 @@ void statsComponent::modifyBaseStat(const std::string& name, float amount)
 	statsVersion++;
 }
 
-/**
- * Calculates effective stat combining base value, flat modifiers, and percentage buffs.
- * Formula: (base + flatMod) * (1.0 + percentMod)
- */
 float statsComponent::getEffectiveStat(const std::string& name, const std::vector<StatusEffect>& activeEffects) const
 {
 	float base = getBaseStat(name);

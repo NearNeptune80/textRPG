@@ -2,11 +2,7 @@
 
 #include <cstdint>
 
-/**
- * Built-in 8x8 Pixel-Crisp ASCII Font Matrix (ASCII 32 to 126 + special glyphs).
- * Embeds full bitmap glyphs directly into the binary so rendering NEVER requires
- * external font paths or system-specific font installations.
- */
+// Built-in 8x8 ASCII font bitmap matrix (ASCII 32 to 126 + special glyphs).
 inline const uint8_t FONT_8X8[128][8] = {
     // 0-31: Unused / Control
     {0,0,0,0,0,0,0,0}, {0,0,0,0,0,0,0,0}, {0,0,0,0,0,0,0,0}, {0,0,0,0,0,0,0,0},

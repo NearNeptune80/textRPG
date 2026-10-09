@@ -33,7 +33,6 @@ public:
     std::unordered_map<std::string, int> essences;
     std::vector<StatusEffect> statusEffects;
 
-    // Customization & Cosmetics Tracking
     std::unordered_map<std::string, std::string> cosmetics;
     std::unordered_map<std::string, bool> piercings;
     std::unordered_map<std::string, std::string> tattoos;
@@ -46,7 +45,6 @@ public:
     int age = 24;
     std::unordered_map<std::string, int> fetishDesires;
 
-    // Elemental Companion & Body Material
     bool isElemental = false;
     std::string elementalType = "physical"; // "fire", "water", "air", "earth", "arcane", "lust", "physical"
     std::string bodyMaterial = "flesh";     // "fire", "water", "wind", "stone", "flesh"
@@ -55,7 +53,6 @@ public:
     int bondLevel = 10;
     float resonance = 80.0f;
 
-    // Transformation Capabilities
     bool canSelfTransform = false;
     bool canTransform() const;
 

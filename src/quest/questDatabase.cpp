@@ -190,7 +190,6 @@ bool questDatabase::loadDatabase(const std::string& pathStr)
                 }
             }
 
-            // Parse Quest Definition if present
             if (data.contains("id") && data.contains("name"))
             {
                 QuestDefinition q;
@@ -239,7 +238,6 @@ bool questDatabase::loadDatabase(const std::string& pathStr)
         loadSingleFile(p);
     }
 
-    // Automatically load data/transformations directory if it exists
     fs::path transPath("data/transformations");
     if (fs::exists(transPath) && transPath != p)
     {
@@ -349,9 +347,6 @@ bool questDatabase::exists(const std::string& id)
     return registry.find(id) != registry.end();
 }
 
-/**
- * Retrieves a quest scene by ID (single hash lookup). Returns fallback error scene if missing.
- */
 questScene questDatabase::getScene(const std::string& id)
 {
     auto it = registry.find(id);
@@ -427,9 +422,6 @@ questScene questDatabase::getScene(const std::string& id)
     return fallback;
 }
 
-/**
- * Queries all global quest triggers matching a specific map location.
- */
 std::vector<MapTrigger> questDatabase::getTriggersForLocation(const std::string& mapId, int x, int y)
 {
     std::vector<MapTrigger> matches;

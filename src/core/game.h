@@ -47,11 +47,6 @@ struct EventLogEntry
     std::string timeStr;
 };
 
-/**
- * Headless Core Engine Controller.
- * Manages game simulation, active map states, entities, and state transitions.
- * Contains ZERO rendering pointers, window contexts, or UI presentation variables.
- */
 class game
 {
 public:
@@ -71,7 +66,6 @@ public:
     inputHandler input;
     bool isRunning{false};
 
-    // Headless Simulation Selection State
     int selectedInventoryIndex = -1;
     int selectedInventorySide = 0;
     equipSlot selectedEquipmentSlot = equipSlot::NONE;
@@ -87,7 +81,6 @@ public:
     questScene currentScene;
     bool isPhoneMenuOpen = false;
 
-    // Scene Subroutine Stack Management
     std::vector<std::string> sceneStack;
     void pushScene(const std::string& sceneId);
     void popScene();
@@ -111,7 +104,6 @@ public:
     void nextActionPage();
     void handleCommand(const UICommand& cmd);
 
-    // Snapshot & Read-Only Getters
     const questScene& getCurrentScene() const { return currentScene; }
     entity* getPlayer() const { return playerEntity.get(); }
     std::shared_ptr<entity> getPlayerShared() const { return playerEntity; }
@@ -164,7 +156,6 @@ public:
     void processEffect(const gameEffect &eff);
     bool checkConditions(const std::vector<conditionNode> &conditions);
 
-    // Collapsible Scene Dropdowns Tracking
     std::unordered_set<std::string> expandedDropdowns;
     void toggleDropdown(const std::string& dropdownId) {
         if (expandedDropdowns.contains(dropdownId)) {
@@ -185,12 +176,10 @@ public:
     InventorySlotInfo getInventorySlotItem(int side, int absoluteIndex);
     std::string formatEquipSlotName(equipSlot slot);
 
-    // Activity & Event Log System
     const std::vector<EventLogEntry>& getEventLog() const { return eventLog; }
     void addLogEntry(const std::string& tag, const std::string& text, LogColor color = { 220, 220, 220, 255 });
     void clearEventLog() { eventLog.clear(); }
 
-    // Transformation Interrupt Scenes
     std::vector<std::string> pendingTransformationScenes;
     bool isPlayerOccupied() const;
     void triggerTransformationInterrupt(const std::string& triggerKey);

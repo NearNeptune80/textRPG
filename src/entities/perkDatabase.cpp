@@ -31,7 +31,6 @@ void PerkDatabase::parsePerkNode(const json& nodeJson)
         }
     }
 
-    // Flat stat modifiers
     if (nodeJson.contains("statModifiers") && nodeJson["statModifiers"].is_object())
     {
         for (auto& [key, val] : nodeJson["statModifiers"].items())
@@ -51,7 +50,6 @@ void PerkDatabase::parsePerkNode(const json& nodeJson)
         }
     }
 
-    // Percent stat modifiers
     if (nodeJson.contains("percentStatModifiers") && nodeJson["percentStatModifiers"].is_object())
     {
         for (auto& [key, val] : nodeJson["percentStatModifiers"].items())
@@ -63,7 +61,6 @@ void PerkDatabase::parsePerkNode(const json& nodeJson)
         }
     }
 
-    // Damage modifiers
     if (nodeJson.contains("damageModifiers") && nodeJson["damageModifiers"].is_object())
     {
         const auto& dmg = nodeJson["damageModifiers"];
@@ -83,7 +80,6 @@ void PerkDatabase::parsePerkNode(const json& nodeJson)
         }
     }
 
-    // Defense modifiers
     if (nodeJson.contains("defenseModifiers") && nodeJson["defenseModifiers"].is_object())
     {
         const auto& def = nodeJson["defenseModifiers"];
@@ -103,7 +99,6 @@ void PerkDatabase::parsePerkNode(const json& nodeJson)
         }
     }
 
-    // Direct trade discount / bonus
     if (nodeJson.contains("tradeDiscount") && nodeJson["tradeDiscount"].is_number())
     {
         perk.modifiers.tradeDiscount = nodeJson["tradeDiscount"].get<float>();
@@ -113,7 +108,6 @@ void PerkDatabase::parsePerkNode(const json& nodeJson)
         perk.modifiers.tradeBonus = nodeJson["tradeBonus"].get<float>();
     }
 
-    // Capability / scene / dialogue flags
     if (nodeJson.contains("flags") && nodeJson["flags"].is_array())
     {
         for (const auto& f : nodeJson["flags"])
@@ -141,7 +135,6 @@ bool PerkDatabase::loadFromFile(const std::string& filePath)
 
         if (data.is_object())
         {
-            // 1. Single unified tree: data["tree"]["nodes"]
             if (data.contains("tree") && data["tree"].is_object() && data["tree"].contains("nodes") && data["tree"]["nodes"].is_array())
             {
                 for (const auto& nodeJson : data["tree"]["nodes"])
@@ -150,7 +143,6 @@ bool PerkDatabase::loadFromFile(const std::string& filePath)
                 }
             }
 
-            // 2. Legacy multi-trees: data["trees"][category]["nodes"]
             else if (data.contains("trees") && data["trees"].is_object())
             {
                 for (auto& [cat, catTree] : data["trees"].items())
@@ -165,7 +157,6 @@ bool PerkDatabase::loadFromFile(const std::string& filePath)
                 }
             }
 
-            // 3. Flat perk array: data["perks"], data["extraPerks"], data["npcPerks"]
             if (data.contains("perks") && data["perks"].is_array())
             {
                 for (const auto& nodeJson : data["perks"])
@@ -188,7 +179,6 @@ bool PerkDatabase::loadFromFile(const std::string& filePath)
                 }
             }
 
-            // 4. Single node object
             if (data.contains("id") && !data.contains("tree") && !data.contains("trees") && !data.contains("perks"))
             {
                 parsePerkNode(data);

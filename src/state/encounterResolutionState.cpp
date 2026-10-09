@@ -91,12 +91,12 @@ void encounterResolutionState::onExit(game* gameContext)
                     tileData.ambushState.isPermanentlyRemoved = false;
                     tileData.ambushState.npc = nullptr;
                     tileData.ambushState.isDefeated = true;
-                    tileData.ambushState.restockMinutesRemaining = 1440; // 24 hours
+                    tileData.ambushState.restockMinutesRemaining = 1440;
                 }
                 else
                 {
                     tileData.ambushState.isDefeated = true;
-                    tileData.ambushState.restockMinutesRemaining = 1440; // 24 hours
+                    tileData.ambushState.restockMinutesRemaining = 1440;
                 }
                 tileData.persistentNPC = nullptr;
             }
@@ -177,7 +177,7 @@ void encounterResolutionState::handleOpenLootInventory(game* gameContext)
 
     gameContext->activeTargetNPC = rec.npc;
     gameContext->activeTargetMode = TargetMode::COMBAT_ENEMY;
-    gameContext->selectedInventorySide = 1; // Default to NPC side
+    gameContext->selectedInventorySide = 1;
     gameContext->selectedInventoryIndex = -1;
     gameContext->selectedEquipmentSlot = equipSlot::NONE;
     gameContext->selectedEquipmentSide = 0;

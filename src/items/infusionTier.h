@@ -73,12 +73,12 @@ inline int getTierDurationMinutes(InfusionTier tier)
 {
     switch (tier)
     {
-        case InfusionTier::MAJOR_HEX:    return 1440; // 24 hours
-        case InfusionTier::HEX:          return 240;  // 4 hours
-        case InfusionTier::MINOR_HEX:    return 60;   // 1 hour
-        case InfusionTier::MINOR_BOON:   return 60;   // 1 hour
-        case InfusionTier::BOON:         return 240;  // 4 hours
-        case InfusionTier::GREATER_BOON: return 1440; // 24 hours
+        case InfusionTier::MAJOR_HEX:    return 1440;
+        case InfusionTier::HEX:          return 240; 
+        case InfusionTier::MINOR_HEX:    return 60;  
+        case InfusionTier::MINOR_BOON:   return 60;  
+        case InfusionTier::BOON:         return 240; 
+        case InfusionTier::GREATER_BOON: return 1440;
         default:                         return 240;
     }
 }

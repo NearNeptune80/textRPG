@@ -244,7 +244,6 @@ bool inventoryComponent::isSlotExposed(bodySlot slot) const
             }
             else
             {
-                // Fallback common-sense displacement exposures if item didn't explicitly map them in JSON
                 if (mode == DisplacementMode::PULL_DOWN && (slot == bodySlot::GROIN || slot == bodySlot::ASS || slot == bodySlot::LEGS || slot == bodySlot::HIPS)) continue;
                 if (mode == DisplacementMode::PULL_ASIDE && (slot == bodySlot::GROIN || slot == bodySlot::ASS || slot == bodySlot::BREASTS || slot == bodySlot::NIPPLES)) continue;
                 if (mode == DisplacementMode::LIFT_UP && (slot == bodySlot::TORSO || slot == bodySlot::BREASTS || slot == bodySlot::NIPPLES || slot == bodySlot::STOMACH || slot == bodySlot::GROIN || slot == bodySlot::ASS)) continue;

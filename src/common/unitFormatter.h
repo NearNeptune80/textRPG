@@ -6,11 +6,7 @@
 
 namespace unitFormatter
 {
-    /**
-     * Format anatomical length (e.g. penis, clitoris, hair, ears).
-     * Metric: "18.0cm"
-     * Imperial: "7.1 inches" (or "7.1\"")
-     */
+    // Format anatomical length (Metric: "18.0cm", Imperial: "7.1 inches")
     inline std::string formatLength(float lengthCm, const std::string& unitPreference = "Metric", bool shortSuffix = false)
     {
         if (unitPreference == "Imperial" || unitPreference == "imperial")
@@ -25,11 +21,7 @@ namespace unitFormatter
         return std::format("{:.1f}cm", lengthCm);
     }
 
-    /**
-     * Format character standing height.
-     * Metric: "175cm"
-     * Imperial: "5'9\""
-     */
+    // Format character standing height (Metric: "175cm", Imperial: "5'9"")
     inline std::string formatHeight(float heightCm, const std::string& unitPreference = "Metric")
     {
         if (unitPreference == "Imperial" || unitPreference == "imperial")
@@ -47,11 +39,7 @@ namespace unitFormatter
         return std::format("{:.0f}cm", heightCm);
     }
 
-    /**
-     * Format bodily fluid volumes (cum, milk, lubricant, urine).
-     * Metric: "15ml"
-     * Imperial: "0.5 fl oz" (1 fl oz ~ 29.5735 ml)
-     */
+    // Format bodily fluid volumes (Metric: "15ml", Imperial: "0.5 fl oz")
     inline std::string formatFluid(float fluidMl, const std::string& unitPreference = "Metric")
     {
         if (unitPreference == "Imperial" || unitPreference == "imperial")
@@ -66,11 +54,7 @@ namespace unitFormatter
         return std::format("{:.0f}ml", fluidMl);
     }
 
-    /**
-     * Format weight.
-     * Metric: "65kg"
-     * Imperial: "143 lbs" (1 kg ~ 2.20462 lbs)
-     */
+    // Format weight (Metric: "65kg", Imperial: "143 lbs")
     inline std::string formatWeight(float weightKg, const std::string& unitPreference = "Metric")
     {
         if (unitPreference == "Imperial" || unitPreference == "imperial")

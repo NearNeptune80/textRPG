@@ -55,7 +55,6 @@ public:
 	std::vector<std::string> getAllTags() const;
 	const std::array<std::optional<bodyPart>, BODY_SLOT_COUNT>& getAllParts() const { return parts; }
 
-	// Orifices and Fluids
 	bool hasOrifice(bodySlot slot) const;
 	OrificeData* getOrifice(bodySlot slot);
 	const OrificeData* getOrifice(bodySlot slot) const;
@@ -73,7 +72,6 @@ public:
 	void applyTransformation(bodySlot slot, mutationType type, float amountOrVal,
 							 const std::string& strVal, int durationMinutes, const std::string& mutName = "transformation");
 
-	// 3-Tier Racial Classification & Archetype
 	std::unordered_map<std::string, float> calculateRacePercentages() const;
 	std::unordered_map<std::string, float> calculateWeightedRacePercentages() const;
 	RacialClassification getRacialClassification() const;

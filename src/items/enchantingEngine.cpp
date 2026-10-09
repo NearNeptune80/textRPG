@@ -18,7 +18,6 @@ namespace EnchantingEngine
             existingEffects = baseItem->infusionEffects;
         }
 
-        // 1. Calculate cost for added or modified effects
         for (const auto& staged : stagedEffects)
         {
             bool alreadyExisted = false;
@@ -37,7 +36,6 @@ namespace EnchantingEngine
             }
         }
 
-        // 2. Removal of existing effects: cleansing curses costs essence, removing beneficial attributes is free
         for (const auto& exist : existingEffects)
         {
             bool stillPresent = false;
@@ -59,7 +57,6 @@ namespace EnchantingEngine
             }
         }
 
-        // Apply trade/enchanting perk modifiers if present
         if (player && player->tradePerkModifier > 0.0f)
         {
             float discount = std::clamp(player->tradePerkModifier, 0.0f, 0.5f);
@@ -79,7 +76,6 @@ namespace EnchantingEngine
         std::string baseName = baseItem ? baseItem->name : "Tonic";
         const auto& primEff = effects.front();
 
-        // Determine specific compound descriptors
         std::string suffix = "";
         if (primEff.property == AspectProperty::PHYSIQUE_STAT)
         {
@@ -291,7 +287,7 @@ namespace EnchantingEngine
         auto crafted = std::make_shared<item>();
         if (baseItem)
         {
-            *crafted = *baseItem; // clone baseline properties
+            *crafted = *baseItem;
         }
         else
         {
@@ -302,7 +298,6 @@ namespace EnchantingEngine
             crafted->baseValue = 50;
         }
 
-        // If base item was food, transmute it into a pure alchemical potion
         if (baseItem && baseItem->isFood)
         {
             crafted->isFood = false;
@@ -311,7 +306,6 @@ namespace EnchantingEngine
             crafted->targetSlot = equipSlot::NONE;
         }
 
-        // Attach passive stat modifiers if crafting or modifying equippable gear
         if (crafted->isEquippable)
         {
             for (const auto& eff : effects)

@@ -341,7 +341,6 @@ namespace EditorCardWidgets
         SDL_FRect cardRect = { padX, curY, availableW, cardH };
         UIWidget::drawPanel(renderer, cardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
-        // Header Title with Preview Swatch
         if (selectedColor.a > 0)
         {
             SDL_FRect previewBox = { padX + innerPad, curY + (7.0f * uiScale), 18.0f * uiScale, 18.0f * uiScale };
@@ -430,7 +429,6 @@ namespace EditorCardWidgets
         auto mousePos = gameContext->input.getMousePosition();
         bool clicked = gameContext->input.isLeftMouseJustClicked();
 
-        // Left Cycle Button (<)
         SDL_FRect leftBtn = { curX, controlY, btnW, h };
         bool leftIn = (mousePos.y >= panelRect.y && mousePos.y <= panelRect.y + panelRect.h &&
                        controlY + h >= panelRect.y && controlY <= panelRect.y + panelRect.h);
@@ -444,7 +442,6 @@ namespace EditorCardWidgets
         }
         curX += btnW + (4.0f * uiScale);
 
-        // Center Display Box
         SDL_FRect valRect = { curX, controlY, valW, h };
         UIWidget::drawPanel(renderer, valRect, Theme::colors.bgHeader, Theme::colors.borderNormal);
         std::string dispStr = currentSelected.empty() ? "None" : currentSelected;
@@ -452,7 +449,6 @@ namespace EditorCardWidgets
         UIWidget::drawText(renderer, dispStr, curX + ((valW - textW) / 2.0f), controlY + (5.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.82f);
         curX += valW + (4.0f * uiScale);
 
-        // Right Cycle Button (>)
         SDL_FRect rightBtn = { curX, controlY, btnW, h };
         bool rightIn = (mousePos.y >= panelRect.y && mousePos.y <= panelRect.y + panelRect.h &&
                         controlY + h >= panelRect.y && controlY <= panelRect.y + panelRect.h);
@@ -505,7 +501,6 @@ namespace EditorCardWidgets
         auto mousePos = gameContext->input.getMousePosition();
         bool clicked = gameContext->input.isLeftMouseJustClicked();
 
-        // True Button
         SDL_FRect trueRect = { curX, controlY, btnW, btnH };
         bool trueIn = (mousePos.y >= panelRect.y && mousePos.y <= panelRect.y + panelRect.h &&
                        controlY + btnH >= panelRect.y && controlY <= panelRect.y + panelRect.h);
@@ -520,7 +515,6 @@ namespace EditorCardWidgets
 
         curX += btnW + btnGap;
 
-        // False Button
         SDL_FRect falseRect = { curX, controlY, btnW, btnH };
         bool falseIn = (mousePos.y >= panelRect.y && mousePos.y <= panelRect.y + panelRect.h &&
                         controlY + btnH >= panelRect.y && controlY <= panelRect.y + panelRect.h);

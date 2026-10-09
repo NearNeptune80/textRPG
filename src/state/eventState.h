@@ -2,9 +2,6 @@
 
 #include "state/iGameState.h"
 
-/**
- * Headless state controller for dialogue, narrative text, and quest events.
- */
 class eventState : public iGameState
 {
 public:

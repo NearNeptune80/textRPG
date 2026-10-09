@@ -2,10 +2,6 @@
 
 #include "state/iGameState.h"
 
-/**
- * Headless state controller for the Game Main Menu.
- * Manages options for starting a new game, loading save files, settings, and quitting.
- */
 class mainMenuState : public iGameState
 {
 public:

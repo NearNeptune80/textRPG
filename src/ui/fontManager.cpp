@@ -161,7 +161,6 @@ void fontManager::drawEmbeddedFallback(SDL_Renderer* renderer, const std::string
     {
         unsigned char c = static_cast<unsigned char>(text[i]);
 
-        // Handle multi-byte UTF-8 currency symbol ¤ (0xC2 0xA4)
         if (c == 0xC2 && i + 1 < text.size() && static_cast<unsigned char>(text[i + 1]) == 0xA4)
         {
             c = '$';
@@ -227,7 +226,6 @@ void fontManager::drawText(SDL_Renderer* renderer, const std::string& text, floa
         return;
     }
 
-    // Cache Key: string + color
     std::string cacheKey = text + "_" + std::to_string(color.r) + "_" + std::to_string(color.g) + "_" + std::to_string(color.b) + "_" + std::to_string(color.a);
     auto it = m_textCache.find(cacheKey);
 

@@ -38,7 +38,6 @@ public:
 
     int getDefaultLimitForGroup(const std::string& groupId) const;
 
-    // String / Enum bi-directional helpers
     static std::string focusToEnumString(EnchantmentFocus focus);
     static EnchantmentFocus enumStringToFocus(const std::string& str);
 

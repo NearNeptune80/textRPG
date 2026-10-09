@@ -34,7 +34,6 @@ public:
     void onEnter(game* gameContext) override;
     void onExit(game* gameContext) override;
 
-    // Sub-action Executors
     void handleOpenLootInventory(game* gameContext);
     void handleLootEnemy(game* gameContext);
     void handleStripEnemy(game* gameContext);
@@ -47,7 +46,6 @@ public:
     void handleReleaseEnemy(game* gameContext);
     void handlePermanentlyRemoveEnemy(game* gameContext);
 
-    // Snapshot APIs for UI/CLI View Layer
     const std::vector<DefeatedEnemyRecord>& getDefeatedRecords() const { return m_records; }
     size_t getSelectedIndex() const { return m_selectedIndex; }
     void setSelectedIndex(size_t index) { if (index < m_records.size()) m_selectedIndex = index; }

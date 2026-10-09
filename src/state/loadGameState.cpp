@@ -42,7 +42,6 @@ void loadGameState::applySorting()
 {
     if (sortMode == 1)
     {
-        // Alphabetical sort
         std::sort(m_cachedGroups.begin(), m_cachedGroups.end(), [](const CharacterSaveGroup& a, const CharacterSaveGroup& b) {
             return a.characterName < b.characterName;
         });
@@ -55,7 +54,6 @@ void loadGameState::applySorting()
     }
     else
     {
-        // Date sort
         for (auto& grp : m_cachedGroups)
         {
             std::sort(grp.saves.begin(), grp.saves.end(), [](const SaveMetaData& a, const SaveMetaData& b) {

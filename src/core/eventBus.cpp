@@ -2,10 +2,6 @@
 
 #include <algorithm>
 
-/**
- * Subscribes a listener callback to a specific game event type.
- * Returns a unique callbackID used to unsubscribe later.
- */
 callbackID eventBus::subscribe(gameEvent type, eventCallback callback)
 {
 	callbackID assignedID = nextID++;
@@ -13,9 +9,6 @@ callbackID eventBus::subscribe(gameEvent type, eventCallback callback)
 	return assignedID;
 }
 
-/**
- * Unsubscribes a listener by its unique callback ID.
- */
 void eventBus::unsubscribe(gameEvent type, callbackID id)
 {
 	auto it = listeners.find(type);
@@ -24,9 +17,6 @@ void eventBus::unsubscribe(gameEvent type, callbackID id)
 	std::erase_if(it->second, [id](const subscriber& sub) { return sub.id == id; });
 }
 
-/**
- * Dispatches an event payload synchronously to all registered listeners.
- */
 void eventBus::publishEvent(const eventData& data)
 {
 	auto it = listeners.find(data.type);
@@ -43,9 +33,6 @@ void eventBus::publishEvent(const eventData& data)
 	}
 }
 
-/**
- * Removes all active event listeners.
- */
 void eventBus::clearAllListeners()
 {
 	listeners.clear();

@@ -228,12 +228,6 @@ struct SexAction
 	std::string continuousNarrative; // Narrative prose emitted on subsequent turns while continuous
 };
 
-/**
- * Headless state controller for CYOA interactive erotic encounters (`sexState`).
- * Supports arbitrary participant scaling, continuous dominance with dynamic Switch role,
- * universal personality traits, contextual struggle mechanics, holistic attitude engine,
- * and intelligent NPC AI turns.
- */
 class sexState : public iGameState
 {
 public:
@@ -251,26 +245,21 @@ public:
 	void onEnter(game* gameContext) override;
 	void onExit(game* gameContext) override;
 
-	// Action Execution & Core Mechanics
 	bool executeAction(game* gameContext, const SexAction& action);
 	void changeStance(SexStance newStance);
 
-	// Contextual Submissive / Reaction Handlers
 	void handlePleadSuggest(game* gameContext);
 	void handleEndure(game* gameContext);
 	void handleBegClimax(game* gameContext);
 	void handleStruggle(game* gameContext);
 
-	// NPC AI Turn Engine
 	void processPartnerTurn(game* gameContext);
 	void processAllNpcTurns(game* gameContext);
 	void processSingleNpcTurn(game* gameContext, size_t npcIdx);
 
-	// Dynamic Narrative & Orgasm Processing
 	void processOrgasm(game* gameContext, entity* orgasmingEntity, entity* receivingEntity, bodySlot receivingSlot);
 	void checkAllOrgasms(game* gameContext);
 
-	// Helper Methods
 	std::vector<SexAction> getAvailableActions() const;
 	bool isActionValidForStance(const SexAction& action) const;
 	bool isActionValidForParticipants(const SexAction& action, const SexParticipant& actor, const SexParticipant& target) const;
@@ -282,7 +271,6 @@ public:
 	void handleClothingAction(game* gameContext, int side, equipSlot slot, DisplacementMode mode, bool isRemove);
 	void handleUndressAll(game* gameContext, bool targetIsPlayer);
 
-	// Read-only Snapshot Accessors (preserving backward compatibility)
 	bool isSolo() const { return m_participants.size() <= 1; }
 	SexStance getStance() const { return m_stance; }
 	float getPlayerDominance() const;
@@ -294,7 +282,6 @@ public:
 	const std::vector<SexLogEntry>& getNarrativeEntries() const { return m_narrativeEntries; }
 	bool checkAndResetNewNarrative() { bool val = m_hasNewNarrative; m_hasNewNarrative = false; return val; }
 
-	// Multi-Participant Scaling & Status
 	size_t getParticipantCount() const { return m_participants.size(); }
 	const std::vector<SexParticipant>& getParticipants() const { return m_participants; }
 	std::vector<SexParticipant>& getParticipants() { return m_participants; }
@@ -313,7 +300,6 @@ public:
 	void setConsensual(bool consensual) { m_isConsensual = consensual; }
 	bool isConsensual() const { return m_isConsensual; }
 
-	// Ongoing Continuous Action Engine
 	const std::vector<OngoingSexAction>& getOngoingActions() const { return m_ongoingActions; }
 	bool hasOngoingAction(size_t participantIdx) const;
 	const OngoingSexAction* getOngoingActionForParticipant(size_t participantIdx) const;

@@ -73,7 +73,6 @@ void layoutEngine::loadDefaultLayout()
     m_cachedResults.clear();
     m_panels.clear();
 
-    // 1. Top Header Bar
     PanelConfig topBar;
     topBar.id = "top_bar";
     topBar.anchor = PanelAnchor::TOP_BAR;
@@ -83,7 +82,6 @@ void layoutEngine::loadDefaultLayout()
     topBar.widgets = { "TOP_STATUS_BAR", "widget_top_bar_full" };
     m_panels.push_back(topBar);
 
-    // 2. Bottom Action Grid
     PanelConfig bottomGrid;
     bottomGrid.id = "bottom_action_grid";
     bottomGrid.anchor = PanelAnchor::BOTTOM_BAR;
@@ -93,7 +91,6 @@ void layoutEngine::loadDefaultLayout()
     bottomGrid.widgets = { "ACTION_GRID", "widget_action_commands" };
     m_panels.push_back(bottomGrid);
 
-    // 3. Left Character & Stats Sidebar
     PanelConfig leftPane;
     leftPane.id = "left_pane";
     leftPane.anchor = PanelAnchor::LEFT_SIDEBAR;
@@ -103,7 +100,6 @@ void layoutEngine::loadDefaultLayout()
     leftPane.widgets = { "CHARACTER_OVERVIEW", "STAT_BARS", "PAPERDOLL_SOCKETS", "widget_char_overview", "widget_vitals_gauges", "widget_attributes_table" };
     m_panels.push_back(leftPane);
 
-    // 4. Right Target & Minimap Sidebar
     PanelConfig rightPane;
     rightPane.id = "right_pane";
     rightPane.anchor = PanelAnchor::RIGHT_SIDEBAR;
@@ -113,7 +109,6 @@ void layoutEngine::loadDefaultLayout()
     rightPane.widgets = { "MINIMAP_RADAR", "TARGET_INSPECTOR", "widget_minimap_radar" };
     m_panels.push_back(rightPane);
 
-    // 5. Center Dynamic View
     PanelConfig centerPane;
     centerPane.id = "center_pane";
     centerPane.anchor = PanelAnchor::CENTER_FLEX;
@@ -141,7 +136,6 @@ bool layoutEngine::loadFromFile(const std::string& filePath)
         m_cachedWidth = 0.0f;
         m_cachedResults.clear();
 
-        // Check for textRPG-studio N-way container format
         if (j.contains("rootNode") && j["rootNode"].is_object())
         {
             m_hasRootNode = true;
@@ -166,7 +160,6 @@ bool layoutEngine::loadFromFile(const std::string& filePath)
             return true;
         }
 
-        // Legacy panels format
         if (j.contains("panels"))
         {
             for (const auto& pJson : j["panels"])
@@ -282,7 +275,6 @@ void layoutEngine::computeStudioNode(const StudioLayoutNode& node, const SDL_FRe
         return;
     }
 
-    // Container node: split bounds among children
     const bool isRow = (node.direction == "ROW");
     const size_t numChildren = node.children.size();
     float totalSize = 0.0f;
@@ -330,7 +322,6 @@ std::vector<PanelComputedBounds> layoutEngine::computeLayout(float windowWidth, 
     std::vector<PanelComputedBounds> results;
     float margin = m_globalMargin * uiScale;
 
-    // 1. Check Studio State Override first
     if (!activeState.empty() && m_stateOverrides.contains(activeState))
     {
         SDL_FRect rootBounds = { margin / 2.0f, margin / 2.0f, windowWidth - margin, windowHeight - margin };
@@ -343,7 +334,6 @@ std::vector<PanelComputedBounds> layoutEngine::computeLayout(float windowWidth, 
         return results;
     }
 
-    // 2. Handle Studio Default RootNode format
     if (m_hasRootNode)
     {
         SDL_FRect rootBounds = { margin / 2.0f, margin / 2.0f, windowWidth - margin, windowHeight - margin };
@@ -356,7 +346,6 @@ std::vector<PanelComputedBounds> layoutEngine::computeLayout(float windowWidth, 
         return results;
     }
 
-    // Legacy Panel Anchor calculation
     float topBarHeight = 0.0f;
     float bottomBarHeight = 0.0f;
     float leftSidebarWidth = 0.0f;

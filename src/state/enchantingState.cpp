@@ -387,13 +387,10 @@ void enchantingState::craft(game* gameContext)
         baseItem = gameContext->Player->inventory.backpack[selectedBackpackIndex];
     }
 
-    // Deduct essence
     gameContext->Player->stats.modifyBaseStat("arcaneEssence", -static_cast<float>(cost));
 
-    // Craft new item
     auto crafted = EnchantingEngine::craftInfusedItem(baseItem.get(), stagedEffects, customOutputName);
 
-    // Consume base item from backpack if stackable or remove
     if (baseItem)
     {
         if (baseItem->isStackable && baseItem->count > 1)
@@ -407,7 +404,6 @@ void enchantingState::craft(game* gameContext)
         }
     }
 
-    // Add crafted item to backpack
     gameContext->Player->inventory.backpack.push_back(crafted);
     stagedEffects.clear();
     statusMessage = std::format("Infusion complete: Created {}!", crafted->name);

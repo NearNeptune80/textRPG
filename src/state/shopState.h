@@ -8,11 +8,6 @@
 #include "items/item.h"
 #include "state/iGameState.h"
 
-/**
- * Headless state controller for Merchant Shopping & Trading.
- * Manages player-merchant barter economy, buy/sell transactions,
- * page navigation, and feedback messages.
- */
 class shopState : public iGameState
 {
 public:

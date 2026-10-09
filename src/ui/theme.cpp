@@ -19,7 +19,6 @@ static SDL_Color parseJsonColor(const nlohmann::json& parentJson, const std::str
 
     if (!target) return fallback;
 
-    // 1. Array [r, g, b, (a)]
     if (target->is_array() && target->size() >= 3)
     {
         return SDL_Color{
@@ -30,7 +29,6 @@ static SDL_Color parseJsonColor(const nlohmann::json& parentJson, const std::str
         };
     }
 
-    // 2. Object { "r": r, "g": g, "b": b, ("a": a) }
     if (target->is_object())
     {
         Uint8 r = target->value("r", fallback.r);

@@ -168,24 +168,19 @@ void game::init()
 
     changeState(std::make_unique<mainMenuState>());
 
-    // Milestone 9: Time Advancement Biological Pipeline & Scheduled Maintenance
     auto subTime = eventBus::getInstance().subscribe(gameEvent::timeAdvanced, [this](const eventData& data) {
         int mins = data.numericValue;
         if (mins <= 0) return;
 
-        // 1. Unsafe tile dropped item decay & map tile runtime updates
         if (this->map)
         {
             this->map->processTimePassage(mins);
         }
 
-        // 2. Named Character Schedules & Tile Locations
         NamedCharacterManager::updateAllLocations(this);
 
-        // 2. Player Biological Pipeline
         if (this->Player)
         {
-            // Snapshot body measurements before ticks
             float preHair = 0.0f;
             float preBreastDiam = 0.0f;
             int preBreastCup = 0;
@@ -196,7 +191,6 @@ void game::init()
             if (auto* br = this->Player->anatomy.getPart(bodySlot::BREASTS)) { preBreastDiam = br->diameter; preBreastCup = br->cupSize; }
             if (auto* ck = this->Player->anatomy.getPart(bodySlot::GROIN)) { preCockLen = ck->length; preCockDiam = ck->diameter; }
 
-            // Advance active mutations scaled by transformationSpeedMultiplier
             float tfSpeed = this->settings.content.transformationSpeedMultiplier;
             int mutationMins = (tfSpeed > 0.0f) ? std::max(1, static_cast<int>(mins * tfSpeed)) : 0;
             if (mutationMins > 0)
@@ -204,7 +198,6 @@ void game::init()
                 this->Player->anatomy.processMutations(mutationMins);
             }
 
-            // Milestone 9b: Process Gradual Sizing Ticks on Equipped Apparel with Infusions
             for (const auto& eqItem : this->Player->inventory.equipped)
             {
                 if (!eqItem || !eqItem->hasInfusions()) continue;
@@ -212,11 +205,10 @@ void game::init()
                 {
                     if (!isAnatomicalSizingFocus(eff.focus)) continue;
 
-                    // Gradual growth rate based on infusion tier
                     float tickMultiplier = 0.0f;
-                    if (eff.tier == InfusionTier::GREATER_BOON) tickMultiplier = static_cast<float>(mins) / 60.0f; // Hourly
-                    else if (eff.tier == InfusionTier::BOON) tickMultiplier = static_cast<float>(mins) / 1440.0f;  // Daily
-                    else if (eff.tier == InfusionTier::MINOR_BOON) tickMultiplier = static_cast<float>(mins) / 10080.0f; // Weekly
+                    if (eff.tier == InfusionTier::GREATER_BOON) tickMultiplier = static_cast<float>(mins) / 60.0f;
+                    else if (eff.tier == InfusionTier::BOON) tickMultiplier = static_cast<float>(mins) / 1440.0f; 
+                    else if (eff.tier == InfusionTier::MINOR_BOON) tickMultiplier = static_cast<float>(mins) / 10080.0f;
                     else if (eff.tier == InfusionTier::MAJOR_HEX) tickMultiplier = -static_cast<float>(mins) / 60.0f;
                     else if (eff.tier == InfusionTier::HEX) tickMultiplier = -static_cast<float>(mins) / 1440.0f;
                     else if (eff.tier == InfusionTier::MINOR_HEX) tickMultiplier = -static_cast<float>(mins) / 10080.0f;
@@ -259,7 +251,6 @@ void game::init()
                 }
             }
 
-            // Detect transformation changes and queue or trigger interrupt scenes
             std::vector<std::string> detectedTriggers;
             if (auto* br = this->Player->anatomy.getPart(bodySlot::BREASTS))
             {
@@ -289,10 +280,8 @@ void game::init()
                 }
             }
 
-            // Regenerate bodily fluids (milk, cum, girlcum) & recover orifice stretch
             this->Player->anatomy.processBiologicalRecovery(mins);
 
-            // Natural arousal (lust) decay out of combat
             float currentLust = this->Player->getStat("lust");
             if (currentLust > 0.0f)
             {
@@ -301,14 +290,12 @@ void game::init()
                 this->Player->stats.modifyBaseStat("lust", -std::min(currentLust, decayAmount));
             }
 
-            // Status effect expiration ticks (minutes-based with turn fallback)
             this->Player->updateStatusEffectsOnTime(mins);
             for (auto& comp : this->partyCompanions)
             {
                 if (comp) comp->updateStatusEffectsOnTime(mins);
             }
 
-            // Advance active pregnancy & process birth
             if (this->Player->gestation.isPregnant)
             {
                 bool readyToGiveBirth = this->Player->gestation.processGestationMinutes(mins);
@@ -324,7 +311,6 @@ void game::init()
             }
         }
 
-        // 3. Target NPC Biological Pipeline
         if (this->activeTargetNPC)
         {
             this->activeTargetNPC->anatomy.processMutations(mins);
@@ -336,7 +322,6 @@ void game::init()
             }
         }
 
-        // 4. Scheduled World Maintenance (Daily 06:00 Restock)
         if (this->gameTime.hour >= 6)
         {
             if (this->activeTargetNPC)
@@ -474,7 +459,6 @@ bool game::loadMap(const std::string& mapId, int startX, int startY)
 
     eventBus::getInstance().publishEvent({ gameEvent::mapEntered, 0, mapId, nullptr });
 
-    // Task 10.3: Auto-save trigger on map transitions
     if (settings.gameplay.autoSaveOnMapChange && playerEntity)
     {
         saveManager::saveAutosave(this, settings.gameplay.maxAutoSaves);
@@ -485,11 +469,9 @@ bool game::loadMap(const std::string& mapId, int startX, int startY)
 
 void game::movePlayer(int nextX, int nextY)
 {
-    // Player can only walk during exploration state (not during encounters, combat, dialogue, or cutscenes)
     if (!dynamic_cast<explorationState*>(activeGameState.get())) return;
     if (!map || !map->isWalkable(nextX, nextY)) return;
 
-    // Enforce adjacency: player can only step to an orthogonally adjacent tile (North, South, East, West)
     int dx = std::abs(nextX - gridX);
     int dy = std::abs(nextY - gridY);
     if (dx + dy != 1) return;
@@ -502,10 +484,7 @@ void game::movePlayer(int nextX, int nextY)
     gameTime.advanceTime(2);
     map->updateDiscovery(gridX, gridY, 3);
 
-    // Note: Map & Quest Triggers are presented as interactive buttons in the Action Grid
-    // rather than abruptly hijacking player movement on step.
 
-    // 3. Check Dynamic Encounters & Persistent Ambushes
     TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
     ensureTileAmbushNPC(tileData);
     int bonusDanger = (gameTime.getPhase() == TimePhase::NIGHT) ? 1 : 0;
@@ -532,7 +511,6 @@ void game::movePlayer(int nextX, int nextY)
         }
     }
 
-    // Peaceful tile arrival: player is not interacting with NPCs yet
     activeTargetNPC = nullptr;
     activeTargetMode = TargetMode::NONE;
     refreshActionGrid();
@@ -619,8 +597,6 @@ void game::syncTileTarget(bool forceSelect)
     }
     else if (forceSelect || activeTargetNPC != nullptr)
     {
-        // If already interacting or forced, ensure target is in the list;
-        // otherwise default to the top of the list
         if (!activeTargetNPC || std::find(npcs.begin(), npcs.end(), activeTargetNPC) == npcs.end())
         {
             activeTargetNPC = npcs.front();
@@ -675,7 +651,7 @@ void game::handleDropAction(int stackedIndex, int quantity)
                     if (entry.itemPtr && entry.itemPtr->id == targetItemId)
                     {
                         entry.itemPtr->count += actualDropCount;
-                        entry.minutesRemaining = 120; // Refresh decay timer on merge
+                        entry.minutesRemaining = 120;
                         merged = true;
                         break;
                     }
@@ -882,7 +858,6 @@ void game::handleUseItemAction(int backpackIndex)
     std::shared_ptr<item> targetItem = Player->inventory.backpack[actualIdx];
     if (!targetItem || !targetItem->isConsumable) return;
 
-    // Apply consumable stat effects
     float hpRestore = 0.0f;
     float mpRestore = 0.0f;
 
@@ -893,7 +868,6 @@ void game::handleUseItemAction(int backpackIndex)
         else Player->stats.modifyBaseStat(mod.statName, mod.flatValue);
     }
 
-    // Heuristic fallbacks if item data has no explicit statModifiers
     if (hpRestore == 0.0f && targetItem->id.find("health") != std::string::npos) hpRestore = 50.0f;
     else if (hpRestore == 0.0f && targetItem->id.find("canis") != std::string::npos) hpRestore = 45.0f;
     if (mpRestore == 0.0f && targetItem->id.find("mana") != std::string::npos) mpRestore = 40.0f;
@@ -913,7 +887,6 @@ void game::handleUseItemAction(int backpackIndex)
         std::cout << std::format("[Inventory] You consumed {} and restored {:.0f} MP.\n", targetItem->name, mpRestore);
     }
 
-    // Apply active infusion effects
     for (auto& eff : targetItem->infusionEffects)
     {
         std::string res = eff.applyToEntity(Player, Player);
@@ -923,7 +896,6 @@ void game::handleUseItemAction(int backpackIndex)
         }
     }
 
-    // Decrement item count or remove
     if (targetItem->isStackable && targetItem->count > 1)
     {
         targetItem->count--;
@@ -1002,7 +974,6 @@ void game::handleStripToUnderwearAction()
         equipSlot slot = static_cast<equipSlot>(s);
         if (!Player->inventory.isEquipped(slot)) continue;
 
-        // Keep underwear / piercings / intimate items
         if (slot == equipSlot::CHEST_WEAR || slot == equipSlot::NIPPLES_WEAR ||
             slot == equipSlot::GROIN_OVER || slot == equipSlot::PENIS_WEAR ||
             slot == equipSlot::VAGINA_WEAR || slot == equipSlot::ASS_WEAR ||
@@ -1133,17 +1104,14 @@ bool game::handleEquipOnNPCAction(int backpackIndex, equipSlot targetSlotOverrid
     equipSlot slot = (targetSlotOverride != equipSlot::NONE) ? targetSlotOverride : targetItem->targetSlot;
     if (slot == equipSlot::NONE) return false;
 
-    // Check if NPC slot is occupied; if so, unequip existing item into NPC backpack
     if (npc->inventory.isEquipped(slot))
     {
         npc->inventory.unequipItem(slot);
     }
 
-    // Equip item onto NPC
     npc->inventory.equipped[static_cast<size_t>(slot)] = targetItem;
     npc->inventory.equipVersion++;
 
-    // Remove 1 copy of item from player backpack
     if (targetItem->isStackable && targetItem->count > 1)
     {
         targetItem->count--;
@@ -1159,13 +1127,11 @@ bool game::handleEquipOnNPCAction(int backpackIndex, equipSlot targetSlotOverrid
     selectedEquipmentSlot = slot;
     selectedEquipmentSide = 1;
 
-    // Check if the equipped item has an enslaving enchantment
     if (isEnslavingItem(targetItem.get()))
     {
         npc->quests.setQuestStage("subjugated", 1);
         addLogEntry("[ENSLAVEMENT]", std::format("{} has been bound in magical servitude by {}!", npc->name, targetItem->name), { 220, 100, 220, 255 });
 
-        // Update encounter resolution record if in resolution state
         if (auto inv = dynamic_cast<inventoryState*>(getActiveState()))
         {
             if (auto resState = dynamic_cast<encounterResolutionState*>(inv->getReturnState()))
@@ -1180,7 +1146,6 @@ bool game::handleEquipOnNPCAction(int backpackIndex, equipSlot targetSlotOverrid
             }
         }
 
-        // Clear ambush hazard on tile
         if (map)
         {
             auto& tData = map->getRuntimeData(gridX, gridY);
@@ -1192,7 +1157,6 @@ bool game::handleEquipOnNPCAction(int backpackIndex, equipSlot targetSlotOverrid
             }
         }
 
-        // Load enslavement narrative text scene which ends encounter and returns to exploration
         loadScene("scene_enslavement_success");
         return true;
     }
@@ -1445,7 +1409,6 @@ void game::popScene()
     }
     else
     {
-        // Task 10.3: Auto-save trigger on scene exit
         if (settings.gameplay.autoSaveOnSceneExit && playerEntity)
         {
             saveManager::saveAutosave(this, settings.gameplay.maxAutoSaves);
@@ -1459,7 +1422,6 @@ void game::popScene()
 
 void game::processChoice(const dialogueChoice& choice)
 {
-    // Check if choice bypasses content warning
     bool bypassWarning = false;
     for (const auto& eff : choice.results)
     {
@@ -1470,7 +1432,6 @@ void game::processChoice(const dialogueChoice& choice)
         }
     }
 
-    // Choice-level content warning gating
     if (!bypassWarning)
     {
         ContentTagStatus choiceStatus = ContentFilterManager::evaluateChoice(settings.content, choice);
@@ -1661,7 +1622,7 @@ void game::processChoice(const dialogueChoice& choice)
             if (tileData.ambushState.npc)
             {
                 tileData.ambushState.isDefeated = true;
-                tileData.ambushState.restockMinutesRemaining = 1440; // 24 hours
+                tileData.ambushState.restockMinutesRemaining = 1440;
             }
             tileData.persistentNPC = nullptr;
         }
@@ -1722,7 +1683,6 @@ void game::processChoice(const dialogueChoice& choice)
     {
         sceneStack.clear();
 
-        // Task 10.3: Auto-save trigger on scene exit
         if (settings.gameplay.autoSaveOnSceneExit && playerEntity)
         {
             saveManager::saveAutosave(this, settings.gameplay.maxAutoSaves);
@@ -1914,7 +1874,6 @@ void game::loadScene(const std::string& sceneId, bool bypassWarning)
 {
     questScene scene = questDatabase::getScene(sceneId);
 
-    // Content Warning / Skipping Check
     if (!bypassWarning)
     {
         ContentTagStatus sceneStatus = ContentFilterManager::evaluateScene(settings.content, scene);

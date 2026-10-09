@@ -68,7 +68,6 @@ namespace OptionsView
 
         if (opt->screenMode == OptionsScreenMode::GENERAL_OPTIONS)
         {
-            // 1. Centered Header Card: Options
             float cardW = std::min(availableW, 360.0f * uiScale);
             float cardH = 32.0f * uiScale;
             UIWidget::drawCenteredHeaderCard(renderer, centerX, curY, cardW, cardH, "Options", Theme::colors.textPrimary, uiScale);
@@ -77,7 +76,6 @@ namespace OptionsView
             float textW = availableW;
             float textX = padX;
 
-            // Section: Active Theme (4 direct pills)
             SDL_FRect themeCardRect = { textX, curY, textW, 44.0f * uiScale };
             UIWidget::drawPanel(renderer, themeCardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
             UIWidget::drawText(renderer, "Visual Theme:", textX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.92f);
@@ -129,7 +127,6 @@ namespace OptionsView
             }
             curY += themeCardRect.h + (10.0f * uiScale);
 
-            // Section: Font-size
             SDL_FRect fontCardRect = { textX, curY, textW, 44.0f * uiScale };
             UIWidget::drawPanel(renderer, fontCardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
             UIWidget::drawText(renderer, "Font-size:", textX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.92f);
@@ -172,7 +169,6 @@ namespace OptionsView
             }
             curY += fontCardRect.h + (10.0f * uiScale);
 
-            // Section: Pronouns
             SDL_FRect pronounRect = { textX, curY, textW, 44.0f * uiScale };
             UIWidget::drawPanel(renderer, pronounRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
             UIWidget::drawText(renderer, "Gender Pronouns:", textX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.92f);
@@ -210,7 +206,6 @@ namespace OptionsView
             }
             curY += pronounRect.h + (10.0f * uiScale);
 
-            // Section: Measurement Units
             SDL_FRect unitsRect = { textX, curY, textW, 44.0f * uiScale };
             UIWidget::drawPanel(renderer, unitsRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
             UIWidget::drawText(renderer, "Measurement Units:", textX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.92f);
@@ -248,7 +243,6 @@ namespace OptionsView
             }
             curY += unitsRect.h + (10.0f * uiScale);
 
-            // Section: Artwork Display
             SDL_FRect artRect = { textX, curY, textW, 44.0f * uiScale };
             UIWidget::drawPanel(renderer, artRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
             UIWidget::drawText(renderer, "Artwork & Portraits:", textX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.92f);
@@ -282,7 +276,6 @@ namespace OptionsView
             }
             curY += artRect.h + (10.0f * uiScale);
 
-            // Section: Hover Thumbnails
             SDL_FRect thumbRect = { textX, curY, textW, 44.0f * uiScale };
             UIWidget::drawPanel(renderer, thumbRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
             UIWidget::drawText(renderer, "Hover Thumbnails:", textX + (10.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.92f);
@@ -314,12 +307,10 @@ namespace OptionsView
             }
             curY += thumbRect.h + (10.0f * uiScale);
 
-            // Section: Difficulty Tiers
             SDL_FRect diffHeaderRect = { textX, curY, textW, 24.0f * uiScale };
             UIWidget::drawText(renderer, "Gameplay Difficulty Tiers:", textX, curY + (4.0f * uiScale), Theme::colors.textGold, uiScale * 0.95f);
             curY += (26.0f * uiScale);
 
-            // Colored difficulty tiers (interactive cards)
             struct DiffTier { std::string name; std::string desc; SDL_Color col; };
             const DiffTier tiers[5] = {
                 { "Very Easy", "Relaxed narrative focus; enemies deal 75% damage and have reduced resilience.", Theme::colors.friendly },
@@ -364,7 +355,7 @@ namespace OptionsView
             curY += (60.0f * uiScale);
             return (curY - startY);
         }
-        else // Content Options (Misc., Gameplay, Sex & Fetishes, Bodies, Preferences, etc.)
+        else
         {
             std::string catName = "Misc.";
             if (opt->contentCategory == ContentOptionsCategory::GAMEPLAY) catName = "Gameplay";
@@ -375,7 +366,6 @@ namespace OptionsView
             else if (opt->contentCategory == ContentOptionsCategory::AGE_PREFS) catName = "Age preferences";
             else if (opt->contentCategory == ContentOptionsCategory::FURRY_PREFS) catName = "Furry preferences";
 
-            // Centered Header Card
             std::string headerTitle = (opt->contentCategory == ContentOptionsCategory::GENDER_PREFS ||
                                        opt->contentCategory == ContentOptionsCategory::ORIENTATION_PREFS ||
                                        opt->contentCategory == ContentOptionsCategory::AGE_PREFS ||
@@ -388,7 +378,6 @@ namespace OptionsView
             UIWidget::drawCenteredHeaderCard(renderer, centerX, curY, cardW, cardH, headerTitle, Theme::colors.textPrimary, uiScale);
             curY += cardH + (16.0f * uiScale);
 
-            // Helper lambda: Info dropdown banner
             auto renderInfoDropdown = [&]() {
                 float dropW = availableW;
                 float dropH = 26.0f * uiScale;
@@ -400,7 +389,6 @@ namespace OptionsView
                 curY += dropH + (12.0f * uiScale);
             };
 
-            // Helper lambda: Multi-colored distribution proportion bar
             auto renderDistributionBar = [&](const std::vector<std::pair<float, SDL_Color>>& segments) {
                 float barW = availableW;
                 float barH = 10.0f * uiScale;
@@ -420,7 +408,6 @@ namespace OptionsView
                 curY += barH + (12.0f * uiScale);
             };
 
-            // Helper lambda: Setting Row with Segments (e.g. OFF / ON)
             auto renderOptionCard = [&](const std::string& title, SDL_Color titleCol, const std::string& description, const std::vector<std::string>& pillLabels, int selectedIndex, std::function<void(int)> onSelect) {
                 float cardWidth = availableW;
                 float maxItemTextW = 0.0f;
@@ -503,7 +490,6 @@ namespace OptionsView
                 curY += actualCardH + (8.0f * uiScale);
             };
 
-            // Helper lambda: 6-pill frequency row ([ Off ] [ Minimal ] [ Low ] [ Average ] [ High ] [ Abundant ])
             auto renderFrequencyRow = [&](const std::string& title, SDL_Color titleCol, const std::string& subtitle, int selectedIndex, std::function<void(int)> onSelect) {
                 float cardWidth = availableW;
                 float rowMinH = subtitle.empty() ? 32.0f * uiScale : 48.0f * uiScale;

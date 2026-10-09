@@ -5,18 +5,12 @@
 
 #include "common/randomEngine.h"
 
-/**
- * Checks whether the host anatomy is physically capable of conception.
- */
 bool gestationComponent::canConceive(const anatomyComponent& anatomy) const
 {
     if (isPregnant) return false;
     return anatomy.hasVagina();
 }
 
-/**
- * Impregnates the host entity, rolling litter size and genetic inheritance per offspring.
- */
 bool gestationComponent::impregnate(const std::string& fId, const std::string& fName, const std::string& fRace, const std::string& mRace, int customLitterSize)
 {
     if (isPregnant) return false;
@@ -37,7 +31,6 @@ bool gestationComponent::impregnate(const std::string& fId, const std::string& f
     }
     else
     {
-        // Demographic litter probability: 70% single, 20% twins, 10% triplets
         int roll = dice::rollInt(1, 100);
         if (roll <= 70) litterSize = 1;
         else if (roll <= 90) litterSize = 2;
@@ -48,7 +41,6 @@ bool gestationComponent::impregnate(const std::string& fId, const std::string& f
 
     for (int i = 0; i < litterSize; ++i)
     {
-        // 45% paternal race, 45% maternal race, 10% hybrid chimera
         int rRoll = dice::rollInt(1, 100);
         if (fatherRace == motherRace || rRoll <= 45)
         {
@@ -67,9 +59,6 @@ bool gestationComponent::impregnate(const std::string& fId, const std::string& f
     return true;
 }
 
-/**
- * Advances gestation days and returns true if labor is due.
- */
 bool gestationComponent::processGestation(int daysPassed)
 {
     if (!isPregnant || daysPassed <= 0) return false;
@@ -109,7 +98,6 @@ std::vector<OffspringInfo> gestationComponent::giveBirth(const std::string& moth
         births.push_back(info);
     }
 
-    // Reset gestation state
     isPregnant = false;
     fatherId = "";
     fatherName = "";

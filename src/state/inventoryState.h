@@ -3,11 +3,6 @@
 #include <memory>
 #include "state/iGameState.h"
 
-/**
- * Headless state controller for inventory interactions.
- * Tracks item selection indices and manages state toggles.
- * Can be opened as a top-level mode or as a submenu with a return state.
- */
 class inventoryState : public iGameState
 {
 public:

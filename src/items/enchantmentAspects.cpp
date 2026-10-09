@@ -49,7 +49,6 @@ static const std::unordered_map<EnchantmentFocus, AspectDefinition> s_focusDefs 
 };
 
 static const std::unordered_map<AspectProperty, AspectDefinition> s_propDefs = {
-    // Chest & Breasts
     { AspectProperty::BREAST_SIZE,          { "prop_breast_size", "Breast Size", "Increases or reduces mammary cup volume and breast stature.", "Voluptuous", ItemRarity::COMMON } },
     { AspectProperty::BREAST_SHAPE,         { "prop_breast_shape", "Breast Shape", "Shapes mammary profile (perky, rounded, pendulous, teardrop).", "Shapely", ItemRarity::COMMON } },
     { AspectProperty::NIPPLE_LENGTH,        { "prop_nipple_length", "Nipple Length", "Extends or shortens nipple length and protrusion.", "Protruding", ItemRarity::COMMON } },
@@ -61,7 +60,6 @@ static const std::unordered_map<AspectProperty, AspectDefinition> s_propDefs = {
     { AspectProperty::FLUID_TYPE,           { "prop_fluid_type", "Milk & Fluid Type", "Alters the flavor, sweetness, and alchemical qualities of expressed fluids.", "Nectareous", ItemRarity::RARE } },
     { AspectProperty::CROTCH_MAMMARY_MORPH, { "prop_crotch_mammary", "Crotch Mammaries & Udders", "Manifests, transforms, or expands inguinal crotch udders and teats.", "Pastoral", ItemRarity::EPIC } },
 
-    // Phallus & Virility
     { AspectProperty::PENIS_LENGTH,         { "prop_penis_length", "Phallus Length", "Extends shaft length and reach.", "Towering", ItemRarity::COMMON } },
     { AspectProperty::PENIS_GIRTH,          { "prop_penis_girth", "Phallus Girth", "Thickens shaft circumference and density.", "Girthy", ItemRarity::COMMON } },
     { AspectProperty::KNOT_SIZE,            { "prop_knot_size", "Knot Size", "Develops, enlarges, or forms a pronounced locking bulb knot.", "Bulbous", ItemRarity::UNCOMMON } },
@@ -72,7 +70,6 @@ static const std::unordered_map<AspectProperty, AspectDefinition> s_propDefs = {
     { AspectProperty::RACIAL_PHALLUS_MORPH, { "prop_racial_phallus", "Racial Phallus Morph", "Transforms phallus into race-specific morphology (barbed, equine, knotted, tentacled).", "Awakened", ItemRarity::RARE } },
     { AspectProperty::RACIAL_SHEATH_MORPH,  { "prop_racial_sheath", "Internal Sheath Morph", "Forms or refines a protective racial foreskin sheath.", "Enveloping", ItemRarity::UNCOMMON } },
 
-    // Yoni & Fertility
     { AspectProperty::VAGINA_DEPTH,         { "prop_vagina_depth", "Yoni Depth", "Deepens vaginal canal reach and internal accommodation.", "Deepened", ItemRarity::COMMON } },
     { AspectProperty::VAGINA_TIGHTNESS,     { "prop_vagina_tightness", "Yoni Tightness", "Contracts or relaxes muscular tone and internal snugness.", "Snug", ItemRarity::COMMON } },
     { AspectProperty::CLIT_SIZE,            { "prop_clit_size", "Clitoris Size", "Enlarges clitoral hooded size and sensitivity.", "Engorged", ItemRarity::COMMON } },
@@ -81,14 +78,12 @@ static const std::unordered_map<AspectProperty, AspectDefinition> s_propDefs = {
     { AspectProperty::FERTILITY_RECEPTIVITY,{ "prop_fertility_receptivity", "Fertility Receptivity", "Heightens conception probability, womb receptivity, and heat cycles.", "Blooming", ItemRarity::RARE } },
     { AspectProperty::RACIAL_YONI_MORPH,    { "prop_racial_yoni", "Racial Yoni Morph", "Morphs vaginal contours, ridging, or internal structure into race morphology.", "Primal", ItemRarity::RARE } },
 
-    // Hips & Derriere
     { AspectProperty::BUTT_SIZE,            { "prop_butt_size", "Buttock Volume", "Augments gluteal roundness, fullness, and jiggle.", "Plump", ItemRarity::COMMON } },
     { AspectProperty::HIP_WIDTH,            { "prop_hip_width", "Hip Flare", "Broadens pelvic width and hourglass flare.", "Flared", ItemRarity::COMMON } },
     { AspectProperty::ANUS_CAPACITY,        { "prop_anus_capacity", "Anus Capacity", "Expands receptive internal passage volume.", "Capacious", ItemRarity::UNCOMMON } },
     { AspectProperty::ANUS_DEPTH,           { "prop_anus_depth", "Anus Depth", "Deepens receptive anal depth.", "Abyssal", ItemRarity::UNCOMMON } },
     { AspectProperty::ANUS_ELASTICITY,      { "prop_anus_elasticity", "Anus Elasticity", "Imparts supple pliability and smooth restorative elasticity.", "Pliant", ItemRarity::UNCOMMON } },
 
-    // Legs & Lower Body
     { AspectProperty::LEG_LENGTH,           { "prop_leg_length", "Leg Stature", "Adjusts leg length, step stride, and leg elegance.", "Long", ItemRarity::COMMON } },
     { AspectProperty::THIGH_FULLNESS,       { "prop_thigh_fullness", "Thigh Fullness", "Builds plush, soft, or powerful muscular thigh curves.", "Thick", ItemRarity::COMMON } },
     { AspectProperty::RACIAL_LEGS_BIPED,    { "prop_racial_legs_biped", "Racial Biped Legs", "Transforms legs into racial biped limbs, paws, or cloven feet.", "Beast", ItemRarity::RARE } },
@@ -96,20 +91,17 @@ static const std::unordered_map<AspectProperty, AspectDefinition> s_propDefs = {
     { AspectProperty::RACIAL_BODY_CONFIG,   { "prop_racial_body_config", "Racial Body Config", "Transforms lower anatomy into taur body, drider spider chassis, or naga serpent coil.", "Mythic", ItemRarity::EPIC } },
     { AspectProperty::SPRINT_AGILITY,       { "prop_sprint_agility", "Sprint Agility", "Imbues sudden sprinting acceleration, leap power, and swiftness.", "Fleet", ItemRarity::UNCOMMON } },
 
-    // Head & Visage
     { AspectProperty::FACE_SHAPE,           { "prop_face_shape", "Visage Contours", "Refines jawline softness, cheekbones, and facial proportions.", "Chiseled", ItemRarity::COMMON } },
     { AspectProperty::RACIAL_FACIAL_STRUCTURE,{ "prop_racial_face", "Racial Visage", "Attunes facial bone structure to racial aesthetics.", "Savage", ItemRarity::RARE } },
     { AspectProperty::RACIAL_MUZZLE_MORPH,  { "prop_racial_muzzle", "Racial Muzzle & Snout", "Shapes an animalistic snout, muzzle, beak, or feral nose.", "Feral", ItemRarity::RARE } },
     { AspectProperty::PREDATORY_PERCEPTION, { "prop_predatory_perception", "Predatory Instinct", "Sharpens sensory tracking and awareness of surroundings.", "Keen", ItemRarity::UNCOMMON } },
 
-    // Mouth & Throat
     { AspectProperty::LIP_FULLNESS,         { "prop_lip_fullness", "Lip Fullness", "Plumps lips into lush, pillowy, inviting curves.", "Pouty", ItemRarity::COMMON } },
     { AspectProperty::RACIAL_DENTITION,     { "prop_racial_dentition", "Racial Fangs & Teeth", "Grows sharp canine fangs, venomous hollow vipers, or predatory dentition.", "Fanged", ItemRarity::RARE } },
     { AspectProperty::RACIAL_TONGUE,        { "prop_racial_tongue", "Racial Tongue Morph", "Extends prehensile reach, fork, barbs, or serpentine agility to the tongue.", "Forked", ItemRarity::RARE } },
     { AspectProperty::THROAT_DEPTH,         { "prop_throat_depth", "Throat Depth", "Suppresses gag reflex and stretches esophageal accommodation.", "Swallowing", ItemRarity::UNCOMMON } },
     { AspectProperty::SALIVA_PRODUCTION,    { "prop_saliva_prod", "Saliva Production", "Surges natural saliva generation, sweetness, or aphrodisiac viscosity.", "Slavering", ItemRarity::UNCOMMON } },
 
-    // Hair & Follicles
     { AspectProperty::HAIR_GROWTH_RATE,     { "prop_hair_growth_rate", "Growth Rate", "Accelerates hair follicle growth speed over time.", "Sprouting", ItemRarity::COMMON } },
     { AspectProperty::HAIR_LENGTH,          { "prop_hair_length", "Hair Length", "Extends or trims mane/hair length.", "Flowing", ItemRarity::COMMON } },
     { AspectProperty::HAIR_VOLUME,          { "prop_hair_volume", "Hair Volume & Thickness", "Expands hair body, lush density, and silky volume.", "Lush", ItemRarity::COMMON } },
@@ -117,36 +109,30 @@ static const std::unordered_map<AspectProperty, AspectDefinition> s_propDefs = {
     { AspectProperty::HAIR_COLOR,           { "prop_hair_color", "Hair Hue & Sheen", "Shifts hair pigmentation, highlights, and radiant luster.", "Vibrant", ItemRarity::COMMON } },
     { AspectProperty::RACIAL_MANE_MORPH,    { "prop_racial_mane", "Racial Mane Morph", "Grows a sweeping leonine mane, horse crest, or racial hair plumage.", "Regal", ItemRarity::RARE } },
 
-    // Eyes & Vision
     { AspectProperty::EYE_PUPIL_SHAPE,      { "prop_eye_pupils", "Pupil Shape", "Morphs pupils into slit, horizontal goat, heart, or demonic shapes.", "Slit", ItemRarity::COMMON } },
     { AspectProperty::EYE_IRIS_COLOR,       { "prop_eye_color", "Iris Coloration", "Infuses luminous hues, two-tone heterochromia, or glowing irises.", "Luminous", ItemRarity::COMMON } },
     { AspectProperty::DARKVISION_AURA,      { "prop_darkvision", "Darkvision", "Grants clear sight piercing darkness and illusions.", "Nocturnal", ItemRarity::RARE } },
     { AspectProperty::ALLURING_GAZE,        { "prop_alluring_gaze", "Hypnotic Allure", "Radiates seductive charm captivating onlookers.", "Hypnotic", ItemRarity::RARE } },
 
-    // Ears & Auditory
     { AspectProperty::EAR_SIZE,             { "prop_ear_size", "Ear Size & Flare", "Extends or shapes ear tips and perimeter.", "Pointed", ItemRarity::COMMON } },
     { AspectProperty::RACIAL_EAR_MORPH,     { "prop_racial_ears", "Racial Ear Morph", "Morphs ears into floppy hound ears, lupine points, bovine ears, or elven fans.", "Wild", ItemRarity::RARE } },
     { AspectProperty::KEEN_HEARING,         { "prop_keen_hearing", "Auditory Acuity", "Heightens hearing range and detects stealthy movements.", "Attentive", ItemRarity::UNCOMMON } },
 
-    // Torso & Stature
     { AspectProperty::STATURE_HEIGHT,       { "prop_height", "Stature & Height", "Increases or decreases overall physical body height.", "Towering", ItemRarity::COMMON } },
     { AspectProperty::MUSCLE_PHYSIQUE,      { "prop_muscle_physique", "Muscular Build", "Sculpts ripped abdominal definition and core muscle.", "Mighty", ItemRarity::COMMON } },
     { AspectProperty::WAIST_TAPER,          { "prop_waist_taper", "Waist Taper", "Narrows waistline into a snatched, slender taper.", "Slender", ItemRarity::COMMON } },
     { AspectProperty::STOMACH_FIRMNESS,     { "prop_stomach_tone", "Stomach Firmness", "Firms stomach into toned abs or soft plush curvature.", "Toned", ItemRarity::COMMON } },
     { AspectProperty::HEALTH_VITALITY,      { "prop_health_vitality", "Vitality Pool", "Enhances core constitution and max health.", "Vital", ItemRarity::RARE } },
 
-    // Skin & Dermis
     { AspectProperty::RACIAL_COVERING_TYPE, { "prop_racial_covering", "Racial Covering Morph", "Covers dermis in plush fur, iridescent scales, feathers, or chiseled carapace.", "Pelt", ItemRarity::RARE } },
     { AspectProperty::RACIAL_PATTERN_COLOR, { "prop_racial_pattern", "Pattern & Coat Color", "Shifts coat markings (stripes, spots, rosettes, gradients) and base tone.", "Spotted", ItemRarity::RARE } },
     { AspectProperty::DERMIS_ELASTICITY,    { "prop_dermis_elasticity", "Dermis Elasticity", "Infuses skin with soft, supple velvety smoothness and stretch.", "Velvet", ItemRarity::UNCOMMON } },
     { AspectProperty::NATURAL_ARMOR,        { "prop_natural_armor", "Dermal Hardening", "Toughens skin into natural protective deflection.", "Hardened", ItemRarity::UNCOMMON } },
 
-    // Arms & Hands
     { AspectProperty::ARM_MUSCLE,           { "prop_arm_muscle", "Arm Strength", "Enhances bicep and forearm power.", "Iron", ItemRarity::COMMON } },
     { AspectProperty::CLAWS_NAILS,          { "prop_claws_nails", "Claws & Nails", "Sharpens fingernails into predatory claws, talons, or soft pads.", "Lethal", ItemRarity::UNCOMMON } },
     { AspectProperty::MANUAL_DEXTERITY,     { "prop_manual_dexterity", "Manual Dexterity", "Sharpens hand-eye coordination and fine motor precision.", "Nimble", ItemRarity::COMMON } },
 
-    // Horns, Wings & Tail
     { AspectProperty::HORN_SIZE,            { "prop_horn_size", "Horn Size", "Lengthens and thickens cranial horns.", "Majestic", ItemRarity::COMMON } },
     { AspectProperty::HORN_SHAPE,           { "prop_horn_shape", "Horn Shape & Arch", "Curves horns into ram curls, sweeping gazelle spikes, or demonic spirals.", "Curved", ItemRarity::COMMON } },
     { AspectProperty::HORN_TEXTURE,         { "prop_horn_texture", "Horn Texture", "Polishes horn surface into smooth obsidian, ribbed bone, or crystalline ridges.", "Ribbed", ItemRarity::COMMON } },
@@ -164,7 +150,6 @@ static const std::unordered_map<AspectProperty, AspectDefinition> s_propDefs = {
     { AspectProperty::RACIAL_TAIL_VARIANT,  { "prop_racial_tail_variant", "Tail Morph Variant", "Selects multi-tail, tufted tip, or armored variant.", "Mythic", ItemRarity::RARE } },
     { AspectProperty::PART_REMOVAL,         { "prop_part_removal", "Anatomical Cleansing", "Retracts, dissolves, or sheds the targeted anatomical structure.", "Vanishing", ItemRarity::UNCOMMON } },
 
-    // Combat & Arcana
     { AspectProperty::DAMAGE_PHYSICAL,      { "prop_damage_physical", "Physical Lethality", "Infuses striking edge and impact velocity to deal bonus physical trauma.", "Striking", ItemRarity::UNCOMMON } },
     { AspectProperty::ATTACK_POWER,         { "prop_attack_power", "Attack Power", "Bolsters baseline offensive damage output.", "Brutal", ItemRarity::COMMON } },
     { AspectProperty::STRIKE_VELOCITY,      { "prop_strike_velocity", "Strike Velocity", "Accelerates weapon swing speed and attack tempo.", "Swift", ItemRarity::UNCOMMON } },
@@ -175,18 +160,15 @@ static const std::unordered_map<AspectProperty, AspectDefinition> s_propDefs = {
     { AspectProperty::MANA_CEILING,         { "prop_mana_ceiling", "Maximum Aura", "Expands maximum mana pool and magical reserves.", "Aura", ItemRarity::EPIC } },
     { AspectProperty::MANA_REGENERATION,    { "prop_mana_regen", "Mana Regeneration", "Accelerates passive replenishment of magical reserves.", "Focus", ItemRarity::RARE } },
 
-    // Armor & Defense
     { AspectProperty::ARMOR_RATING,         { "prop_armor_rating", "Armor Protection", "Bolsters physical deflection and reduces incoming kinetic trauma.", "Reinforced", ItemRarity::UNCOMMON } },
     { AspectProperty::FORTITUDE_STAT,       { "prop_fortitude", "Fortitude", "Grants enduring bodily resilience against stuns and physical impact.", "Fortified", ItemRarity::COMMON } },
     { AspectProperty::WARD_RESISTANCE,      { "prop_ward_resistance", "Elemental Warding", "Weaves a shimmering barrier deflecting magical and elemental damage.", "Warded", ItemRarity::RARE } },
     { AspectProperty::MIND_WARD,            { "prop_mind_ward", "Psychic Ward", "Protects against mental charms, hypnosis, and aphrodisiac corruption.", "Sanctuary", ItemRarity::RARE } },
 
-    // Binding, Seals & Sensory
     { AspectProperty::SOULBOUND_SEAL,       { "prop_soulbound", "Soulbound Seal", "Affixes clothing permanently onto wearer until purged with essence.", "Soulbound", ItemRarity::EPIC } },
     { AspectProperty::SERVITUDE_INHIBITION,  { "prop_servitude", "Servitude Binding", "Suppresses uninhibited transformations and seals willpower.", "Servitude", ItemRarity::EPIC } },
     { AspectProperty::SENSORY_VIBRATION,    { "prop_vibration", "Sensory Vibration", "Generates continuous rhythmic sensory stimulation.", "Buzzing", ItemRarity::RARE } },
 
-    // Backwards compatibility mappings
     { AspectProperty::SCALE_SIZE,           { "prop_scale_size", "Scale & Dimensions", "Magnifies or shrinks the primary dimension.", "Greater", ItemRarity::COMMON } },
     { AspectProperty::SECONDARY_SIZE,       { "prop_secondary_size", "Secondary Dimensions", "Modifies secondary dimensions such as width or thickness.", "Broadened", ItemRarity::COMMON } },
     { AspectProperty::VOLUME_CAPACITY,      { "prop_volume_capacity", "Volume Capacity", "Expands fluid holding capacity or internal elasticity.", "Expansive", ItemRarity::UNCOMMON } },
@@ -203,7 +185,6 @@ static const std::unordered_map<AspectProperty, AspectDefinition> s_propDefs = {
     { AspectProperty::CORRUPTION_AURA,      { "prop_corruption", "Demonic Corruption", "Induces seductive corruption and unrestrained libido.", "Sin", ItemRarity::EPIC } },
     { AspectProperty::RACIAL_TRANSFORMATION,{ "prop_racial_tf", "Racial Awakening", "Manifests or awakens the full racial morphology of the reagent.", "Awakened", ItemRarity::RARE } },
 
-    // Core Attributes
     { AspectProperty::CORE_HEALTH,          { "prop_core_health", "Health Vitality", "Bolsters maximum health reserves and physical endurance.", "Vital", ItemRarity::COMMON } },
     { AspectProperty::CORE_MANA,            { "prop_core_mana", "Mana Aura", "Expands maximum mana pool and magical reserves.", "Aura", ItemRarity::COMMON } },
     { AspectProperty::CORE_STAMINA,         { "prop_core_stamina", "Stamina", "Enhances stamina threshold and action endurance.", "Enduring", ItemRarity::COMMON } },
@@ -211,7 +192,6 @@ static const std::unordered_map<AspectProperty, AspectDefinition> s_propDefs = {
     { AspectProperty::CORE_ARCANE,          { "prop_core_arcane", "Arcane Resonance", "Deepens attunement to arcane currents and mystic energy.", "Resonant", ItemRarity::COMMON } },
     { AspectProperty::CORE_CORRUPTION,      { "prop_core_corruption", "Demonic Corruption", "Induces seductive corruption and unrestrained libido.", "Corrupt", ItemRarity::UNCOMMON } },
 
-    // General Attributes
     { AspectProperty::ATTR_PHYSICAL_DAMAGE, { "prop_attr_phys_dmg", "Physical Damage", "Increases melee strike force and kinetic weapon impact.", "Striking", ItemRarity::COMMON } },
     { AspectProperty::ATTR_SPELL_POWER,     { "prop_attr_spell_pwr", "Spell Power", "Amplifies destructive and beneficial spell potency.", "Potent", ItemRarity::COMMON } },
     { AspectProperty::ATTR_ARMOR,           { "prop_attr_armor", "Defense / Armor", "Bolsters kinetic deflection and physical armor protection.", "Armored", ItemRarity::COMMON } },
@@ -221,23 +201,19 @@ static const std::unordered_map<AspectProperty, AspectDefinition> s_propDefs = {
     { AspectProperty::ATTR_CRITICAL,        { "prop_attr_critical", "Crit Precision", "Sharpens accuracy to exploit vulnerabilities and strike critically.", "Precise", ItemRarity::COMMON } },
     { AspectProperty::ATTR_AGILITY,         { "prop_attr_agility", "Agility / Speed", "Enhances movement speed, balance, and evasion reflexes.", "Swift", ItemRarity::COMMON } },
 
-    // Special Effects
     { AspectProperty::CONCEAL_IDENTITY,     { "prop_conceal_identity", "Conceal Identity", "Obscures facial features under an arcane shroud, hiding true identity.", "Shrouded", ItemRarity::EPIC } },
 
-    // Fluid Retention
     { AspectProperty::RETENTION_STOMACH,    { "prop_retention_stomach", "Stomach Retention", "Increases capacity to retain fluids and food in the stomach without digestion discomfort.", "Sated", ItemRarity::UNCOMMON } },
     { AspectProperty::RETENTION_MAMMARY,    { "prop_retention_mammary", "Mammary Retention", "Suppresses spontaneous milk leakage, allowing extreme engorgement.", "Engorged", ItemRarity::UNCOMMON } },
     { AspectProperty::RETENTION_YONI,       { "prop_retention_yoni", "Yoni Retention", "Tightly seals semen and fluids within the vaginal canal.", "Sealed", ItemRarity::UNCOMMON } },
     { AspectProperty::RETENTION_ANAL,       { "prop_retention_anal", "Anal Retention", "Tightly locks enema fluids and seed within the anal passage.", "Locked", ItemRarity::UNCOMMON } },
 
-    // Body Desires / Fetishes
     { AspectProperty::DESIRE_ANAL,          { "prop_desire_anal", "Anal Attunement", "Heightens psychological craving and physical sensitivity for anal play.", "Rearward", ItemRarity::RARE } },
     { AspectProperty::DESIRE_MAMMARY,       { "prop_desire_mammary", "Mammary Attunement", "Deepens fixations with breast worship, suckling, and chest contact.", "Maternal", ItemRarity::RARE } },
     { AspectProperty::DESIRE_PHALLIC,       { "prop_desire_phallic", "Phallic Attunement", "Intensifies desires for phallic pleasure, stroking, and penetrating.", "Phallic", ItemRarity::RARE } },
     { AspectProperty::DESIRE_YONI,          { "prop_desire_yoni", "Yoni Attunement", "Heightens cravings for vaginal intimacy, fingering, and mating.", "Receptive", ItemRarity::RARE } },
     { AspectProperty::DESIRE_FEET,          { "prop_desire_feet", "Foot Attunement", "Imbues an erotic fascination with soles, paws, hooves, and trampling.", "Pedal", ItemRarity::RARE } },
 
-    // Behavioral Desires / Fetishes
     { AspectProperty::DESIRE_DOMINANT,      { "prop_desire_dominant", "Dominant Instinct", "Inspires command, authority, and assertiveness over partners.", "Imperious", ItemRarity::RARE } },
     { AspectProperty::DESIRE_SUBMISSIVE,    { "prop_desire_submissive", "Submissive Instinct", "Encourages yielding, obedience, and blissful surrender.", "Obedient", ItemRarity::RARE } },
     { AspectProperty::DESIRE_BONDAGE,       { "prop_desire_bondage", "Bondage Desire", "Creates an erotic longing to be tightly bound and restrained.", "Bound", ItemRarity::RARE } },
@@ -246,7 +222,6 @@ static const std::unordered_map<AspectProperty, AspectDefinition> s_propDefs = {
     { AspectProperty::DESIRE_MASOCHISM,     { "prop_desire_masochism", "Masochism", "Transmutes physical discipline and impact into searing pleasure.", "Suffering", ItemRarity::RARE } },
     { AspectProperty::DESIRE_SADISM,        { "prop_desire_sadism", "Sadism", "Draws erotic excitement from dominating, marking, and teasing others.", "Cruel", ItemRarity::RARE } },
 
-    // Additional Facial, Torso, Arm, Chest & Udder options
     { AspectProperty::NOSE_SIZE,            { "prop_nose_size", "Nose Size", "Adjusts nasal bridge, button tip, and contour prominence.", "Sculpted", ItemRarity::COMMON } },
     { AspectProperty::FACIAL_BEARD,         { "prop_facial_beard", "Facial Beard", "Styles and grows rugged facial hair, stubble, or long beards.", "Bearded", ItemRarity::COMMON } },
     { AspectProperty::EYEBROW_SHAPE,        { "prop_eyebrow_shape", "Eyebrow Contours", "Shapes eyebrow arch, thickness, and expression.", "Arched", ItemRarity::COMMON } },
@@ -408,7 +383,6 @@ std::vector<EnchantmentFocus> getCompatibleFocuses(const item* baseItem)
         };
     }
 
-    // Consumables / Food / Potions with racial affinity
     if (baseItem->isRacialReagent())
     {
         return {
@@ -435,7 +409,6 @@ std::vector<EnchantmentFocus> getCompatibleFocuses(const item* baseItem)
         };
     }
 
-    // Generic consumable / food without race affinity
     return {
         EnchantmentFocus::CORE_ATTRIBUTES,
         EnchantmentFocus::GENERAL_ATTRIBUTES,
@@ -1153,7 +1126,6 @@ std::string getPropertyShortLabel(AspectProperty prop, const item* baseItem)
 {
     switch (prop)
     {
-        // Core Attributes
         case AspectProperty::CORE_HEALTH:          return "Health";
         case AspectProperty::CORE_MANA:            return "Mana";
         case AspectProperty::CORE_STAMINA:         return "Stamina";
@@ -1161,7 +1133,6 @@ std::string getPropertyShortLabel(AspectProperty prop, const item* baseItem)
         case AspectProperty::CORE_ARCANE:          return "Arcane";
         case AspectProperty::CORE_CORRUPTION:      return "Corrupt";
 
-        // General Attributes
         case AspectProperty::ATTR_PHYSICAL_DAMAGE: return "Damage";
         case AspectProperty::ATTR_SPELL_POWER:     return "Sp Power";
         case AspectProperty::ATTR_ARMOR:           return "Armor";
@@ -1171,16 +1142,13 @@ std::string getPropertyShortLabel(AspectProperty prop, const item* baseItem)
         case AspectProperty::ATTR_CRITICAL:        return "Crit";
         case AspectProperty::ATTR_AGILITY:         return "Agility";
 
-        // Special Effects
         case AspectProperty::CONCEAL_IDENTITY:     return "Shroud";
 
-        // Retention Fluids
         case AspectProperty::RETENTION_STOMACH:    return "Stomach";
         case AspectProperty::RETENTION_MAMMARY:    return "Mammary";
         case AspectProperty::RETENTION_YONI:       return "Yoni";
         case AspectProperty::RETENTION_ANAL:       return "Anal";
 
-        // Desires
         case AspectProperty::DESIRE_ANAL:          return "Anal";
         case AspectProperty::DESIRE_MAMMARY:       return "Mammary";
         case AspectProperty::DESIRE_PHALLIC:       return "Phallus";
@@ -1194,7 +1162,6 @@ std::string getPropertyShortLabel(AspectProperty prop, const item* baseItem)
         case AspectProperty::DESIRE_MASOCHISM:     return "Masoch";
         case AspectProperty::DESIRE_SADISM:        return "Sadism";
 
-        // Chest & Breasts
         case AspectProperty::BREAST_SIZE:          return "Size";
         case AspectProperty::BREAST_SHAPE:         return "Shape";
         case AspectProperty::NIPPLE_LENGTH:        return "Nip Len";
@@ -1208,14 +1175,12 @@ std::string getPropertyShortLabel(AspectProperty prop, const item* baseItem)
         case AspectProperty::MILK_FLAVOR:          return "Flavor";
         case AspectProperty::CROTCH_MAMMARY_MORPH: return "Udder";
 
-        // Crotch Udders
         case AspectProperty::UDDER_SIZE:           return "Udder";
         case AspectProperty::TEAT_LENGTH:          return "TeatLen";
         case AspectProperty::TEAT_COUNT:           return "Teats";
         case AspectProperty::UDDER_CAPACITY:       return "UddrCap";
         case AspectProperty::UDDER_REGEN:          return "UddrReg";
 
-        // Phallus & Virility
         case AspectProperty::PENIS_LENGTH:         return "Length";
         case AspectProperty::PENIS_GIRTH:          return "Girth";
         case AspectProperty::KNOT_SIZE:            return "Knot";
@@ -1226,7 +1191,6 @@ std::string getPropertyShortLabel(AspectProperty prop, const item* baseItem)
         case AspectProperty::RACIAL_PHALLUS_MORPH: return "Phallus";
         case AspectProperty::RACIAL_SHEATH_MORPH:  return "Sheath";
 
-        // Yoni & Fertility
         case AspectProperty::VAGINA_DEPTH:         return "Depth";
         case AspectProperty::VAGINA_TIGHTNESS:     return "Tightness";
         case AspectProperty::CLIT_SIZE:            return "Clit";
@@ -1235,7 +1199,6 @@ std::string getPropertyShortLabel(AspectProperty prop, const item* baseItem)
         case AspectProperty::FERTILITY_RECEPTIVITY:return "Fertility";
         case AspectProperty::RACIAL_YONI_MORPH:    return "Yoni";
 
-        // Hips & Derriere
         case AspectProperty::BUTT_SIZE:            return "Butt";
         case AspectProperty::HIP_WIDTH:            return "Hips";
         case AspectProperty::ANUS_CAPACITY:        return "Anus Cap";
@@ -1243,7 +1206,6 @@ std::string getPropertyShortLabel(AspectProperty prop, const item* baseItem)
         case AspectProperty::ANUS_ELASTICITY:      return "Elastic";
         case AspectProperty::ANUS_WETNESS:         return "Wetness";
 
-        // Legs & Lower Body
         case AspectProperty::LEG_LENGTH:           return "Length";
         case AspectProperty::THIGH_FULLNESS:       return "Thighs";
         case AspectProperty::LEG_HAIR:             return "LegHair";
@@ -1253,7 +1215,6 @@ std::string getPropertyShortLabel(AspectProperty prop, const item* baseItem)
         case AspectProperty::FOOT_MORPH:           return "Foot";
         case AspectProperty::SPRINT_AGILITY:       return "Sprint";
 
-        // Head & Visage
         case AspectProperty::FACE_SHAPE:           return "Face";
         case AspectProperty::NOSE_SIZE:            return "Nose";
         case AspectProperty::FACIAL_BEARD:         return "Beard";
@@ -1262,14 +1223,12 @@ std::string getPropertyShortLabel(AspectProperty prop, const item* baseItem)
         case AspectProperty::RACIAL_MUZZLE_MORPH:  return "Muzzle";
         case AspectProperty::PREDATORY_PERCEPTION: return "Sense";
 
-        // Mouth & Throat
         case AspectProperty::LIP_FULLNESS:         return "Lips";
         case AspectProperty::RACIAL_DENTITION:     return "Fangs";
         case AspectProperty::RACIAL_TONGUE:        return "Tongue";
         case AspectProperty::THROAT_DEPTH:         return "Throat";
         case AspectProperty::SALIVA_PRODUCTION:    return "Saliva";
 
-        // Hair & Follicles
         case AspectProperty::HAIR_GROWTH_RATE:     return "Growth";
         case AspectProperty::HAIR_LENGTH:          return "Length";
         case AspectProperty::HAIR_VOLUME:          return "Volume";
@@ -1277,18 +1236,15 @@ std::string getPropertyShortLabel(AspectProperty prop, const item* baseItem)
         case AspectProperty::HAIR_COLOR:           return "Color";
         case AspectProperty::RACIAL_MANE_MORPH:    return "Mane";
 
-        // Eyes & Vision
         case AspectProperty::EYE_PUPIL_SHAPE:      return "Pupils";
         case AspectProperty::EYE_IRIS_COLOR:       return "Iris";
         case AspectProperty::DARKVISION_AURA:      return "Darkvis";
         case AspectProperty::ALLURING_GAZE:        return "Allure";
 
-        // Ears & Auditory
         case AspectProperty::EAR_SIZE:             return "Ear Size";
         case AspectProperty::RACIAL_EAR_MORPH:     return "Ears";
         case AspectProperty::KEEN_HEARING:         return "Hearing";
 
-        // Torso & Stature
         case AspectProperty::STATURE_HEIGHT:       return "Height";
         case AspectProperty::MUSCLE_PHYSIQUE:      return "Muscle";
         case AspectProperty::WAIST_TAPER:          return "Waist";
@@ -1297,20 +1253,17 @@ std::string getPropertyShortLabel(AspectProperty prop, const item* baseItem)
         case AspectProperty::STOMACH_FIRMNESS:     return "Tone";
         case AspectProperty::HEALTH_VITALITY:      return "Vitality";
 
-        // Skin & Dermis
         case AspectProperty::RACIAL_COVERING_TYPE: return "Covering";
         case AspectProperty::RACIAL_PATTERN_COLOR: return "Pattern";
         case AspectProperty::DERMIS_ELASTICITY:    return "Elastic";
         case AspectProperty::NATURAL_ARMOR:        return "Armor";
 
-        // Arms & Hands
         case AspectProperty::ARM_MUSCLE:           return "Muscle";
         case AspectProperty::UNDERARM_HAIR:        return "ArmHair";
         case AspectProperty::GRIP_STRENGTH:        return "Grip";
         case AspectProperty::CLAWS_NAILS:          return "Claws";
         case AspectProperty::MANUAL_DEXTERITY:     return "Dexterity";
 
-        // Horns, Wings, Tail & Antennae
         case AspectProperty::HORN_SIZE:            return "Size";
         case AspectProperty::HORN_SHAPE:           return "Shape";
         case AspectProperty::HORN_TEXTURE:         return "Texture";
@@ -1331,7 +1284,6 @@ std::string getPropertyShortLabel(AspectProperty prop, const item* baseItem)
         case AspectProperty::RACIAL_TAIL_VARIANT:  return "Tail Var";
         case AspectProperty::PART_REMOVAL:         return "Shed";
 
-        // Combat & Arcana
         case AspectProperty::ATTACK_POWER:         return "Power";
         case AspectProperty::STRIKE_VELOCITY:      return "Velocity";
         case AspectProperty::DAMAGE_PHYSICAL:      return "Damage";
@@ -1348,12 +1300,10 @@ std::string getPropertyShortLabel(AspectProperty prop, const item* baseItem)
         case AspectProperty::MANA_CEILING:         return "Mana";
         case AspectProperty::MANA_REGENERATION:    return "Mana Regen";
 
-        // Binding, Seals & Sensory
         case AspectProperty::SOULBOUND_SEAL:       return "Soulbound";
         case AspectProperty::SERVITUDE_INHIBITION: return "Servitude";
         case AspectProperty::SENSORY_VIBRATION:    return "Sensory";
 
-        // Legacy aliases
         case AspectProperty::SCALE_SIZE:           return "Scale";
         case AspectProperty::SECONDARY_SIZE:       return "Width";
         case AspectProperty::VOLUME_CAPACITY:      return "Volume";
@@ -1394,7 +1344,6 @@ bool propertySupportsLimits(AspectProperty prop, const item* baseItem)
 {
     switch (prop)
     {
-        // Chest & Breasts
         case AspectProperty::BREAST_SIZE:
         case AspectProperty::NIPPLE_LENGTH:
         case AspectProperty::NIPPLE_GIRTH:
@@ -1402,13 +1351,11 @@ bool propertySupportsLimits(AspectProperty prop, const item* baseItem)
         case AspectProperty::LACTATION_VOLUME:
         case AspectProperty::LACTATION_REGEN:
 
-        // Crotch Udders
         case AspectProperty::UDDER_SIZE:
         case AspectProperty::TEAT_LENGTH:
         case AspectProperty::UDDER_CAPACITY:
         case AspectProperty::UDDER_REGEN:
 
-        // Phallus
         case AspectProperty::PENIS_LENGTH:
         case AspectProperty::PENIS_GIRTH:
         case AspectProperty::KNOT_SIZE:
@@ -1416,14 +1363,12 @@ bool propertySupportsLimits(AspectProperty prop, const item* baseItem)
         case AspectProperty::CUM_VOLUME:
         case AspectProperty::CUM_REGEN:
 
-        // Yoni
         case AspectProperty::CLIT_SIZE:
         case AspectProperty::LABIA_SIZE:
         case AspectProperty::VAGINA_DEPTH:
         case AspectProperty::VAGINA_TIGHTNESS:
         case AspectProperty::LUBRICATION_WETNESS:
 
-        // Hips & Ass
         case AspectProperty::BUTT_SIZE:
         case AspectProperty::HIP_WIDTH:
         case AspectProperty::ANUS_CAPACITY:
@@ -1431,33 +1376,27 @@ bool propertySupportsLimits(AspectProperty prop, const item* baseItem)
         case AspectProperty::ANUS_ELASTICITY:
         case AspectProperty::ANUS_WETNESS:
 
-        // Legs
         case AspectProperty::LEG_LENGTH:
         case AspectProperty::THIGH_FULLNESS:
         case AspectProperty::LEG_HAIR:
 
-        // Face
         case AspectProperty::LIP_FULLNESS:
         case AspectProperty::NOSE_SIZE:
         case AspectProperty::FACIAL_BEARD:
         case AspectProperty::EYEBROW_SHAPE:
 
-        // Hair
         case AspectProperty::HAIR_LENGTH:
         case AspectProperty::HAIR_VOLUME:
 
-        // Torso / Core
         case AspectProperty::STATURE_HEIGHT:
         case AspectProperty::MUSCLE_PHYSIQUE:
         case AspectProperty::WAIST_TAPER:
         case AspectProperty::FEMININITY_MASCULINITY:
         case AspectProperty::BODY_HAIR:
 
-        // Arms
         case AspectProperty::UNDERARM_HAIR:
         case AspectProperty::ARM_MUSCLE:
 
-        // Horns, Wings, Tail, Ears, Antennae
         case AspectProperty::HORN_SIZE:
         case AspectProperty::WING_SIZE:
         case AspectProperty::TAIL_LENGTH:
@@ -1465,7 +1404,6 @@ bool propertySupportsLimits(AspectProperty prop, const item* baseItem)
         case AspectProperty::EAR_SIZE:
         case AspectProperty::ANTENNAE_LENGTH:
 
-        // Legacy continuous
         case AspectProperty::SCALE_SIZE:
         case AspectProperty::SECONDARY_SIZE:
         case AspectProperty::VOLUME_CAPACITY:

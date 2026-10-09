@@ -21,14 +21,12 @@ namespace EditorCardWidgets
         SDL_Color color;
     };
 
-    // Shared Standard Palettes
     const std::vector<ColorOption>& getSkinTones();
     const std::vector<ColorOption>& getHairColors();
     const std::vector<ColorOption>& getEyeColors();
     const std::vector<ColorOption>& getMakeupColors();
     const std::vector<ColorOption>& getTransformationColors();
 
-    // Reusable UI Card Renderers
     float drawPillCard(SDL_Renderer* renderer,
                        game* gameContext,
                        const SDL_FRect& panelRect,
@@ -134,7 +132,6 @@ namespace EditorCardWidgets
         SDL_FRect cardRect = { padX, curY, availableW, cardH };
         UIWidget::drawPanel(renderer, cardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
-        // Title & Description
         UIWidget::drawText(renderer, title, padX + innerPad, curY + (8.0f * uiScale), Theme::colors.textGold, uiScale * 0.88f);
         if (!description.empty())
         {
@@ -170,7 +167,6 @@ namespace EditorCardWidgets
             }
         };
 
-        // Left Decrease Buttons
         if (btnCountPerSide == 3)
         {
             drawBtnHelper(curX, "<<<", -stepLarge);
@@ -184,14 +180,12 @@ namespace EditorCardWidgets
         drawBtnHelper(curX, "<", -stepSmall);
         curX += btnW + (4.0f * uiScale);
 
-        // Center Value Display
         SDL_FRect valRect = { curX, controlY, valW, h };
         UIWidget::drawPanel(renderer, valRect, Theme::colors.bgHeader, Theme::colors.borderNormal);
         float textW = UIWidget::getTextWidth(displayVal, uiScale * 0.82f);
         UIWidget::drawText(renderer, displayVal, curX + ((valW - textW) / 2.0f), controlY + (5.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.82f);
         curX += valW + (4.0f * uiScale);
 
-        // Right Increase Buttons
         drawBtnHelper(curX, ">", stepSmall);
         curX += btnW + btnGap;
         if (btnCountPerSide >= 2)

@@ -87,7 +87,6 @@ void TooltipManager::render(SDL_Renderer* renderer, float uiScale, float windowW
     float maxCardW = 320.0f * uiScale;
     float minCardW = 180.0f * uiScale;
 
-    // Sizing estimation
     float titleFontScale = uiScale * 0.78f;
     float subFontScale = uiScale * 0.68f;
     float descFontScale = uiScale * 0.72f;
@@ -106,18 +105,17 @@ void TooltipManager::render(SDL_Renderer* renderer, float uiScale, float windowW
     float cardW = std::min(maxCardW, idealW);
     float contentW = cardW - (innerPad * 2.0f);
 
-    // Compute vertical height using exact font-metric measurements
     float cardH = innerPad;
-    cardH += 18.0f * uiScale; // Title row
+    cardH += 18.0f * uiScale;;
 
     if (!tt.subtitle.empty())
     {
-        cardH += 16.0f * uiScale; // Subtitle row
+        cardH += 16.0f * uiScale;;
     }
 
     if (!tt.description.empty())
     {
-        cardH += 6.0f * uiScale; // Divider gap
+        cardH += 6.0f * uiScale;;
         float measuredDescH = UIWidget::getTextWrappedHeight(tt.description, contentW, descFontScale);
         cardH += measuredDescH + (4.0f * uiScale);
     }
@@ -127,9 +125,8 @@ void TooltipManager::render(SDL_Renderer* renderer, float uiScale, float windowW
         cardH += (tt.stats.size() * (15.0f * uiScale)) + (4.0f * uiScale);
     }
 
-    cardH += innerPad + (4.0f * uiScale); // Safe bottom margin
+    cardH += innerPad + (4.0f * uiScale);;
 
-    // Positioning without overlapping the inspected element
     float posX = 0.0f;
     float posY = 0.0f;
 
@@ -141,13 +138,11 @@ void TooltipManager::render(SDL_Renderer* renderer, float uiScale, float windowW
     else if (tt.hoverBounds.has_value())
     {
         const SDL_FRect& b = tt.hoverBounds.value();
-        // 1. Bottom action commands (y > 60% of screen): Place ABOVE the button
         if (b.y > windowH * 0.60f)
         {
             posY = b.y - cardH - (6.0f * uiScale);
             posX = b.x + ((b.w - cardW) / 2.0f);
         }
-        // 2. Left sidebar panels (x < 28% of screen): Place to the RIGHT
         else if (b.x < windowW * 0.28f)
         {
             posX = b.x + b.w + (8.0f * uiScale);
@@ -157,7 +152,6 @@ void TooltipManager::render(SDL_Renderer* renderer, float uiScale, float windowW
                 posY = windowH - cardH - (8.0f * uiScale);
             }
         }
-        // 3. Right sidebar panels (x > 72% of screen): Place to the LEFT
         else if (b.x + b.w > windowW * 0.72f)
         {
             posX = b.x - cardW - (8.0f * uiScale);
@@ -167,7 +161,6 @@ void TooltipManager::render(SDL_Renderer* renderer, float uiScale, float windowW
                 posY = windowH - cardH - (8.0f * uiScale);
             }
         }
-        // 4. Central inventory/content grid: Place beside slot
         else
         {
             if (b.x + b.w + cardW + (8.0f * uiScale) <= windowW * 0.82f)
@@ -187,7 +180,6 @@ void TooltipManager::render(SDL_Renderer* renderer, float uiScale, float windowW
     }
     else
     {
-        // Cursor fallback
         posX = mousePos.x + (14.0f * uiScale);
         posY = mousePos.y + (14.0f * uiScale);
 
@@ -201,36 +193,29 @@ void TooltipManager::render(SDL_Renderer* renderer, float uiScale, float windowW
         }
     }
 
-    // Always clamp to screen boundaries
     posX = std::clamp(posX, 6.0f * uiScale, windowW - cardW - (6.0f * uiScale));
     posY = std::clamp(posY, 6.0f * uiScale, windowH - cardH - (6.0f * uiScale));
 
-    // 1. Drop Shadow
     SDL_FRect shadowRect = { posX + (3.0f * uiScale), posY + (3.0f * uiScale), cardW, cardH };
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 160);
     SDL_RenderFillRect(renderer, &shadowRect);
 
-    // 2. Main Card Panel
     SDL_FRect cardRect = { posX, posY, cardW, cardH };
     SDL_Color bgCol = Theme::colors.bgTooltip;
     SDL_Color bdCol = Theme::colors.borderTooltip;
     UIWidget::drawPanel(renderer, cardRect, bgCol, bdCol);
 
-    // 3. Top Accent Line (Gold)
     SDL_FRect topBar = { posX + 1.0f, posY + 1.0f, cardW - 2.0f, 2.0f * uiScale };
     SDL_SetRenderDrawColor(renderer, Theme::colors.textGold.r, Theme::colors.textGold.g, Theme::colors.textGold.b, 255);
     SDL_RenderFillRect(renderer, &topBar);
 
-    // 4. Render Content
     float curY = posY + innerPad;
     float curX = posX + innerPad;
 
-    // Title
     if (!tt.title.empty())
     {
         UIWidget::drawText(renderer, tt.title, curX, curY, tt.titleColor, titleFontScale);
 
-        // Hotkey Badge
         if (!tt.hotkey.empty())
         {
             float hkBoxW = hotkeyW;
@@ -246,14 +231,12 @@ void TooltipManager::render(SDL_Renderer* renderer, float uiScale, float windowW
         curY += (18.0f * uiScale);
     }
 
-    // Subtitle / Tag
     if (!tt.subtitle.empty())
     {
         UIWidget::drawText(renderer, tt.subtitle, curX, curY, tt.subtitleColor, subFontScale);
         curY += (16.0f * uiScale);
     }
 
-    // Divider Line
     if (!tt.description.empty() || !tt.stats.empty())
     {
         SDL_SetRenderDrawColor(renderer, 45, 55, 75, 255);
@@ -261,14 +244,12 @@ void TooltipManager::render(SDL_Renderer* renderer, float uiScale, float windowW
         curY += (6.0f * uiScale);
     }
 
-    // Description
     if (!tt.description.empty())
     {
         float textH = UIWidget::drawTextWrapped(renderer, tt.description, curX, curY, contentW, Theme::colors.textPrimary, descFontScale);
         curY += textH + (4.0f * uiScale);
     }
 
-    // Stats Key-Value Table
     for (const auto& [statKey, statVal] : tt.stats)
     {
         UIWidget::drawText(renderer, statKey, curX, curY, Theme::colors.textSecondary, subFontScale);

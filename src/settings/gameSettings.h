@@ -10,13 +10,11 @@
 
 struct DemographicSettings
 {
-    // Sexuality Distribution (%)
     float percentHetero = 40.0f;
     float percentBi = 30.0f;
     float percentHomo = 20.0f;
     float percentAsexual = 10.0f;
 
-    // Gender Archetype Distribution (%)
     float percentMale = 30.0f;
     float percentFemale = 40.0f;
     float percentHermaphrodite = 15.0f;
@@ -24,13 +22,11 @@ struct DemographicSettings
     float percentAndromorph = 5.0f;
     float percentNull = 3.0f;
 
-    // Age Distribution (%)
     float percentYoungAdult = 40.0f;
     float percentAdult = 35.0f;
     float percentMature = 20.0f;
     float percentElder = 5.0f;
 
-    // Furry Distribution (%)
     float percentHuman = 50.0f;
     float percentPartial = 30.0f;
     float percentAnthro = 15.0f;
@@ -74,21 +70,21 @@ struct DemographicSettings
         float val = roll01 * total;
         if (val < percentYoungAdult) {
             float sub = val / std::max(1.0f, percentYoungAdult);
-            return 18 + static_cast<int>(sub * 7); // 18-25
+            return 18 + static_cast<int>(sub * 7);;
         }
         val -= percentYoungAdult;
         if (val < percentAdult) {
             float sub = val / std::max(1.0f, percentAdult);
-            return 26 + static_cast<int>(sub * 14); // 26-40
+            return 26 + static_cast<int>(sub * 14);;
         }
         val -= percentAdult;
         if (val < percentMature) {
             float sub = val / std::max(1.0f, percentMature);
-            return 41 + static_cast<int>(sub * 19); // 41-60
+            return 41 + static_cast<int>(sub * 19);;
         }
         val -= percentMature;
         float sub = val / std::max(1.0f, percentElder);
-        return 61 + static_cast<int>(sub * 25); // 61-86
+        return 61 + static_cast<int>(sub * 25);;
     }
 
     std::string rollFurryStage(float roll01) const
@@ -164,7 +160,6 @@ inline ContentToggleState intToContentToggleState(int val)
 
 struct ContentSettings
 {
-    // 3-State Content Toggles: OFF (0), WARN (1), ON (2)
     ContentToggleState pregnancyState = ContentToggleState::ON;
     ContentToggleState lactationState = ContentToggleState::ON;
     ContentToggleState nonConState = ContentToggleState::OFF;
@@ -183,7 +178,6 @@ struct ContentSettings
     ContentToggleState cumInflationState = ContentToggleState::OFF;
     ContentToggleState feralState = ContentToggleState::OFF;
 
-    // Synchronized boolean flags for fast query & backward compatibility
     bool pregnancyEnabled = true;
     bool lactationEnabled = true;
     bool nonConEnabled = false;
@@ -226,7 +220,6 @@ struct ContentSettings
     {
         fetishPreferences[name] = rating;
 
-        // Keep aliases synchronized
         if (name == "Tentacles & Monsters") fetishPreferences["Tentacles"] = rating;
         else if (name == "Tentacles") fetishPreferences["Tentacles & Monsters"] = rating;
 

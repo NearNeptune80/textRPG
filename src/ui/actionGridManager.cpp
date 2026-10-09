@@ -80,7 +80,6 @@ void ActionGridManager::refresh(game* gameContext)
 
     gameContext->activeActionSlots.clear();
 
-    // 1. Main Menu
     if (auto menu = dynamic_cast<mainMenuState*>(currentState))
     {
         bool inGame = (gameContext->getPlayer() != nullptr);
@@ -122,14 +121,12 @@ void ActionGridManager::refresh(game* gameContext)
         return;
     }
 
-    // 2. Character Creation / Customization Editor
     if (auto cc = dynamic_cast<characterCreationState*>(currentState))
     {
         auto activeTabs = cc->getActiveTabs();
         int tabCount = static_cast<int>(activeTabs.size());
         if (cc->step >= tabCount) cc->step = std::max(0, tabCount - 1);
 
-        // Row 1: Dynamic Category Step Tabs (up to 5 tabs per row page)
         if (tabCount > 1)
         {
             int startIdx = (cc->step >= 5 && tabCount > 5) ? 5 : 0;
@@ -155,7 +152,6 @@ void ActionGridManager::refresh(game* gameContext)
             addBtn(gameContext, cc->getTabName(activeTabs[0]), [cc, gameContext]() {}, true, true);
         }
 
-        // Row 2: Wardrobe Dressing Room Launcher if on Wardrobe tab
         if (cc->getCurrentTabId() == EditorTabId::WARDROBE)
         {
             padButtonsTo(gameContext, 5);
@@ -164,7 +160,6 @@ void ActionGridManager::refresh(game* gameContext)
             }, true, false, "Open full dual inventory and dressing room to equip garments and inspect items.");
         }
 
-        // Row 2: Final Action (Shift + 5 / Slot 9)
         if (cc->step == tabCount - 1)
         {
             padButtonsTo(gameContext, 9);
@@ -174,7 +169,6 @@ void ActionGridManager::refresh(game* gameContext)
             }, true, true);
         }
 
-        // Row 3: Return to Menu (Ctrl + 5 / Slot 14)
         padButtonsTo(gameContext, 14);
         std::string backLabel = cc->config.isNewGameCreation ? "Back to Menu" : "Cancel";
         addBackBtn(gameContext, backLabel, [gameContext]() {
@@ -183,7 +177,6 @@ void ActionGridManager::refresh(game* gameContext)
         return;
     }
 
-    // 3. Load / Save Game State
     if (auto loadState = dynamic_cast<loadGameState*>(currentState))
     {
         addBtn(gameContext, loadState->confirmationsEnabled ? "Confirmations: ON" : "Confirmations: OFF", [gameContext, loadState]() {
@@ -205,7 +198,6 @@ void ActionGridManager::refresh(game* gameContext)
         return;
     }
 
-    // 4. Options State
     if (auto opt = dynamic_cast<optionsState*>(currentState))
     {
         if (opt->isKeybindsOpen)
@@ -288,7 +280,6 @@ void ActionGridManager::refresh(game* gameContext)
         }
     }
 
-    // 5. Shop State
     if (auto shop = dynamic_cast<shopState*>(currentState))
     {
         entity* player = gameContext->getPlayer();
@@ -301,7 +292,6 @@ void ActionGridManager::refresh(game* gameContext)
 
             if (gameContext->selectedInventorySide == 0)
             {
-                // Player's item selected -> Selling
                 if (slotInfo.isValid && slotInfo.itemPtr)
                 {
                     int unitSell = merchantValuation::calculateSellPrice(slotInfo.itemPtr.get(), player, merchant);
@@ -340,7 +330,6 @@ void ActionGridManager::refresh(game* gameContext)
             }
             else if (gameContext->selectedInventorySide == 1)
             {
-                // Merchant's item selected -> Buying
                 if (slotInfo.isValid && slotInfo.itemPtr)
                 {
                     int unitBuy = merchantValuation::calculateBuyPrice(slotInfo.itemPtr.get(), player, merchant);
@@ -377,11 +366,9 @@ void ActionGridManager::refresh(game* gameContext)
         }
         else
         {
-            // Nothing selected: guidance button
             addBtn(gameContext, "Select Item to Trade", [gameContext]() {}, false, false, "Click any item in your inventory to sell, or in the shop inventory to buy.");
         }
 
-        // Pad to slot 14 and place Leave Shop
         padButtonsTo(gameContext, 14);
         addBackBtn(gameContext, "Leave Shop", [gameContext]() {
             gameContext->handleCommand({ CommandType::CLOSE_MENU, 0, 0, "" });
@@ -389,24 +376,20 @@ void ActionGridManager::refresh(game* gameContext)
         return;
     }
 
-    // 6. Transformation State
     if (auto tf = dynamic_cast<transformationState*>(currentState))
     {
-        // Row 1: Core Physical Categories (1..5)
         addBtn(gameContext, "1. Core", [gameContext, tf]() { tf->setTab(TransformationTab::CORE, gameContext); }, true, tf->currentTab == TransformationTab::CORE);
         addBtn(gameContext, "2. Head & Face", [gameContext, tf]() { tf->setTab(TransformationTab::HEAD_FACE, gameContext); }, true, tf->currentTab == TransformationTab::HEAD_FACE);
         addBtn(gameContext, "3. Hair", [gameContext, tf]() { tf->setTab(TransformationTab::HAIR, gameContext); }, true, tf->currentTab == TransformationTab::HAIR);
         addBtn(gameContext, "4. Eyes", [gameContext, tf]() { tf->setTab(TransformationTab::EYES, gameContext); }, true, tf->currentTab == TransformationTab::EYES);
         addBtn(gameContext, "5. Breasts", [gameContext, tf]() { tf->setTab(TransformationTab::BREASTS, gameContext); }, true, tf->currentTab == TransformationTab::BREASTS);
 
-        // Row 2: Secondary & Genital Categories (Shift + 1..5)
         addBtn(gameContext, "6. Ass & Hips", [gameContext, tf]() { tf->setTab(TransformationTab::ASS_HIPS, gameContext); }, true, tf->currentTab == TransformationTab::ASS_HIPS);
         addBtn(gameContext, "7. Vagina", [gameContext, tf]() { tf->setTab(TransformationTab::VAGINA, gameContext); }, true, tf->currentTab == TransformationTab::VAGINA);
         addBtn(gameContext, "8. Penis", [gameContext, tf]() { tf->setTab(TransformationTab::PENIS, gameContext); }, true, tf->currentTab == TransformationTab::PENIS);
         addBtn(gameContext, "9. Crotch", [gameContext, tf]() { tf->setTab(TransformationTab::CROTCH_BOOBS, gameContext); }, true, tf->currentTab == TransformationTab::CROTCH_BOOBS);
         addBtn(gameContext, "10. Appendages", [gameContext, tf]() { tf->setTab(TransformationTab::APPENDAGES, gameContext); }, true, tf->currentTab == TransformationTab::APPENDAGES);
 
-        // Row 3: Presets & Return (Ctrl + 1..5)
         addBtn(gameContext, "11. Presets", [gameContext, tf]() { tf->setTab(TransformationTab::INSPECT_PRESETS, gameContext); }, true, tf->currentTab == TransformationTab::INSPECT_PRESETS);
         addBackBtn(gameContext, "Apply & Return", [gameContext, tf]() {
             tf->returnToPreviousOrExploration(gameContext);
@@ -414,10 +397,8 @@ void ActionGridManager::refresh(game* gameContext)
         return;
     }
 
-    // Enchanting & Infusion Altar State
     if (auto ench = dynamic_cast<enchantingState*>(currentState))
     {
-        // Button 1: Craft Item
         bool canCraft = ench->canAffordCraft(gameContext);
         int cost = ench->getTotalCost(gameContext);
         std::string craftLabel = std::format("Craft ({})", cost);
@@ -425,27 +406,21 @@ void ActionGridManager::refresh(game* gameContext)
             ench->craft(gameContext);
         }, canCraft, false, std::format("Perform crafting and imbue all staged enchantments into the item (Costs {} Arcane Essence).", cost));
 
-        // Button 2: Clear Staged
         addBtn(gameContext, "Clear Staged", [ench]() {
             ench->clearStagedEffects();
         }, !ench->stagedEffects.empty(), false, "Clear all currently staged infusion effects.");
 
-        // Button 12: Leave Altar
         addBackBtn(gameContext, "Leave Altar", [gameContext, ench]() {
             ench->exitAltar(gameContext);
         });
         return;
     }
 
-    // 7. Interactive Sex State
     if (auto sex = dynamic_cast<sexState*>(currentState))
     {
-        // -----------------------------------------------------------------
-        // 1. CLOTHING SELECTION MODE (When a paperdoll equipment tile is clicked)
-        // -----------------------------------------------------------------
         if (gameContext->selectedEquipmentSlot != equipSlot::NONE)
         {
-            int side = gameContext->selectedEquipmentSide; // 0 = Player, 1 = Partner
+            int side = gameContext->selectedEquipmentSide;
             entity* charEnt = (side == 0) ? gameContext->getPlayer() : (sex->isSolo() ? nullptr : sex->getTargetEntity());
             std::shared_ptr<item> eqItem = charEnt ? charEnt->inventory.getEquippedItem(gameContext->selectedEquipmentSlot) : nullptr;
 
@@ -455,13 +430,11 @@ void ActionGridManager::refresh(game* gameContext)
                 DisplacementMode currentDisp = charEnt->inventory.getDisplacement(selSlot);
                 std::string targetDesc = (side == 0) ? "your" : std::format("{}'s", charEnt->name);
 
-                // Slot 0: Remove Item (Fully strip this piece)
                 std::string removeLabel = "Remove " + eqItem->name;
                 addBtn(gameContext, removeLabel, [gameContext, sex, side, selSlot]() {
                     sex->handleClothingAction(gameContext, side, selSlot, DisplacementMode::NONE, true);
                 }, true, false, std::format("Fully remove and strip {} {} from their body.", targetDesc, eqItem->name));
 
-                // Partial Undressing Options based on slot and item displacements
                 bool canPullDown = (selSlot == equipSlot::LEGS_OUTER ||
                                     selSlot == equipSlot::GROIN_OVER ||
                                     selSlot == equipSlot::HIPS_WEAR || selSlot == equipSlot::ASS_WEAR ||
@@ -529,7 +502,6 @@ void ActionGridManager::refresh(game* gameContext)
                     }, true, false, std::format("Restore {} {} to its properly worn fit.", targetDesc, eqItem->name));
                 }
 
-                // Deselect / Back button
                 addBackBtn(gameContext, "Deselect Item", [gameContext]() {
                     gameContext->selectedEquipmentSlot = equipSlot::NONE;
                     gameContext->refreshActionGrid();
@@ -551,7 +523,6 @@ void ActionGridManager::refresh(game* gameContext)
         }
         const auto& actions = sex->getAvailableActions();
 
-        // 1. Position / Stances Tab
         if (activeCat == "Position" || activeCat == "Stances" || activeCat == "Stance")
         {
             if (sex->isSolo())
@@ -607,7 +578,6 @@ void ActionGridManager::refresh(game* gameContext)
         }
         else
         {
-            // Stop ongoing continuous action buttons for each active player action
             auto playerOngoing = sex->getOngoingActionsForParticipant(0);
             for (const auto* ongoing : playerOngoing)
             {
@@ -618,7 +588,6 @@ void ActionGridManager::refresh(game* gameContext)
                 }, true, true, std::format("Disengage and stop your ongoing action '{}'.", ongoing->actionName));
             }
 
-            // Target Partner switching in multi-participant scenes (under Partner tab)
             if (activeCat == "Partner" && sex->getParticipantCount() > 2)
             {
                 const auto& parts = sex->getParticipants();
@@ -632,7 +601,6 @@ void ActionGridManager::refresh(game* gameContext)
                 }
             }
 
-            // In Generic tab, include Undress All buttons, Struggle, and End Encounter
             if (activeCat == "Generic")
             {
                 entity* playerEnt = gameContext->getPlayer();
@@ -674,12 +642,10 @@ void ActionGridManager::refresh(game* gameContext)
             const SexParticipant* playerP = sex->getPlayerParticipant();
             const SexParticipant* targetP = sex->isSolo() ? playerP : sex->getTargetParticipant();
 
-            // Category Actions (Filtered strictly by active category)
             for (size_t i = 0; i < actions.size(); ++i)
             {
                 if (actions[i].category != activeCat) continue;
 
-                // Generic strip actions are filtered out so they only appear via paperdoll clothing selection and Undress All buttons
                 if (actions[i].id == "generic_cmd_strip" || actions[i].id == "generic_undress_mutual" ||
                     actions[i].id == "partner_strip" || actions[i].id == "self_strip" || actions[i].id == "sub_strip_offer")
                 {
@@ -702,7 +668,6 @@ void ActionGridManager::refresh(game* gameContext)
                     effects += " | [Continuous]";
                 }
 
-                // Check clothing & body part accessibility
                 std::string inaccReason;
                 bool accessible = true;
                 if (playerP && targetP)
@@ -737,7 +702,6 @@ void ActionGridManager::refresh(game* gameContext)
         return;
     }
 
-    // 8. Phone Apps & Submenus
     if (auto phoneApp = dynamic_cast<phoneAppsState*>(currentState))
     {
         auto setApp = [gameContext, phoneApp](PhoneAppMode mode) {
@@ -748,14 +712,12 @@ void ActionGridManager::refresh(game* gameContext)
 
         if (phoneApp->getAppMode() == PhoneAppMode::HOME)
         {
-            // Row 1: Core Character Apps (Slots 0..4)
             addBtn(gameContext, "Quests", [=]() { setApp(PhoneAppMode::QUESTS); }, true, false, "View active quest objectives, stages, and rewards.");
             addBtn(gameContext, "Perk Tree", [=]() { setApp(PhoneAppMode::PERKS); }, true, false, "Browse and allocate talent perks and passive traits.");
             addBtn(gameContext, "Spells", [=]() { setApp(PhoneAppMode::SPELLS); }, true, false, "Review elemental spellbooks and cast out-of-combat spells.");
             addBtn(gameContext, "Fetishes", [=]() { setApp(PhoneAppMode::FETISHES); }, true, false, "Configure 5-tier desire ratings and sexual preferences.");
             addBtn(gameContext, "Stats", [=]() { setApp(PhoneAppMode::STATS); }, true, false, "Inspect core vitals, body measurements, and sex stats.");
 
-            // Row 2: Secondary Utilities & Lore (Slots 5..9)
             addBtn(gameContext, "Selfie", [=]() { setApp(PhoneAppMode::SELFIE); }, true, false, "Take a selfie to inspect appearance, clothing, and modesty.");
             addBtn(gameContext, "Contacts", [=]() { setApp(PhoneAppMode::CONTACTS); }, true, false, "Address book of known characters and companions.");
             addBtn(gameContext, "Encyclopedia", [=]() { setApp(PhoneAppMode::ENCYCLOPEDIA); }, true, false, "Compendium of discovered species, weapons, and items.");
@@ -764,7 +726,6 @@ void ActionGridManager::refresh(game* gameContext)
             }, true, false, "Inspect mutations, bodily morphs, and alchemy.");
             addBtn(gameContext, "Maps", [=]() { setApp(PhoneAppMode::MAPS); }, true, false, "World and local regional maps with coordinates.");
 
-            // Row 3: Combat, Intimacy & Rest (Slots 10..14)
             addBtn(gameContext, "Combat Moves", [=]() { setApp(PhoneAppMode::COMBAT_MOVES); }, true, false, "Prepare and customize active combat deck slots.");
             addBtn(gameContext, "Masturbate", [=]() { setApp(PhoneAppMode::MASTURBATE); }, true, false, "Take a secluded moment to relieve lust and build arousal.");
             addBtn(gameContext, "Wait / Rest", [=]() { setApp(PhoneAppMode::WAIT_REST); }, true, false, "Pass in-game time, sleep, and recover health/mana.");
@@ -775,7 +736,6 @@ void ActionGridManager::refresh(game* gameContext)
             return;
         }
 
-        // --- Submenu Modes ---
         if (phoneApp->getAppMode() == PhoneAppMode::WAIT_REST)
         {
             addBtn(gameContext, "Wait 15 Mins", [gameContext, phoneApp]() {
@@ -936,7 +896,6 @@ void ActionGridManager::refresh(game* gameContext)
                 }, true, isSelected, tooltip);
             }
 
-            // Slot 10 (Row 3, Col 1): Clear Slot
             addBtn(gameContext, "Clear Slot", [gameContext, phoneApp]() {
                 entity* p = gameContext->getPlayer();
                 int s = phoneApp->getSelectedCombatSlot();
@@ -968,7 +927,6 @@ void ActionGridManager::refresh(game* gameContext)
             }
         }
 
-        // Slot 14: Universal Back button in all submenus
         padButtonsTo(gameContext, 14);
         addBtn(gameContext, "Back", [gameContext, phoneApp]() {
             if (phoneApp->getAppMode() == PhoneAppMode::CONTACTS && phoneApp->getContactsSelectedIdx() >= 0)
@@ -984,7 +942,6 @@ void ActionGridManager::refresh(game* gameContext)
         return;
     }
 
-    // 9. Encounter Resolution Hub
     if (auto resState = dynamic_cast<encounterResolutionState*>(currentState))
     {
         const auto& records = resState->getDefeatedRecords();
@@ -995,7 +952,6 @@ void ActionGridManager::refresh(game* gameContext)
             const auto& rec = records[selectedIdx];
             bool canTransform = (rec.npc && rec.npc->canTransform());
 
-            // Slot 0: Inventory
             addBtn(gameContext, "Loot & Equipment", [gameContext]() {
                 gameContext->handleCommand({ CommandType::OPEN_INVENTORY, 0, 0, "" });
             }, true, false, "Open dual-inventory to inspect, unequip, and take the adversary's carried items and equipment.");
@@ -1005,31 +961,26 @@ void ActionGridManager::refresh(game* gameContext)
                                    (gameContext->settings.content.contentFilterMode == ContentFilterMode::BLOCK_AND_SKIP);
             bool isNonConWarn = nonConNever && (gameContext->settings.content.contentFilterMode == ContentFilterMode::WARN_CONFIRM);
 
-            // Slot 1: Dom
             std::string domLabel = isNonConBlocked ? "[Locked: Non-Con]" : (isNonConWarn ? "[!] Dom Scene" : "Dom Scene");
             addBtn(gameContext, domLabel, [gameContext]() {
                 gameContext->handleCommand({ CommandType::INTERACTIVE_SEX_DOM, 0, 0, "" });
             }, !isNonConBlocked, false, isNonConBlocked ? "Non-consensual scenes are blocked by your Content Settings." : "Initiate an intimate encounter taking the dominant lead.");
 
-            // Slot 2: Sub
             std::string subLabel = isNonConBlocked ? "[Locked: Non-Con]" : (isNonConWarn ? "[!] Sub Scene" : "Sub Scene");
             addBtn(gameContext, subLabel, [gameContext]() {
                 gameContext->handleCommand({ CommandType::INTERACTIVE_SEX_SUB, 0, 0, "" });
             }, !isNonConBlocked, false, isNonConBlocked ? "Non-consensual scenes are blocked by your Content Settings." : "Initiate an intimate encounter in a submissive role.");
 
-            // Slot 3: Transform (enabled if enemy can transform itself)
             addBtn(gameContext, "Transform", [gameContext]() {
                 gameContext->handleCommand({ CommandType::TRANSFORM_ENEMY, 0, 0, "" });
             }, canTransform, false, canTransform
                 ? "Enter transformation studio to customize this adversary's anatomy to your liking."
                 : "This enemy does not possess metamorphic abilities to transform.");
 
-            // Slot 4: Talk
             addBtn(gameContext, "Talk", [gameContext]() {
                 gameContext->handleCommand({ CommandType::TALK_ENEMY, 0, 0, "" });
             }, true, false, "Speak with the defeated adversary to build rapport and befriend them.");
 
-            // Row 1 (Slots 5..9): Target Selection if multiple enemies
             if (records.size() > 1)
             {
                 padButtonsTo(gameContext, 5);
@@ -1041,13 +992,11 @@ void ActionGridManager::refresh(game* gameContext)
                 }
             }
 
-            // Row 2: Slot 10 (Bottom-Left) = Remove Character
             padButtonsTo(gameContext, 10);
             addBtn(gameContext, rec.isPermanentlyRemoved ? "Removed" : "Remove Character", [gameContext]() {
                 gameContext->handleCommand({ CommandType::PERMANENTLY_REMOVE_ENEMY, 0, 0, "" });
             }, !rec.isPermanentlyRemoved, false, "Permanently remove this defeated enemy from the area, preventing respawns.");
 
-            // Row 2: Slot 14 (Bottom-Right) = Continue
             padButtonsTo(gameContext, 14);
             addBtn(gameContext, "Continue", [gameContext]() {
                 gameContext->handleCommand({ CommandType::CLOSE_MENU, 0, 0, "" });
@@ -1062,7 +1011,6 @@ void ActionGridManager::refresh(game* gameContext)
         return;
     }
 
-    // 10. Inventory State Actions
     if (dynamic_cast<inventoryState*>(currentState))
     {
         auto p = gameContext->getPlayer();
@@ -1121,7 +1069,6 @@ void ActionGridManager::refresh(game* gameContext)
                     gameContext->handleUnequipNPCAction(gameContext->selectedEquipmentSlot);
                 }, canUnequip, false, unequipDesc);
 
-                // If player has an item selected in backpack that matches this NPC slot, allow equipping directly
                 if (gameContext->selectedInventorySide == 0 && gameContext->selectedInventoryIndex != -1)
                 {
                     auto selSlot = gameContext->getInventorySlotItem(0, gameContext->selectedInventoryIndex);
@@ -1316,7 +1263,6 @@ void ActionGridManager::refresh(game* gameContext)
         }
         else
         {
-            // Global Inventory Actions (nothing selected)
             entity* targetNpc = gameContext->getActiveTargetNPC();
             if (targetNpc)
             {
@@ -1403,7 +1349,6 @@ void ActionGridManager::refresh(game* gameContext)
         return;
     }
 
-    // 11. Combat State Actions
     if (auto combat = dynamic_cast<CombatState*>(currentState))
     {
         auto& players = combat->getEngine().getPlayerParty();
@@ -1448,7 +1393,6 @@ void ActionGridManager::refresh(game* gameContext)
                 gameContext->handleCommand({ CommandType::SELECT_COMBAT_FOCUS, 0, 0, "ITEM" });
             }, true, false, "Select Item Focus: Consume restorative elixirs, potions, and crystals.");
 
-            // Control Actions
             addBtn(gameContext, "End Turn", [combat, gameContext]() {
                 combat->handleEndTurn(gameContext);
             }, true, false, "Conclude planning phase and resolve all queued turn actions.");
@@ -1666,7 +1610,6 @@ void ActionGridManager::refresh(game* gameContext)
         }
     }
 
-    // 12. Scene Event Choices (Data-Driven Tooltips & Greyed-Out when requirements unmet)
     if (dynamic_cast<eventState*>(currentState))
     {
         const auto& scene = gameContext->getCurrentScene();
@@ -1728,10 +1671,8 @@ void ActionGridManager::refresh(game* gameContext)
         return;
     }
 
-    // 13. Exploration Movement & Interaction Shortcuts
     if (dynamic_cast<explorationState*>(currentState))
     {
-        // Row 1: Context Actions on Tile (Warps, NPCs, Map & Quest Triggers, Ground Loot, Merchants)
         if (gameContext->map)
             {
                 MapWarp warp;
@@ -1750,7 +1691,6 @@ void ActionGridManager::refresh(game* gameContext)
                 auto& tileData = gameContext->map->getRuntimeData(gameContext->gridX, gameContext->gridY);
                 auto targetNPC = gameContext->getActiveTargetNPCShared();
 
-                // Exploration Encounter Action: Explore (rerolls tile encounter chance)
                 bool isRestocking = tileData.ambushState.isDefeated && tileData.ambushState.restockMinutesRemaining > 0;
                 bool hasEncounterHazard = !tileData.ambushState.isPermanentlyRemoved && !isRestocking &&
                                           (tileData.getEffectiveDangerLevel() > 0 ||
@@ -1803,7 +1743,6 @@ void ActionGridManager::refresh(game* gameContext)
                     }
                 }
 
-                // Map & Quest Triggers on this tile (deduplicated by id)
                 std::unordered_set<std::string> addedTriggerIds;
 
                 auto tileTriggers = gameContext->map->getTriggersAt(gameContext->gridX, gameContext->gridY);

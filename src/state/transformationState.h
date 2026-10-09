@@ -42,9 +42,6 @@ inline const char* transformationTabToString(TransformationTab tab)
 class game;
 class entity;
 
-/**
- * Headless state controller for Full Body Transformations and Anatomy Customization.
- */
 class transformationState : public iGameState
 {
 public:

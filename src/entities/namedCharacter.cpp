@@ -18,7 +18,6 @@ std::unordered_map<std::string, std::shared_ptr<NamedCharacter>> NamedCharacterM
 
 bool NamedCharacter::resolveLocation(int hour, int dayOfWeek, const questComponent* quests, const game* gameCtx)
 {
-    // 1. Evaluate Quest-Driven NPC Relocations from questDatabase first
     if (quests)
     {
         auto questRelocs = questDatabase::getRelocationsForNPC(id);
@@ -55,7 +54,6 @@ bool NamedCharacter::resolveLocation(int hour, int dayOfWeek, const questCompone
             }
         }
 
-        // 1b. Character-specific questOverrides (if any)
         for (const auto& qOverride : questOverrides)
         {
             if (quests->hasQuest(qOverride.questId))
@@ -90,7 +88,6 @@ bool NamedCharacter::resolveLocation(int hour, int dayOfWeek, const questCompone
         }
     }
 
-    // 2. Evaluate Hourly Daily Schedule
     for (const auto& sched : schedules)
     {
         if (!sched.daysOfWeek.empty())
@@ -108,7 +105,6 @@ bool NamedCharacter::resolveLocation(int hour, int dayOfWeek, const questCompone
         }
         else
         {
-            // Overnight window (e.g. 22:00 to 08:00)
             inWindow = (hour >= sched.startHour || hour < sched.endHour);
         }
 
@@ -123,7 +119,6 @@ bool NamedCharacter::resolveLocation(int hour, int dayOfWeek, const questCompone
         }
     }
 
-    // Fallback to first schedule entry if defined
     if (!schedules.empty())
     {
         currentMapId = schedules.front().mapId;
@@ -249,7 +244,6 @@ bool NamedCharacterManager::loadFromDirectory(const std::string& dirPath)
 
         nc->characterEntity = ent;
 
-        // Schedules
         if (cJson.contains("schedules") && cJson["schedules"].is_array())
         {
             for (const auto& sJson : cJson["schedules"])
@@ -269,7 +263,6 @@ bool NamedCharacterManager::loadFromDirectory(const std::string& dirPath)
             }
         }
 
-        // Quest Overrides
         if (cJson.contains("questOverrides") && cJson["questOverrides"].is_array())
         {
             for (const auto& qJson : cJson["questOverrides"])
@@ -369,7 +362,6 @@ void NamedCharacterManager::updateAllLocations(game* g)
 
         if (oldMap != nc->currentMapId || oldX != nc->currentX || oldY != nc->currentY)
         {
-            // Remove from old map if loaded
             if (g->map && g->map->getId() == oldMap)
             {
                 auto& oldTile = g->map->getRuntimeData(oldX, oldY);
@@ -389,7 +381,6 @@ void NamedCharacterManager::updateAllLocations(game* g)
                 }
             }
 
-            // Add to new map if loaded
             if (g->map && g->map->getId() == nc->currentMapId)
             {
                 auto& newTile = g->map->getRuntimeData(nc->currentX, nc->currentY);

@@ -157,7 +157,6 @@ void printStateDetails(game& engine)
 
 int main(int argc, char* argv[])
 {
-    // Check for automated test execution flag
     for (int i = 1; i < argc; ++i)
     {
         std::string arg = argv[i];

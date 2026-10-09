@@ -42,7 +42,6 @@
 
 uiRenderer::uiRenderer()
 {
-    // Attempt loading custom layout from active settings or candidate paths
     GameSettings settings;
     settingsManager::loadFromFile(settings);
     std::string layoutName = settings.display.activeLayout.empty() ? "default" : settings.display.activeLayout;
@@ -80,11 +79,9 @@ uiRenderer::uiRenderer()
         m_layoutEngine.loadDefaultLayout();
     }
 
-    // Load active theme
     std::string themeName = settings.display.activeTheme.empty() ? "default" : settings.display.activeTheme;
     Theme::applyTheme(themeName);
 
-    // Attempt loading primary TTF font with fallback to embedded font
     fontManager::getInstance().loadFont("data/fonts/Roboto/static/Roboto-Medium.ttf", 14.0f);
 }
 
@@ -94,7 +91,6 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
 {
     if (!renderer || !gameContext) return;
 
-    // Query native screen/window render output size for non-stretched pixel-perfect drawing
     int winW = 1280, winH = 720;
     SDL_GetRenderOutputSize(renderer, &winW, &winH);
 
@@ -147,7 +143,6 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
 
     auto panels = m_layoutEngine.computeLayout(static_cast<float>(winW), static_cast<float>(winH), uiScale, stateKey);
 
-    // Clear Screen with Dark Theme Background
     SDL_SetRenderDrawColor(renderer, Theme::colors.bgDark.r, Theme::colors.bgDark.g, Theme::colors.bgDark.b, Theme::colors.bgDark.a);
     SDL_RenderClear(renderer);
     TooltipManager::clear();
@@ -158,7 +153,6 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
 
     const auto mousePos = gameContext->input.getMousePosition();
 
-    // Dispatch panel renderers matching calculated layout bounds
     for (const auto& p : panels)
     {
         SDL_Rect clipRect = {
@@ -282,7 +276,6 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
         SDL_SetRenderClipRect(renderer, nullptr);
     }
  
-    // Handle Mouse Wheel Scrolling on Hovered Panel (if not consumed by inner widgets during render)
     const float remainingWheelY = gameContext->input.getMouseWheelY();
     if (remainingWheelY != 0.0f)
     {
@@ -303,7 +296,6 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
         gameContext->input.consumeMouseWheel();
     }
 
-    // Render universal topmost tooltip overlay before presenting
     TooltipManager::render(renderer, uiScale, static_cast<float>(winW), static_cast<float>(winH), mousePos);
 
     SDL_RenderPresent(renderer);
@@ -318,12 +310,10 @@ void uiRenderer::drawScrollbar(SDL_Renderer* renderer, const SDL_FRect& panelRec
     float trackY = panelRect.y + (2.0f * uiScale);
     float trackH = panelRect.h - (4.0f * uiScale);
 
-    // Track background
     SDL_FRect trackRect = { trackX, trackY, barW, trackH };
     SDL_SetRenderDrawColor(renderer, 20, 20, 28, 140);
     SDL_RenderFillRect(renderer, &trackRect);
 
-    // Scroll thumb
     float thumbH = std::max(16.0f * uiScale, (panelRect.h / contentHeight) * trackH);
     float maxScroll = contentHeight - panelRect.h;
     float thumbY = trackY + (maxScroll > 0.0f ? (currentScroll / maxScroll) * (trackH - thumbH) : 0.0f);
@@ -337,17 +327,14 @@ void uiRenderer::renderTopBar(SDL_Renderer* renderer, game* gameContext, const S
 {
     UIWidget::drawPanel(renderer, rect, Theme::colors.bgHeader, Theme::colors.borderNormal);
 
-    // Left: Game Title
     UIWidget::drawText(renderer, "textRPG v0.5.0", rect.x + (12.0f * uiScale), rect.y + ((rect.h - (10.0f * uiScale)) / 2.0f), Theme::colors.textGold, uiScale);
 
-    // Center: Currency
     if (entity* p = gameContext->getPlayer())
     {
         std::string goldStr = std::format("{:.0f}¤", p->getStat("currency"));
         UIWidget::drawText(renderer, goldStr, rect.x + (rect.w * 0.45f), rect.y + ((rect.h - (10.0f * uiScale)) / 2.0f), Theme::colors.textGold, uiScale);
     }
 
-    // Right: Dedicated Menu / Options Button
     float menuBtnW = 90.0f * uiScale;
     float menuBtnH = std::max(20.0f, rect.h - (10.0f * uiScale));
     float menuBtnX = rect.x + rect.w - menuBtnW - (8.0f * uiScale);
@@ -379,7 +366,6 @@ void uiRenderer::renderTopBar(SDL_Renderer* renderer, game* gameContext, const S
         gameContext->input.consumeMouseClick();
     }
 
-    // Right: Map Location Badge
     if (const gameMap* m = gameContext->getActiveMap())
     {
         std::string locStr = std::format("{}", m->getName());
@@ -406,7 +392,6 @@ void uiRenderer::renderBottomActionGrid(SDL_Renderer* renderer, game* gameContex
     auto mousePos = gameContext->input.getMousePosition();
     bool clicked = gameContext->input.isLeftMouseJustClicked();
 
-    // 0. Category Tabs Strip (Rendered above grid if categories defined)
     const auto& categories = gameContext->getActionCategories();
     float tabH = 0.0f;
     if (!categories.empty())
@@ -453,7 +438,6 @@ void uiRenderer::renderBottomActionGrid(SDL_Renderer* renderer, game* gameContex
     float padY = rect.y + (6.0f * uiScale) + (tabH > 0.0f ? (tabH + 3.0f * uiScale) : 0.0f);
     float gridH = rect.h - (padY - rect.y) - (6.0f * uiScale);
 
-    // 1. Left Side Pagination (< and Q)
     SDL_FRect leftTopRect = { rect.x + marginX, padY, sideBtnW, (gridH / 3.0f) - (2.0f * uiScale) };
     SDL_FRect leftMidRect = { rect.x + marginX, padY + (gridH / 3.0f), sideBtnW, (gridH * 2.0f / 3.0f) };
     bool leftHovered = (mousePos.x >= leftMidRect.x && mousePos.x <= leftMidRect.x + leftMidRect.w &&
@@ -469,7 +453,6 @@ void uiRenderer::renderBottomActionGrid(SDL_Renderer* renderer, game* gameContex
         gameContext->input.consumeMouseClick();
     }
 
-    // 2. Right Side Pagination (> and E)
     float rightX = rect.x + rect.w - marginX - sideBtnW;
     SDL_FRect rightTopRect = { rightX, padY, sideBtnW, (gridH / 3.0f) - (2.0f * uiScale) };
     SDL_FRect rightMidRect = { rightX, padY + (gridH / 3.0f), sideBtnW, (gridH * 2.0f / 3.0f) };
@@ -486,7 +469,6 @@ void uiRenderer::renderBottomActionGrid(SDL_Renderer* renderer, game* gameContex
         gameContext->input.consumeMouseClick();
     }
 
-    // 3. Middle 3x5 Grid
     float gridX = rect.x + marginX + sideBtnW + (6.0f * uiScale);
     float availableW = (rightX - (6.0f * uiScale)) - gridX;
     float spaceX = 6.0f * uiScale;
@@ -538,7 +520,6 @@ void uiRenderer::renderBottomActionGrid(SDL_Renderer* renderer, game* gameContex
         }
         else
         {
-            // Unused boxes are completely empty (no text, no dash, no hotkey)
             SDL_SetRenderDrawColor(renderer, Theme::colors.bgSlot.r, Theme::colors.bgSlot.g, Theme::colors.bgSlot.b, Theme::colors.bgSlot.a);
             SDL_RenderFillRect(renderer, &btnRect);
             SDL_SetRenderDrawColor(renderer, Theme::colors.borderButtonDisabled.r, Theme::colors.borderButtonDisabled.g, Theme::colors.borderButtonDisabled.b, Theme::colors.borderButtonDisabled.a);

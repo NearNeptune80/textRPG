@@ -261,14 +261,12 @@ struct EditorConfig {
         cfg.finishButtonText = "BEGIN ADVENTURE";
         cfg.isNewGameCreation = true;
         
-        // Identity
         cfg.rules["gender"] = { .enabled = true };
         cfg.rules["femininity"] = { .enabled = true };
         cfg.rules["orientation"] = { .enabled = true };
         cfg.rules["start_month"] = { .enabled = true };
         cfg.rules["birth_month"] = { .enabled = true };
 
-        // Body
         cfg.rules["height"] = { .enabled = true, .minRange = 140.0f, .maxRange = 210.0f };
         cfg.rules["body_size"] = { .enabled = true, .allowedChoices = {"Skinny", "Slender", "Average", "Muscular", "Chubby"} };
         cfg.rules["muscle"] = { .enabled = true, .allowedChoices = {"Soft", "Lightly muscled", "Toned", "Muscular", "Ripped"} };
@@ -276,20 +274,16 @@ struct EditorConfig {
         cfg.rules["chest_size"] = { .enabled = true, .allowedChoices = {"Flat", "A", "B", "C", "D", "DD"} };
         cfg.rules["genitals"] = { .enabled = true, .minRange = 8.0f, .maxRange = 24.0f };
 
-        // Face & Hair
         cfg.rules["eye_color"] = { .enabled = true, .allowedChoices = {"Blue", "Green", "Brown", "Amber", "Hazel", "Red", "Violet", "Black"} };
         cfg.rules["hair_style"] = { .enabled = true };
         cfg.rules["hair_color"] = { .enabled = true, .allowedChoices = {"Black", "Dark Brown", "Auburn", "Blonde", "Platinum", "Silver", "Red"} };
         cfg.rules["hair_length"] = { .enabled = true, .minRange = 2.0f, .maxRange = 120.0f };
         cfg.rules["ear_type"] = { .enabled = true, .allowedChoices = {"Human"} };
 
-        // Wardrobe
         cfg.rules["wardrobe"] = { .enabled = true };
 
-        // Personality
         cfg.rules["personality_traits"] = { .enabled = true };
 
-        // Name & Finish
         cfg.rules["first_name"] = { .enabled = true };
         cfg.rules["surname"] = { .enabled = true };
 
@@ -323,7 +317,6 @@ struct EditorConfig {
         cfg.finishButtonText = "APPLY TRANSFORMATIONS";
         cfg.isNewGameCreation = false;
         
-        // All options enabled with full exotic choices
         cfg.rules["gender"] = { .enabled = true };
         cfg.rules["femininity"] = { .enabled = true };
         cfg.rules["orientation"] = { .enabled = true };

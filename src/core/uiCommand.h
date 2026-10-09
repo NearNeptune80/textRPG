@@ -3,11 +3,6 @@
 #include <string>
 #include <utility>
 
-/**
- * Abstract intent types emitted by the UI View layer on user input.
- * Allows the game engine to execute logic without knowing anything
- * about screen layout, pixel coordinates, or rendering bounds.
- */
 enum class CommandType
 {
 	MOVE_PLAYER,
@@ -30,7 +25,6 @@ enum class CommandType
 	TRIGGER_INTERACTION,
 	CLOSE_MENU,
 
-	// Solo Intimacy & Elemental Companions
 	MASTURBATE_ACTION,
 	FAMILIAR_ACTION,
 	ASSIGN_COMBAT_SLOT,
@@ -39,27 +33,22 @@ enum class CommandType
 	SAVE_SETTINGS,
 	TOGGLE_DROPDOWN,
 
-	// Action Grid Navigation & Triggers
 	TRIGGER_ACTION_BUTTON,
 	PREVIOUS_ACTION_PAGE,
 	NEXT_ACTION_PAGE,
 
-	// Persistence Hotkeys
 	QUICK_SAVE,
 	QUICK_LOAD,
 
-	// Text & Keyboard Input (Decoupled from SDL)
 	TEXT_INPUT,
 	TEXT_BACKSPACE,
 	CONFIRM_INPUT,
 	CANCEL_INPUT,
 
-	// Tab & Subview Selection
 	SELECT_TAB,
 	SET_SUBVIEW,
 	SET_PROPERTY,
 
-	// Encounter Resolution Hub Commands
 	SELECT_RESOLUTION_TARGET,
 	LOOT_ENEMY,
 	STRIP_ENEMY,
@@ -72,13 +61,11 @@ enum class CommandType
 	RELEASE_ENEMY,
 	PERMANENTLY_REMOVE_ENEMY,
 
-	// Sex State Commands
 	EXECUTE_SEX_ACTION,
 	CHANGE_SEX_STANCE,
 	SELECT_SEX_TARGET,
 	END_SEX_SCENE,
 
-	// Main Menu & Navigation Commands
 	START_NEW_GAME,
 	CONTINUE_GAME,
 	LOAD_GAME_SLOT,
@@ -118,7 +105,6 @@ struct UICommand
 	UICommand(CommandType t, int p1, int p2, std::string s1, std::string s2 = "")
 		: type(t), intPayload1(p1), intPayload2(p2), stringPayload(std::move(s1)), stringPayload2(std::move(s2)) {}
 
-	// Static factory helpers for decoupled UI event dispatch
 	static UICommand textInput(std::string s) { return UICommand(CommandType::TEXT_INPUT, std::move(s)); }
 	static UICommand textBackspace() { return UICommand(CommandType::TEXT_BACKSPACE); }
 	static UICommand confirmInput() { return UICommand(CommandType::CONFIRM_INPUT); }

@@ -43,11 +43,9 @@ namespace
 			}
 		};
 
-		// Fix possessive You's -> your
 		replaceAll(text, "You's", "your");
 		replaceAll(text, "you's", "your");
 
-		// Fix 3rd person verbs after "You "
 		static const std::pair<std::string, std::string> verbFixes[] = {
 			{ "You leans in and passionately captures", "You lean in and passionately capture" },
 			{ "passionately captures", "passionately capture" },
@@ -183,7 +181,7 @@ sexState::sexState(std::shared_ptr<entity> partner, SexStance initialStance, flo
 	player.isPlayer = true;
 	player.side = 0;
 	player.dominanceScore = initialDominance;
-	player.stamina = (initialDominance < -30.0f) ? 15.0f : 100.0f; // low stamina if recently defeated
+	player.stamina = (initialDominance < -30.0f) ? 15.0f : 100.0f;
 	m_participants.push_back(player);
 
 	if (partner)
@@ -290,13 +288,11 @@ void sexState::initialise(game* gameContext)
 {
 	if (!gameContext) return;
 
-	// Link player entity
 	if (auto* playerP = getPlayerParticipant())
 	{
 		playerP->rawCharacter = gameContext->getPlayer();
 	}
 
-	// Default active target
 	if (auto* targetP = getTargetParticipant())
 	{
 		if (targetP->character) gameContext->activeTargetNPC = targetP->character;
@@ -565,7 +561,6 @@ std::vector<SexAction> sexState::buildMasterActionDatabase() const
 		catch (...) {}
 	}
 
-	// Fallback actions if file missing
 	SexAction kiss;
 	kiss.id = "partner_kiss";
 	kiss.name = "Passionate Kiss";
@@ -808,7 +803,6 @@ void sexState::handleClothingAction(game* gameContext, int side, equipSlot slot,
 		}
 	}
 
-	// Dominance & arousal shift
 	if (side == 1)
 	{
 		playerP->dominanceScore = std::clamp(playerP->dominanceScore + 2.0f, -100.0f, 100.0f);
@@ -824,7 +818,6 @@ void sexState::handleClothingAction(game* gameContext, int side, equipSlot slot,
 
 	appendNarrativeEntry(narrative, "You", actionTitle, true, false);
 
-	// Tick background ongoing actions
 	for (auto& oa : m_ongoingActions)
 	{
 		if (oa.actorIndex == 0)
@@ -889,7 +882,6 @@ void sexState::handleUndressAll(game* gameContext, bool targetIsPlayer)
 	gameContext->selectedEquipmentSlot = equipSlot::NONE;
 	appendNarrativeEntry(narrative, "You", actionTitle, true, false);
 
-	// Tick background ongoing actions
 	for (auto& oa : m_ongoingActions)
 	{
 		if (oa.actorIndex == 0)
@@ -926,7 +918,6 @@ bool sexState::isActionAccessible(const SexAction& action, const SexParticipant&
 	entity* actorEnt = actor.getEntity();
 	entity* targetEnt = target.getEntity();
 
-	// Undressing actions availability
 	if (action.id == "partner_strip" || action.id == "generic_cmd_strip")
 	{
 		if (targetEnt && targetEnt->inventory.isFullyExposed())
@@ -957,7 +948,6 @@ bool sexState::isActionAccessible(const SexAction& action, const SexParticipant&
 		return true;
 	}
 
-	// 1. Target Groin Access Check
 	bool needsTargetGroin = (action.targetSlot == bodySlot::GROIN || action.requiresExposedGenitals ||
 	                         action.id.find("penetrate") != std::string::npos ||
 	                         (action.id.find("oral") != std::string::npos && action.id != "partner_oral_receive") ||
@@ -980,7 +970,6 @@ bool sexState::isActionAccessible(const SexAction& action, const SexParticipant&
 		}
 	}
 
-	// 2. Target Ass Access Check
 	bool needsTargetAss = (action.targetSlot == bodySlot::ASS || action.id.find("anal") != std::string::npos ||
 	                       action.id.find("rimjob") != std::string::npos || action.id.find("finger_anus") != std::string::npos);
 	if (needsTargetAss && targetEnt)
@@ -995,7 +984,6 @@ bool sexState::isActionAccessible(const SexAction& action, const SexParticipant&
 		}
 	}
 
-	// 3. Target Breasts Access Check
 	bool needsTargetBreasts = (action.targetSlot == bodySlot::BREASTS || action.targetSlot == bodySlot::NIPPLES ||
 	                           action.id.find("breast") != std::string::npos || action.id.find("nipple") != std::string::npos);
 	if (needsTargetBreasts && targetEnt)
@@ -1010,7 +998,6 @@ bool sexState::isActionAccessible(const SexAction& action, const SexParticipant&
 		}
 	}
 
-	// 4. Actor Groin Access Check
 	bool needsActorGroin = (action.actorSlot == bodySlot::GROIN || action.id.find("penetrate") != std::string::npos ||
 	                        action.id.find("ride") != std::string::npos || action.id.find("oral_receive") != std::string::npos ||
 	                        action.id.find("deepthroat") != std::string::npos ||
@@ -1027,7 +1014,6 @@ bool sexState::isActionAccessible(const SexAction& action, const SexParticipant&
 		}
 	}
 
-	// 5. Actor Breasts Access Check (Self category)
 	bool needsActorBreasts = (action.category == "Self" && (action.targetSlot == bodySlot::BREASTS || action.targetSlot == bodySlot::NIPPLES));
 	if (needsActorBreasts && actorEnt)
 	{
@@ -1041,7 +1027,6 @@ bool sexState::isActionAccessible(const SexAction& action, const SexParticipant&
 		}
 	}
 
-	// 6. Mouth Obstruction Check
 	if (action.actorSlot == bodySlot::MOUTH && actorEnt && !actorEnt->inventory.isSlotExposed(bodySlot::MOUTH))
 	{
 		if (outInaccessibleReason) *outInaccessibleReason = actor.isPlayer ? "Your mouth is obstructed." : std::format("{}'s mouth is obstructed.", actor.getName());
@@ -1240,7 +1225,6 @@ void sexState::changeStance(SexStance newStance)
 		}
 	}
 
-	// Invalidate any ongoing action incompatible with new stance
 	auto allActions = buildMasterActionDatabase();
 	auto it = m_ongoingActions.begin();
 	while (it != m_ongoingActions.end())
@@ -1405,7 +1389,6 @@ void sexState::processOngoingActions(game* gameContext)
 	{
 		if (oa.actorIndex >= m_participants.size()) continue;
 
-		// Stance compatibility check
 		auto actIt = std::find_if(allActions.begin(), allActions.end(), [&oa](const SexAction& a) {
 			return a.id == oa.actionId;
 		});
@@ -1466,7 +1449,6 @@ void sexState::processOngoingActions(game* gameContext)
 			: std::format("{} continues {} on {}, intensifying sensations.", actor.getName(), oa.actionName, target.getName());
 		appendNarrativeEntry(narr, actor.getName(), oa.actionName + " (Ongoing)", actor.isPlayer, false);
 
-		// Fluid transfer if applicable
 		if (oa.fluidProducedMl > 0.0f && gameContext)
 		{
 			entity* actorEnt = actor.getEntity();
@@ -1483,7 +1465,6 @@ void sexState::processOngoingActions(game* gameContext)
 			}
 		}
 
-		// Orgasms check during continuous tick
 		if (actor.arousal >= 100.0f)
 		{
 			processOrgasm(gameContext, actor.getEntity(), target.getEntity(), oa.targetSlot);
@@ -1509,14 +1490,12 @@ bool sexState::executeAction(game* gameContext, const SexAction& action)
 	entity* playerEnt = gameContext->getPlayer();
 	if (!playerEnt) return false;
 
-	// Special stop command
 	if (action.id == "generic_stop_action")
 	{
 		stopOngoingAction(0, gameContext);
 		return true;
 	}
 
-	// Ending actions
 	if (action.id == "generic_end_solo")
 	{
 		appendNarrative(!action.narrative.empty() ? action.narrative : "You bring yourself to a composed finish, catch your breath, and readjust your clothing.");
@@ -1547,7 +1526,6 @@ bool sexState::executeAction(game* gameContext, const SexAction& action)
 
 	entity* targetEnt = targetP->getEntity();
 
-	// Accessibility check based on clothing and exposure
 	std::string inaccReason;
 	if (!isActionAccessible(action, *playerP, *targetP, &inaccReason))
 	{
@@ -1555,7 +1533,6 @@ bool sexState::executeAction(game* gameContext, const SexAction& action)
 		return false;
 	}
 
-	// Handle undressing execution
 	if (action.id == "partner_strip" || action.id == "generic_cmd_strip")
 	{
 		undressEntity(targetEnt);
@@ -1572,7 +1549,6 @@ bool sexState::executeAction(game* gameContext, const SexAction& action)
 
 	applyClothingDisplacementsForAction(action, playerEnt, targetEnt);
 
-	// Arousal bonuses from fetishes
 	float selfGain = action.arousalGainSelf;
 	float partnerGain = action.arousalGainPartner;
 
@@ -1583,10 +1559,9 @@ bool sexState::executeAction(game* gameContext, const SexAction& action)
 	if (targetEnt && targetEnt->hasFetish(action.category))
 	{
 		partnerGain *= 1.5f;
-		targetP->perceivedFetishes[action.category] = 4; // AI notes partner enjoyed this
+		targetP->perceivedFetishes[action.category] = 4;
 	}
 
-	// Check if player is maintaining their currently active ongoing action
 	OngoingSexAction* existingOngoing = nullptr;
 	for (auto& oa : m_ongoingActions)
 	{
@@ -1599,7 +1574,6 @@ bool sexState::executeAction(game* gameContext, const SexAction& action)
 
 	if (existingOngoing)
 	{
-		// Player chose to maintain this continuous action
 		selfGain *= 0.7f;
 		partnerGain *= 0.7f;
 		float domShift = action.dominanceShift * 0.5f;
@@ -1617,13 +1591,11 @@ bool sexState::executeAction(game* gameContext, const SexAction& action)
 	}
 	else
 	{
-		// Starting a new action - resolve body parts allocation & conflicts
 		BodyPartUsage newUsage = getActionBodyPartUsage(action);
 		int assignedHand = 0;
 
 		if (newUsage == BodyPartUsage::BOTH_HANDS)
 		{
-			// "If something that needs both hands is picked, it overrides the other 2 things currently being done with the hands, cancelling them in favour of the new pick."
 			std::erase_if(m_ongoingActions, [](const auto& oa) {
 				return oa.actorIndex == 0 && (oa.bodyPartUsage == BodyPartUsage::ONE_HAND ||
 				                              oa.bodyPartUsage == BodyPartUsage::BOTH_HANDS ||
@@ -1633,7 +1605,6 @@ bool sexState::executeAction(game* gameContext, const SexAction& action)
 		}
 		else if (newUsage == BodyPartUsage::ONE_HAND)
 		{
-			// Check if actor currently has a BOTH_HANDS action (Hold Down & Pin)
 			bool hadBothHands = false;
 			for (const auto& oa : m_ongoingActions)
 			{
@@ -1646,7 +1617,6 @@ bool sexState::executeAction(game* gameContext, const SexAction& action)
 
 			if (hadBothHands)
 			{
-				// Taking one hand away breaks the two-handed hold
 				std::erase_if(m_ongoingActions, [](const auto& oa) {
 					return oa.actorIndex == 0 && (oa.bodyPartUsage == BodyPartUsage::BOTH_HANDS || oa.handAssigned == 3);
 				});
@@ -1675,7 +1645,6 @@ bool sexState::executeAction(game* gameContext, const SexAction& action)
 				}
 				else
 				{
-					// Both hands in use! Check if one targets the same slot on target
 					bool replacedSameTarget = false;
 					for (auto it = m_ongoingActions.begin(); it != m_ongoingActions.end(); ++it)
 					{
@@ -1689,7 +1658,6 @@ bool sexState::executeAction(game* gameContext, const SexAction& action)
 					}
 					if (!replacedSameTarget)
 					{
-						// Replace the oldest hand action (Hand 1)
 						std::erase_if(m_ongoingActions, [](const auto& oa) {
 							return oa.actorIndex == 0 && oa.handAssigned == 1;
 						});
@@ -1700,32 +1668,27 @@ bool sexState::executeAction(game* gameContext, const SexAction& action)
 		}
 		else if (newUsage == BodyPartUsage::MOUTH)
 		{
-			// Mouth action cancels prior mouth action for player
 			std::erase_if(m_ongoingActions, [](const auto& oa) {
 				return oa.actorIndex == 0 && (oa.bodyPartUsage == BodyPartUsage::MOUTH || oa.actorSlot == bodySlot::MOUTH);
 			});
 		}
 		else if (newUsage == BodyPartUsage::GROIN)
 		{
-			// Groin action cancels prior groin action for player
 			std::erase_if(m_ongoingActions, [](const auto& oa) {
 				return oa.actorIndex == 0 && (oa.bodyPartUsage == BodyPartUsage::GROIN || oa.actorSlot == bodySlot::GROIN);
 			});
 		}
 		else if (newUsage == BodyPartUsage::TORSO)
 		{
-			// Passive yield/endure cancels all active player holds
 			std::erase_if(m_ongoingActions, [](const auto& oa) { return oa.actorIndex == 0; });
 		}
 
-		// Target slot conflict: only one action can occupy target's mouth
 		if (action.targetSlot == bodySlot::MOUTH)
 		{
 			std::erase_if(m_ongoingActions, [&](const auto& oa) {
 				return oa.targetIndex == (isSolo() ? 0 : m_selectedTargetIndex) && oa.targetSlot == bodySlot::MOUTH;
 			});
 		}
-		// Target penetration conflict on target's groin
 		if (action.targetSlot == bodySlot::GROIN && (action.id.find("penetrate") != std::string::npos || action.id.find("ride") != std::string::npos))
 		{
 			std::erase_if(m_ongoingActions, [&](const auto& oa) {
@@ -1761,7 +1724,6 @@ bool sexState::executeAction(game* gameContext, const SexAction& action)
 			m_ongoingActions.push_back(ongoing);
 		}
 
-		// Orifice Stretch Check
 		if ((action.actorSlot == bodySlot::GROIN || action.id.find("penetrate") != std::string::npos) && targetEnt)
 		{
 			bodyPart* pPenis = playerEnt->anatomy.getPart(bodySlot::GROIN);
@@ -1785,7 +1747,6 @@ bool sexState::executeAction(game* gameContext, const SexAction& action)
 		appendNarrativeEntry(actionNarr, "You", action.name, true, false);
 	}
 
-	// Background continuous tick for OTHER player ongoing actions (no duplicate log cards)
 	for (auto& oa : m_ongoingActions)
 	{
 		if (oa.actorIndex == 0 && oa.actionId != action.id)
@@ -1812,10 +1773,8 @@ bool sexState::executeAction(game* gameContext, const SexAction& action)
 		return true;
 	}
 
-	// NPC AI turns - each NPC takes exactly one action
 	processAllNpcTurns(gameContext);
 
-	// Check orgasms across all participants
 	checkAllOrgasms(gameContext);
 
 	m_turnCount++;
@@ -1843,7 +1802,6 @@ void sexState::processSingleNpcTurn(game* gameContext, size_t npcIdx)
 	entity* npcEnt = npc.getEntity();
 	if (!npcEnt) return;
 
-	// Target determination (focus on player or lowest side)
 	size_t targetIdx = 0;
 	auto& target = m_participants[targetIdx];
 	entity* targetEnt = target.getEntity();
@@ -1852,7 +1810,6 @@ void sexState::processSingleNpcTurn(game* gameContext, size_t npcIdx)
 	SexPhase phase = getScenePhase();
 	auto allActions = buildMasterActionDatabase();
 
-	// Check if this NPC has ongoing actions that can be maintained
 	OngoingSexAction* maintainableOa = nullptr;
 	for (auto& oa : m_ongoingActions)
 	{
@@ -1899,7 +1856,6 @@ void sexState::processSingleNpcTurn(game* gameContext, size_t npcIdx)
 
 		float score = 10.0f;
 
-		// If clothing needs to be removed and NPC is dominant, prioritize undress
 		if (act.id == "partner_strip" || act.id == "generic_cmd_strip")
 		{
 			if (role == SexRole::DOMINANT || role == SexRole::SWITCH)
@@ -1908,7 +1864,6 @@ void sexState::processSingleNpcTurn(game* gameContext, size_t npcIdx)
 			}
 		}
 
-		// 1. Dominance / Role alignment
 		if (role == SexRole::DOMINANT)
 		{
 			score += act.dominanceShift * 2.5f;
@@ -1920,7 +1875,6 @@ void sexState::processSingleNpcTurn(game* gameContext, size_t npcIdx)
 			if (act.dominanceShift > 5.0f) score -= 40.0f;
 		}
 
-		// 2. Pacing alignment
 		if (phase == SexPhase::FOREPLAY)
 		{
 			if (act.arousalGainSelf <= 20.0f && act.actorSlot != bodySlot::GROIN) score += 20.0f;
@@ -1939,7 +1893,6 @@ void sexState::processSingleNpcTurn(game* gameContext, size_t npcIdx)
 			else score += act.arousalGainSelf;
 		}
 
-		// 3. Own Fetishes (using keywords/slots)
 		std::string fetishKey = (act.targetSlot == bodySlot::ASS) ? "Anal" :
 								((act.targetSlot == bodySlot::MOUTH || act.actorSlot == bodySlot::MOUTH) ? "Oral" :
 								((act.actorSlot == bodySlot::GROIN || act.targetSlot == bodySlot::GROIN) ? "Vaginal" :
@@ -1949,7 +1902,6 @@ void sexState::processSingleNpcTurn(game* gameContext, size_t npcIdx)
 		else if (ownFetishDesire == 3) score += 10.0f;
 		else if (ownFetishDesire == 1) score -= 50.0f;
 
-		// 4. Partner's Perceived Preferences filtered through traits
 		auto it = npc.perceivedFetishes.find(fetishKey);
 		if (it != npc.perceivedFetishes.end())
 		{
@@ -1968,14 +1920,12 @@ void sexState::processSingleNpcTurn(game* gameContext, size_t npcIdx)
 		return;
 	}
 
-	// Sort and pick highest
 	std::sort(scoredActions.begin(), scoredActions.end(), [](const auto& a, const auto& b) {
 		return a.second > b.second;
 	});
 
 	const auto& chosen = scoredActions.front().first;
 
-	// Handle undressing if NPC picked undress action
 	if (chosen.id == "partner_strip" || chosen.id == "generic_cmd_strip")
 	{
 		undressEntity(targetEnt);
@@ -1987,7 +1937,6 @@ void sexState::processSingleNpcTurn(game* gameContext, size_t npcIdx)
 
 	applyClothingDisplacementsForAction(chosen, npcEnt, targetEnt);
 
-	// Multi-ongoing body part allocation for NPC
 	BodyPartUsage newUsage = getActionBodyPartUsage(chosen);
 	int assignedHand = 0;
 
@@ -2089,7 +2038,6 @@ void sexState::processSingleNpcTurn(game* gameContext, size_t npcIdx)
 		: std::format("{} performs {} on {}.", npc.getName(), chosen.name, target.getName());
 	appendNarrativeEntry(npcNarr, npc.getName(), chosen.name, false, false);
 
-	// If target begged for climax
 	if (target.beggedClimax && role == SexRole::DOMINANT)
 	{
 		target.beggedClimax = false;
@@ -2135,7 +2083,6 @@ void sexState::handlePleadSuggest(game* gameContext)
 	SexParticipant* targetP = getTargetParticipant();
 	std::string pName = targetP ? targetP->getName() : "Partner";
 
-	// Disengage any active player ongoing action
 	std::erase_if(m_ongoingActions, [](const auto& oa) { return oa.actorIndex == 0; });
 
 	appendNarrativeEntry(std::format("You plead softly with {}, asking for gentle consideration.", pName), "You", "Plead", true, false);
@@ -2150,14 +2097,13 @@ void sexState::handleEndure(game* gameContext)
 	SexParticipant* targetP = getTargetParticipant();
 	std::string pName = targetP ? targetP->getName() : "Partner";
 
-	// Disengage any active player ongoing action
 	std::erase_if(m_ongoingActions, [](const auto& oa) { return oa.actorIndex == 0; });
 
 	if (playerP)
 	{
 		playerP->arousal = std::clamp(playerP->arousal + 15.0f, 0.0f, 100.0f);
 		playerP->dominanceScore = std::clamp(playerP->dominanceScore - 5.0f, -100.0f, 100.0f);
-		playerP->stamina = std::clamp(playerP->stamina + 15.0f, 0.0f, 100.0f); // catches breath while enduring
+		playerP->stamina = std::clamp(playerP->stamina + 15.0f, 0.0f, 100.0f);
 	}
 
 	appendNarrativeEntry(std::format("You close your eyes and passively endure {}'s touch, letting the sensations wash over you.", pName), "You", "Endure", true, false);
@@ -2206,7 +2152,6 @@ void sexState::handleStruggle(game* gameContext)
 		targetP->dominanceScore = std::clamp(targetP->dominanceScore - 35.0f, -100.0f, 100.0f);
 		playerP->hasOpeningToStruggle = false;
 
-		// Clear ongoing actions since hold was broken
 		clearAllOngoingActions();
 
 		appendNarrativeEntry(std::format("With a sudden burst of strength, you forcefully shove {} back, breaking free from their hold and seizing control!", targetP->getName()), "You", "Struggle Success", true, false);
@@ -2267,7 +2212,6 @@ void sexState::processOrgasm(game* gameContext, entity* orgasmingEntity, entity*
 			}
 			appendNarrativeEntry(ejNarr, isPlayerOrg ? "You" : oName, "Ejaculation", isPlayerOrg, true);
 
-			// Gestation Check
 			if (receivingSlot == bodySlot::GROIN && receivingEntity->anatomy.hasVagina() && gameContext && gameContext->settings.content.pregnancyEnabled)
 			{
 				bool success = receivingEntity->gestation.impregnate(
@@ -2301,7 +2245,6 @@ void sexState::processOrgasm(game* gameContext, entity* orgasmingEntity, entity*
 		}
 	}
 
-	// Lactation Check
 	bodyPart* breasts = orgasmingEntity->anatomy.getPart(bodySlot::BREASTS);
 	if (breasts && breasts->isLactating && gameContext && gameContext->settings.content.lactationEnabled && breasts->currentFluidMl > 0.0f)
 	{

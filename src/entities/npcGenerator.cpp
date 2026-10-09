@@ -147,7 +147,6 @@ void npcGenerator::applyDemographicConfiguration(entity* npc, const GameSettings
     CoveringType mainCovering = (furryStage == "Anthro" || furryStage == "Feral")
                                 ? CoveringType::FUR : CoveringType::SKIN;
 
-    // Build anatomical parts matching gender archetype and furry configuration
     bodyPart torso; torso.id = "part_torso_" + race; torso.name = "Torso"; torso.race = race; torso.primaryColor = "Fair"; torso.covering = mainCovering;
     bodyPart head; head.id = "part_head_" + race; head.name = "Face"; head.race = race; head.primaryColor = "Fair"; head.covering = mainCovering;
     bodyPart legs; legs.id = "part_legs_" + race; legs.name = "Legs"; legs.race = race; legs.count = 2; legs.covering = mainCovering;
@@ -198,7 +197,7 @@ void npcGenerator::applyDemographicConfiguration(entity* npc, const GameSettings
             break;
 
         case GenderArchetype::FEMALE:
-            breasts.cupSize = 3; // C cup
+            breasts.cupSize = 3;
             groin.name = "Vagina"; groin.orifice.exists = true; groin.orifice.elasticity = 75.0f; groin.orifice.maxCapacityMl = 120.0f;
             groin.tags.push_back("vagina"); groin.tags.push_back("has_vagina");
             torso.tags.push_back("feminine");
@@ -214,7 +213,7 @@ void npcGenerator::applyDemographicConfiguration(entity* npc, const GameSettings
             break;
 
         case GenderArchetype::GYNOMORPH:
-            breasts.cupSize = 4; // D cup
+            breasts.cupSize = 4;
             groin.name = "Penis"; groin.length = 16.0f; groin.diameter = 3.6f;
             groin.currentFluidMl = 12.0f; groin.maxFluidMl = 25.0f; groin.fluidRegenPerHour = 2.5f;
             groin.tags.push_back("penis"); groin.tags.push_back("gynomorph");
@@ -239,8 +238,7 @@ void npcGenerator::applyDemographicConfiguration(entity* npc, const GameSettings
     ContentSettings defaultContent;
     const ContentSettings& content = settings ? settings->content : defaultContent;
 
-    // Roll 28 Lilith's Throne Fetishes based on frequency scale:
-    // 0=Never (0%), 1=V.Rare (5%), 2=Rare (15%), 3=Average (35%), 4=Common (60%), 5=V.Common (85%), 6=Always (100%)
+    // Frequency scale: 0=Never (0%), 1=V.Rare (5%), 2=Rare (15%), 3=Average (35%), 4=Common (60%), 5=V.Common (85%), 6=Always (100%)
     static constexpr float freqProbabilities[] = { 0.0f, 0.05f, 0.15f, 0.35f, 0.60f, 0.85f, 1.0f };
     for (const auto& [fetName, freqRating] : content.fetishPreferences)
     {
@@ -248,7 +246,7 @@ void npcGenerator::applyDemographicConfiguration(entity* npc, const GameSettings
         float prob = freqProbabilities[rating];
         if (prob > 0.0f && (prob >= 1.0f || dice::roll01() < prob))
         {
-            int desire = (dice::roll01() < 0.25f) ? 4 : 3; // 3=Like, 4=Love
+            int desire = (dice::roll01() < 0.25f) ? 4 : 3;
             npc->setFetishDesire(fetName, desire);
         }
         else
@@ -257,7 +255,6 @@ void npcGenerator::applyDemographicConfiguration(entity* npc, const GameSettings
         }
     }
 
-    // Enforce Content Options Toggles on NPC generation
     if (content.lactationState == ContentToggleState::OFF)
     {
         breasts.currentFluidMl = 0.0f;
@@ -334,7 +331,6 @@ std::shared_ptr<entity> npcGenerator::generateFromTemplate(const std::string& te
     bodyPart torso; torso.id = "part_torso_" + race; torso.name = "Torso"; torso.race = race;
     npc->anatomy.setPart(bodySlot::TORSO, torso);
 
-    // Apply demographic settings (Sexuality & Gender Archetype)
     applyDemographicConfiguration(npc.get(), settings);
 
     std::vector<std::string> bodyTags = npc->anatomy.getAllTags();

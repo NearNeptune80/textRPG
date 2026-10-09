@@ -23,7 +23,6 @@
 
 int main(int argc, char* argv[])
 {
-    // Check for --screenshot <state_name> [output_path]
     std::string screenshotState = "";
     std::string screenshotOut = "";
     for (int i = 1; i < argc; ++i)
@@ -40,7 +39,6 @@ int main(int argc, char* argv[])
         }
     }
 
-    // 1. Initialise SDL Video Subsystem
     if (SDL_Init(SDL_INIT_VIDEO) < 0)
     {
         std::cerr << "[SDL] Failed to initialise video: " << SDL_GetError() << "\n";
@@ -56,7 +54,6 @@ int main(int argc, char* argv[])
         winFlags = SDL_WINDOW_HIDDEN;
     }
 
-    // 2. Create Window and Renderer Context
     SDL_Window* window = SDL_CreateWindow("TextRPG Engine", windowWidth, windowHeight, winFlags);
     if (!window)
     {
@@ -85,20 +82,16 @@ int main(int argc, char* argv[])
     }
     SDL_SetRenderLogicalPresentation(renderer, 0, 0, SDL_LOGICAL_PRESENTATION_DISABLED);
 
-    // 3. Initialise UI Theme (Attempt Dark Fantasy default, fallback to theme.json)
     if (!Theme::loadFromFile("data/themes/theme_dark_fantasy.json"))
     {
         Theme::loadFromFile("data/theme.json");
     }
 
-    // 4. Initialise Headless Engine
     game engine;
     engine.init();
 
-    // 5. Initialise UI Presentation Renderer
     uiRenderer view;
 
-    // Handle Screenshot Mode
     if (!screenshotState.empty())
     {
         if (screenshotState == "main_menu" || screenshotState == "menu")
@@ -145,7 +138,7 @@ int main(int argc, char* argv[])
         else if (screenshotState == "cc_transform" || screenshotState.starts_with("cc_transform_step"))
         {
             int tStep = 0;
-            if (screenshotState == "cc_transform") tStep = 5; // Appendages tab
+            if (screenshotState == "cc_transform") tStep = 5;
             else if (screenshotState.length() > 17) tStep = screenshotState[17] - '0';
             auto cc = std::make_unique<characterCreationState>(EditorConfig::fullTransformationPreset(), tStep);
             engine.changeState(std::move(cc));
@@ -665,7 +658,6 @@ int main(int argc, char* argv[])
             auto* rawS = sState.get();
             engine.changeState(std::move(sState));
 
-            // Execute an action to populate rich narrative cards in the log
             auto actions = rawS->getAvailableActions();
             for (const auto& a : actions)
             {
@@ -719,7 +711,6 @@ int main(int argc, char* argv[])
 
         engine.refreshActionGrid();
 
-        // Render multiple frames to stabilize fonts/layout
         for (int f = 0; f < 3; ++f)
         {
             engine.update(0.016f);
@@ -734,11 +725,11 @@ int main(int argc, char* argv[])
             }
             else if (screenshotState == "tooltip_inventory")
             {
-                engine.input.setMousePosition(505.0f, 90.0f); // Hover over Evening Stilettos slot
+                engine.input.setMousePosition(505.0f, 90.0f);
             }
             else if (screenshotState == "tooltip_inventory_empty")
             {
-                engine.input.setMousePosition(380.0f, 210.0f); // Hover over empty backpack slot
+                engine.input.setMousePosition(380.0f, 210.0f);
             }
             else if (screenshotState == "character_creation_birthday")
             {
@@ -750,7 +741,7 @@ int main(int argc, char* argv[])
             }
             else if (screenshotState == "tooltip_quest")
             {
-                engine.input.setMousePosition(300.0f, 580.0f); // Hover over disabled choice button
+                engine.input.setMousePosition(300.0f, 580.0f);
             }
 
             view.render(renderer, &engine);
@@ -783,26 +774,21 @@ int main(int argc, char* argv[])
 
     uint64_t lastTime = SDL_GetTicks();
 
-    constexpr uint64_t TARGET_FRAME_MS = 1000 / 60; // ~16.6ms for 60 FPS fallback
+    constexpr uint64_t TARGET_FRAME_MS = 1000 / 60;
 
-    // 6. Main Decoupled Loop
     while (engine.isRunning)
     {
         uint64_t frameStart = SDL_GetTicks();
         float deltaTime = static_cast<float>(frameStart - lastTime) / 1000.0f;
         lastTime = frameStart;
 
-        // Step A: Input Processing
         engine.handleEvents();
 
-        // Step B: Headless Simulation Update
         engine.update(deltaTime);
 
-        // Step C: Isolated UI View Render
         view.render(renderer, &engine);
 
-        // Frame pacing: If VSync is active, presentation is synced to monitor refresh.
-        // If VSync is unavailable/disabled, clamp to 60 FPS to prevent runaway CPU/GPU usage.
+        // Frame pacing: synced to VSync or clamped to 60 FPS fallback to prevent runaway CPU/GPU.
         if (!vsyncActive)
         {
             uint64_t frameElapsed = SDL_GetTicks() - frameStart;
@@ -817,7 +803,6 @@ int main(int argc, char* argv[])
         }
     }
 
-    // 7. Cleanup & Exit
     engine.clean();
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);

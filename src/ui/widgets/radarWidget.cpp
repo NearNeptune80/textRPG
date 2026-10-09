@@ -44,11 +44,8 @@ namespace RadarWidgets
         std::string dateStr = inPrologue ? std::format("Day 29, {}", cc->startMonth.substr(0, 3)) : std::format("Day {}, {}", tm.day, mName);
         std::string timeStr = inPrologue ? "20:37 (Night)" : std::format("{} ({})", tm.getFormattedTime(), tm.getPhaseString());
 
-        // 0 = Sunday, 1 = Monday, 2 = Tuesday, 3 = Wednesday, 4 = Thursday, 5 = Friday, 6 = Saturday
-        // Map to Monday-first index [M, T, W, T, F, S, S] (0..6)
         int activeDayIdx = inPrologue ? 4 : ((tm.dayOfWeek == 0) ? 6 : (tm.dayOfWeek - 1));
 
-        // Date & Time Card
         float cardH = SidebarGeometry::getTimeBarH(uiScale);
         SDL_FRect timeRect = { padX, curY, availableW, cardH };
         UIWidget::drawPanel(renderer, timeRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
@@ -65,7 +62,6 @@ namespace RadarWidgets
         float timeTextW = UIWidget::getTextWidth(timeStr, uiScale * 0.80f);
         UIWidget::drawText(renderer, timeStr, tX + tW - timeTextW, curY + (5.0f * uiScale), Theme::colors.companion, uiScale * 0.80f);
 
-        // Weekdays tracker: [M] [T] [W] [T] [F] [S] [S]
         static const char* days[7] = { "M", "T", "W", "T", "F", "S", "S" };
         static const char* fullDays[7] = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
         float dayW = (tW - (6 * 3.0f * uiScale)) / 7.0f;
@@ -120,11 +116,9 @@ namespace RadarWidgets
         float boxSize = SidebarGeometry::getBoxSize(rect, uiScale);
         float gridStartX = SidebarGeometry::getGridStartX(rect, uiScale);
 
-        // Centered 5x5 Grid Container Box matching Mini-Map Radar & Equipment Grid
         SDL_FRect gridBox = { gridStartX - (1.0f * uiScale), cardCurY - (1.0f * uiScale), boxSize + (2.0f * uiScale), boxSize + (2.0f * uiScale) };
         UIWidget::drawPanel(renderer, gridBox, Theme::colors.bgDark, Theme::colors.borderButton);
 
-        // Render 5x5 Local Radar Grid
         float tileSize = (boxSize - (4 * 2.0f * uiScale)) / 5.0f;
 
         for (int dy = -2; dy <= 2; ++dy)
@@ -148,7 +142,6 @@ namespace RadarWidgets
                 bool isExploration = (dynamic_cast<explorationState*>(gameContext->getActiveState()) != nullptr);
                 bool inBounds = (map && targetX >= 0 && targetX < map->getWidth() && targetY >= 0 && targetY < map->getHeight());
 
-                // Completely suppress rendering for coordinates outside the map or void tiles
                 if (!inBounds) continue;
                 Tile t = map->getTile(targetX, targetY);
                 if (t.type == TILE_VOID) continue;
@@ -158,7 +151,6 @@ namespace RadarWidgets
                 SDL_Color textCol = Theme::colors.textMuted;
                 std::string label = "";
 
-                // Query danger and ambush runtime data
                 TileRuntimeData& rData = map->getRuntimeData(targetX, targetY);
                 int danger = rData.getEffectiveDangerLevel();
                 bool hasAmbush = (!rData.ambushState.isDefeated && !rData.ambushState.isPermanentlyRemoved &&
@@ -185,13 +177,8 @@ namespace RadarWidgets
                     else if (isWarp) label = "W";
                     else if (walkable) label = isDangerous ? "!" : "·";
 
-                    // 3-Tier Discovery System:
-                    // 1. Undiscovered: Player has never stood on it and never stood next to it (Dark, but visible)
-                    // 2. Partially Discovered: Player has stood on an adjacent tile, but not on this tile (Lighter)
-                    // 3. Fully Discovered / Visited: Player has physically walked on this tile (Brightest)
                     if (t.visited || t.discovery == STATE_REVEALED)
                     {
-                        // Visited / Fully shown
                         if (isDangerous)
                         {
                             tileColor = { 56, 22, 28, 255 };
@@ -215,7 +202,6 @@ namespace RadarWidgets
                     }
                     else if (t.discovery == STATE_PARTIAL)
                     {
-                        // Partially discovered (stood adjacent to)
                         if (isDangerous)
                         {
                             tileColor = { 38, 18, 23, 255 };
@@ -239,7 +225,6 @@ namespace RadarWidgets
                     }
                     else
                     {
-                        // Undiscovered (STATE_HIDDEN): Dark, but still visible
                         if (isDangerous)
                         {
                             tileColor = { 28, 14, 18, 255 };
@@ -259,7 +244,6 @@ namespace RadarWidgets
                         }
                     }
 
-                    // Handle adjacent navigation clicking
                     bool tileHovered = (mousePos.x >= tileRect.x && mousePos.x <= tileRect.x + tileRect.w &&
                                         mousePos.y >= tileRect.y && mousePos.y <= tileRect.y + tileRect.h);
                     if (tileHovered && isAdjacent && isExploration && walkable)
@@ -283,7 +267,6 @@ namespace RadarWidgets
             }
         }
 
-        // Quick Navigation Toolbar (Inv, Phone, Main Menu)
         SidebarGeometry::renderNavigationToolbar(renderer, gameContext, rect, startY, uiScale);
 
         curY += cardH;

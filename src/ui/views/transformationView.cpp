@@ -55,11 +55,9 @@ namespace TransformationView
 
         float startY = curY;
 
-        // Content spans layout pane width with crisp inner padding matching the rest of the game
         float padX = rect.x + (10.0f * uiScale);
         float availableW = rect.w - (20.0f * uiScale);
 
-        // 1. Full-Width Header Banner
         float headerH = 28.0f * uiScale;
         SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
         std::string entityTitle = (player != gameContext->getPlayer()) ? std::format("CUSTOMIZING {}", player->name) : "BIOLOGICAL TRANSFORMATION STUDIO";
@@ -70,7 +68,6 @@ namespace TransformationView
         bool clicked = gameContext->input.isLeftMouseJustClicked();
         bool inPanel = (mousePos.y >= rect.y && mousePos.y <= rect.y + rect.h);
 
-        // 3. Overview Status Card
         float statusCardH = 46.0f * uiScale;
         SDL_FRect statusCardRect = { padX, curY, availableW, statusCardH };
         UIWidget::drawPanel(renderer, statusCardRect, Theme::colors.bgDark, Theme::colors.borderButton);
@@ -107,7 +104,6 @@ namespace TransformationView
             curY += msgH + (10.0f * uiScale);
         }
 
-        // 3. Tab Specific Renderers with encapsulated Widget Cards
         switch (state->currentTab)
         {
             case TransformationTab::CORE:
@@ -661,7 +657,6 @@ namespace TransformationView
 
             case TransformationTab::INSPECT_PRESETS:
             {
-                // 1. Live Anatomical Prose Description Card (Pre-calculate text height before drawing panel)
                 std::string fullDesc = characterDescription::generateFullDescription(player);
                 float proseAvailableW = availableW - (24.0f * uiScale);
                 float proseH = UIWidget::getTextWrappedHeight(fullDesc, proseAvailableW, uiScale * 0.82f);
@@ -673,7 +668,6 @@ namespace TransformationView
                 UIWidget::drawTextWrapped(renderer, fullDesc, padX + (12.0f * uiScale), curY + (28.0f * uiScale), proseAvailableW, Theme::colors.textPrimary, uiScale * 0.82f);
                 curY += descCardH + (16.0f * uiScale);
 
-                // 2. Morphology Presets Management Card
                 float toolCardH = 78.0f * uiScale;
                 SDL_FRect toolCard = { padX, curY, availableW, toolCardH };
                 UIWidget::drawPanel(renderer, toolCard, Theme::colors.bgSlot, Theme::colors.borderNormal);
@@ -693,7 +687,6 @@ namespace TransformationView
                 }
                 curY += toolCardH + (16.0f * uiScale);
 
-                // 3. Saved Preset Library Header
                 UIWidget::drawText(renderer, "SAVED PRESETS LIBRARY", padX, curY, Theme::colors.textGold, uiScale * 0.88f);
                 curY += (20.0f * uiScale);
 
@@ -719,7 +712,6 @@ namespace TransformationView
                         UIWidget::drawPanel(renderer, pRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
                         UIWidget::drawText(renderer, "• " + pName, pRect.x + (12.0f * uiScale), curY + (8.0f * uiScale), Theme::colors.textGold, uiScale * 0.82f);
 
-                        // Load button
                         float btnH = 26.0f * uiScale;
                         float btnY = curY + (4.0f * uiScale);
                         SDL_FRect loadRect = { padX + cardW + (8.0f * uiScale), btnY, btnW1, btnH };
@@ -732,7 +724,6 @@ namespace TransformationView
                             gameContext->input.consumeMouseClick();
                         }
 
-                        // Del button
                         SDL_FRect delRect = { loadRect.x + btnW1 + (6.0f * uiScale), btnY, btnW2, btnH };
                         bool dHov = inPanel && (mousePos.x >= delRect.x && mousePos.x <= delRect.x + delRect.w &&
                                                 mousePos.y >= delRect.y && mousePos.y <= delRect.y + delRect.h);

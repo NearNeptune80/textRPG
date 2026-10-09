@@ -28,13 +28,11 @@ namespace LoadGameView
         entity* player = gameContext->getPlayer();
         std::string activeCharName = (player && !player->name.empty()) ? player->name : "Hero";
 
-        // 1. Centered Header Card
         float cardW = std::min(availableW, 400.0f * uiScale);
         float cardH = 34.0f * uiScale;
         UIWidget::drawCenteredHeaderCard(renderer, centerX, curY, cardW, cardH, "Save game files", Theme::colors.textPrimary, uiScale);
         curY += cardH + (18.0f * uiScale);
 
-        // 2. Centered "Please Note:"
         std::string noteTitle = "Please Note:";
         float noteTitleW = noteTitle.size() * (7.5f * uiScale);
         UIWidget::drawText(renderer, noteTitle, centerX - (noteTitleW / 2.0f), curY, Theme::colors.textPrimary, uiScale * 0.95f);
@@ -57,7 +55,6 @@ namespace LoadGameView
         }
         curY += (14.0f * uiScale);
 
-        // Confirmation Modals (Overwrite / Delete)
         if (loadState && !loadState->pendingOverwriteSaveName.empty())
         {
             SDL_FRect modalRect = { padX, curY, availableW, 60.0f * uiScale };
@@ -132,7 +129,6 @@ namespace LoadGameView
             curY += modalRect.h + (14.0f * uiScale);
         }
 
-        // New Save Input Row (when in Save mode or Player entity active)
         if (isSaveMode || player != nullptr)
         {
             float inputRowH = 32.0f * uiScale;
@@ -178,7 +174,6 @@ namespace LoadGameView
             curY += inputRowH + (12.0f * uiScale);
         }
 
-        // 3. Table Column Headers: Time | Name | Save | Load | Delete
         float tableX = padX;
         float timeColW = 160.0f * uiScale;
         float actionsColX = padX + availableW - (190.0f * uiScale);
@@ -188,7 +183,6 @@ namespace LoadGameView
         UIWidget::drawText(renderer, "Save | Load | Delete", actionsColX, curY, Theme::colors.textSecondary, uiScale * 0.9f);
         curY += (24.0f * uiScale);
 
-        // 4. Character Groups & Saves
         std::vector<CharacterSaveGroup> fallbackGroups;
         const auto& characterGroups = loadState ? loadState->getCharacterGroups() : (fallbackGroups = saveManager::getSavesGroupedByCharacter(), fallbackGroups);
 
@@ -203,7 +197,6 @@ namespace LoadGameView
             {
                 bool isCollapsed = loadState ? loadState->isCharacterCollapsed(group.characterName) : false;
 
-                // Character Header Accordion
                 SDL_FRect groupHeader = { padX, curY, availableW, 26.0f * uiScale };
                 bool groupHeaderHovered = (mousePos.x >= groupHeader.x && mousePos.x <= groupHeader.x + groupHeader.w &&
                                            mousePos.y >= groupHeader.y && mousePos.y <= groupHeader.y + groupHeader.h);
@@ -222,7 +215,6 @@ namespace LoadGameView
 
                 curY += groupHeader.h + (6.0f * uiScale);
 
-                // Expanded saves
                 if (!isCollapsed)
                 {
                     for (const auto& save : group.saves)
@@ -230,18 +222,14 @@ namespace LoadGameView
                         SDL_FRect itemRect = { padX, curY, availableW, 28.0f * uiScale };
                         UIWidget::drawPanel(renderer, itemRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
-                        // Time column
                         std::string timeStr = save.timestamp.empty() ? "2026-08-29" : save.timestamp;
                         UIWidget::drawText(renderer, timeStr, padX + (8.0f * uiScale), curY + (5.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.8f);
 
-                        // Name column
                         std::string displayName = save.saveName.empty() ? save.fileName : save.saveName;
                         UIWidget::drawText(renderer, displayName, padX + timeColW, curY + (5.0f * uiScale), save.isAutosave ? Theme::colors.arcane : Theme::colors.textPrimary, uiScale * 0.82f);
 
-                        // Action buttons: Save | Load | Delete
                         float rightOffset = 6.0f * uiScale;
 
-                        // Delete button
                         float delBtnW = 55.0f * uiScale;
                         float btnH = 20.0f * uiScale;
                         SDL_FRect delBtnRect = { padX + availableW - rightOffset - delBtnW, curY + (4.0f * uiScale), delBtnW, btnH };
@@ -264,7 +252,6 @@ namespace LoadGameView
                         }
                         rightOffset += delBtnW + (6.0f * uiScale);
 
-                        // Load button
                         float loadBtnW = 55.0f * uiScale;
                         SDL_FRect loadBtnRect = { padX + availableW - rightOffset - loadBtnW, curY + (4.0f * uiScale), loadBtnW, btnH };
                         bool loadHovered = (mousePos.x >= loadBtnRect.x && mousePos.x <= loadBtnRect.x + loadBtnRect.w &&
@@ -283,7 +270,6 @@ namespace LoadGameView
                         }
                         rightOffset += loadBtnW + (6.0f * uiScale);
 
-                        // Save button
                         if ((isSaveMode || player) && group.characterName == activeCharName && !save.isAutosave)
                         {
                             float saveBtnW = 55.0f * uiScale;

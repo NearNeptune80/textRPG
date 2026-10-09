@@ -25,17 +25,11 @@ enum class buttonState {
     held
 };
 
-/**
- * Headless Hardware Input Processor.
- * Maps physical keyboard and mouse events into logical actions and states.
- * Contains ZERO rendering, window coordinate projection, or UI grid layout math.
- */
 class inputHandler {
 public:
     inputHandler() = default;
     ~inputHandler() = default;
 
-    // Poll event queue and dispatch inputs to active game state
     void update(game* g);
 
     [[nodiscard]] bool isActionActive(keyAction action) const;

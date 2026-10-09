@@ -82,13 +82,11 @@ namespace EngineTests
         bool allPassed = true;
 
         game g;
-        // 1. Initial State should be exploration or mainMenu
         g.changeState(std::make_unique<mainMenuState>());
         bool isMainMenu = (dynamic_cast<mainMenuState*>(g.getActiveState()) != nullptr);
         logResult("Initial State is MainMenu", isMainMenu);
         allPassed &= isMainMenu;
 
-        // Check Action Grid for Main Menu
         g.refreshActionGrid();
         bool hasNewGame = (!g.activeActionSlots.empty() && g.activeActionSlots[0].label == "New Game");
         logResult("Main Menu has 'New Game' button at Slot 0", hasNewGame);
@@ -98,13 +96,11 @@ namespace EngineTests
         logResult("Main Menu has 'Options' button at Slot 5", hasOptions);
         allPassed &= hasOptions;
 
-        // Navigate to Options with Return State
         g.changeState(std::make_unique<optionsState>(OptionsScreenMode::GENERAL_OPTIONS, std::make_unique<mainMenuState>()));
         bool isOptions = (dynamic_cast<optionsState*>(g.getActiveState()) != nullptr);
         logResult("Transition to OptionsState", isOptions);
         allPassed &= isOptions;
 
-        // Go Back from Options
         auto* optState = dynamic_cast<optionsState*>(g.getActiveState());
         if (optState)
         {
@@ -114,13 +110,11 @@ namespace EngineTests
             allPassed &= backToMainMenu;
         }
 
-        // Navigate to Save/Load
         g.changeState(std::make_unique<loadGameState>(SaveMenuMode::LOAD_ONLY, std::make_unique<mainMenuState>()));
         bool isLoadState = (dynamic_cast<loadGameState*>(g.getActiveState()) != nullptr);
         logResult("Transition to LoadGameState", isLoadState);
         allPassed &= isLoadState;
 
-        // Go Back from LoadGameState
         auto* loadState = dynamic_cast<loadGameState*>(g.getActiveState());
         if (loadState)
         {
@@ -149,19 +143,16 @@ namespace EngineTests
         logResult("Entered Character Creation State", inCC);
         allPassed &= inCC;
 
-        // Step 0: Gender
         ccPtr->gender = "Female";
         ccPtr->femininity = "Feminine";
         ccPtr->step = 1;
         g.refreshActionGrid();
 
-        // Step 1: Appearance
         ccPtr->hairColor = "Silver";
         ccPtr->eyeColor = "Amethyst";
         ccPtr->step = 2;
         g.refreshActionGrid();
 
-        // Step 2: Name
         ccPtr->feminineName = "Aria";
         ccPtr->surname = "Vesper";
         ccPtr->personalityTraits.insert("Confident");
@@ -169,7 +160,6 @@ namespace EngineTests
         ccPtr->step = 3;
         g.refreshActionGrid();
 
-        // Step 3: Museum Tour & Step 4: Finalize
         ccPtr->finalizeCharacter(&g);
 
         entity* p = g.getPlayer();
@@ -212,11 +202,9 @@ namespace EngineTests
         logResult("Save Game File Written", saveSuccess, testSaveName);
         allPassed &= saveSuccess;
 
-        // Modify player in memory
         g.getPlayer()->name = "CorruptedName";
         g.getPlayer()->stats.setBaseStat("health", 10.0f);
 
-        // Load back from file
         bool loadSuccess = saveManager::loadFromFile(&g, "TestHero_" + testSaveName + ".json");
         logResult("Save Game File Loaded", loadSuccess);
         allPassed &= loadSuccess;
@@ -232,7 +220,6 @@ namespace EngineTests
             allPassed &= hpRestored;
         }
 
-        // Clean up test file
         saveManager::deleteSave("TestHero_" + testSaveName + ".json");
 
         return allPassed;
@@ -256,12 +243,10 @@ namespace EngineTests
 
         inventoryComponent& inv = player->inventory;
 
-        // 1. Initial State: slots without clothes should be exposed
         bool initialGroinExposed = inv.isSlotExposed(bodySlot::GROIN);
         logResult("Naked Body Groin is Exposed", initialGroinExposed);
         allPassed &= initialGroinExposed;
 
-        // 2. Equip boxer shorts and trousers
         auto boxers = std::make_shared<item>();
         boxers->id = "boxer_shorts";
         boxers->name = "Boxer Shorts";
@@ -284,7 +269,6 @@ namespace EngineTests
         logResult("Clothed Groin is Covered", coveredGroin);
         allPassed &= coveredGroin;
 
-        // 3. Displace trousers (UNBUTTON) + boxers (PULL_ASIDE)
         inv.setDisplacement(equipSlot::LEGS_OUTER, DisplacementMode::UNBUTTON);
         inv.setDisplacement(equipSlot::GROIN_OVER, DisplacementMode::PULL_ASIDE);
 
@@ -292,7 +276,6 @@ namespace EngineTests
         logResult("Displaced Clothing Exposes Groin", displacedGroinExposed);
         allPassed &= displacedGroinExposed;
 
-        // 4. Reset displacement
         inv.resetAllDisplacements();
         bool resetGroinCovered = !inv.isSlotExposed(bodySlot::GROIN);
         logResult("Reset Displacement Re-Covers Groin", resetGroinCovered);
@@ -346,11 +329,9 @@ namespace EngineTests
         game g;
         g.init();
 
-        // 1. Test Main Menu Buttons
         g.changeState(std::make_unique<mainMenuState>());
         g.refreshActionGrid();
 
-        // Click "Options" in Action Grid (Slot 5)
         if (g.activeActionSlots.size() > 5 && g.activeActionSlots[5].onClick)
         {
             g.activeActionSlots[5].onClick();
@@ -359,13 +340,11 @@ namespace EngineTests
             allPassed &= isOptions;
         }
 
-        // 2. Test Options Action Grid in General Mode
         auto* opt = dynamic_cast<optionsState*>(g.getActiveState());
         if (opt)
         {
             g.refreshActionGrid();
 
-            // Keybinds (Slot 0)
             if (!g.activeActionSlots.empty() && g.activeActionSlots[0].onClick)
             {
                 g.activeActionSlots[0].onClick();
@@ -376,7 +355,6 @@ namespace EngineTests
                 g.refreshActionGrid();
             }
 
-            // Defaults (Slot 10)
             g.settings.display.fontSize = 28;
             fontManager::getInstance().setPointSize(28.0f);
             bool fontScaled = (fontManager::getInstance().getPointSize() == 28.0f);
@@ -385,13 +363,12 @@ namespace EngineTests
 
             if (g.activeActionSlots.size() > 10 && g.activeActionSlots[10].onClick)
             {
-                g.activeActionSlots[10].onClick(); // Defaults
+                g.activeActionSlots[10].onClick();
                 bool defaultsRestored = (g.settings.display.fontSize == 18);
                 logResult("Options 'Defaults' button restores default settings", defaultsRestored);
                 allPassed &= defaultsRestored;
             }
 
-            // Back button returns to Main Menu (Slot 14)
             if (g.activeActionSlots.size() > 14 && g.activeActionSlots[14].onClick)
             {
                 g.activeActionSlots[14].onClick();
@@ -401,14 +378,12 @@ namespace EngineTests
             }
         }
 
-        // 3. Test Save/Load State Actions
         g.changeState(std::make_unique<loadGameState>(SaveMenuMode::SAVE_AND_LOAD, std::make_unique<mainMenuState>()));
         auto* loadState = dynamic_cast<loadGameState*>(g.getActiveState());
         if (loadState)
         {
             g.refreshActionGrid();
 
-            // Toggle confirmations (Slot 0)
             bool initConfirm = loadState->confirmationsEnabled;
             if (!g.activeActionSlots.empty() && g.activeActionSlots[0].onClick)
             {
@@ -418,7 +393,6 @@ namespace EngineTests
                 allPassed &= confirmToggled;
             }
 
-            // Toggle Sort Name (Slot 2)
             if (g.activeActionSlots.size() > 2 && g.activeActionSlots[2].onClick)
             {
                 g.activeActionSlots[2].onClick();
@@ -443,50 +417,41 @@ namespace EngineTests
         auto* optPtr = opt.get();
         g.changeState(std::move(opt));
 
-        // 1. Misc Category
         optPtr->contentCategory = ContentOptionsCategory::MISC;
         g.settings.gameplay.autoSaveOnMapChange = false;
         g.settings.display.showArtwork = false;
         g.settings.gameplay.autoSaveOnSceneExit = false;
 
-        // 2. Gameplay Category
         optPtr->contentCategory = ContentOptionsCategory::GAMEPLAY;
         g.settings.gameplay.badEndsEnabled = false;
         g.settings.gameplay.autoLoot = false;
         g.settings.gameplay.currencyLossOnDefeatPercent = 0.50f;
 
-        // 3. Sex & Fetishes Category
         optPtr->contentCategory = ContentOptionsCategory::SEX_AND_FETISHES;
         g.settings.content.nonConEnabled = true;
         g.settings.content.fluidMultiplier = 4.0f;
 
-        // 4. Bodies Category
         optPtr->contentCategory = ContentOptionsCategory::BODIES;
         g.settings.content.pregnancyEnabled = false;
         g.settings.content.transformationSpeedMultiplier = 2.0f;
 
-        // 5. Gender Prefs Category
         optPtr->contentCategory = ContentOptionsCategory::GENDER_PREFS;
         g.settings.demographics.percentMale = 50.0f;
         g.settings.demographics.percentFemale = 50.0f;
         g.settings.demographics.percentHermaphrodite = 0.0f;
 
-        // 6. Orientation Prefs Category
         optPtr->contentCategory = ContentOptionsCategory::ORIENTATION_PREFS;
         g.settings.demographics.percentHetero = 10.0f;
         g.settings.demographics.percentBi = 80.0f;
 
-        // 7. Fetish Prefs Category
         optPtr->contentCategory = ContentOptionsCategory::FETISH_PREFS;
-        g.settings.content.fetishPreferences["Anal"] = 6; // Always
-        g.settings.content.fetishPreferences["Breasts lover"] = 5; // Love
-        g.settings.content.fetishPreferences["Oral"] = 1; // Hate
+        g.settings.content.fetishPreferences["Anal"] = 6;
+        g.settings.content.fetishPreferences["Breasts lover"] = 5;
+        g.settings.content.fetishPreferences["Oral"] = 1;
 
-        // Persist all settings
         const std::string testOptFile = "data/test_content_options.json";
         settingsManager::saveToFile(g.settings, testOptFile);
 
-        // Load back and verify data integrity
         GameSettings verified;
         settingsManager::loadFromFile(verified, testOptFile);
 
@@ -516,7 +481,6 @@ namespace EngineTests
         logResult("Content Category 8 (Fetish Ratings) Persisted Accurately", fetishMatch);
         allPassed &= fetishMatch;
 
-        // Test Reset Category Defaults
         optPtr->contentCategory = ContentOptionsCategory::GENDER_PREFS;
         optPtr->resetCategoryDefaults(&g);
         bool resetMatch = (g.settings.demographics.percentMale == 30.0f && g.settings.demographics.percentFemale == 40.0f);
@@ -534,7 +498,6 @@ namespace EngineTests
         std::cout << "\n--- Running Test 8: Granular Editor Option Masking & Dynamic Tab Pruning ---\n";
         bool allPassed = true;
 
-        // 1. New Game Preset: Exactly 5 tabs (Identity, Body, Face & Hair, Wardrobe, Name & Finish)
         auto ccNew = std::make_unique<characterCreationState>(EditorConfig::newGamePreset(), 0);
         auto newTabs = ccNew->getActiveTabs();
         bool newTabCountValid = (newTabs.size() == 5);
@@ -550,27 +513,23 @@ namespace EngineTests
         logResult("New Game Preset contains [Identity, Body, Face & Hair, Wardrobe, Name & Finish]", tabsInOrder);
         allPassed &= tabsInOrder;
 
-        // Verify choice filtering (Human only ears in new game)
         auto earChoices = ccNew->config.filterChoices("ear_type", { "Human", "Cat", "Dog", "Elf", "Demon" });
         bool humanOnlyEars = (earChoices.size() == 1 && earChoices[0] == "Human");
         logResult("New Game Preset filters Ear Types to [Human] only", humanOnlyEars);
         allPassed &= humanOnlyEars;
 
-        // 2. Hair Salon Preset: Pruned down to 1 tab (FACE_HAIR)
         auto ccSalon = std::make_unique<characterCreationState>(EditorConfig::hairSalonPreset(), 0);
         auto salonTabs = ccSalon->getActiveTabs();
         bool salonSingleTab = (salonTabs.size() == 1 && salonTabs[0] == EditorTabId::FACE_HAIR);
         logResult("Hair Salon Preset prunes all tabs down to single 'Face & Hair' tab", salonSingleTab);
         allPassed &= salonSingleTab;
 
-        // 3. Tattoo / Piercing Preset: Pruned down to 1 tab (COSMETICS)
         auto ccTattoo = std::make_unique<characterCreationState>(EditorConfig::tattooPiercingPreset(), 0);
         auto tattooTabs = ccTattoo->getActiveTabs();
         bool tattooSingleTab = (tattooTabs.size() == 1 && tattooTabs[0] == EditorTabId::COSMETICS);
         logResult("Tattoo Studio Preset prunes all tabs down to single 'Cosmetics' tab", tattooSingleTab);
         allPassed &= tattooSingleTab;
 
-        // 4. Arcane Full Transformation Preset: All tabs unlocked including Appendages
         auto ccTransform = std::make_unique<characterCreationState>(EditorConfig::fullTransformationPreset(), 0);
         auto transTabs = ccTransform->getActiveTabs();
         bool transFullTabs = (transTabs.size() >= 8);
@@ -590,7 +549,6 @@ namespace EngineTests
         std::cout << "\n--- Running Test 9: Hairstyle Length Gating & Body Shape Calculations ---\n";
         bool allPassed = true;
 
-        // 1. Hairstyle length thresholds
         auto baldStyles = EditorConfig::getValidHairstyles(0);
         bool baldOnly = (baldStyles.size() == 1 && baldStyles[0] == "Bald");
         logResult("0 cm hair length only allows 'Bald'", baldOnly);
@@ -608,7 +566,6 @@ namespace EngineTests
         logResult("25 cm hair length unlocks 'Ponytail' and 'Braided'", hasPonytail && hasBraided);
         allPassed &= (hasPonytail && hasBraided);
 
-        // 2. Composite Body Shape calculations
         std::string shape1 = EditorConfig::calculateBodyShape("Soft", "Skinny");
         bool isFrail = (shape1 == "Frail / Delicate");
         logResult("Soft muscle + Skinny body = 'Frail / Delicate'", isFrail);
@@ -639,7 +596,6 @@ namespace EngineTests
         cc.femininity = "Feminine";
         cc.initializeWardrobe();
 
-        // 1. Initial state starts unclad with clothes in available pool
         bool initUnclad = !cc.isClothedEnough();
         std::string initStatus = cc.getDecencyStatus();
         bool initMentionsAll = (initStatus.find("Must put on footwear") != std::string::npos &&
@@ -648,13 +604,11 @@ namespace EngineTests
         logResult("Initial empty inventory wardrobe setup is Indecent", initUnclad && initMentionsAll);
         allPassed &= (initUnclad && initMentionsAll);
 
-        // 2. Equip dress and shoes -> Decent
         cc.applyWardrobePreset("Evening Dress");
         bool dressedDecent = cc.isClothedEnough();
         logResult("Equipping coordinated dress & shoes achieves Decent status", dressedDecent);
         allPassed &= dressedDecent;
 
-        // 3. Strip footwear -> Indecent
         cc.unequipWardrobeItem(equipSlot::FEET);
         bool noShoesIndecent = !cc.isClothedEnough();
         std::string status1 = cc.getDecencyStatus();
@@ -662,7 +616,6 @@ namespace EngineTests
         logResult("Stripping footwear flags indecency with warning", noShoesIndecent && mentionsShoes);
         allPassed &= (noShoesIndecent && mentionsShoes);
 
-        // 4. Strip all clothing -> Multiple warnings
         cc.unequipWardrobeItem(equipSlot::TORSO_OVER);
         cc.unequipWardrobeItem(equipSlot::TORSO_UNDER);
         cc.unequipWardrobeItem(equipSlot::CHEST_WEAR);
@@ -675,7 +628,6 @@ namespace EngineTests
         logResult("Fully stripped character flags groin and chest indecency", mentionsGroin && mentionsChest);
         allPassed &= (mentionsGroin && mentionsChest);
 
-        // 5. Re-equip wardrobe garments
         cc.applyWardrobePreset("Formal Suit");
         bool reEquippedDecent = cc.isClothedEnough();
         logResult("Re-equipping wardrobe garments restores Decent status", reEquippedDecent);
@@ -698,20 +650,20 @@ namespace EngineTests
         cc.bodySize = "slender";
         cc.muscleDefinition = "toned";
         cc.skinPrimaryColor = "porcelain";
-        cc.lipSize = 3; // plump
+        cc.lipSize = 3;
         cc.puffyLips = true;
         cc.eyeColor = "hazel";
         cc.hairColor = "auburn";
         cc.hairStyle = "wavy";
         cc.hairLengthCm = 60;
-        cc.breastCupSize = 5; // D-cup (0=flat, 1=AA, 2=A, 3=B, 4=C, 5=D)
+        cc.breastCupSize = 5;
         cc.breastShape = "perky";
-        cc.nippleSize = 3; // large
-        cc.areolaeSize = 2; // average
+        cc.nippleSize = 3;
+        cc.areolaeSize = 2;
         cc.puffyNipples = true;
-        cc.lactationTier = 3; // decent amount
-        cc.assSize = 3; // large
-        cc.hipSize = 3; // large
+        cc.lactationTier = 3;
+        cc.assSize = 3;
+        cc.hipSize = 3;
         cc.anusBleached = true;
         cc.vaginaCapacity = 2;
         cc.labiaSize = 3;
@@ -734,7 +686,6 @@ namespace EngineTests
         cc.personalityTraits.insert("Kind");
         cc.personalityTraits.insert("Lewd");
 
-        // 1. Verify Dynamic Appearance Text Description
         std::string desc = cc.generateAppearanceDescription();
         bool hasCup = (desc.find("D-cup") != std::string::npos);
         bool hasPerky = (desc.find("perky") != std::string::npos);
@@ -753,7 +704,6 @@ namespace EngineTests
         logResult("Dynamic Appearance Description renders breasts, lips, nipples, and anus attributes", textDescAccurate);
         allPassed &= textDescAccurate;
 
-        // 2. Finalize into game entity
         game gameCtx;
         gameCtx.init();
         cc.finalizeCharacter(&gameCtx);
@@ -765,28 +715,23 @@ namespace EngineTests
 
         if (p)
         {
-            // Verify Cosmetics
             bool lipMatch = (p->cosmetics["lipstick"] == "red");
             bool nailMatch = (p->cosmetics["nailPolish"] == "gold");
             logResult("Cosmetics (lipstick, nail polish) transferred to entity", lipMatch && nailMatch);
             allPassed &= (lipMatch && nailMatch);
 
-            // Verify Piercings
             bool piercMatch = (p->piercings["navel"] && p->piercings["nipple"] && p->piercings["ear"]);
             logResult("Piercings (navel, nipple, ear) transferred to entity", piercMatch);
             allPassed &= piercMatch;
 
-            // Verify Body Hair
             bool hairMatch = (p->bodyHair["pubic"] == "trimmed" && p->bodyHair["underarm"] == "none");
             logResult("Body hair grooming (pubic, underarm) transferred to entity", hairMatch);
             allPassed &= hairMatch;
 
-            // Verify Personality Traits
             bool traitMatch = (std::find(p->personalityTraits.begin(), p->personalityTraits.end(), "Lewd") != p->personalityTraits.end());
             logResult("Personality traits transferred to entity", traitMatch);
             allPassed &= traitMatch;
 
-            // Verify Anatomy & Lactation
             const bodyPart* bPart = p->anatomy.getPart(bodySlot::BREASTS);
             bool bPartMatch = (bPart != nullptr && bPart->cupSize == 5 && bPart->isLactating);
             logResult("Anatomy component cup size and lactation status transferred to entity", bPartMatch);
@@ -810,7 +755,6 @@ namespace EngineTests
         player->stats.setBaseStat("max_health", 100.0f);
         g.playerEntity = player;
 
-        // 1. Enter transformation state
         auto tf = std::make_unique<transformationState>(TransformationTab::CORE);
         g.changeState(std::move(tf));
         transformationState* tfPtr = dynamic_cast<transformationState*>(g.getActiveState());
@@ -819,13 +763,11 @@ namespace EngineTests
         logResult("Transformation State Initialised & Active", inTfState);
         allPassed &= inTfState;
 
-        // 2. Test Reset to Human Baseline
         tfPtr->resetToHuman(&g);
         bool isHuman = (player->anatomy.getRacialTitle() == "Human" && !player->anatomy.hasPart(bodySlot::HORNS) && !player->anatomy.hasPart(bodySlot::WINGS));
         logResult("Reset to Human baseline clears horns/wings and establishes Human racial title", isHuman);
         allPassed &= isHuman;
 
-        // 3. Mutate into Demon Hybrid
         bodyPart demonHorns;
         demonHorns.id = "horns_demon"; demonHorns.name = "Demon Horns"; demonHorns.race = "Demon"; demonHorns.count = 2; demonHorns.length = 25.0f;
         player->anatomy.setPart(bodySlot::HORNS, demonHorns);
@@ -839,7 +781,7 @@ namespace EngineTests
         player->anatomy.setPart(bodySlot::TAIL, catTail);
 
         bodyPart breasts;
-        breasts.id = "breasts"; breasts.name = "Breasts"; breasts.cupSize = 4; // D-cup
+        breasts.id = "breasts"; breasts.name = "Breasts"; breasts.cupSize = 4;
         breasts.isLactating = true; breasts.currentFluidMl = 350.0f; breasts.maxFluidMl = 1000.0f;
         player->anatomy.setPart(bodySlot::BREASTS, breasts);
 
@@ -847,7 +789,6 @@ namespace EngineTests
         logResult("Live Transformation applies Horns, Wings, Tail, and Lactating Breasts", hasDemonFeatures);
         allPassed &= hasDemonFeatures;
 
-        // 4. Save Named Transformation Preset
         const std::string testPresetName = "AutoTest_DemonCat";
         tfPtr->savePreset(&g, testPresetName);
         auto presets = tfPtr->getPresetNames();
@@ -855,13 +796,11 @@ namespace EngineTests
         logResult("Transformation Preset saved to disk (AutoTest_DemonCat.json)", presetSaved);
         allPassed &= presetSaved;
 
-        // 5. Change form (Reset to human)
         tfPtr->resetToHuman(&g);
         bool resetSuccess = (!player->anatomy.hasPart(bodySlot::HORNS) && !player->anatomy.hasPart(bodySlot::WINGS));
         logResult("Body Form Cleared to baseline prior to preset restore", resetSuccess);
         allPassed &= resetSuccess;
 
-        // 6. Reload Saved Preset and verify exact restitution
         tfPtr->loadPreset(&g, testPresetName);
         const bodyPart* restoredHorns = player->anatomy.getPart(bodySlot::HORNS);
         const bodyPart* restoredWings = player->anatomy.getPart(bodySlot::WINGS);
@@ -877,7 +816,6 @@ namespace EngineTests
         logResult("Reloaded Preset restores exact horn length (25cm), wings, tail race, cup size (D), and milk fluids (350ml)", allRestored);
         allPassed &= allRestored;
 
-        // 7. Full Prose Description Inspection
         std::string fullProse = characterDescription::generateFullDescription(player.get());
         bool proseHasHorns = (fullProse.find("horns") != std::string::npos);
         bool proseHasWings = (fullProse.find("wings") != std::string::npos);
@@ -888,7 +826,6 @@ namespace EngineTests
         logResult("Character Body Inspection generates accurate prose reflecting active transformations", proseAccurate);
         allPassed &= proseAccurate;
 
-        // Clean up preset file
         tfPtr->deletePreset(testPresetName);
 
         return allPassed;
@@ -931,19 +868,16 @@ namespace EngineTests
         std::cout << "\n--- Running Test 14: Engine-Wide Tooltip System ---\n";
         bool allPassed = true;
 
-        // 1. Tooltip clearing
         TooltipManager::clear();
         bool clearPass = !TooltipManager::hasActiveTooltip();
         logResult("TooltipManager::clear correctly resets active tooltip", clearPass);
         allPassed &= clearPass;
 
-        // 2. Setting direct tooltip
         TooltipManager::setTooltip("Excalibur", "Legendary holy blade", "Main Hand Weapon", "[ 1 ]");
         bool setPass = TooltipManager::hasActiveTooltip();
         logResult("TooltipManager::setTooltip successfully registers active tooltip", setPass);
         allPassed &= setPass;
 
-        // 3. Hover detection - within bounding box
         TooltipManager::clear();
         SDL_FRect buttonRect = { 100.0f, 200.0f, 80.0f, 30.0f };
         TooltipPoint insideCursor = { 120.0f, 215.0f };
@@ -952,7 +886,6 @@ namespace EngineTests
         logResult("TooltipManager::setHoverTooltip activates when cursor is within bounds", insidePass);
         allPassed &= insidePass;
 
-        // 4. Hover detection - outside bounding box
         TooltipManager::clear();
         TooltipPoint outsideCursor = { 50.0f, 50.0f };
         bool outsideTriggered = TooltipManager::setHoverTooltip(buttonRect, outsideCursor, "Button Hover", "Hovering outside");
@@ -960,17 +893,15 @@ namespace EngineTests
         logResult("TooltipManager::setHoverTooltip ignores cursor outside bounds", outsidePass);
         allPassed &= outsidePass;
 
-        // 5. Font wrapped height measurement
         float singleLineH = fontManager::getInstance().getLineHeight(1.0f);
         float measuredH = fontManager::getInstance().getTextWrappedHeight("This is a multi-line long prose description designed to wrap over multiple lines in the tooltip.", 100.0f, 1.0f);
         bool heightPass = (measuredH >= singleLineH * 2.0f);
         logResult("fontManager::getTextWrappedHeight correctly measures multi-line wrapped text height", heightPass);
         allPassed &= heightPass;
 
-        // 6. Data-driven choice tooltips and disabled requirements
         game g;
         g.init();
-        g.loadScene("quest_intro_01"); // Intro quest where Player does NOT have canis root yet
+        g.loadScene("quest_intro_01");
         g.refreshActionGrid();
         bool foundDisabledChoice = false;
         bool foundDataTooltip = false;
@@ -978,7 +909,7 @@ namespace EngineTests
         {
             if (btn.label.find("Canis Root") != std::string::npos)
             {
-                foundDisabledChoice = (!btn.isEnabled); // Needs to be disabled/greyed out
+                foundDisabledChoice = (!btn.isEnabled);
                 foundDataTooltip = (!btn.description.empty() && btn.description.find("Canis Root") != std::string::npos);
             }
         }
@@ -1001,7 +932,6 @@ namespace EngineTests
         g.playerEntity = player;
         g.Player = player.get();
 
-        // 1. Test Base Stats & Dynamic Derivation
         player->stats.setBaseStat("health", 45.0f);
         player->stats.setBaseStat("mana", 110.0f);
         player->stats.setBaseStat("currency", 250.0f);
@@ -1013,7 +943,6 @@ namespace EngineTests
         logResult("Dynamic max_mana matches or exceeds current mana (110)", maxMpDerived);
         allPassed &= (maxHpDerived && maxMpDerived);
 
-        // 2. Test Equipment Stat Contribution
         float basePhysique = player->getStat("physique");
         auto shirt = std::make_shared<item>();
         shirt->id = "test_shirt";
@@ -1036,7 +965,6 @@ namespace EngineTests
         logResult("Unequipping item removes stat modifier dynamically", unequipRemovedStat);
         allPassed &= unequipRemovedStat;
 
-        // 3. Test Consumable Item Usage
         auto potion = std::make_shared<item>();
         potion->id = "item_potion_health";
         potion->name = "Health Potion";
@@ -1070,7 +998,6 @@ namespace EngineTests
         g.playerEntity = player;
         g.Player = player.get();
 
-        // Add items out of order: Consumable, Key Item, Weapon, Underwear, Clothing
         auto pot = std::make_shared<item>();
         pot->id = "item_potion_health";
         pot->name = "Health Potion";
@@ -1107,16 +1034,15 @@ namespace EngineTests
         auto stacked = player->inventory.getStackedView();
         bool correctCount = (stacked.size() == 5);
         bool sortCorrect = (correctCount &&
-            stacked[0].itemPtr->id == "item_iron_sword" &&      // Weapon (10)
-            stacked[1].itemPtr->id == "item_linen_shirt" &&     // Clothing (20)
-            stacked[2].itemPtr->id == "item_silk_bra" &&        // Underwear (30)
-            stacked[3].itemPtr->id == "item_potion_health" &&   // Consumable (50)
-            stacked[4].itemPtr->id == "item_dungeon_key");      // Key Item (70)
+            stacked[0].itemPtr->id == "item_iron_sword" &&
+            stacked[1].itemPtr->id == "item_linen_shirt" &&
+            stacked[2].itemPtr->id == "item_silk_bra" &&
+            stacked[3].itemPtr->id == "item_potion_health" &&
+            stacked[4].itemPtr->id == "item_dungeon_key");
 
         logResult("Natural categorical sorting groups items (Weapon -> Clothing -> Underwear -> Consumable -> Key)", sortCorrect);
         allPassed &= sortCorrect;
 
-        // Test Strip to Underwear
         player->inventory.equipped[static_cast<size_t>(equipSlot::TORSO_UNDER)] = shirt;
         player->inventory.equipped[static_cast<size_t>(equipSlot::CHEST_WEAR)] = bra;
         g.handleStripToUnderwearAction();
@@ -1127,7 +1053,6 @@ namespace EngineTests
         logResult("Strip to Underwear removes outer garments while retaining underwear", stripCorrect);
         allPassed &= stripCorrect;
 
-        // Test Reset All Fits
         player->inventory.setDisplacement(equipSlot::CHEST_WEAR, DisplacementMode::PULL_DOWN);
         bool dispActive = (player->inventory.getDisplacement(equipSlot::CHEST_WEAR) == DisplacementMode::PULL_DOWN);
         g.handleResetAllDisplacementsAction();
@@ -1136,7 +1061,6 @@ namespace EngineTests
         logResult("Reset All Fits restores all active garment displacements", resetCorrect);
         allPassed &= resetCorrect;
 
-        // Test Loot All
         if (g.map)
         {
             auto& td = g.map->getRuntimeData(g.gridX, g.gridY);
@@ -1161,7 +1085,6 @@ namespace EngineTests
         std::cout << "\n--- Running Test 17: Headless Command Routing, Stat Caching & Enums ---\n";
         bool allPassed = true;
 
-        // 1. Centralized Enums String Conversions Round-trip
         bool enumRoundtrip = true;
         for (std::size_t s = 0; s < EQUIP_SLOT_COUNT; ++s)
         {
@@ -1184,7 +1107,6 @@ namespace EngineTests
         logResult("Centralized bodySlotToString round-trip for all slots", bodyRoundtrip);
         allPassed &= bodyRoundtrip;
 
-        // 2. Stat Caching & Dynamic Invalidation on Equipment Change
         auto hero = std::make_shared<entity>("caching_hero", "Cache Hero");
         hero->stats.setBaseStat("physique", 20.0f);
         float basePhys = hero->getStat("physique");
@@ -1198,17 +1120,16 @@ namespace EngineTests
         ring->targetSlot = equipSlot::FINGER_PRIMARY;
         ring->statModifiers.push_back(StatModifier{ "physique", 10.0f, 0.0f });
         hero->inventory.equipped[static_cast<size_t>(equipSlot::FINGER_PRIMARY)] = ring;
-        hero->inventory.equipVersion++; // Invalidate equip cache
+        hero->inventory.equipVersion++;
 
         float modifiedPhys = hero->getStat("physique");
         bool cacheInvalidated = (modifiedPhys == 30.0f);
         logResult("Stat cache invalidation on inventory equipVersion increment", cacheMatch && cacheInvalidated);
         allPassed &= (cacheMatch && cacheInvalidated);
 
-        // 3. Headless UICommand Dispatch
         game g;
         g.changeState(std::make_unique<mainMenuState>());
-        UICommand openOpt = UICommand::triggerActionButton(5); // Slot 5 = Options
+        UICommand openOpt = UICommand::triggerActionButton(5);
         g.handleCommand(openOpt);
         bool inOptions = (dynamic_cast<optionsState*>(g.getActiveState()) != nullptr);
         logResult("UICommand dispatches button trigger and transitions state", inOptions);
@@ -1228,7 +1149,6 @@ namespace EngineTests
         std::cout << "\n--- Running Test 18: Quest Database, Component & Phone Journal System ---\n";
         bool allPassed = true;
 
-        // 1. Quest Database Loading & Definitions
         questDatabase::loadDatabase("data/quests");
         auto allQuests = questDatabase::getAllQuests();
         bool hasQuests = !allQuests.empty();
@@ -1240,7 +1160,6 @@ namespace EngineTests
         logResult("Quest 'root_delivery' correctly defined with non-empty stages", validIntro);
         allPassed &= validIntro;
 
-        // 2. Quest Component Tracking, Progression & Completion
         questComponent qc;
         qc.setQuestStage("root_delivery", 0);
         bool hasRoot = qc.hasQuest("root_delivery");
@@ -1252,13 +1171,11 @@ namespace EngineTests
         logResult("QuestComponent tracks quest 'root_delivery'", trackedRoot);
         allPassed &= trackedRoot;
 
-        // Advance to stage 2 (completion)
         qc.setQuestStage("root_delivery", 2);
         bool isComp = qc.isCompleted("root_delivery");
         logResult("QuestComponent successfully marks quest as completed at completionStage", isComp);
         allPassed &= isComp;
 
-        // 3. Serialization Round-trip
         nlohmann::json qJson = qc.toJson();
         questComponent qcLoaded;
         qcLoaded.fromJson(qJson);
@@ -1267,7 +1184,6 @@ namespace EngineTests
         logResult("QuestComponent JSON serialization preserves completed stages and tracked quest", serTracked && serComp);
         allPassed &= (serTracked && serComp);
 
-        // 4. Phone Apps State Quests Navigation & Action Grid
         game g;
         g.playerEntity = std::make_shared<entity>("hero_quest", "Quest Hero");
         g.Player = g.playerEntity.get();
@@ -1284,7 +1200,6 @@ namespace EngineTests
 
         if (activePhone)
         {
-            // Verify Action Grid layout: Slots 0-13 are empty, Slot 14 is Back
             bool slots0To13Empty = true;
             for (int i = 0; i < 14; ++i)
             {
@@ -1300,7 +1215,6 @@ namespace EngineTests
             logResult("Action Grid Slot 14 is 'Back' button", slot14IsBack);
             allPassed &= slot14IsBack;
 
-            // Test Category Filter Transitions (controlled via Center Pane UI)
             activePhone->setQuestCategoryFilter(QuestCategoryFilter::MAIN);
             bool isMain = (activePhone->getQuestCategoryFilter() == QuestCategoryFilter::MAIN);
             logResult("Quest category filter selects Main Quests", isMain);
@@ -1316,7 +1230,6 @@ namespace EngineTests
             logResult("Quest category filter selects All Quests", isAll);
             allPassed &= isAll;
 
-            // Test Completed Toggle (controlled via Center Pane UI)
             bool compBefore = activePhone->isShowCompleted();
             activePhone->toggleShowCompleted();
             bool compAfter = activePhone->isShowCompleted();
@@ -1326,7 +1239,6 @@ namespace EngineTests
             logResult("Quests app toggles Completed filter state", compToggleOk);
             allPassed &= compToggleOk;
 
-            // Test Card Expansion (controlled via Center Pane Card Click)
             activePhone->toggleExpandedQuest("root_delivery");
             bool isExpanded = (activePhone->getExpandedQuestId() == "root_delivery");
             activePhone->toggleExpandedQuest("root_delivery");
@@ -1335,7 +1247,6 @@ namespace EngineTests
             logResult("Quests app toggles quest card details expansion", expOk);
             allPassed &= expOk;
 
-            // Test Scrolling bounds
             activePhone->setQuestMaxScrollY(150.0f);
             activePhone->scrollQuestList(50.0f);
             bool scrolled = (activePhone->getQuestScrollY() == 50.0f);
@@ -1345,7 +1256,6 @@ namespace EngineTests
             logResult("Quest list scroll offset adjusts smoothly and clamps to max scroll bounds", scrollOk);
             allPassed &= scrollOk;
 
-            // Action Grid Slot 14 returns back to Phone Home
             UICommand backCmd = UICommand::triggerActionButton(14);
             g.handleCommand(backCmd);
             bool atHome = (activePhone->getAppMode() == PhoneAppMode::HOME);
@@ -1373,7 +1283,6 @@ namespace EngineTests
 
         if (phone)
         {
-            // 1. Check all 14 Apps in Home Action Grid (slots 0..13) + Slot 14 Back
             const auto& grid = g.activeActionSlots;
             bool has14Apps = (grid.size() == 15);
             std::vector<std::string> expectedApps = {
@@ -1393,7 +1302,6 @@ namespace EngineTests
             logResult("Home screen contains exact 14 apps (Slots 0-13) and Back (Slot 14)", appsMatch);
             allPassed &= appsMatch;
 
-            // 2. Test 5-Tier Fetish Desires (Hate, Dislike, Neutral, Like, Love)
             phone->setFetishDesire("Exhibitionism", FetishDesireLevel::HATE);
             phone->setFetishDesire("Anal", FetishDesireLevel::LOVE);
             phone->setFetishDesire("Oral", FetishDesireLevel::LIKE);
@@ -1407,8 +1315,7 @@ namespace EngineTests
             logResult("Fetishes support 5-tier desire system including 'Hate' toggle", fetish5TierOk);
             allPassed &= fetish5TierOk;
 
-            // 3. Test Navigation into Masturbate App & Arousal Manipulation
-            g.handleCommand(UICommand::triggerActionButton(11)); // Masturbate (slot 11)
+            g.handleCommand(UICommand::triggerActionButton(11));
             bool inMasturbate = (phone->getAppMode() == PhoneAppMode::MASTURBATE);
             logResult("Action Grid Slot 11 transitions to Masturbate App", inMasturbate);
             allPassed &= inMasturbate;
@@ -1418,13 +1325,11 @@ namespace EngineTests
             {
                 p->stats.setBaseStat("arousal", 20.0f);
                 p->stats.setBaseStat("lust", 30.0f);
-                // Trigger Caress Chest (Button 0)
                 g.handleCommand(UICommand::triggerActionButton(0));
                 bool arousalUp = (p->getStat("arousal") >= 35.0f);
                 logResult("Solo intimacy caress actions build arousal", arousalUp);
                 allPassed &= arousalUp;
 
-                // Trigger Climax & Relief (Button 3) when arousal is high
                 p->stats.setBaseStat("arousal", 85.0f);
                 g.refreshActionGrid();
                 g.handleCommand(UICommand::triggerActionButton(3));
@@ -1433,13 +1338,11 @@ namespace EngineTests
                 allPassed &= climaxReset;
             }
 
-            // Return to Home via Slot 14
             g.handleCommand(UICommand::triggerActionButton(14));
             bool backHome1 = (phone->getAppMode() == PhoneAppMode::HOME);
             allPassed &= backHome1;
 
-            // 4. Test Elemental Companion App
-            g.handleCommand(UICommand::triggerActionButton(13)); // Elemental (slot 13)
+            g.handleCommand(UICommand::triggerActionButton(13));
             bool inElemental = (phone->getAppMode() == PhoneAppMode::ELEMENTAL);
             logResult("Action Grid Slot 13 transitions to Elemental App", inElemental);
             allPassed &= inElemental;
@@ -1452,16 +1355,13 @@ namespace EngineTests
             logResult("Elemental companion manifests and toggles battle/passive aspects", elemOk);
             allPassed &= elemOk;
 
-            // Return Home
             g.handleCommand(UICommand::triggerActionButton(14));
 
-            // 5. Test Combat Moves Deck Editor (10 Slots in Action Grid)
-            g.handleCommand(UICommand::triggerActionButton(10)); // Combat Moves (slot 10 on home screen)
+            g.handleCommand(UICommand::triggerActionButton(10));
             bool inCombatMoves = (phone->getAppMode() == PhoneAppMode::COMBAT_MOVES);
             logResult("Action Grid Slot 10 transitions to Combat Moves Deck Editor", inCombatMoves);
             allPassed &= inCombatMoves;
 
-            // Click action grid button 2 to select slot 2 (3rd deck slot)
             g.handleCommand(UICommand::triggerActionButton(2));
             bool slot2Selected = (phone->getSelectedCombatSlot() == 2);
             logResult("Action Grid button selects combat deck slot #3", slot2Selected);
@@ -1471,7 +1371,6 @@ namespace EngineTests
             {
                 p->preparedCombatSlots[2] = "Arcane Dart";
                 bool slotAssigned = (p->preparedCombatSlots[2] == "Arcane Dart");
-                // Trigger Clear Slot (Action Grid Button 10 in COMBAT_MOVES)
                 g.handleCommand(UICommand::triggerActionButton(10));
                 bool slotCleared = (p->preparedCombatSlots[2].empty());
                 bool combatDeckOk = (slotAssigned && slotCleared);
@@ -1479,36 +1378,32 @@ namespace EngineTests
                 allPassed &= combatDeckOk;
             }
 
-            // Return Home
             g.handleCommand(UICommand::triggerActionButton(14));
 
-            // 6. Test Stats Tab Navigation
             phone->setAppMode(PhoneAppMode::STATS);
-            phone->setStatsTab(1); // Body Stats
+            phone->setStatsTab(1);
             bool bodyTab = (phone->getStatsTab() == 1);
-            phone->setStatsTab(2); // Sex Stats
+            phone->setStatsTab(2);
             bool sexTab = (phone->getStatsTab() == 2);
-            phone->setStatsTab(3); // Pregnancy
+            phone->setStatsTab(3);
             bool pregTab = (phone->getStatsTab() == 3);
             bool statsOk = (bodyTab && sexTab && pregTab);
             logResult("Stats app navigates across Core, Body, Sex, and Pregnancy tabs", statsOk);
             allPassed &= statsOk;
 
-            // 7. Test Contacts App Card Expansion & Dossier Transition
             phone->setAppMode(PhoneAppMode::CONTACTS);
-            phone->toggleContactsExpanded(1); // Expand contact card 1 (Elena)
+            phone->toggleContactsExpanded(1);
             bool cardExpanded = (phone->getContactsExpandedIdx() == 1);
-            phone->toggleContactsExpanded(1); // Collapse contact card 1
+            phone->toggleContactsExpanded(1);
             bool cardCollapsed = (phone->getContactsExpandedIdx() == -1);
-            phone->setContactsSelectedIdx(0); // View first contact dossier
+            phone->setContactsSelectedIdx(0);
             bool inDossier = (phone->getContactsSelectedIdx() == 0);
-            phone->setContactsSelectedIdx(-1); // Return to list
+            phone->setContactsSelectedIdx(-1);
             bool backToList = (phone->getContactsSelectedIdx() == -1);
             bool contactsOk = (cardExpanded && cardCollapsed && inDossier && backToList);
             logResult("Contacts app supports card expansion/collapse and detailed dossiers", contactsOk);
             allPassed &= contactsOk;
 
-            // Return Home
             phone->setAppMode(PhoneAppMode::HOME);
             g.refreshActionGrid();
             bool finalHome = (g.activeActionSlots[14].label == "Back");
@@ -1534,11 +1429,10 @@ namespace EngineTests
         auto merchant = std::make_shared<entity>("marcus", "Marcus");
         merchant->stats.setBaseStat("currency", 1500.0f);
         merchant->baseMerchantGold = 1500.0f;
-        merchant->buyMarkup = 1.20f;   // 20% markup
-        merchant->sellMarkdown = 0.55f;// 55% markdown
+        merchant->buyMarkup = 1.20f;
+        merchant->sellMarkdown = 0.55f;
         merchant->merchantAffinity = 1.0f;
 
-        // 1. Merchant Valuation Formula: Baseline item without perks
         auto potion = std::make_shared<item>();
         potion->id = "item_canis_root";
         potion->name = "Canis Root Potion";
@@ -1548,43 +1442,33 @@ namespace EngineTests
 
         int buyPriceBase = merchantValuation::calculateBuyPrice(potion.get(), player.get(), merchant.get());
         int sellPriceBase = merchantValuation::calculateSellPrice(potion.get(), player.get(), merchant.get());
-        // Buy: 100 * 1.20 = 120
-        // Sell: 100 * 0.55 = 55
         bool baselineMath = (buyPriceBase == 120 && sellPriceBase == 55);
         logResult("Merchant valuation baseline math without perks (Buy: 120¤, Sell: 55¤)", baselineMath);
         allPassed &= baselineMath;
 
-        // 2. Player Perks modify prices: Silver Tongue (+10%)
         player->unlockPerk("silver_tongue");
         bool hasPerk = player->hasPerk("silver_tongue");
         bool perkModApplied = (player->tradePerkModifier == 0.10f);
         int buyPriceWithPerk = merchantValuation::calculateBuyPrice(potion.get(), player.get(), merchant.get());
         int sellPriceWithPerk = merchantValuation::calculateSellPrice(potion.get(), player.get(), merchant.get());
-        // Buy with 10% discount: 100 * 1.20 * (1 - 0.10) = 108
-        // Sell with 10% bonus: 100 * 0.55 * (1 + 0.10) = 60.5 -> 61 (rounded)
         bool perkDiscountOk = (buyPriceWithPerk == 108 && sellPriceWithPerk == 61);
         bool perkOk = (hasPerk && perkModApplied && perkDiscountOk);
         logResult("Trade perk (Silver Tongue) grants -10% buy discount and +10% sell bonus", perkOk);
         allPassed &= perkOk;
 
-        // Stacking Master Trader (+15%) -> Total 25%
         player->unlockPerk("master_trader");
         bool stackedMod = (player->tradePerkModifier == 0.25f);
         int buyPriceStacked = merchantValuation::calculateBuyPrice(potion.get(), player.get(), merchant.get());
         int sellPriceStacked = merchantValuation::calculateSellPrice(potion.get(), player.get(), merchant.get());
-        // Buy: 100 * 1.20 * 0.75 = 90
-        // Sell: 100 * 0.55 * 1.25 = 68.75 -> 69
         bool stackedOk = (stackedMod && buyPriceStacked == 90 && sellPriceStacked == 69);
         logResult("Stacking trade perks (Silver Tongue + Master Trader) grants 25% total discount/bonus", stackedOk);
         allPassed &= stackedOk;
 
-        // Reset perks
         player->resetPerks();
         bool perksReset = (player->tradePerkModifier == 0.0f && !player->hasPerk("silver_tongue"));
         logResult("resetPerks clears perks and restores baseline trade modifiers", perksReset);
         allPassed &= perksReset;
 
-        // 3. ShopState Lifecycle and Inventory Setup
         merchant->inventory.addItem(potion);
         auto shop = std::make_unique<shopState>(merchant);
         g.changeState(std::move(shop));
@@ -1595,8 +1479,6 @@ namespace EngineTests
         logResult("shopState initializes with active merchant entity", shopInitOk);
         allPassed &= shopInitOk;
 
-        // 4. Action Grid Navigation in Shop
-        // Initially nothing selected:
         g.refreshActionGrid();
         bool slot0Guide = (g.activeActionSlots[0].label == "Select Item to Trade" && !g.activeActionSlots[0].isEnabled);
         bool slot14Leave = (g.activeActionSlots[14].label == "Leave Shop" && g.activeActionSlots[14].isEnabled);
@@ -1613,8 +1495,6 @@ namespace EngineTests
         logResult("Action Grid unselected layout: guidance on Slot 0, Slot 14 Leave Shop, Slots 1-13 empty", unselectedGridOk);
         allPassed &= unselectedGridOk;
 
-        // 5. Selecting Merchant Item for BUYING
-        // Side 1 (Merchant), Stack index 0
         g.handleCommand({ CommandType::SELECT_INVENTORY_SLOT, 1, 0, "" });
         bool buyButton1 = (g.activeActionSlots[0].label == "Buy 1 (120¤)" && g.activeActionSlots[0].isEnabled);
         bool buyAllButton = (g.activeActionSlots[1].label == "Buy All (600¤)");
@@ -1623,12 +1503,11 @@ namespace EngineTests
         logResult("Selecting merchant item configures Buy 1, Buy All, and Deselect on Action Grid", buyActionGridOk);
         allPassed &= buyActionGridOk;
 
-        // 6. Buying an Item
-        float prePlayerGold = player->getStat("currency"); // 500
-        float preMerchantGold = merchant->getStat("currency"); // 1500
-        size_t prePlayerBackpack = player->inventory.backpack.size(); // 0
+        float prePlayerGold = player->getStat("currency");
+        float preMerchantGold = merchant->getStat("currency");
+        size_t prePlayerBackpack = player->inventory.backpack.size();
 
-        g.handleCommand({ CommandType::BUY_SHOP_ITEM, 0, 2, "" }); // Buy 2 for 240¤
+        g.handleCommand({ CommandType::BUY_SHOP_ITEM, 0, 2, "" });
 
         float postPlayerGold = player->getStat("currency");
         float postMerchantGold = merchant->getStat("currency");
@@ -1641,8 +1520,6 @@ namespace EngineTests
         logResult("Buying items transfers items, deducts player gold, and credits merchant purse", buyOk);
         allPassed &= buyOk;
 
-        // 7. Selecting Player Item for SELLING
-        // Side 0 (Player), Stack index 0 (the bought Canis Root)
         g.handleCommand({ CommandType::SELECT_INVENTORY_SLOT, 0, 0, "" });
         bool sellButton1 = (g.activeActionSlots[0].label == "Sell 1 (55¤)" && g.activeActionSlots[0].isEnabled);
         bool sellAllButton = (g.activeActionSlots[1].label == "Sell All (110¤)");
@@ -1650,11 +1527,10 @@ namespace EngineTests
         logResult("Selecting player item configures Sell 1 and Sell All with calculated resale price", sellActionGridOk);
         allPassed &= sellActionGridOk;
 
-        // 8. Selling an Item
         float preSellPlayerGold = player->getStat("currency");
         float preSellMerchantGold = merchant->getStat("currency");
 
-        g.handleCommand({ CommandType::SELL_SHOP_ITEM, 0, 1, "" }); // Sell 1 for 55¤
+        g.handleCommand({ CommandType::SELL_SHOP_ITEM, 0, 1, "" });
 
         float postSellPlayerGold = player->getStat("currency");
         float postSellMerchantGold = merchant->getStat("currency");
@@ -1665,7 +1541,6 @@ namespace EngineTests
         logResult("Selling item transfers item to merchant, pays player, and deducts merchant funds", sellOk);
         allPassed &= sellOk;
 
-        // 9. Key Quest Item Protection: Quest item cannot be sold
         auto keyItem = std::make_shared<item>();
         keyItem->id = "item_ancient_sun_relic";
         keyItem->name = "Ancient Sun Relic";
@@ -1693,7 +1568,6 @@ namespace EngineTests
         logResult("Key quest items cannot be sold (action disabled & transaction blocked)", keyProtected);
         allPassed &= keyProtected;
 
-        // 10. Leave Shop returns to exploration
         g.handleCommand(UICommand::triggerActionButton(14));
         bool leftShop = (dynamic_cast<explorationState*>(g.getActiveState()) != nullptr);
         logResult("Leave Shop returns cleanly to exploration state", leftShop);
@@ -1707,7 +1581,6 @@ namespace EngineTests
         std::cout << "\n--- Running Test 21: Modular JSON Loaders, Quest NPC Relocations & Persistent Encounter System ---\n";
         bool allPassed = true;
 
-        // 1. Modular Directory Loaders & Lookup
         NamedCharacterManager::loadFromDirectory("data/characters");
         npcGenerator::loadTemplates("data/enemies");
         questDatabase::loadDatabase("data/quests");
@@ -1725,26 +1598,21 @@ namespace EngineTests
 
         if (marcus)
         {
-            // 2. Daily Schedule Evaluation based on in-game hour
-            // Morning/Afternoon (hour 12): (2, 3) at Market Stall
             marcus->resolveLocation(12, 1, nullptr, nullptr);
             bool marketStall = (marcus->currentMapId == "overworld" && marcus->currentX == 2 && marcus->currentY == 3);
             logResult("Marcus resolves to Market Stall (2,3) during daytime hours (12:00)", marketStall);
             allPassed &= marketStall;
 
-            // Evening (hour 19): (4, 1) at Tavern Plaza
             marcus->resolveLocation(19, 1, nullptr, nullptr);
             bool tavernPlaza = (marcus->currentMapId == "overworld" && marcus->currentX == 4 && marcus->currentY == 1);
             logResult("Marcus resolves to Tavern Plaza (4,1) during evening hours (19:00)", tavernPlaza);
             allPassed &= tavernPlaza;
 
-            // Night (hour 23): (2, 2) at Marcus's Cottage (house_01)
             marcus->resolveLocation(23, 1, nullptr, nullptr);
             bool cottage = (marcus->currentMapId == "house_01" && marcus->currentX == 2 && marcus->currentY == 2);
             logResult("Marcus resolves to Cottage in house_01 (2,2) during night hours (23:00)", cottage);
             allPassed &= cottage;
 
-            // 3. Quest-Driven Relocation Evaluation (defined in quest_intro.json, NOT in marcus.json)
             questComponent testQuests;
             testQuests.setQuestStage("root_delivery", 1);
             marcus->resolveLocation(12, 1, &testQuests, nullptr);
@@ -1752,15 +1620,13 @@ namespace EngineTests
             logResult("Quest-driven relocation redirects Marcus to (1,1) when 'root_delivery' stage is 1", questOverride);
             allPassed &= questOverride;
 
-            // Clear quest stage, should resolve back to schedule (2,3 at 12:00)
-            testQuests.setQuestStage("root_delivery", 2); // completion stage
+            testQuests.setQuestStage("root_delivery", 2);
             marcus->resolveLocation(12, 1, &testQuests, nullptr);
             bool backToSchedule = (marcus->currentX == 2 && marcus->currentY == 3);
             logResult("Marcus returns to default daily schedule when quest stage exceeds relocation window", backToSchedule);
             allPassed &= backToSchedule;
         }
 
-        // 4. NPC-Bound Quest Triggers
         auto npcTriggers = questDatabase::getTriggersForNPC("marcus");
         bool hasNpcTrigger = false;
         for (const auto& trig : npcTriggers)
@@ -1774,7 +1640,6 @@ namespace EngineTests
         logResult("QuestDatabase retrieves NPC-bound trigger 'trig_marcus_delivery_talk' for Marcus", hasNpcTrigger);
         allPassed &= hasNpcTrigger;
 
-        // 5. Map Integration & Named NPCs on Tiles
         game g;
         g.loadMap("overworld", 2, 3);
         auto* activeMap = g.map;
@@ -1784,7 +1649,6 @@ namespace EngineTests
 
         if (activeMap)
         {
-            // Set time to 12:00
             g.gameTime.hour = 12;
             NamedCharacterManager::updateAllLocations(&g);
 
@@ -1797,8 +1661,6 @@ namespace EngineTests
             logResult("NamedCharacterManager places Marcus on (2,3) market tile at 12:00", marcusOnTile);
             allPassed &= marcusOnTile;
 
-            // 6. State and Adjacency Enforcement on Player Movement
-            // Movement while in an encounter (eventState) is strictly blocked
             g.changeState(std::make_unique<eventState>());
             g.gridX = 2; g.gridY = 3;
             g.movePlayer(3, 3);
@@ -1806,31 +1668,28 @@ namespace EngineTests
             logResult("Player movement is strictly locked during an encounter (eventState)", encounterMoveBlocked);
             allPassed &= encounterMoveBlocked;
 
-            // Movement in explorationState allows valid adjacent cardinal steps
             g.changeState(std::make_unique<explorationState>());
-            g.movePlayer(3, 3); // Valid adjacent cardinal step (East)
+            g.movePlayer(3, 3);
             bool adjacentMoved = (g.gridX == 3 && g.gridY == 3);
             logResult("Player moves to valid adjacent cardinal tile (3,3) from (2,3) in explorationState", adjacentMoved);
             allPassed &= adjacentMoved;
 
-            g.movePlayer(1, 3); // Invalid non-adjacent move (distance 2)
+            g.movePlayer(1, 3);
             bool nonAdjacentBlocked = (g.gridX == 3 && g.gridY == 3);
             logResult("Player movement to non-adjacent tile (1,3) is strictly blocked", nonAdjacentBlocked);
             allPassed &= nonAdjacentBlocked;
 
-            g.movePlayer(4, 4); // Invalid diagonal move (dx=1, dy=1)
+            g.movePlayer(4, 4);
             bool diagonalBlocked = (g.gridX == 3 && g.gridY == 3);
             logResult("Player movement to diagonal tile (4,4) is strictly blocked", diagonalBlocked);
             allPassed &= diagonalBlocked;
 
-            // 6. Persistent Ambush Encounter & Pool on Dangerous Tile (1,2)
             auto& alleyTile = activeMap->getRuntimeData(1, 2);
             bool hasAmbush = (alleyTile.ambushState.npc != nullptr);
             bool hasPool = (!alleyTile.ambushState.templatePool.empty() && alleyTile.ambushState.templatePool.size() >= 2);
             logResult("Dangerous tile (1,2) initializes persistent ambush and loads template pool", hasAmbush && hasPool);
             allPassed &= (hasAmbush && hasPool);
 
-            // Verify Ambush NPC is NEVER in namedNPCs and NEVER presented as a friendly talkable character
             bool inNamedNPCs = false;
             for (const auto& n : alleyTile.namedNPCs)
             {
@@ -1839,18 +1698,16 @@ namespace EngineTests
             logResult("Ambush NPC is not present in namedNPCs (lurks in shadows, not talkable)", !inNamedNPCs);
             allPassed &= !inNamedNPCs;
 
-            // 7. Ambush Combat Resolution & Depletion Tracking
             auto ambusher = alleyTile.ambushState.npc;
             if (ambusher)
             {
                 ambusher->stats.setBaseStat("currency", 50.0f);
 
-                // Simulate player defeating and looting the ambusher
                 alleyTile.ambushState.isDefeated = true;
-                alleyTile.ambushState.restockMinutesRemaining = 1440; // 24 hours
-                ambusher->stats.setBaseStat("currency", 0.0f); // player looted gold
-                ambusher->inventory.backpack.clear(); // player looted inventory
-                ambusher->inventory.equipped.fill(nullptr); // player stripped/looted them
+                alleyTile.ambushState.restockMinutesRemaining = 1440;
+                ambusher->stats.setBaseStat("currency", 0.0f);
+                ambusher->inventory.backpack.clear();
+                ambusher->inventory.equipped.fill(nullptr);
 
                 bool hasEquippedDepleted = false;
                 for (const auto& eq : ambusher->inventory.equipped) if (eq) hasEquippedDepleted = true;
@@ -1858,15 +1715,12 @@ namespace EngineTests
                 logResult("Ambush NPC enters defeated state with looted/depleted inventory and gold", isDepleted);
                 allPassed &= isDepleted;
 
-                // 8. Time Passage & 24-Hour Restock Mechanism
-                // Advance time by 600 minutes (10 hours) -> still depleted
                 activeMap->processTimePassage(600);
                 bool stillDefeated = (alleyTile.ambushState.isDefeated && alleyTile.ambushState.restockMinutesRemaining == 840);
                 bool stillNoGold = (ambusher->getStat("currency") == 0.0f);
                 logResult("Partial time passage (10h) keeps ambusher defeated and depleted (840m remaining)", stillDefeated && stillNoGold);
                 allPassed &= (stillDefeated && stillNoGold);
 
-                // Advance time by remaining 840 minutes (total 24 hours) -> restocks!
                 activeMap->processTimePassage(840);
                 bool restocked = (!alleyTile.ambushState.isDefeated && alleyTile.ambushState.restockMinutesRemaining == 0);
                 bool goldRestored = (ambusher->getStat("currency") >= 20.0f);
@@ -1877,18 +1731,15 @@ namespace EngineTests
                 logResult("Passing full 24h restocks ambusher: revives, rolls fresh gold, and replenishes template items", restockOk);
                 allPassed &= restockOk;
 
-                // 9. Permanent Removal System: Clears specific NPC so a NEW random NPC from pool spawns after 24h
                 alleyTile.ambushState.npc = nullptr;
                 alleyTile.ambushState.isDefeated = true;
                 alleyTile.ambushState.restockMinutesRemaining = 1440;
 
-                // Partial time passage: still null
                 activeMap->processTimePassage(600);
                 bool stillNull = (alleyTile.ambushState.npc == nullptr && alleyTile.ambushState.isDefeated);
                 logResult("Permanently removed enemy leaves tile clear during restock cooldown (600m passed)", stillNull);
                 allPassed &= stillNull;
 
-                // Pass remaining 840m -> spawns a fresh random enemy from pool
                 activeMap->processTimePassage(840);
                 bool spawnedNew = (!alleyTile.ambushState.isDefeated && alleyTile.ambushState.npc != nullptr);
                 bool validPoolChoice = (spawnedNew && (!alleyTile.ambushState.templateId.empty()));
@@ -1896,7 +1747,6 @@ namespace EngineTests
                 allPassed &= validPoolChoice;
             }
 
-            // 10. Save & Load Serialization for Named Characters & Ambushes
             nlohmann::json namedJson = NamedCharacterManager::saveStateToJson();
             NamedCharacterManager::loadStateFromJson(namedJson);
             nlohmann::json mapJson = activeMap->saveStateToJson();
@@ -1905,7 +1755,6 @@ namespace EngineTests
             logResult("GameMap serializes 'tileAmbushes' state with template pool into map JSON payload", hasSavedAmbushes);
             allPassed &= hasSavedAmbushes;
 
-            // Verify load restores state accurately
             activeMap->loadStateFromJson(mapJson);
             auto& reloadedAlley = activeMap->getRuntimeData(1, 2);
             bool loadedPool = (!reloadedAlley.ambushState.templatePool.empty() && reloadedAlley.ambushState.npc != nullptr);
@@ -1921,7 +1770,6 @@ namespace EngineTests
         std::cout << "\n--- Running Test 22: Calendar Leap Years, Character Creation Birth Month & Direct Transform ---\n";
         bool allPassed = true;
 
-        // 1. Leap Year Math Validation
         bool leap2020 = timeManager::isLeapYear(2020);
         bool leap2024 = timeManager::isLeapYear(2024);
         bool leap2000 = timeManager::isLeapYear(2000);
@@ -1933,7 +1781,6 @@ namespace EngineTests
         logResult("timeManager::isLeapYear evaluates Gregorian century and standard leap years accurately", leapMathOk);
         allPassed &= leapMathOk;
 
-        // 2. Days In Month Across All 12 Months
         bool janOk = (timeManager::getDaysInMonth(1, 2024) == 31);
         bool febLeapOk = (timeManager::getDaysInMonth(2, 2024) == 29);
         bool febNonLeapOk = (timeManager::getDaysInMonth(2, 2023) == 28);
@@ -1953,37 +1800,33 @@ namespace EngineTests
         logResult("timeManager::getDaysInMonth returns exact calendar days (Feb 28/29, Apr/Jun/Sep/Nov 30, others 31)", allDaysOk);
         allPassed &= allDaysOk;
 
-        // 3. Simulation Advance Time Month Boundary Transitions
         {
             timeManager tm;
-            // Feb 28, 2023 (non-leap year) -> should rollover to March 1
             tm.year = 2023;
             tm.month = 2;
             tm.day = 28;
             tm.hour = 23;
             tm.minute = 50;
-            tm.advanceTime(20); // +20 mins -> 00:10 March 1
+            tm.advanceTime(20);
             bool nonLeapRoll = (tm.month == 3 && tm.day == 1 && tm.hour == 0 && tm.minute == 10);
             logResult("Non-leap year Feb 28 rolls directly into March 1 upon midnight transition", nonLeapRoll);
             allPassed &= nonLeapRoll;
 
-            // Feb 28, 2024 (leap year) -> should rollover to Feb 29, then to March 1
             tm.year = 2024;
             tm.month = 2;
             tm.day = 28;
             tm.hour = 23;
             tm.minute = 50;
-            tm.advanceTime(20); // +20 mins -> 00:10 Feb 29
+            tm.advanceTime(20);
             bool leapRoll29 = (tm.month == 2 && tm.day == 29 && tm.hour == 0 && tm.minute == 10);
             logResult("Leap year Feb 28 rolls into Feb 29 (leap day)", leapRoll29);
             allPassed &= leapRoll29;
 
-            tm.advanceTime(1440); // +24 hours -> 00:10 March 1
+            tm.advanceTime(1440);
             bool leapRollMar = (tm.month == 3 && tm.day == 1 && tm.hour == 0 && tm.minute == 10);
             logResult("Leap year Feb 29 rolls into March 1 after 24 hours", leapRollMar);
             allPassed &= leapRollMar;
 
-            // Dec 31 -> Jan 1 of next year
             tm.year = 2024;
             tm.month = 12;
             tm.day = 31;
@@ -1995,22 +1838,18 @@ namespace EngineTests
             allPassed &= yearRoll;
         }
 
-        // 4. Character Creation Starting Month & Birthday Dynamic Clamping
         {
             game g;
             characterCreationState cc;
             cc.initialise(&g);
 
-            // Set starting month to October (month 10)
             cc.startMonth = "October";
             cc.startMonthIdx = 9;
 
-            // Pick birth month as February and age 22
             cc.birthMonth = "February";
             cc.birthMonthIdx = 1;
             cc.birthAge = 22;
 
-            // Clamping check for birthDay in February of birthYear (2026 - 22 = 2004, leap year -> 29 days)
             int bYear = 2026 - cc.birthAge;
             int maxFebDays = timeManager::getDaysInMonth(cc.birthMonthIdx + 1, bYear);
             bool febLeapClamp = (maxFebDays == 29);
@@ -2019,7 +1858,6 @@ namespace EngineTests
             logResult("Character creation clamps birth day to 29 for February in a leap birth year", febLeapClamp && clampedDayOk);
             allPassed &= (febLeapClamp && clampedDayOk);
 
-            // Test non-leap birth year (2026 - 21 = 2005 -> 28 days)
             cc.birthAge = 21;
             int nonLeapBYear = 2026 - cc.birthAge;
             int maxNonLeapDays = timeManager::getDaysInMonth(cc.birthMonthIdx + 1, nonLeapBYear);
@@ -2028,19 +1866,16 @@ namespace EngineTests
             logResult("Character creation clamps birth day to 28 for February in a non-leap birth year", clamped28Ok);
             allPassed &= clamped28Ok;
 
-            // Finalize character and verify gameTime starts in chosen month (October = 10)
             cc.finalizeCharacter(&g);
             bool startMonthApplied = (g.gameTime.month == 10);
             logResult("Finalizing character starts game in the user-selected starting month (October)", startMonthApplied);
             allPassed &= startMonthApplied;
 
-            // Verify player entity stores birthDay, birthMonth, and birthYear
             entity* p = g.getPlayer();
             bool entityBdayOk = (p != nullptr && p->birthDay == 28 && p->birthMonth == 2);
             logResult("Player entity stores birthDay, birthMonth, and birthYear", entityBdayOk);
             allPassed &= entityBdayOk;
 
-            // Verify entity JSON serialization preserves birthday fields
             nlohmann::json pj = p->toJson();
             entity loadedP("copy", "Copy");
             loadedP.fromJson(pj);
@@ -2049,7 +1884,6 @@ namespace EngineTests
             allPassed &= jsonBdayOk;
         }
 
-        // 5. Phone Transform Direct Transition & Return
         {
             game g;
             g.changeState(std::make_unique<phoneAppsState>(PhoneAppMode::HOME));
@@ -2059,14 +1893,12 @@ namespace EngineTests
             logResult("Game initializes in phoneAppsState HOME mode", inHome);
             allPassed &= inHome;
 
-            // Trigger Transform direct navigation
             g.changeState(std::make_unique<transformationState>(TransformationTab::CORE, std::make_unique<phoneAppsState>(PhoneAppMode::HOME)));
             auto* tf = dynamic_cast<transformationState*>(g.getActiveState());
             bool inTf = (tf != nullptr);
             logResult("Bypasses intermediary phone screen and enters transformationState directly", inTf);
             allPassed &= inTf;
 
-            // Invoke returnToPreviousOrExploration
             if (tf)
             {
                 tf->returnToPreviousOrExploration(&g);
@@ -2085,7 +1917,6 @@ namespace EngineTests
         std::cout << "\n--- Running Test 23: Autonomous Layout JSON Containment & Geometry Integrity ---\n";
         bool allPassed = true;
 
-        // 1. Validate Master Layout File Loading
         layoutEngine defEngine;
         bool defLoaded = defEngine.loadFromFile("data/layouts/default_layout.json");
         logResult("Master layout 'data/layouts/default_layout.json' loads and parses cleanly", defLoaded);
@@ -2096,7 +1927,6 @@ namespace EngineTests
         logResult("Alternative layout 'data/layouts/custom_tile_layout.json' loads and parses cleanly", customLoaded);
         allPassed &= customLoaded;
 
-        // 2. Validate Transformation Studio 3-Column Geometry in Master Layout
         auto tfBounds = defEngine.computeLayout(1920.0f, 1080.0f, 1.0f, "TRANSFORMATION");
         bool hasTfLeft = false, hasTfCenter = false, hasTfActions = false, hasTfRight = false;
         SDL_FRect leftRect{ 0, 0, 0, 0 }, centerRect{ 0, 0, 0, 0 }, rightRect{ 0, 0, 0, 0 };
@@ -2118,7 +1948,6 @@ namespace EngineTests
         logResult("Transformation layout maintains strict horizontal 3-column ordering without overlapping", tfHorizOrder);
         allPassed &= tfHorizOrder;
 
-        // 3. Validate Widget Registration inside Transformation Panels
         bool widgetsValid = false;
         for (const auto& p : tfBounds)
         {
@@ -2136,7 +1965,6 @@ namespace EngineTests
         logResult("Transformation left sidebar binds character card and paperdoll equipment widgets", widgetsValid);
         allPassed &= widgetsValid;
 
-        // 4. Validate Standard 3-Column States Coverage Across All Key States
         static const std::vector<std::string> threeColStates = {
             "EXPLORATION", "INVENTORY", "SHOP", "TRANSFORMATION", "PHONE_APP", "CHARACTER_CREATION", "SETTINGS", "LOAD_GAME", "COMBAT"
         };
@@ -2155,7 +1983,6 @@ namespace EngineTests
         logResult("All core gameplay states (Exploration, Inv, Shop, TF, Phone, Creation, Settings, Load, Combat) compute multi-column bounds", allThreeColOk);
         allPassed &= allThreeColOk;
 
-        // 5. Dynamic Window Resolution Rescaling Invariance
         auto bounds720p = defEngine.computeLayout(1280.0f, 720.0f, 0.75f, "TRANSFORMATION");
         bool scaledPositive = true;
         for (const auto& b : bounds720p)
@@ -2173,11 +2000,9 @@ namespace EngineTests
         std::cout << "\n--- Running Test 24: 3-Panel Layout Unification, Exploration Fog of War & Perk Tree ---\n";
         bool allPassed = true;
 
-        // 1. Layout Unification Verification
         layoutEngine layoutEng;
         layoutEng.loadFromFile("data/layouts/default_layout.json");
 
-        // CHARACTER_CREATION: Left (16%), Center (68%), Right (16%)
         auto ccPanels = layoutEng.computeLayout(1920.0f, 1080.0f, 1.0f, "CHARACTER_CREATION");
         bool hasCcLeft = false, hasCcCenter = false, hasCcRight = false;
         for (const auto& p : ccPanels)
@@ -2190,7 +2015,6 @@ namespace EngineTests
         logResult("Character Creation conforms to 3-panel layout (cc_left_sidebar, cc_center_pane, cc_right_sidebar)", ccUnified);
         allPassed &= ccUnified;
 
-        // SETTINGS: Left (16%), Center (68%), Right (16%)
         auto optPanels = layoutEng.computeLayout(1920.0f, 1080.0f, 1.0f, "SETTINGS");
         bool hasOptLeft = false, hasOptCenter = false, hasOptRight = false;
         for (const auto& p : optPanels)
@@ -2203,7 +2027,6 @@ namespace EngineTests
         logResult("Settings / Options conforms to 3-panel layout (opt_left_sidebar, opt_center_pane, opt_right_sidebar)", optUnified);
         allPassed &= optUnified;
 
-        // LOAD_GAME: Left (16%), Center (68%), Right (16%)
         auto loadPanels = layoutEng.computeLayout(1920.0f, 1080.0f, 1.0f, "LOAD_GAME");
         bool hasLoadLeft = false, hasLoadCenter = false, hasLoadRight = false;
         for (const auto& p : loadPanels)
@@ -2216,7 +2039,6 @@ namespace EngineTests
         logResult("Load Game conforms to 3-panel layout (load_left_sidebar, load_center_pane, load_right_sidebar)", loadUnified);
         allPassed &= loadUnified;
 
-        // MAIN_MENU: Sole fullscreen exception (no sidebars)
         auto mmPanels = layoutEng.computeLayout(1920.0f, 1080.0f, 1.0f, "MAIN_MENU");
         bool hasMmCenter = false, hasMmSidebar = false;
         for (const auto& p : mmPanels)
@@ -2231,39 +2053,35 @@ namespace EngineTests
         logResult("Main Menu remains the sole fullscreen exception without sidebars", mmException);
         allPassed &= mmException;
 
-        // 2. Exploration Discovery & Fog of War System
         gameMap testMap;
         testMap.loadFromFile("data/maps/overworld.json");
 
-        // Freshly loaded map tiles default to STATE_HIDDEN and visited == false
         Tile farTile = testMap.getTile(0, 0);
         bool initialHidden = (farTile.discovery == STATE_HIDDEN && !farTile.visited);
         logResult("Unvisited tiles initialize in STATE_HIDDEN fog of war", initialHidden);
         allPassed &= initialHidden;
 
-        // Reveal area around player at (2, 3)
         testMap.updateDiscovery(2, 3);
         Tile playerTile = testMap.getTile(2, 3);
         bool playerTileRevealed = (playerTile.discovery == STATE_REVEALED && playerTile.visited);
         logResult("Player step tile is marked STATE_REVEALED and visited == true", playerTileRevealed);
         allPassed &= playerTileRevealed;
 
-        Tile adjacentTile = testMap.getTile(3, 3); // cardinal adjacent tile (dx=1, dy=0)
+        Tile adjacentTile = testMap.getTile(3, 3);
         bool adjacentPartial = (adjacentTile.discovery == STATE_PARTIAL && !adjacentTile.visited);
         logResult("Cardinally adjacent tile (3,3) becomes STATE_PARTIAL (partially discovered)", adjacentPartial);
         allPassed &= adjacentPartial;
 
-        Tile diagonalTile = testMap.getTile(3, 2); // diagonal tile (dx=1, dy=-1)
+        Tile diagonalTile = testMap.getTile(3, 2);
         bool diagonalHidden = (diagonalTile.discovery == STATE_HIDDEN && !diagonalTile.visited);
         logResult("Diagonally adjacent tile (3,2) strictly remains in STATE_HIDDEN (not cardinal)", diagonalHidden);
         allPassed &= diagonalHidden;
 
-        Tile distantTile = testMap.getTile(0, 0); // distance > 1
+        Tile distantTile = testMap.getTile(0, 0);
         bool distantHidden = (distantTile.discovery == STATE_HIDDEN && !distantTile.visited);
         logResult("Distant unapproached tiles remain in STATE_HIDDEN (dark, undiscovered)", distantHidden);
         allPassed &= distantHidden;
 
-        // Serialization & Deserialization of discovery & visited arrays
         auto mapJson = testMap.saveStateToJson();
         gameMap loadedMap;
         loadedMap.loadFromFile("data/maps/overworld.json");
@@ -2280,7 +2098,6 @@ namespace EngineTests
         logResult("Map 3-tier discovery & visited arrays persist cleanly across JSON save/load", roundtripValid);
         allPassed &= roundtripValid;
 
-        // 3. Functional Perk Tree System
         auto player = std::make_shared<entity>("perk_hero", "PerkHero");
         player->stats.setBaseStat("max_health", 100.0f);
         player->stats.setBaseStat("health", 100.0f);
@@ -2297,7 +2114,6 @@ namespace EngineTests
         logResult("Player base max health equals 100 before perk unlocks", baseHpOk);
         allPassed &= baseHpOk;
 
-        // Unlock Iron Constitution (+20 HP, +5 Defense)
         player->unlockPerk("iron_constitution");
         bool hasIron = player->hasPerk("iron_constitution");
         float boostedHp = player->getStat("max_health");
@@ -2306,7 +2122,6 @@ namespace EngineTests
         logResult("Unlocking 'iron_constitution' grants +20 Max Health and +5 Defense dynamically", ironPerkActive);
         allPassed &= ironPerkActive;
 
-        // Unlock Brawny Strike (+5 Strength, +10 Physical Damage)
         player->unlockPerk("brawny_strike");
         bool brawnyActive = (player->hasPerk("brawny_strike") &&
                              player->getStat("strength") == 5.0f &&
@@ -2314,14 +2129,12 @@ namespace EngineTests
         logResult("Unlocking 'brawny_strike' grants +5 Strength and +10 Physical Damage", brawnyActive);
         allPassed &= brawnyActive;
 
-        // Unlock Trade Perks (Silver Tongue & Master Trader)
         player->unlockPerk("silver_tongue");
         player->unlockPerk("master_trader");
         bool tradeStacked = (player->tradePerkModifier == 0.25f && player->getStat("charm") == 5.0f);
         logResult("Silver Tongue & Master Trader stack trade modifiers (+25%) and grant charm", tradeStacked);
         allPassed &= tradeStacked;
 
-        // Reset Perks: Clears perks, recalculates modifiers, restores baseline
         player->resetPerks();
         bool perksReset = (!player->hasPerk("iron_constitution") &&
                            !player->hasPerk("brawny_strike") &&
@@ -2330,13 +2143,11 @@ namespace EngineTests
         logResult("resetPerks clears all talent perks and restores baseline stats immediately", perksReset);
         allPassed &= perksReset;
 
-        // Level-up XP advancement grants +1 perk point
-        player->stats.addXp(100.0f); // Level 1 -> 2
+        player->stats.addXp(100.0f);
         bool levelUpPt = (player->stats.level == 2 && player->getStat("perk_points") == 4.0f);
         logResult("Level advancement automatically awards +1 talent point to player pool", levelUpPt);
         allPassed &= levelUpPt;
 
-        // 4. Unified Lilith's Throne-Style Connected Skill Tree with Cross-Discipline Combos
         std::ifstream perksFile("data/perks.json");
         bool perksLoaded = perksFile.is_open();
         nlohmann::json perksData;
@@ -2362,7 +2173,7 @@ namespace EngineTests
             auto isConnected = [&nodeMap](const entity* ent, const std::string& perkId) -> bool {
                 if (!nodeMap.contains(perkId)) return false;
                 const auto& nd = nodeMap[perkId];
-                if (!nd.contains("parents") || nd["parents"].empty()) return true; // Root tier
+                if (!nd.contains("parents") || nd["parents"].empty()) return true;
                 bool reqAll = nd.value("requireAllParents", false);
                 int total = 0, unlockedCount = 0;
                 for (const auto& pVal : nd["parents"])
@@ -2378,7 +2189,6 @@ namespace EngineTests
             treePlayer->stats.setBaseStat("max_mana", 50.0f);
             treePlayer->stats.setBaseStat("perk_points", 15.0f);
 
-            // Gating Check: Tier 0 root is connected; Tier 1, 2, 3 children are locked
             bool rootOk = isConnected(treePlayer.get(), "iron_constitution");
             bool tier1Locked = !isConnected(treePlayer.get(), "brawny_strike");
             bool tier2Locked = !isConnected(treePlayer.get(), "juggernaut");
@@ -2387,7 +2197,6 @@ namespace EngineTests
             logResult("Connected Tree Gating: Root is accessible while deeper child and combo nodes are locked", initialGating);
             allPassed &= initialGating;
 
-            // Step 1: Unlock Root (Iron Constitution, cost 1)
             treePlayer->stats.setBaseStat("perk_points", treePlayer->getStat("perk_points") - 1.0f);
             treePlayer->unlockPerk("iron_constitution");
             bool tier1NowOpen = isConnected(treePlayer.get(), "brawny_strike");
@@ -2395,45 +2204,34 @@ namespace EngineTests
             logResult("Unlocking root opens direct Tier 1 child (brawny_strike) while Tier 2 remains locked", tier1NowOpen && tier2StillLocked);
             allPassed &= (tier1NowOpen && tier2StillLocked);
 
-            // Step 2: Unlock Tier 1 (Brawny Strike, cost 2)
             treePlayer->stats.setBaseStat("perk_points", treePlayer->getStat("perk_points") - 2.0f);
             treePlayer->unlockPerk("brawny_strike");
             bool tier2NowOpen = isConnected(treePlayer.get(), "juggernaut");
             logResult("Unlocking Tier 1 opens direct Tier 2 child (juggernaut)", tier2NowOpen);
             allPassed &= tier2NowOpen;
 
-            // Step 3: Test Combo Skill Multi-Parent Gating (Spellblade requires Brawny Strike AND Spell Weaver)
-            // Currently Brawny Strike is unlocked, but Spell Weaver is NOT unlocked!
             bool comboBlocked = !isConnected(treePlayer.get(), "spellblade");
             logResult("Combo Skill 'spellblade' remains locked when only 1 of 2 required parent disciplines is unlocked", comboBlocked);
             allPassed &= comboBlocked;
 
-            // Unlock Arcane branch root and adept: arcane_attunement -> spell_weaver
             treePlayer->stats.setBaseStat("perk_points", treePlayer->getStat("perk_points") - 1.0f);
             treePlayer->unlockPerk("arcane_attunement");
             treePlayer->stats.setBaseStat("perk_points", treePlayer->getStat("perk_points") - 2.0f);
             treePlayer->unlockPerk("spell_weaver");
 
-            // Now BOTH parents (Brawny Strike & Spell Weaver) are unlocked -> Spellblade becomes available!
             bool comboNowOpen = isConnected(treePlayer.get(), "spellblade");
             logResult("Combo Skill 'spellblade' becomes learnable once ALL parent disciplines are unlocked", comboNowOpen);
             allPassed &= comboNowOpen;
 
-            // Step 4: Unlock Spellblade (cost 3)
             treePlayer->stats.setBaseStat("perk_points", treePlayer->getStat("perk_points") - 3.0f);
             treePlayer->unlockPerk("spellblade");
 
-            // Verify dual-discipline stat modifiers:
-            // physical_damage: 0 base + 10 (brawny) + 15 (spellblade) = 25
-            // spell_power: 0 base + 15 (spell_weaver) + 15 (spellblade) = 30
             float physDmg = treePlayer->getStat("physical_damage");
             float spellPow = treePlayer->getStat("spell_power");
             bool comboStatsOk = (physDmg == 25.0f && spellPow == 30.0f);
             logResult("Unlocking combo talent stacks hybrid bonuses (+25 Physical Dmg, +30 Spell Power)", comboStatsOk);
             allPassed &= comboStatsOk;
 
-            // Step 5: Full Reset and Refund across unified disciplines and combo talents
-            // Points spent: 1 (iron) + 2 (brawny) + 1 (arcane_attunement) + 2 (spell_weaver) + 3 (spellblade) = 9 points
             int refunded = 0;
             for (const auto& perkId : treePlayer->unlockedPerks)
             {
@@ -2458,7 +2256,6 @@ namespace EngineTests
             allPassed &= (refundedProperly && statsReverted);
         }
 
-        // 5. Live Activity & Event Log System
         game testGame;
         testGame.init();
         const auto& initialLogs = testGame.getEventLog();
@@ -2473,13 +2270,11 @@ namespace EngineTests
         logResult("addLogEntry records talent unlocks dynamically into event history", hasTalentLog);
         allPassed &= hasTalentLog;
 
-        // Verify reverse-chronological ordering: top row (offset 0) resolves to latest log entry
         int topRowIdx = static_cast<int>(updatedLogs.size()) - 1;
         bool newestOnTop = (topRowIdx >= 0 && updatedLogs[topRowIdx].tag == "[TALENT]");
         logResult("Event Log reverses order so newest events display at top row", newestOnTop);
         allPassed &= newestOnTop;
 
-        // Verify Perks screen Action Grid: Tier buttons removed, Slot 13 Reset Perks, Slot 14 Back
         testGame.changeState(std::make_unique<phoneAppsState>(PhoneAppMode::PERKS));
         const auto& perkButtons = testGame.getActiveActionSlots();
         bool slot13Reset = (perkButtons.size() >= 15 && perkButtons[13].label == "Reset Perks" && perkButtons[13].isEnabled);
@@ -2505,7 +2300,6 @@ namespace EngineTests
         std::cout << "\n--- Running Test 25: Data-Driven JSON Perks System & Content Option Settings ---\n";
         bool allPassed = true;
 
-        // 1. Dynamic PerkDatabase loading from JSON
         PerkDatabase::clear();
         bool dbLoaded = PerkDatabase::loadFromFile("data/perks.json");
         const auto& allPerks = PerkDatabase::getAllPerks();
@@ -2516,18 +2310,17 @@ namespace EngineTests
         logResult("PerkDatabase loads 27+ total perks from data/perks.json dynamically", dbCheck);
         allPassed &= dbCheck;
 
-        // 2. Dynamic Stat Modifiers (Flat & Percent) on Entity without hardcoding
         auto player = std::make_shared<entity>("test_p25", "Hero");
         player->stats.setBaseStat("strength", 10.0f);
         player->stats.setBaseStat("max_health", 100.0f);
-        player->unlockPerk("iron_constitution"); // flat +20 max_health, +5 defense
+        player->unlockPerk("iron_constitution");
         bool flatApplied = (player->getStat("max_health") == 120.0f && player->getStat("defense") == 5.0f);
 
         PerkDefinition customPerk;
         customPerk.id = "perk_warlord_might";
         customPerk.name = "Warlord's Might";
-        customPerk.modifiers.statModifiers["strength"] = 10.0f;        // flat +10 -> strength 20
-        customPerk.modifiers.percentStatModifiers["strength"] = 0.50f; // percent +50% -> strength 30
+        customPerk.modifiers.statModifiers["strength"] = 10.0f;
+        customPerk.modifiers.percentStatModifiers["strength"] = 0.50f;
         PerkDatabase::registerPerk(customPerk);
         player->unlockPerk("perk_warlord_might");
         bool percentApplied = (player->getStat("strength") == 30.0f);
@@ -2535,19 +2328,16 @@ namespace EngineTests
         logResult("Perk stat modifiers apply dynamically (flat and percent) without hardcoding", statModsSuccess);
         allPassed &= statModsSuccess;
 
-        // 3. Versatile Perk Damage Multipliers by Race and Attack Type
-        player->unlockPerk("demonic_dominion"); // damage vs Demon +20%, vs Human +15%
-        player->unlockPerk("spell_weaver");     // damage for arcane +15%
-        float dmgDemonArcane = player->getPerkDamageMultiplier("Demon", "arcane"); // 0.20 + 0.15 = 0.35
-        float dmgHumanPhysical = player->getPerkDamageMultiplier("Human", "physical"); // 0.15
+        player->unlockPerk("demonic_dominion");
+        player->unlockPerk("spell_weaver");
+        float dmgDemonArcane = player->getPerkDamageMultiplier("Demon", "arcane");
+        float dmgHumanPhysical = player->getPerkDamageMultiplier("Human", "physical");
         bool dmgMultMatch = (std::abs(dmgDemonArcane - 0.35f) < 0.001f) &&
                             (std::abs(dmgHumanPhysical - 0.15f) < 0.001f);
         logResult("Perk damage multipliers accurately compute by target race and attack type", dmgMultMatch);
         allPassed &= dmgMultMatch;
 
-        // 4. Versatile Perk Defense Multipliers by Attacker Race and Attack Type
-        player->unlockPerk("hellfire_blood"); // defense vs fire +25%
-        // iron_constitution has defense vs physical +10%
+        player->unlockPerk("hellfire_blood");
         float defFire = player->getPerkDefenseMultiplier("", "fire");
         float defPhys = player->getPerkDefenseMultiplier("", "physical");
         bool defMultMatch = (std::abs(defFire - 0.25f) < 0.001f) &&
@@ -2555,7 +2345,6 @@ namespace EngineTests
         logResult("Perk defense multipliers accurately compute damage reductions by attack type and race", defMultMatch);
         allPassed &= defMultMatch;
 
-        // 5. Capability and Dialogue Flags
         player->unlockPerk("silver_tongue");       // flags: ["trade_negotiation"]
         player->unlockPerk("corruption_affinity"); // flags: ["demonic_pact"]
         bool flagNegotiation = player->hasPerkFlag("trade_negotiation");
@@ -2567,7 +2356,6 @@ namespace EngineTests
         logResult("Perk flags register and query accurately across entity unlocked perks", flagSuccess);
         allPassed &= flagSuccess;
 
-        // 6. Named Character Marcus Profile Perk Integration
         NamedCharacterManager::clear();
         bool marcusLoaded = NamedCharacterManager::loadFromDirectory("data/characters");
         auto marcus = NamedCharacterManager::getCharacter("marcus");
@@ -2585,7 +2373,6 @@ namespace EngineTests
         logResult("Named character Marcus loads unlocked perks and trade bonuses directly from JSON profile", marcusSuccess);
         allPassed &= marcusSuccess;
 
-        // 7. NPC Generator Template Perk Integration
         bool npcLoaded = npcGenerator::loadTemplates("data/enemies");
         auto bandit = npcGenerator::generateFromTemplate("tpl_alley_bandit");
         auto mage = npcGenerator::generateFromTemplate("tpl_rogue_mage");
@@ -2604,7 +2391,6 @@ namespace EngineTests
         logResult("NPC generator instantiates enemies with archetype perks and dynamic combat stats from JSON", enemiesValid);
         allPassed &= enemiesValid;
 
-        // 8. Combat Engine Action Resolution with Perks & Difficulty Scaling
         game cg;
         cg.init();
         combatEngine combat;
@@ -2612,16 +2398,15 @@ namespace EngineTests
         auto combatPlayer = std::make_shared<entity>("c_player", "Striker");
         combatPlayer->stats.setBaseStat("health", 200.0f);
         combatPlayer->stats.setBaseStat("max_health", 200.0f);
-        combatPlayer->unlockPerk("brawny_strike"); // +15% physical damage
+        combatPlayer->unlockPerk("brawny_strike");
 
         auto combatEnemy = std::make_shared<entity>("c_enemy", "Gladiator");
         combatEnemy->stats.setBaseStat("health", 200.0f);
         combatEnemy->stats.setBaseStat("max_health", 200.0f);
-        combatEnemy->unlockPerk("iron_constitution"); // +10% physical defense
+        combatEnemy->unlockPerk("iron_constitution");
 
         combat.initialiseCombat({ combatPlayer }, { combatEnemy });
 
-        // Player attacks enemy with 100 base physical damage
         CombatAction strikeAction;
         strikeAction.id = "act_strike";
         strikeAction.name = "Strike";
@@ -2635,24 +2420,20 @@ namespace EngineTests
         combat.queuePlayerAction(0, strikeAction, combatEnemy.get());
         combat.resolveTurn(&cg);
 
-        // Expected: 100 * 1.15 * (1 - 0.10) = 103.5 -> rounded to 104 damage
         float enemyHpAfter = combatEnemy->getStat("health");
-        bool playerAttackScaled = (enemyHpAfter == 96.0f); // 200 - 104 = 96
+        bool playerAttackScaled = (enemyHpAfter == 96.0f);
 
-        // Now test difficulty multiplier scaling when enemy attacks player
         cg.settings.gameplay.difficultyMultiplier = 1.5f;
         QueuedAction enemyAtk;
         enemyAtk.user = combatEnemy.get();
         enemyAtk.target = combatPlayer.get();
         CombatAction enemyAction = strikeAction;
-        enemyAction.effectNodes[0].element = "fire"; // neutral element for player
+        enemyAction.effectNodes[0].element = "fire";
         enemyAtk.action = enemyAction;
 
-        // Direct action execution simulation with difficulty multiplier
         float playerHpBefore = combatPlayer->getStat("health");
         combat.executeAction(enemyAtk, &cg);
         float playerHpAfter = combatPlayer->getStat("health");
-        // Enemy has no fire perk, player has no fire defense. Damage: 100 * 1.5 = 150
         float playerDmgTaken = playerHpBefore - playerHpAfter;
         bool difficultyScaled = (playerDmgTaken == 150.0f);
 
@@ -2660,8 +2441,6 @@ namespace EngineTests
         logResult("Combat engine applies attacker perk damage, defender defense, and difficulty scaling", combatSuccess);
         allPassed &= combatSuccess;
 
-        // 9. Content Option Settings Gameplay Integration
-        // 9a. Fluid Multiplier in sexState orgasm
         auto lover1 = std::make_shared<entity>("lover1", "Lover A");
         auto lover2 = std::make_shared<entity>("lover2", "Lover B");
 
@@ -2683,13 +2462,11 @@ namespace EngineTests
         lover2->anatomy.setPart(bodySlot::GROIN, vagina);
 
         sexState sexApp(lover2);
-        cg.settings.content.fluidMultiplier = 3.0f; // 3x multiplier
+        cg.settings.content.fluidMultiplier = 3.0f;
         sexApp.processOrgasm(&cg, lover1.get(), lover2.get(), bodySlot::GROIN);
-        // Base 15ml * 3.0 = 45ml ejaculated
         float cumRemaining = lover1->anatomy.getPart(bodySlot::GROIN)->currentFluidMl;
-        bool fluidMatch = (cumRemaining == 55.0f); // 100 - 45 = 55
+        bool fluidMatch = (cumRemaining == 55.0f);
 
-        // 9b. Lactation Enabled gating
         bodyPart breasts;
         breasts.id = "p_breasts";
         breasts.name = "Breasts";
@@ -2700,14 +2477,13 @@ namespace EngineTests
 
         cg.settings.content.lactationEnabled = false;
         sexApp.processOrgasm(&cg, lover1.get(), lover2.get(), bodySlot::GROIN);
-        bool lactDisabled = (lover1->anatomy.getPart(bodySlot::BREASTS)->currentFluidMl == 50.0f); // suppressed
+        bool lactDisabled = (lover1->anatomy.getPart(bodySlot::BREASTS)->currentFluidMl == 50.0f);
 
         cg.settings.content.lactationEnabled = true;
         cg.settings.content.fluidMultiplier = 1.0f;
         sexApp.processOrgasm(&cg, lover1.get(), lover2.get(), bodySlot::GROIN);
-        bool lactEnabled = (lover1->anatomy.getPart(bodySlot::BREASTS)->currentFluidMl == 25.0f); // 50 - 25 = 25
+        bool lactEnabled = (lover1->anatomy.getPart(bodySlot::BREASTS)->currentFluidMl == 25.0f);
 
-        // 9c. Auto-Loot in encounterResolutionState
         auto defeatedEnemy = std::make_shared<entity>("def_enemy", "Thief");
         defeatedEnemy->stats.setBaseStat("currency", 250.0f);
         auto dagger = itemDatabase::getItem("item_canis_root");
@@ -2724,21 +2500,18 @@ namespace EngineTests
                                (defeatedEnemy->getStat("currency") == 0.0f) &&
                                (resState.getDefeatedRecords()[0].isLooted);
 
-        // 9d. Non-Con Enabled gating in encounterResolutionState
         cg.settings.content.nonConEnabled = false;
         cg.settings.content.contentFilterMode = ContentFilterMode::BLOCK_AND_SKIP;
         resState.handleInteractiveSex(&cg);
         bool nonConBlocked = (resState.getDefeatedRecords()[0].hadSex == false) &&
                              (resState.getResolutionLog().find("Non-consensual content is disabled") != std::string::npos);
 
-        // 9e. Currency loss on combat defeat
         cg.settings.content.nonConEnabled = false;
-        cg.settings.gameplay.currencyLossOnDefeatPercent = 0.25f; // 25% loss
+        cg.settings.gameplay.currencyLossOnDefeatPercent = 0.25f;
         player->stats.setBaseStat("currency", 1000.0f);
         CombatState combatSt({ player }, { defeatedEnemy });
-        // Mock defeat resolution with robber enemy
         combatSt.resolveDefeat(&cg);
-        bool lossMatch = (player->getStat("currency") == 750.0f); // 1000 - 250 = 750
+        bool lossMatch = (player->getStat("currency") == 750.0f);
 
         bool contentSuccess = fluidMatch && lactDisabled && lactEnabled && autoLootSuccess && nonConBlocked && lossMatch;
         logResult("Content option settings actively govern fluids, lactation, auto-loot, non-con gating, and defeat gold loss", contentSuccess);
@@ -2752,7 +2525,6 @@ namespace EngineTests
         std::cout << "\n--- Running Test 26: Expanded Content Options, Lilith's Throne Fetishes & Scene Gating ---\n";
         bool allPassed = true;
 
-        // 1. Unified Fetishes Default Initialization & JSON Roundtrip
         ContentSettings cs;
         bool countMatches = (cs.fetishPreferences.size() >= 28);
         static const std::vector<std::string> expectedFetishes = {
@@ -2777,9 +2549,8 @@ namespace EngineTests
         logResult("ContentSettings initializes complete unified fetish roster", fetishInitOk);
         allPassed &= fetishInitOk;
 
-        // Verify JSON roundtrip for new fetishes and custom ratings
-        cs.fetishPreferences["Watersports"] = 5; // Love
-        cs.fetishPreferences["Tentacles"] = 0;   // Disabled
+        cs.fetishPreferences["Watersports"] = 5;
+        cs.fetishPreferences["Tentacles"] = 0;
         GameSettings gs;
         gs.content = cs;
         nlohmann::json serialized = gs.toJson();
@@ -2791,7 +2562,6 @@ namespace EngineTests
         logResult("Unified fetish preferences serialize and deserialize accurately", jsonFetishOk);
         allPassed &= jsonFetishOk;
 
-        // 2. All 14 Content Toggles & Filter Mode Persistence
         bool modeConversionOk = (contentFilterModeToString(ContentFilterMode::DROPDOWN) == "Dropdown" &&
                                  contentFilterModeToString(ContentFilterMode::WARN_CONFIRM) == "Warn & Confirm" &&
                                  contentFilterModeToString(ContentFilterMode::BLOCK_AND_SKIP) == "Block & Skip" &&
@@ -2828,7 +2598,6 @@ namespace EngineTests
         logResult("All 14 content option toggles and content filter mode persist cleanly in JSON", togglesPersisted);
         allPassed &= togglesPersisted;
 
-        // 3. ContentFilterManager Tag Normalization and Allowance Gating
         bool normOk = (ContentFilterManager::normalizeTag("Size Difference") == "size_difference" &&
                        ContentFilterManager::normalizeTag("BDSM / Sadism") == "bdsm_sadism" &&
                        ContentFilterManager::normalizeTag("  Watersports  ") == "watersports");
@@ -2839,21 +2608,19 @@ namespace EngineTests
         testSettings.watersportsEnabled = false;
         testSettings.tentaclesEnabled = true;
         testSettings.fetishPreferences["Watersports"] = 3;
-        testSettings.fetishPreferences["Tentacles"] = 0; // Disabled rating overrides tag
+        testSettings.fetishPreferences["Tentacles"] = 0;
 
         bool tagBlocked = !ContentFilterManager::isTagAllowed(testSettings, "watersports");
         bool fetishRatingBlocked = !ContentFilterManager::isTagAllowed(testSettings, "tentacles");
-        bool tagAllowed = ContentFilterManager::isTagAllowed(testSettings, "bdsm"); // default true
+        bool tagAllowed = ContentFilterManager::isTagAllowed(testSettings, "bdsm");
         auto disallowedList = ContentFilterManager::getDisallowedTags(testSettings, { "watersports", "bdsm", "tentacles" });
         bool disallowedOk = (disallowedList.size() == 2);
         bool allowanceOk = tagBlocked && fetishRatingBlocked && tagAllowed && disallowedOk;
         logResult("ContentFilterManager respects toggles and 0-rating fetish disabled preferences", allowanceOk);
         allPassed &= allowanceOk;
 
-        // 4. Narrative Segment Parsing & Interactive Dropdown Toggle
         std::string testNarrative = "Introductory text. [content:watersports:Spring Bath]The waters rush over you.[/content] Outro text.";
 
-        // Mode A: Tag allowed -> plain text
         testSettings.watersportsEnabled = true;
         testSettings.contentFilterMode = ContentFilterMode::DROPDOWN;
         auto allowedSegments = ContentFilterManager::parseNarrativeSegments(testSettings, testNarrative);
@@ -2865,7 +2632,6 @@ namespace EngineTests
         logResult("parseNarrativeSegments renders allowed content inline as standard text", segsAllowed);
         allPassed &= segsAllowed;
 
-        // Mode B: Tag disabled + DROPDOWN -> ContentDropdownBlock
         testSettings.watersportsEnabled = false;
         testSettings.contentFilterMode = ContentFilterMode::DROPDOWN;
         auto dropdownSegments = ContentFilterManager::parseNarrativeSegments(testSettings, testNarrative);
@@ -2878,7 +2644,6 @@ namespace EngineTests
         logResult("parseNarrativeSegments wraps disallowed content in interactive dropdown block", segsDropdown);
         allPassed &= segsDropdown;
 
-        // Mode C: Dropdown interactive expand/collapse on game instance
         game g;
         std::string dropId = dropdownSegments[1].dropdown.id;
         bool initialNotExpanded = !g.isDropdownExpanded(dropId);
@@ -2893,7 +2658,6 @@ namespace EngineTests
         logResult("game::toggleDropdown, isDropdownExpanded, and clearDropdowns manage dropdown state", dropdownToggleOk);
         allPassed &= dropdownToggleOk;
 
-        // Mode D: Tag disabled + BLOCK_AND_SKIP -> Redacted inline text
         testSettings.contentFilterMode = ContentFilterMode::BLOCK_AND_SKIP;
         auto blockedSegments = ContentFilterManager::parseNarrativeSegments(testSettings, testNarrative);
         bool segsBlocked = (blockedSegments.size() == 3 &&
@@ -2902,7 +2666,6 @@ namespace EngineTests
         logResult("parseNarrativeSegments in BLOCK_AND_SKIP mode replaces text with omitted notice", segsBlocked);
         allPassed &= segsBlocked;
 
-        // 5. Scene-Level Content Gating (WARN_CONFIRM & BLOCK_AND_SKIP)
         questScene sensitiveScene;
         sensitiveScene.id = "test_gated_watersports_scene";
         sensitiveScene.speakerName = "Siren";
@@ -2914,7 +2677,6 @@ namespace EngineTests
         sensitiveScene.choices.push_back(sensitiveChoice);
         questDatabase::registry[sensitiveScene.id] = sensitiveScene;
 
-        // 5a. BLOCK_AND_SKIP scene gating
         g.settings.content.watersportsEnabled = false;
         g.settings.content.contentFilterMode = ContentFilterMode::BLOCK_AND_SKIP;
         g.loadScene(sensitiveScene.id);
@@ -2932,9 +2694,8 @@ namespace EngineTests
         logResult("loadScene under BLOCK_AND_SKIP bypasses sensitive scene and returns to exploration", blockAndSkipSceneOk);
         allPassed &= blockAndSkipSceneOk;
 
-        // 5b. WARN_CONFIRM scene gating with bypass option
         g.settings.content.contentFilterMode = ContentFilterMode::WARN_CONFIRM;
-        g.loadScene(sensitiveScene.id, false); // without bypass
+        g.loadScene(sensitiveScene.id, false);
         bool inWarningPrompt = (dynamic_cast<eventState*>(g.getActiveState()) != nullptr) &&
                                (g.getCurrentScene().id == "warning_" + sensitiveScene.id) &&
                                (g.getCurrentScene().speakerName == "CONTENT WARNING") &&
@@ -2944,7 +2705,6 @@ namespace EngineTests
         logResult("loadScene under WARN_CONFIRM presents interstitial warning confirmation prompt", inWarningPrompt);
         allPassed &= inWarningPrompt;
 
-        // Proceed via bypass
         if (!g.getCurrentScene().choices.empty())
         {
             g.processChoice(g.getCurrentScene().choices[0]);
@@ -2954,7 +2714,6 @@ namespace EngineTests
         logResult("Selecting Proceed to Scene bypasses warning and loads target scene", sceneProceeded);
         allPassed &= sceneProceeded;
 
-        // 6. Choice-Level Content Gating in actionGridManager
         questScene choiceTestScene;
         choiceTestScene.id = "test_choice_gating_scene";
         choiceTestScene.speakerName = "Narrator";
@@ -2966,7 +2725,6 @@ namespace EngineTests
         choiceTestScene.choices.push_back(gatedChoice);
         questDatabase::registry[choiceTestScene.id] = choiceTestScene;
 
-        // 6a. Choice with disabled tag under BLOCK_AND_SKIP: locked & disabled button
         g.settings.content.forcedTfEnabled = false;
         g.settings.content.contentFilterMode = ContentFilterMode::BLOCK_AND_SKIP;
         g.loadScene(choiceTestScene.id);
@@ -2976,7 +2734,6 @@ namespace EngineTests
         logResult("Choice with disabled content tag under BLOCK_AND_SKIP is locked and disabled", choiceLocked);
         allPassed &= choiceLocked;
 
-        // 6b. Choice with disabled tag under WARN_CONFIRM: [!] label prefix & warning scene
         g.settings.content.contentFilterMode = ContentFilterMode::WARN_CONFIRM;
         g.loadScene(choiceTestScene.id);
         bool choiceWarningPrefix = (!g.activeActionSlots.empty() &&
@@ -2985,7 +2742,6 @@ namespace EngineTests
         logResult("Choice with disabled content tag under WARN_CONFIRM displays [!] warning prefix", choiceWarningPrefix);
         allPassed &= choiceWarningPrefix;
 
-        // Clean up test registry entries
         questDatabase::registry.erase(sensitiveScene.id);
         questDatabase::registry.erase(choiceTestScene.id);
 
@@ -2997,7 +2753,6 @@ namespace EngineTests
         bool allPassed = true;
         std::cout << "\n--- Running Test 27: Data-Driven Map Titles & Dynamic NPC Character Cards ---\n";
 
-        // 1. Data-Driven Map Titles from JSON (overworld)
         game g;
         g.loadMap("overworld", 2, 3);
         auto* activeMap = g.map;
@@ -3007,71 +2762,59 @@ namespace EngineTests
 
         if (activeMap)
         {
-            // Tile (8, 1) has warp with label "Entrance to Cozy Cottage"
             std::string warpTitle = activeMap->getTileTitle(8, 1);
             bool warpOk = (warpTitle == "Entrance to Cozy Cottage");
             logResult("MapWarp label parsed from JSON populates tile title ('Entrance to Cozy Cottage')", warpOk);
             allPassed &= warpOk;
 
-            // Tile (1, 1) has specific coordinate title in tileTitles: "Northern Gate Archway"
             std::string coordTitle = activeMap->getTileTitle(1, 1);
             bool coordOk = (coordTitle == "Northern Gate Archway");
             logResult("Specific tileTitles coordinate parsed from JSON populates tile title ('Northern Gate Archway')", coordOk);
             allPassed &= coordOk;
 
-            // Tile (2, 1) has tag "high_street" -> tagTitles gives "High Street"
             std::string tagTitle1 = activeMap->getTileTitle(2, 1);
             bool tag1Ok = (tagTitle1 == "High Street");
             logResult("tagTitles mapping from JSON populates tagged tile title ('High Street')", tag1Ok);
             allPassed &= tag1Ok;
 
-            // Tile (1, 3) has tag "market_quarter" -> tagTitles gives "Market Quarter"
             std::string tagTitle2 = activeMap->getTileTitle(1, 3);
             bool tag2Ok = (tagTitle2 == "Market Quarter");
             logResult("tagTitles mapping from JSON populates tagged tile title ('Market Quarter')", tag2Ok);
             allPassed &= tag2Ok;
 
-            // Default tile title fallback
             std::string defaultTitle = activeMap->getTileTitle(5, 5);
             bool defaultOk = (defaultTitle == "Town Thoroughfare");
             logResult("defaultTileTitle from JSON serves as robust fallback ('Town Thoroughfare')", defaultOk);
             allPassed &= defaultOk;
         }
 
-        // 2. Data-Driven Map Titles from JSON (house_01)
         g.loadMap("house_01", 2, 3);
         auto* houseMap = g.map;
         if (houseMap)
         {
-            // Tile (2, 3) has warp label "Exit to Town District"
             bool houseWarpOk = (houseMap->getTileTitle(2, 3) == "Exit to Town District");
             logResult("Interior map warp label parsed from JSON ('Exit to Town District')", houseWarpOk);
             allPassed &= houseWarpOk;
 
-            // Tile (2, 2) has specific tileTitle "Central Parlor"
             bool parlorOk = (houseMap->getTileTitle(2, 2) == "Central Parlor");
             logResult("Interior map coordinate title parsed from JSON ('Central Parlor')", parlorOk);
             allPassed &= parlorOk;
 
-            // Tile (1, 1) has tag "library" -> "Library Alcove"
             bool libraryOk = (houseMap->getTileTitle(1, 1) == "Library Alcove");
             logResult("Interior map tag title parsed from JSON ('Library Alcove')", libraryOk);
             allPassed &= libraryOk;
 
-            // Default interior title "Cottage Interior"
             bool interiorDefaultOk = (houseMap->getTileTitle(0, 0) == "Cottage Interior");
             logResult("Interior map default title parsed from JSON ('Cottage Interior')", interiorDefaultOk);
             allPassed &= interiorDefaultOk;
         }
 
-        // 3. NPC Interaction State, Auto-Selection, and Stable List Targeting
-        g.loadMap("overworld", 5, 5); // Tile (5, 5) has no NPCs
+        g.loadMap("overworld", 5, 5);
         g.activeTargetNPC = nullptr;
         bool initialInteracting = EntityListWidgets::isInteractingWithNPC(&g);
         logResult("EntityListWidgets::isInteractingWithNPC returns false when no NPCs on tile and no target", !initialInteracting);
         allPassed &= !initialInteracting;
 
-        // Add 1 NPC on tile (5, 5)
         auto testNpc1 = std::make_shared<entity>("bandit_01", "Alleyway Bandit");
         testNpc1->stats.level = 3;
         testNpc1->stats.setBaseStat("health", 85.0f);
@@ -3083,44 +2826,37 @@ namespace EngineTests
 
         g.map->getRuntimeData(5, 5).namedNPCs.push_back(testNpc1);
 
-        // Peaceful arrival: does not auto-select or show enemy card
         g.syncTileTarget(false);
         bool peacefulUnselected = (g.activeTargetNPC == nullptr);
         bool peacefulNotInteracting = !EntityListWidgets::isInteractingWithNPC(&g);
         logResult("Peaceful tile arrival does not auto-select or trigger enemy card", peacefulUnselected && peacefulNotInteracting);
         allPassed &= (peacefulUnselected && peacefulNotInteracting);
 
-        // Initiating selection with character (forceSelect = true)
         g.syncTileTarget(true);
         bool autoSelectOne = (g.activeTargetNPC == testNpc1);
         logResult("Single NPC on tile is selected (If theres only one character, obviously they are selected)", autoSelectOne);
         allPassed &= autoSelectOne;
 
-        // Selection during exploration does NOT change layout or trigger interaction card
         bool targetExplorationNotInteracting = !EntityListWidgets::isInteractingWithNPC(&g);
         logResult("Selecting character does NOT trigger interaction layout during exploration", targetExplorationNotInteracting);
         allPassed &= targetExplorationNotInteracting;
 
-        // Adding a second NPC on current tile
         auto testNpc2 = std::make_shared<entity>("guard_01", "Town Guard");
         testNpc2->stats.level = 5;
         g.map->getRuntimeData(5, 5).namedNPCs.push_back(testNpc2);
 
-        // Auto-default when target is unassigned defaults to the top of the list
         g.activeTargetNPC = nullptr;
         g.syncTileTarget(true);
         bool autoDefaultTop = (g.activeTargetNPC == testNpc1);
         logResult("Multiple NPCs on tile default selection to top of list (More than one should default to the top of the list)", autoDefaultTop);
         allPassed &= autoDefaultTop;
 
-        // Switching selection to second NPC keeps list order stable without changing layout
         g.activeTargetNPC = testNpc2;
         auto multiNPCs = EntityListWidgets::getInteractingNPCs(&g);
         bool stableOrder = (multiNPCs.size() == 2 && multiNPCs[0] == testNpc1 && multiNPCs[1] == testNpc2);
         logResult("Selecting character does NOT alter list order or change layout (The selection thing isn't to change the layout)", stableOrder);
         allPassed &= stableOrder;
 
-        // Verify ambush hazard enemy present on tile is included in tile NPCs for characters present
         g.map->getRuntimeData(5, 5).ambushState.templateId = "tpl_alley_bandit";
         g.map->getRuntimeData(5, 5).ambushState.npc = std::make_shared<entity>("ambush_01", "Shadow Bandit");
         auto currentTileNPCs = g.getTileNPCs();
@@ -3132,14 +2868,12 @@ namespace EngineTests
         logResult("Ambush enemy present on tile is visible in tile NPCs for characters present display", ambushIncluded);
         allPassed &= ambushIncluded;
 
-        // Hazard tile (1, 3) immediately populates ambush NPC and includes it in getTileNPCs
         g.loadMap("overworld", 1, 3);
         auto overworldTileNPCs = g.getTileNPCs();
         bool hazardHasNPC = (!overworldTileNPCs.empty() && overworldTileNPCs.front() != nullptr);
         logResult("Hazard tile (1, 3) populates random encounter enemy in characters present list", hazardHasNPC);
         allPassed &= hazardHasNPC;
 
-        // Reset to peaceful tile (5, 5) without NPCs
         g.loadMap("overworld", 5, 5);
         g.map->getRuntimeData(5, 5).namedNPCs.clear();
         g.map->getRuntimeData(5, 5).ambushState.npc.reset();
@@ -3148,7 +2882,6 @@ namespace EngineTests
         logResult("EntityListWidgets::isInteractingWithNPC reverts to false when tile has no NPCs and no target", !clearedInteracting);
         allPassed &= !clearedInteracting;
 
-        // 4. Combat System AP Multi-Action Queueing, Targeting & Turn Resolution
         auto combatPlayer = std::make_shared<entity>("test_hero", "Hero");
         combatPlayer->stats.setBaseStat("physique", 20.0f);
         combatPlayer->stats.setBaseStat("agility", 15.0f);
@@ -3184,7 +2917,6 @@ namespace EngineTests
             logResult("Player participant initializes with full starting stamina (>= 100)", hasStartingStamina);
             allPassed &= hasStartingStamina;
 
-            // Target Enemy A and queue Strike (15 Stamina)
             g.activeTargetNPC = enemyA;
             g.handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "STRIKE" });
             float staminaAfterStrike = players[0].currentStamina;
@@ -3193,7 +2925,6 @@ namespace EngineTests
             logResult("Queueing Strike (15 Stamina) targets Enemy A and deducts 15 stamina without ending turn", strikeQueued);
             allPassed &= strikeQueued;
 
-            // Target Enemy B and queue Heavy Strike (35 Stamina)
             g.activeTargetNPC = enemyB;
             g.handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "HEAVY_STRIKE" });
             float staminaAfterHeavy = players[0].currentStamina;
@@ -3202,7 +2933,6 @@ namespace EngineTests
             logResult("Queueing Heavy Strike (35 Stamina) targets selected Enemy B and deducts 35 stamina", heavyQueued);
             allPassed &= heavyQueued;
 
-            // Resolve turn
             cs->handleEndTurn(&g);
             bool roundAdvanced = (cs->getEngine().getCurrentRound() >= 2 || cs->getEngine().isCombatOver());
             bool enemyADamaged = (enemyA->getStat("health") < 80.0f);
@@ -3224,19 +2954,17 @@ namespace EngineTests
 
         auto testEnt = std::make_shared<entity>("hero_status", "Status Hero");
 
-        // 1. Structure & getRemainingMinutes calculations
         StatusEffect fxMins("buff_m", "Min Buff", "Minute effect", -1, false, 720, 1440, "MIN");
         StatusEffect fxTurns("buff_t", "Turn Buff", "Turn effect", 4, false, -1, 1440, "TRN");
         StatusEffect fxZero("buff_z", "Zero Buff", "Zero effect", 0, false, 0, 1440, "ZER");
 
         bool remMinsOk = (fxMins.getRemainingMinutes() == 720);
-        bool remTurnsOk = (fxTurns.getRemainingMinutes() == 240); // 4 turns * 60 = 240 mins
+        bool remTurnsOk = (fxTurns.getRemainingMinutes() == 240);
         bool remZeroOk = (fxZero.getRemainingMinutes() == 0);
         logResult("StatusEffect::getRemainingMinutes calculates minute and turn equivalents correctly",
                   remMinsOk && remTurnsOk && remZeroOk);
         allPassed &= (remMinsOk && remTurnsOk && remZeroOk);
 
-        // 2. FIFO Ordering ("ordered as they come")
         testEnt->clearStatusEffects();
         testEnt->addStatusEffect(StatusEffect("fx_str", "Strength", "+15% Str", 10, false, 1440, 1440, "STR"));
         testEnt->addStatusEffect(StatusEffect("fx_arc", "Arcane", "+20% Mana", 10, false, 720, 1440, "ARC"));
@@ -3249,8 +2977,6 @@ namespace EngineTests
         logResult("addStatusEffect stores effects in exact arrival order (ordered as they come)", orderedAsTheyCome);
         allPassed &= orderedAsTheyCome;
 
-        // 3. Time limit decay & pruning via updateStatusEffectsOnTime
-        // Poison has 180 mins remaining. Advance time by 180 minutes.
         testEnt->updateStatusEffectsOnTime(180);
 
         bool poiExpired = (testEnt->statusEffects.size() == 2 && !testEnt->hasStatusEffect("fx_poi"));
@@ -3260,16 +2986,11 @@ namespace EngineTests
                   poiExpired && strRemains && arcRemains);
         allPassed &= (poiExpired && strRemains && arcRemains);
 
-        // 4. Shuffling over when one disappears
-        // Current order: [0] fx_str, [1] fx_arc
-        // Now remove fx_str (index 0). fx_arc MUST shuffle over to index 0!
         testEnt->removeStatusEffect("fx_str");
         bool shuffledOver = (testEnt->statusEffects.size() == 1 && testEnt->statusEffects[0].id == "fx_arc");
         logResult("Removing an effect causes subsequent effects to shuffle over into preceding slots", shuffledOver);
         allPassed &= shuffledOver;
 
-        // 5. Dynamic wrap & auto-extending grid calculation
-        // Simulate row count calculation: chipsPerRow = 7
         const int chipsPerRow = 7;
         auto getRows = [](size_t count, int perRow) {
             return count == 0 ? 0 : static_cast<int>(std::ceil(count / static_cast<float>(perRow)));
@@ -3283,7 +3004,6 @@ namespace EngineTests
         logResult("Dynamic status effect rows calculation correctly extends for 0, 1, 2, and 3+ rows", gridRowsOk);
         allPassed &= gridRowsOk;
 
-        // 6. 0-24h Shading fillRatio calculations & boundaries
         auto calcFill = [](int mins) {
             return std::clamp(static_cast<float>(mins) / 1440.0f, 0.0f, 1.0f);
         };
@@ -3296,7 +3016,6 @@ namespace EngineTests
         logResult("0-24h shading ratio correctly fills 0% at 0h, 50% at 12h, and caps 100% at 24h", fillOk);
         allPassed &= fillOk;
 
-        // 7. Green-to-Red Dynamic Color Transition
         auto getGradientColor = [](float fillRatio) -> std::tuple<uint8_t, uint8_t, uint8_t> {
             uint8_t r, g, b;
             if (fillRatio >= 0.5f)
@@ -3316,9 +3035,9 @@ namespace EngineTests
             return { r, g, b };
         };
 
-        auto [rFull, gFull, bFull] = getGradientColor(1.0f); // 24h: Green
-        auto [rMid, gMid, bMid] = getGradientColor(0.5f);   // 12h: Yellow / Amber
-        auto [rEmpty, gEmpty, bEmpty] = getGradientColor(0.0f); // 0h: Red
+        auto [rFull, gFull, bFull] = getGradientColor(1.0f);
+        auto [rMid, gMid, bMid] = getGradientColor(0.5f);
+        auto [rEmpty, gEmpty, bEmpty] = getGradientColor(0.0f);
 
         bool colorFullGreen = (rFull == 45 && gFull == 190 && bFull == 75);
         bool colorMidYellow = (rMid == 230 && gMid == 190 && bMid == 40);
@@ -3327,7 +3046,6 @@ namespace EngineTests
         logResult("Shading color transitions from rich green (24h) to amber (12h) to bright red (0h)", colorGradOk);
         allPassed &= colorGradOk;
 
-        // 8. JSON Serialization & Deserialization roundtrip
         testEnt->clearStatusEffects();
         testEnt->addStatusEffect(StatusEffect("fx_ward", "Ward", "Shield buff", 8, false, 1200, 1440, "WRD"));
 
@@ -3352,20 +3070,18 @@ namespace EngineTests
         std::cout << "\n--- Running Test 29: Enchanting Engine, Infusion Costing & Status Effect Generation ---\n";
         bool allPassed = true;
 
-        // 1. Validate Aspect Essence Weighting & Cost Calculation Formula
         InfusionEffect effPredator{
             InfusionTargetType::CONSUMABLE_TONIC,
-            EnchantmentFocus::HEAD_FEATURE,     // UNCOMMON: weight 2
-            AspectProperty::AGILITY_STAT,       // RARE: weight 4
-            InfusionTier::GREATER_BOON,         // weight 8
+            EnchantmentFocus::HEAD_FEATURE,
+            AspectProperty::AGILITY_STAT,
+            InfusionTier::GREATER_BOON,
             -1
         };
-        int costPredator = effPredator.calculateCost(); // 1 + 2 + 4 + 8 = 15
+        int costPredator = effPredator.calculateCost();
         bool costFormulaOk = (costPredator == 15);
         logResult("InfusionEffect cost formula correctly computes 1 + focus + property + tier (15 essence)", costFormulaOk);
         allPassed &= costFormulaOk;
 
-        // 2. Validate Delta Costing & Free Attribute Removal
         auto baseTonic = std::make_shared<item>();
         baseTonic->id = "elixir_base";
         baseTonic->name = "Elixir Base";
@@ -3383,7 +3099,6 @@ namespace EngineTests
         logResult("Maintaining existing effects costs 0, and cleansing beneficial attributes is free (0)", freeRemovalOk);
         allPassed &= freeRemovalOk;
 
-        // 3. Validate Procedural Compound Item Naming
         std::string compNamePredator = EnchantingEngine::composeItemName(baseTonic.get(), { effPredator });
         bool namePredatorOk = (compNamePredator.find("Predator's Instinct") != std::string::npos);
         logResult("Item naming engine composes compound title ('Elixir of Predator's Instinct')", namePredatorOk);
@@ -3401,7 +3116,6 @@ namespace EngineTests
         logResult("Item naming engine detects physique domain ('Elixir of Colossus Might')", nameColossusOk);
         allPassed &= nameColossusOk;
 
-        // 4. Validate Altar State & Crafting Lifecycle
         game testGame;
         testGame.init();
         auto player = std::make_shared<entity>("stat_tester", "Valeria");
@@ -3431,10 +3145,9 @@ namespace EngineTests
         logResult("EnchantingState correctly stages effect and validates player essence affordability", altarStateOk);
         allPassed &= altarStateOk;
 
-        // Execute Craft
         altarState->craft(&testGame);
         float remainingEssence = testGame.Player->getStat("arcaneEssence");
-        bool essenceDeducted = (remainingEssence == 25.0f); // 40 - 15 = 25
+        bool essenceDeducted = (remainingEssence == 25.0f);
         bool backpackUpdated = (testGame.Player->inventory.backpack.size() == 1 &&
                                 testGame.Player->inventory.backpack[0]->hasInfusions() &&
                                 testGame.Player->inventory.backpack[0]->infusionEffects.size() == 1);
@@ -3442,22 +3155,19 @@ namespace EngineTests
         logResult("Altar craft deducts 15 Arcane Essence (40 -> 25) and populates backpack with infused elixir", craftSuccess);
         allPassed &= craftSuccess;
 
-        // 5. Validate Consuming Infused Potion & Status Effect Generation
         testGame.Player->clearStatusEffects();
         testGame.Player->stats.setBaseStat("agility", 10.0f);
         float baseAgility = testGame.Player->getStat("agility");
 
-        // Consume the crafted potion
         testGame.handleUseItemAction(0);
 
         bool hasPredatorBuff = testGame.Player->hasStatusEffect("predator_instinct");
         float boostedAgility = testGame.Player->getStat("agility");
-        bool agilityBoosted = (boostedAgility == baseAgility + 3.0f); // Greater Boon = +3
+        bool agilityBoosted = (boostedAgility == baseAgility + 3.0f);
         bool potionConsumedOk = (hasPredatorBuff && agilityBoosted);
         logResult("Consuming infused potion adds 'Predator's Instinct' status effect (+3 Agility, 4h duration)", potionConsumedOk);
         allPassed &= potionConsumedOk;
 
-        // 6. Validate 24-Hour Primal Surge Infusion
         InfusionEffect effPrimal{
             InfusionTargetType::CONSUMABLE_TONIC,
             EnchantmentFocus::GENITALIA_PRIMARY,
@@ -3479,8 +3189,6 @@ namespace EngineTests
         logResult("Consuming primal surge elixir awards 24-hour (1440m) full-day status effect", primalOk);
         allPassed &= primalOk;
 
-        // 7. Validate Status Decay & Expiration
-        // Advance time by 60 minutes
         testGame.Player->updateStatusEffectsOnTime(60);
         int predMinsAfter60 = 0, primMinsAfter60 = 0;
         for (const auto& fx : testGame.Player->statusEffects)
@@ -3492,7 +3200,6 @@ namespace EngineTests
         logResult("Advancing 60 minutes decays predator instinct (240 -> 180m) and primal surge (1440 -> 1380m)", decay60Ok);
         allPassed &= decay60Ok;
 
-        // Advance time by 180 more minutes (predator instinct expires at 0)
         testGame.Player->updateStatusEffectsOnTime(180);
         bool predExpired = !testGame.Player->hasStatusEffect("predator_instinct");
         bool primStillActive = testGame.Player->hasStatusEffect("primal_surge");
@@ -3509,7 +3216,6 @@ namespace EngineTests
         std::cout << "\n--- Running Test 30: Unified Toolbar Positioning & Starter Test Kit Inventory Delivery ---\n";
         bool allPassed = true;
 
-        // 1. Validate SidebarGeometry Positioning Consistency
         SDL_FRect panelRect = { 0.0f, 0.0f, 204.8f, 720.0f };
         float uiScale = 1.0f;
         float cardTopY = 400.0f;
@@ -3521,7 +3227,6 @@ namespace EngineTests
         float toolW = (boxSize - (2.0f * gap)) / 3.0f;
         float toolbarY = cardTopY + (18.0f * uiScale) + boxSize + (5.0f * uiScale);
 
-        // Verify mathematical symmetry
         float availableW = SidebarGeometry::getAvailableW(panelRect, uiScale);
         float leftMargin = gridStartX - SidebarGeometry::getPadX(panelRect, uiScale);
         float totalToolbarWidth = (3.0f * toolW) + (2.0f * gap);
@@ -3530,14 +3235,12 @@ namespace EngineTests
         logResult("Sidebar toolbar buttons span exact boxSize and align with grid container borders", symmetricOk);
         allPassed &= symmetricOk;
 
-        // Verify card bottom padding below toolbar
         float cardH = SidebarGeometry::getSquareCardH(panelRect, uiScale);
         float bottomSpace = (cardTopY + cardH) - (toolbarY + toolH);
         bool bottomPaddingOk = (std::abs(bottomSpace - 5.0f * uiScale) < 0.01f);
         logResult("Toolbar leaves exact 5px bottom padding inside both equipment and radar cards", bottomPaddingOk);
         allPassed &= bottomPaddingOk;
 
-        // 2. Validate grantStarterTestKit Delivery
         auto testPlayer = std::make_shared<entity>("hero_starter", "Test Hero");
         testPlayer->stats.setBaseStat("agility", 10.0f);
         testPlayer->stats.setBaseStat("health", 100.0f);
@@ -3582,13 +3285,11 @@ namespace EngineTests
         logResult("Starter test kit ensures at least 50 Arcane Essence and 500 Gold for immediate enchanting", resourcesOk);
         allPassed &= resourcesOk;
 
-        // 3. Validate Live Consumption of Starter Infused Potion
         game testGame;
         testGame.init();
         testGame.playerEntity = testPlayer;
         testGame.Player = testPlayer.get();
 
-        // Locate predator elixir in stacked view and consume it
         auto stacked = testPlayer->inventory.getStackedView();
         int predStackedIdx = -1;
         for (size_t i = 0; i < stacked.size(); ++i)
@@ -3607,7 +3308,6 @@ namespace EngineTests
         logResult("Consuming starter infused elixir immediately applies Predator's Instinct (+3 Agility, 4h)", statusAppliedOk);
         allPassed &= statusAppliedOk;
 
-        // 4. Validate Character Creation finalizeCharacter Integration
         characterCreationState cc;
         game newGameContext;
         newGameContext.init();
@@ -3632,7 +3332,6 @@ namespace EngineTests
         std::cout << "\n--- Running Test 31: Altar Compatibility Matrix, Apparel Gradual Sizing & Racial Reagent Gating ---\n";
         bool allPassed = true;
 
-        // 1. Weapon Enchantment Compatibility (Combat only, no transformatives)
         auto testDagger = itemDatabase::getItem("item_dagger_iron");
         if (!testDagger)
         {
@@ -3657,7 +3356,6 @@ namespace EngineTests
         logResult("Weapons accept combat lethality, arcane scaling, deflection wards, and soulbound seals", daggerAcceptsCombat);
         allPassed &= daggerAcceptsCombat;
 
-        // 2. Apparel Enchantment Compatibility (Sizing/modifiers allowed, racial TFs disallowed)
         auto testSkirt = std::make_shared<item>();
         testSkirt->id = "test_skirt";
         testSkirt->category = ItemCategory::CLOTHING;
@@ -3677,7 +3375,6 @@ namespace EngineTests
         logResult("Apparel accepts anatomical sizing/modifiers (breasts, hips, hair) and armor reinforcement", apparelAcceptsSizing);
         allPassed &= apparelAcceptsSizing;
 
-        // 3. Equipped Apparel Gradual Sizing Ticks in Biological Pipeline
         game testGame;
         testGame.init();
         auto player = std::make_shared<entity>("hero_tester", "Hero");
@@ -3702,7 +3399,6 @@ namespace EngineTests
 
         player->inventory.equipped[static_cast<size_t>(equipSlot::HEADWEAR)] = magicHat;
 
-        // Advance time by 60 minutes (Hourly tick rate for GREATER_BOON)
         eventBus::getInstance().publishEvent({ gameEvent::timeAdvanced, 60, "", nullptr });
 
         auto updatedHair = player->anatomy.getPart(bodySlot::HAIR);
@@ -3710,7 +3406,6 @@ namespace EngineTests
         logResult("Equipped apparel with HAIR_GROWTH gradually increases hair length over time advancement", hairGrew);
         allPassed &= hairGrew;
 
-        // 4. Racial Reagent Gating (Generic base blocks racial TFs, racial reagents unlock them)
         auto plainElixir = std::make_shared<item>();
         plainElixir->id = "plain_elixir";
         plainElixir->isConsumable = true;
@@ -3730,7 +3425,6 @@ namespace EngineTests
         logResult("Canis Root with baseRace=canine awakens racial resonance and unlocks racial transformations", canineUnlocksRacial);
         allPassed &= canineUnlocksRacial;
 
-        // 5. Food to Potion Alchemical Transmutation
         auto testApple = std::make_shared<item>();
         testApple->id = "test_apple";
         testApple->name = "Crisp Red Apple";
@@ -3748,7 +3442,6 @@ namespace EngineTests
         logResult("Enchanting a food item at the altar transmutes it into a consumable Potion", convertedToPotion);
         allPassed &= convertedToPotion;
 
-        // 6. Altar Grid Geometry & Labels
         bool labelsValid = (getFocusShortLabel(EnchantmentFocus::WEAPON_LETHALITY) == "Weapon" &&
                             getFocusShortLabel(EnchantmentFocus::HEAD_FEATURE) == "Head" &&
                             getFocusIconGlyph(EnchantmentFocus::WEAPON_LETHALITY) == "SW" &&
@@ -3769,7 +3462,6 @@ namespace EngineTests
         engine.Player = engine.playerEntity.get();
         engine.Player->stats.setBaseStat("arcaneEssence", 100.0f);
 
-        // Grant starter test kit into empty backpack
         engine.Player->inventory.backpack.clear();
         saveManager::grantStarterTestKit(engine.Player);
 
@@ -3792,14 +3484,12 @@ namespace EngineTests
         logResult("All target test items discovered in stacked inventory view", itemsFoundInStacked);
         allPassed &= itemsFoundInStacked;
 
-        // Verify that alphabetical stacked indices deviate from raw arrival backpack indices
         int chokerRawIdx = stacked[chokerStackedIdx].firstBackpackIndex;
         int daggerRawIdx = stacked[daggerStackedIdx].firstBackpackIndex;
         bool indicesDeviate = (chokerStackedIdx != chokerRawIdx) || (daggerStackedIdx != daggerRawIdx);
         logResult("Stacked inventory indices deviate from raw backpack indices due to sorting", indicesDeviate);
         allPassed &= indicesDeviate;
 
-        // 1. Select Leather Choker in Inventory & transition to EnchantingState
         engine.selectedInventorySide = 0;
         engine.selectedInventoryIndex = chokerStackedIdx;
         auto chokerSlotInfo = engine.getInventorySlotItem(0, chokerStackedIdx);
@@ -3819,7 +3509,6 @@ namespace EngineTests
         logResult("Apparel automatically initializes with ARMOR_REINFORCEMENT focus", chokerFocusValid);
         allPassed &= chokerFocusValid;
 
-        // 2. Select Iron Dagger in Inventory & transition to EnchantingState
         engine.selectedInventoryIndex = daggerStackedIdx;
         auto daggerSlotInfo = engine.getInventorySlotItem(0, daggerStackedIdx);
         bool daggerSlotCorrect = (daggerSlotInfo.isValid && daggerSlotInfo.itemPtr && daggerSlotInfo.itemPtr->name == "Iron Dagger");
@@ -3838,7 +3527,6 @@ namespace EngineTests
         logResult("Weapon automatically initializes with WEAPON_LETHALITY focus", daggerFocusValid);
         allPassed &= daggerFocusValid;
 
-        // 3. Cycle items at the Altar through stacked order & Blank Tonic Base
         bool reachedBlank = false;
         bool wrappedToFirst = false;
         std::string firstItemName = "";
@@ -3865,7 +3553,6 @@ namespace EngineTests
         logResult("Cycling backpack items visits all distinct items, reaches blank tonic, and wraps cleanly", cycleSuccess);
         allPassed &= cycleSuccess;
 
-        // 4. Crafting Leather Choker consumes base item and deducts essence
         chokerAltar->setFocus(EnchantmentFocus::ARMOR_REINFORCEMENT);
         chokerAltar->setProperty(AspectProperty::ARMOR_RATING);
         chokerAltar->setTier(InfusionTier::BOON);
@@ -3937,7 +3624,6 @@ namespace EngineTests
         canisRoot.isConsumable = true;
         canisRoot.baseRace = "canine";
 
-        // 1. Validate getCompatibleFocuses counts and contents
         auto weaponFocuses = getCompatibleFocuses(&weapon);
         bool weaponCountValid = (weaponFocuses.size() == 4);
         bool weaponHasNoAnatomy = true;
@@ -3984,7 +3670,6 @@ namespace EngineTests
         logResult("Canis Root reagent unlocks full anatomical and racial focus matrix", rootRacialUnlocked);
         allPassed &= rootRacialUnlocked;
 
-        // 2. Validate Granular Chest Properties
         auto chestPropsApparel = getAvailablePropertiesForFocus(EnchantmentFocus::BREASTS, &apparel);
         bool chestHasGranular = false;
         bool chestHasShape = false;
@@ -4010,7 +3695,6 @@ namespace EngineTests
         logResult("Racial reagent unlocks crotch mammary/udder morph on chest focus", rootHasCrotchUdder);
         allPassed &= rootHasCrotchUdder;
 
-        // 3. Validate Multi-Option Lower Body & Leg Morphs
         auto legPropsApparel = getAvailablePropertiesForFocus(EnchantmentFocus::LEGS_FEET, &apparel);
         bool legApparelNoRacial = true;
         for (auto p : legPropsApparel)
@@ -4037,7 +3721,6 @@ namespace EngineTests
         logResult("Canis Root provides multi-option racial morphs (biped, stance, and taur/multi body)", legsMultiOptionOk);
         allPassed &= legsMultiOptionOk;
 
-        // 4. Dynamic Race Affix Labels & Zero-Locked Guarantee
         std::string bipedName = getPropertyDisplayName(AspectProperty::RACIAL_LEGS_BIPED, &canisRoot);
         std::string stanceName = getPropertyDisplayName(AspectProperty::RACIAL_STANCE_MORPH, &canisRoot);
         std::string bodyName = getPropertyDisplayName(AspectProperty::RACIAL_BODY_CONFIG, &canisRoot);
@@ -4052,7 +3735,6 @@ namespace EngineTests
         logResult("Short labels fit inside 54px icon boxes ('Biped', 'Stance', 'Taur')", shortsFormatted);
         allPassed &= shortsFormatted;
 
-        // Verify zero locked buttons in compatible lists
         bool zeroLocked = true;
         for (auto f : weaponFocuses)
         {
@@ -4077,7 +3759,6 @@ namespace EngineTests
         std::cout << "\n--- Running Test 34: Enchanting Altar Parity, Limits & Unequipped Enforcement ---\n";
         bool allPassed = true;
 
-        // 1. Validate Continuous Limit Support
         bool breastLimits = propertySupportsLimits(AspectProperty::BREAST_SIZE, nullptr);
         bool penisLimits = propertySupportsLimits(AspectProperty::PENIS_LENGTH, nullptr);
         bool heightLimits = propertySupportsLimits(AspectProperty::STATURE_HEIGHT, nullptr);
@@ -4089,7 +3770,6 @@ namespace EngineTests
         logResult("Continuous limit support correctly identifies sizing vs non-continuous properties", limitsCheck);
         allPassed &= limitsCheck;
 
-        // 2. Discrete 6-Step Limit Thresholds
         auto bSteps = getPropertyLimitSteps(AspectProperty::BREAST_SIZE);
         bool breastStepsOk = (bSteps.size() == 6 && bSteps.front() == "flat" && bSteps.back() == "titanic");
         logResult("Breast sizing exposes 6 discrete limit steps ranging from 'flat' to 'titanic'", breastStepsOk);
@@ -4100,7 +3780,6 @@ namespace EngineTests
         logResult("Height exposes 6 discrete limit steps ranging from 'tiny' to 'titanic'", heightStepsOk);
         allPassed &= heightStepsOk;
 
-        // 3. Apparel vs Non-Apparel Tier Naming Parity
         bool apparelTiersOk = (
             getTierName(InfusionTier::MAJOR_HEX, true) == "Major Drain" &&
             getTierName(InfusionTier::HEX, true) == "Drain" &&
@@ -4119,13 +3798,12 @@ namespace EngineTests
         logResult("Consumables and weapons preserve standard Hex and Boon tier labels", standardTiersOk);
         allPassed &= standardTiersOk;
 
-        // 4. Gradual Time Intervals and Limit Formatting in Descriptions
         InfusionEffect apparelEffect{
             InfusionTargetType::APPAREL,
             EnchantmentFocus::BREASTS,
             AspectProperty::BREAST_SIZE,
             InfusionTier::BOON,
-            0 // limit step 0: flat
+            0
         };
         auto desc1 = apparelEffect.getEffectDescriptions();
         bool desc1Ok = !desc1.empty() && (desc1.front() == "Daily Breast Size increase. (Limit: flat)");
@@ -4137,14 +3815,13 @@ namespace EngineTests
             EnchantmentFocus::BREASTS,
             AspectProperty::BREAST_SIZE,
             InfusionTier::MAJOR_HEX,
-            1 // limit step 1: small
+            1
         };
         auto desc2 = drainEffect.getEffectDescriptions();
         bool desc2Ok = !desc2.empty() && (desc2.front() == "Hourly Breast Size reduction. (Limit: small)");
         logResult("Apparel major drain description formats with hourly reduction ('Hourly Breast Size reduction. (Limit: small)')", desc2Ok);
         allPassed &= desc2Ok;
 
-        // 5. Unequipped Enforcement at the Altar
         game engine;
         engine.playerEntity = std::make_shared<entity>("test_enchanter", "TestEnchanter");
         engine.Player = engine.playerEntity.get();
@@ -4159,7 +3836,6 @@ namespace EngineTests
 
         engine.Player->inventory.backpack.push_back(testRing);
 
-        // First test unequipped state:
         auto ringAltar = std::make_unique<enchantingState>(0, std::make_unique<inventoryState>(), testRing);
         ringAltar->initialise(&engine);
 
@@ -4175,7 +3851,6 @@ namespace EngineTests
         logResult("Unequipped item with staged effect and sufficient essence can be crafted", canCraftUnequipped);
         allPassed &= canCraftUnequipped;
 
-        // Now equip the item on the player:
         engine.Player->inventory.equipItem(0, equipSlot::FINGER_PRIMARY);
         bool isEquippedNow = ringAltar->isTargetItemEquipped(&engine);
         logResult("Equipping the item is immediately detected by the altar (isTargetItemEquipped == true)", isEquippedNow);
@@ -4185,7 +3860,6 @@ namespace EngineTests
         logResult("Altar strictly blocks crafting when the target item is equipped (canAffordCraft == false)", !canCraftEquipped);
         allPassed &= !canCraftEquipped;
 
-        // 6. Complete Parity Focus Domain Matrix
         auto apparelFocuses = getCompatibleFocuses(testRing.get());
         bool hasCore = false, hasGen = false, hasSpec = false, hasRet = false, hasBodyD = false, hasBehD = false;
         for (auto f : apparelFocuses)
@@ -4201,7 +3875,6 @@ namespace EngineTests
         logResult("Apparel unlocks all Lilith's Throne core, attribute, desire, and retention categories", apparelCategoriesOk);
         allPassed &= apparelCategoriesOk;
 
-        // Verify that these new focuses have non-empty available property sets
         bool propSetsValid = (
             !getAvailablePropertiesForFocus(EnchantmentFocus::CORE_ATTRIBUTES, testRing.get()).empty() &&
             !getAvailablePropertiesForFocus(EnchantmentFocus::GENERAL_ATTRIBUTES, testRing.get()).empty() &&
@@ -4213,11 +3886,9 @@ namespace EngineTests
         logResult("All new LT enchantment categories expose valid, non-empty property sets", propSetsValid);
         allPassed &= propSetsValid;
 
-        // 7. Verification of Enchantment Effects in Item Description & Tooltip After Crafting
         engine.Player->inventory.unequipItem(equipSlot::FINGER_PRIMARY);
         ringAltar->clearStagedEffects();
 
-        // Stage multiple effects (as many as desired)
         ringAltar->setFocus(EnchantmentFocus::CORE_ATTRIBUTES);
         ringAltar->setProperty(AspectProperty::CORE_PHYSIQUE);
         ringAltar->setTier(InfusionTier::BOON);
@@ -4231,7 +3902,7 @@ namespace EngineTests
         ringAltar->setFocus(EnchantmentFocus::BREASTS);
         ringAltar->setProperty(AspectProperty::BREAST_SIZE);
         ringAltar->setTier(InfusionTier::BOON);
-        ringAltar->setLimitIndex(0); // flat
+        ringAltar->setLimitIndex(0);
         ringAltar->stageCurrentEffect();
 
         bool multipleStagedOk = (ringAltar->stagedEffects.size() == 3);
@@ -4247,7 +3918,6 @@ namespace EngineTests
         logResult("Crafting multiple staged effects uses essences only upon pressing craft", essenceSpentOk);
         allPassed &= essenceSpentOk;
 
-        // Retrieve the newly crafted item from player backpack
         std::shared_ptr<item> craftedItem = nullptr;
         for (const auto& it : engine.Player->inventory.backpack)
         {
@@ -4275,7 +3945,6 @@ namespace EngineTests
             allPassed &= tipHasEnchantments;
         }
 
-        // 8. Custom Item Enchantment Limit & Action Grid Deduplication
         auto limitedItem = std::make_shared<item>();
         limitedItem->id = "test_limited_ring";
         limitedItem->name = "Restricted Ring";
@@ -4305,13 +3974,11 @@ namespace EngineTests
         logResult("Enchanting altar flags when capacity limit is reached", atCapacity);
         allPassed &= atCapacity;
 
-        // Trying to stage beyond limit should be blocked
         limitedAltar->stageCurrentEffect(&engine);
         bool stagedCapped = (limitedAltar->stagedEffects.size() == 2);
         logResult("Enchanting altar blocks staging beyond maxEnchantments limit", stagedCapped);
         allPassed &= stagedCapped;
 
-        // Test Action Grid for enchantingState: no "+ Add Effect", Button 1 is Craft, Button 2 is Clear Staged, Button 12 is Leave Altar
         engine.changeState(std::move(limitedAltar));
         engine.refreshActionGrid();
 
@@ -4340,7 +4007,6 @@ namespace EngineTests
         std::cout << "\n--- Running Test 35: Data-Driven JSON Enchantments & Transformation Interrupt Scenes ---\n";
         bool allPassed = true;
 
-        // 1. JSON Enchantment Database Verification
         auto& reg = EnchantmentRegistry::getInstance();
         bool regLoaded = reg.isLoaded();
         logResult("EnchantmentRegistry successfully loads aspects.json and groups.json from disk", regLoaded);
@@ -4357,7 +4023,6 @@ namespace EngineTests
         logResult("EnchantmentRegistry parses custom group definitions with default capacity", groupFound);
         allPassed &= groupFound;
 
-        // Test custom enchantmentGroup tag on an item
         auto ringItem = std::make_shared<item>();
         ringItem->id = "custom_jewel_ring";
         ringItem->name = "Custom Jewel Ring";
@@ -4375,7 +4040,6 @@ namespace EngineTests
         logResult("Custom item 'jewelry' enchantmentGroup strictly restricts focus selection per groups.json", jewelFilterOk);
         allPassed &= jewelFilterOk;
 
-        // 2. Validate Reagent Category Consolidation & Fixed Seals Focus
         auto canisItem = std::make_shared<item>();
         canisItem->id = "canis_root";
         canisItem->name = "Canis Root";
@@ -4387,7 +4051,6 @@ namespace EngineTests
         logResult("Canine racial reagent receives exactly 20 consolidated categories (balanced 4x5 grid)", focusCountOk);
         allPassed &= focusCountOk;
 
-        // Validate Seals (BINDING_SPECIAL) only exposes 4 binding properties and zero racial morphs
         auto sealsProps = getAvailablePropertiesForFocus(EnchantmentFocus::BINDING_SPECIAL, canisItem.get());
         bool sealsCountOk = (sealsProps.size() == 4);
         bool sealsHasOnlyBindings = true;
@@ -4405,7 +4068,6 @@ namespace EngineTests
         logResult("Seals category is fixed: exposes strictly 4 binding/seal properties with zero morph bleed", sealsIntact);
         allPassed &= sealsIntact;
 
-        // 3. Transformation Interrupt Scenes Database Verification
         questDatabase::loadDatabase("data/quests");
         bool sceneBreasts = questDatabase::exists("trans_breasts_grow");
         bool sceneHair = questDatabase::exists("trans_hair_grow");
@@ -4422,7 +4084,6 @@ namespace EngineTests
             allPassed &= choiceOk;
         }
 
-        // 3. Hourly Transformation Trigger & Interrupt Flow
         game g;
         g.init();
         g.playerEntity = std::make_shared<entity>("test_morpher", "TestMorpher");
@@ -4453,14 +4114,12 @@ namespace EngineTests
         logResult("Player in explorationState is recognized as not occupied (isPlayerOccupied == false)", !isOccupiedBefore);
         allPassed &= !isOccupiedBefore;
 
-        // Advance 60 minutes -> should trigger breasts grow interrupt immediately!
         g.gameTime.advanceTime(60);
         bool inInterrupt = (dynamic_cast<eventState*>(g.getActiveState()) != nullptr) &&
                            (g.getCurrentScene().id == "trans_breasts_grow");
         logResult("Hourly apparel sizing tick triggers immediate transformation interrupt scene in exploration", inInterrupt);
         allPassed &= inInterrupt;
 
-        // Click Continue -> returns to explorationState
         if (inInterrupt && !g.getCurrentScene().choices.empty())
         {
             g.processChoice(g.getCurrentScene().choices[0]);
@@ -4469,14 +4128,11 @@ namespace EngineTests
         logResult("Clicking 'Continue' on transformation interrupt returns cleanly to explorationState", returnedToExploration);
         allPassed &= returnedToExploration;
 
-        // 4. Occupied State Queuing & Resuming on Enter
-        // Enter CombatState -> player is occupied
         g.changeState(std::make_unique<CombatState>(std::vector<std::shared_ptr<entity>>{ g.playerEntity }, std::vector<std::shared_ptr<entity>>{}));
         bool isOccupiedCombat = g.isPlayerOccupied();
         logResult("Player in CombatState is recognized as occupied (isPlayerOccupied == true)", isOccupiedCombat);
         allPassed &= isOccupiedCombat;
 
-        // Advance 60 minutes -> must NOT interrupt combat, but queue the scene
         g.gameTime.advanceTime(60);
         bool stillInCombat = (dynamic_cast<CombatState*>(g.getActiveState()) != nullptr);
         bool hasQueuedInterrupt = g.hasPendingTransformationInterrupt();
@@ -4484,14 +4140,12 @@ namespace EngineTests
         logResult("Transformation during occupied CombatState is deferred and queued without interrupting combat", combatNotInterrupted);
         allPassed &= combatNotInterrupted;
 
-        // Return to explorationState -> should immediately trigger the deferred scene!
         g.changeState(std::make_unique<explorationState>());
         bool deferredTriggered = (dynamic_cast<eventState*>(g.getActiveState()) != nullptr) &&
                                  (g.getCurrentScene().id == "trans_breasts_grow");
         logResult("Entering explorationState automatically triggers the deferred queued transformation scene", deferredTriggered);
         allPassed &= deferredTriggered;
 
-        // Complete the scene
         if (deferredTriggered && !g.getCurrentScene().choices.empty())
         {
             g.processChoice(g.getCurrentScene().choices[0]);
@@ -4509,7 +4163,6 @@ namespace EngineTests
         std::cout << "\n--- Running Test 36: Focus Combat Engine, Elemental Reactions, Persistent Merchants & Headless Decoupling ---\n";
         bool allPassed = true;
 
-        // 1. ActionSlot Grid Headless Operation & UI Decoupling
         ActionSlot slot;
         slot.label = "Heavy Cleave";
         slot.description = "Devastating downward strike";
@@ -4533,7 +4186,6 @@ namespace EngineTests
         logResult("ActionSlot grid operates headlessly without UI rendering dependencies", slotConfigOk);
         allPassed &= slotConfigOk;
 
-        // 2. Data-Driven Weapon Skills & Elements Database Loading
         bool skillsLoaded = WeaponSkillDatabase::loadFromFile("data/weapon_skills.json");
         bool hasSkills = (skillsLoaded && WeaponSkillDatabase::getAllSkills().size() >= 9);
         const WeaponSkill* slashSkill = WeaponSkillDatabase::getSkill("skill_slash");
@@ -4554,7 +4206,6 @@ namespace EngineTests
             allPassed &= actionConverted;
         }
 
-        // 3. Elemental Advantage, Disadvantage & Reaction Combos
         combatEngine cEngine;
         cEngine.loadElements("data/elements.json");
 
@@ -4569,7 +4220,6 @@ namespace EngineTests
         logResult("Elemental matchup matrix evaluates advantages and disadvantages accurately", elementalMathOk);
         allPassed &= elementalMathOk;
 
-        // Test Reaction Combos (e.g. Vaporize: water + fire -> 1.5x)
         auto reactionUser = std::make_shared<entity>("elemental_hero", "Hero");
         reactionUser->stats.setBaseStat("physique", 20.0f);
         reactionUser->stats.setBaseStat("health", 100.0f);
@@ -4581,7 +4231,7 @@ namespace EngineTests
 
         cEngine.initialiseCombat({ reactionUser }, { reactionTarget });
         auto& targetPart = cEngine.getEnemyParty()[0];
-        targetPart.currentElementStatus = "water"; // Target is soaked
+        targetPart.currentElementStatus = "water";
 
         CombatAction fireStrike;
         fireStrike.id = "fire_strike";
@@ -4602,13 +4252,10 @@ namespace EngineTests
         cEngine.executeAction(qFire, &g);
         float hpAfterReaction = reactionTarget->getStat("health");
         float actualDamage = hpBeforeReaction - hpAfterReaction;
-        // Base: 20 * 1.0 = 20. Target defensive element is physical (mult=1.0).
-        // Vaporize reaction triggers: damage * 1.5 = 30.0!
         bool reactionTriggered = (actualDamage == 30.0f && targetPart.currentElementStatus == "fire");
         logResult("Elemental reaction combo (Water + Fire -> Vaporize 1.5x) triggers and updates element status", reactionTriggered);
         allPassed &= reactionTriggered;
 
-        // 4. Focus-Based Combat Transitions, Action Queueing & Queue Refund on Focus Switch
         auto cHero = std::make_shared<entity>("c_hero", "CombatHero");
         cHero->stats.setBaseStat("health", 100.0f);
         cHero->stats.setBaseStat("stamina", 100.0f);
@@ -4630,13 +4277,11 @@ namespace EngineTests
         logResult("CombatState initializes in CombatFocus::ROOT", inCombat);
         allPassed &= inCombat;
 
-        // Switch Focus to WEAPON
         g.handleCommand(UICommand::selectCombatFocus("WEAPON"));
         bool weaponFocusOk = (cState->getCombatFocus() == CombatFocus::WEAPON);
         logResult("Command SELECT_COMBAT_FOCUS switches focus cleanly to CombatFocus::WEAPON", weaponFocusOk);
         allPassed &= weaponFocusOk;
 
-        // Queue a weapon action (skill_slash: staminaCost = 20.0f)
         float staminaBeforeQueue = cState->getEngine().getPlayerParty()[0].currentStamina;
 
         g.handleCommand(UICommand::queueCombatAction("skill_slash"));
@@ -4648,13 +4293,11 @@ namespace EngineTests
         logResult("QUEUE_COMBAT_ACTION adds action to turn queue and deducts stamina", actionQueued);
         allPassed &= actionQueued;
 
-        // Queue another action: DEFENSE_GUARD (staminaCost = 15.0f)
         g.handleCommand(UICommand::queueCombatAction("DEFENSE_GUARD"));
         bool secondQueued = (playerPart.turnQueue.size() == 2 && playerPart.currentStamina == staminaBeforeQueue - 35.0f);
         logResult("Chaining additional moves in turn queue deducts stamina incrementally", secondQueued);
         allPassed &= secondQueued;
 
-        // Switch Focus to MAGIC -> MUST RESET QUEUE AND REFUND STAMINA!
         g.handleCommand(UICommand::selectCombatFocus("MAGIC"));
         const auto& playerPartAfterSwitch = cState->getEngine().getPlayerParty()[0];
         bool queueReset = (cState->getCombatFocus() == CombatFocus::MAGIC &&
@@ -4663,8 +4306,6 @@ namespace EngineTests
         logResult("Switching combat focus resets turn queue and refunds stamina completely", queueReset);
         allPassed &= queueReset;
 
-        // 5. Dual Defeat / Victory Resolution
-        // Case A: Physical Defeat (Enemy HP <= 0)
         combatEngine engPhysical;
         auto pUser = std::make_shared<entity>("p_user", "Player");
         pUser->stats.setBaseStat("health", 100.0f);
@@ -4681,7 +4322,6 @@ namespace EngineTests
         logResult("Dual defeat: Physical KO (Enemy HP <= 0) yields victory without lust surrender", physOk);
         allPassed &= physOk;
 
-        // Case B: Erotic Surrender (Enemy Lust >= 100)
         combatEngine engLust;
         auto lUser = std::make_shared<entity>("l_user", "Player");
         lUser->stats.setBaseStat("health", 100.0f);
@@ -4708,7 +4348,6 @@ namespace EngineTests
         logResult("Dual defeat: Erotic Surrender (Enemy Lust >= 100) triggers surrender victory cleanly", lustOk);
         allPassed &= lustOk;
 
-        // 6. Persistent Marcus Shop Loading from JSON (Zero C++ Fallback)
         NamedCharacterManager::loadFromDirectory("data/characters");
         auto marcusChar = NamedCharacterManager::getCharacter("marcus");
         bool marcusJsonOk = (marcusChar != nullptr && marcusChar->characterEntity != nullptr &&
@@ -4730,7 +4369,6 @@ namespace EngineTests
         logResult("shopState automatically resolves and binds Marcus from JSON with zero hardcoded C++ fallback", shopLoadedMarcus);
         allPassed &= shopLoadedMarcus;
 
-        // 7. Decoupled Intimacy & Familiar Actions via Command System
         game gSim;
         gSim.init();
         auto simPlayer = std::make_shared<entity>("sim_player", "SimPlayer");
@@ -4743,14 +4381,12 @@ namespace EngineTests
         gSim.gameTime.hour = 10;
         gSim.gameTime.minute = 0;
 
-        // Masturbation command: FONDLE_GROIN for 15 minutes
         gSim.handleCommand(UICommand::masturbateAction("FONDLE_GROIN", 15));
         bool intimacyOk = (simPlayer->getStat("arousal") >= 40.0f &&
                            gSim.gameTime.hour == 10 && gSim.gameTime.minute == 15);
         logResult("MASTURBATE_ACTION command updates arousal and advances gameTime by dynamic base duration", intimacyOk);
         allPassed &= intimacyOk;
 
-        // Familiar command: PET for 20 minutes
         int bondBefore = simPlayer->bondLevel;
         float manaBefore = simPlayer->getStat("mana");
         gSim.handleCommand(UICommand::familiarAction("PET", 20));
@@ -4760,7 +4396,6 @@ namespace EngineTests
         logResult("FAMILIAR_ACTION command updates bond, restores mana, and advances gameTime without UI modals", familiarOk);
         allPassed &= familiarOk;
 
-        // 8. Procedural Encounter to CombatState Transition (No Premature Victory)
         game gCombat;
         gCombat.init();
         gCombat.loadMap("overworld", 1, 2);
@@ -4782,7 +4417,6 @@ namespace EngineTests
         logResult("triggerEncounter presents encounter dialogue with 'Fight' option", inEncounterScene);
         allPassed &= inEncounterScene;
 
-        // Process 'Fight'
         dialogueChoice fightChoice;
         fightChoice.nextSceneId = "ENCOUNTER_FIGHT";
         gCombat.processChoice(fightChoice);
@@ -4811,7 +4445,6 @@ namespace EngineTests
         std::cout << "\n--- Running Test 37: Modular Screen Layouts & UI Widget Catalog Integrity ---\n";
         bool allPassed = true;
 
-        // 1. Validate data/widgets.json completeness & integrity
         std::ifstream widgetFile("data/widgets.json");
         bool widgetFileOpen = widgetFile.is_open();
         logResult("Widget catalog file 'data/widgets.json' exists and is readable", widgetFileOpen);
@@ -4859,7 +4492,6 @@ namespace EngineTests
             allPassed = false;
         }
 
-        // 2. Validate layoutEngine::loadFromDirectory("data/layouts/screens")
         layoutEngine modularEngine;
         bool dirLoaded = modularEngine.loadFromDirectory("data/layouts/screens");
         logResult("layoutEngine::loadFromDirectory('data/layouts/screens') loads screen layouts", dirLoaded);
@@ -4895,7 +4527,6 @@ namespace EngineTests
         logResult("All 14 active game states have dedicated screen layout definitions loaded", allStatesPresent && totalOverridesOk);
         allPassed &= (allStatesPresent && totalOverridesOk);
 
-        // 3. Multi-resolution geometry calculation across all 14 states (1080p, 720p, 768p)
         struct ResTest { float w; float h; float scale; };
         std::vector<ResTest> testResolutions = {
             { 1920.0f, 1080.0f, 1.0f },
@@ -4919,7 +4550,6 @@ namespace EngineTests
 
                 for (const auto& panel : bounds)
                 {
-                    // Positive dimensions within window bounds
                     if (panel.rect.w <= 0.0f || panel.rect.h <= 0.0f ||
                         panel.rect.x < -1.0f || panel.rect.y < -1.0f ||
                         (panel.rect.x + panel.rect.w) > (res.w + 2.0f) ||
@@ -4931,7 +4561,6 @@ namespace EngineTests
                                   << " w=" << panel.rect.w << " h=" << panel.rect.h << "\n";
                     }
 
-                    // Check that any bound widgets exist in the catalog
                     for (const auto& widgetId : panel.widgets)
                     {
                         if (!catalogWidgetIds.contains(widgetId))
@@ -4951,7 +4580,6 @@ namespace EngineTests
         logResult("All widgets referenced by modular screen layouts exist in data/widgets.json", allWidgetsRecognized);
         allPassed &= allWidgetsRecognized;
 
-        // 4. Verify specific modular screen structures
         auto combatBounds = modularEngine.computeLayout(1920.0f, 1080.0f, 1.0f, "COMBAT");
         bool hasCombatArena = false;
         bool hasCombatActions = false;
@@ -5016,12 +4644,10 @@ namespace EngineTests
         encounterResolutionState* rawRes = resState.get();
         g.changeState(std::move(resState));
 
-        // 1. Initial State verification
         bool recordsOk = (rawRes->getDefeatedRecords().size() == 2);
         logResult("EncounterResolutionState initializes with defeated enemy records", recordsOk);
         allPassed &= recordsOk;
 
-        // 2. Action slots verification for selected enemy A (cannot transform)
         const auto& slots = g.getActiveActionSlots();
         bool hasLootBtn = (slots.size() > 0 && slots[0].label == "Loot & Equipment" && slots[0].isEnabled);
         bool hasDomBtn = (slots.size() > 1 && slots[1].label == "Dom Scene" && slots[1].isEnabled);
@@ -5042,13 +4668,11 @@ namespace EngineTests
                   hasRemoveBtn && hasContinueBtn);
         allPassed &= (hasRemoveBtn && hasContinueBtn);
 
-        // 3. Multi-target selection buttons (Slots 5 & 6)
         bool hasTargetA = (slots.size() > 5 && slots[5].label.find("Goblin Scout") != std::string::npos);
         bool hasTargetB = (slots.size() > 6 && slots[6].label.find("Goblin Shaman") != std::string::npos);
         logResult("Multi-enemy encounter generates Target Selection buttons in row 1", hasTargetA && hasTargetB);
         allPassed &= (hasTargetA && hasTargetB);
 
-        // Switch target to enemy B (who can transform)
         g.handleCommand({ CommandType::SELECT_RESOLUTION_TARGET, 1, 0, "" });
         bool targetSwitched = (rawRes->getSelectedIndex() == 1 && g.activeTargetNPC == enemyB);
         const auto& slotsB = g.getActiveActionSlots();
@@ -5057,7 +4681,6 @@ namespace EngineTests
                   targetSwitched && transformEnabledB);
         allPassed &= (targetSwitched && transformEnabledB);
 
-        // 4. Test Permanent Removal
         g.handleCommand({ CommandType::PERMANENTLY_REMOVE_ENEMY, 0, 0, "" });
         bool enemyBRemoved = rawRes->getDefeatedRecords()[1].isPermanentlyRemoved;
         const auto& updatedSlots = g.getActiveActionSlots();
@@ -5066,7 +4689,6 @@ namespace EngineTests
                   enemyBRemoved && removeBtnDisabled);
         allPassed &= (enemyBRemoved && removeBtnDisabled);
 
-        // 5. Test Continue returns to exploration
         g.handleCommand({ CommandType::CLOSE_MENU, 0, 0, "" });
         bool returnedToExploration = (dynamic_cast<explorationState*>(g.getActiveState()) != nullptr);
         logResult("CLOSE_MENU returns cleanly from encounterResolutionState to explorationState", returnedToExploration);
@@ -5088,7 +4710,6 @@ namespace EngineTests
         g.activeTargetNPC = npc;
         g.activeTargetMode = TargetMode::COMBAT_ENEMY;
 
-        // Create an item on NPC
         auto dagger = std::make_shared<item>();
         dagger->id = "iron_dagger";
         dagger->name = "Iron Dagger";
@@ -5098,21 +4719,18 @@ namespace EngineTests
         dagger->targetSlot = equipSlot::WEAPON_MAIN;
         npc->inventory.equipped[static_cast<size_t>(equipSlot::WEAPON_MAIN)] = dagger;
 
-        // Item with empty briefDescription
         auto potion = std::make_shared<item>();
         potion->id = "minor_potion";
         potion->name = "Minor Potion";
         potion->description = "Restores a small amount of health.";
         potion->briefDescription = "";
 
-        // Verify getBriefDescription()
         bool briefPopulated = (dagger->getBriefDescription() == "1d4 piercing, light weapon.");
         bool briefEmpty = (potion->getBriefDescription().empty());
         logResult("Item getBriefDescription returns brief description when defined and empty string when omitted",
                   briefPopulated && briefEmpty);
         allPassed &= (briefPopulated && briefEmpty);
 
-        // Open dual inventory
         auto invState = std::make_unique<inventoryState>();
         g.changeState(std::move(invState));
 
@@ -5120,7 +4738,6 @@ namespace EngineTests
         logResult("Dual inventory initializes cleanly with NPC target active", inInventory);
         allPassed &= inInventory;
 
-        // Strip NPC equipment
         g.handleStripAllNPCEquipmentAction();
         bool npcStripped = (!npc->inventory.isEquipped(equipSlot::WEAPON_MAIN));
         bool playerHasDagger = false;
@@ -5132,7 +4749,6 @@ namespace EngineTests
                   npcStripped && playerHasDagger);
         allPassed &= (npcStripped && playerHasDagger);
 
-        // Add a potion to NPC backpack and test take all items
         npc->inventory.backpack.push_back(potion);
         g.handleTakeAllNPCItemsAction();
         bool playerHasPotion = false;
@@ -5165,19 +4781,16 @@ namespace EngineTests
         npc->stats.setBaseStat("currency", 50.0f);
         g.activeTargetNPC = npc;
 
-        // 1. Transfer currency to NPC (Side 1)
         g.transferCurrencyToSide1(30.0f);
         bool p1 = (hero->getStat("currency") == 70.0f && npc->getStat("currency") == 80.0f);
         logResult("transferCurrencyToSide1 deducts 30 currency from player and adds to NPC", p1);
         allPassed &= p1;
 
-        // 2. Transfer currency from NPC (Side 1)
         g.transferCurrencyFromSide1(50.0f);
         bool p2 = (hero->getStat("currency") == 120.0f && npc->getStat("currency") == 30.0f);
         logResult("transferCurrencyFromSide1 deducts 50 currency from NPC and adds to player", p2);
         allPassed &= p2;
 
-        // 3. Ground / Tile currency transfer when no NPC target
         g.activeTargetNPC = nullptr;
         g.transferCurrencyToSide1(40.0f);
         bool p3 = (hero->getStat("currency") == 80.0f && g.getTileCurrency() == 40.0f);
@@ -5205,7 +4818,6 @@ namespace EngineTests
         auto captive = std::make_shared<entity>("captive_wolf", "Dire Wolf");
         g.activeTargetNPC = captive;
 
-        // Create an enslaving collar item
         auto collar = std::make_shared<item>();
         collar->id = "collar_enslave_choker";
         collar->name = "Enslaving Choker of Subjugation";
@@ -5213,39 +4825,32 @@ namespace EngineTests
         collar->isEquippable = true;
         collar->targetSlot = equipSlot::NECKWEAR;
 
-        // Verify isEnslavingItem detects the collar
         bool isEnslaving = game::isEnslavingItem(collar.get());
         logResult("game::isEnslavingItem correctly recognizes enslaving keyword/enchantment", isEnslaving);
         allPassed &= isEnslaving;
 
-        // Give collar to player
         hero->inventory.backpack.push_back(collar);
         int collarIdx = 0;
 
-        // Setup encounter resolution state with captive
         auto resState = std::make_unique<encounterResolutionState>(std::vector<std::shared_ptr<entity>>{ captive });
         encounterResolutionState* rawRes = resState.get();
         g.changeState(std::move(resState));
 
-        // Open loot inventory from resolution hub
         rawRes->handleOpenLootInventory(&g);
         bool inInv = (dynamic_cast<inventoryState*>(g.getActiveState()) != nullptr);
         logResult("handleOpenLootInventory transitions to inventoryState preserving encounterResolutionState return state", inInv);
         allPassed &= inInv;
 
-        // Equip collar onto captive
         bool equipSuccess = g.handleEquipOnNPCAction(collarIdx, equipSlot::NECKWEAR, captive.get());
         logResult("handleEquipOnNPCAction successfully equips collar onto defeated captive", equipSuccess);
         allPassed &= equipSuccess;
 
-        // Check enslavement consequences
         bool captiveBound = (captive->inventory.isEquipped(equipSlot::NECKWEAR) &&
                              captive->inventory.getEquippedItem(equipSlot::NECKWEAR)->id == "collar_enslave_choker");
         bool captiveSubjugatedStage = (captive->quests.getQuestStage("subjugated") == 1);
         logResult("Captive is equipped with collar and has subjugated quest stage set to 1", captiveBound && captiveSubjugatedStage);
         allPassed &= (captiveBound && captiveSubjugatedStage);
 
-        // Check narrative scene transition
         bool sceneLoaded = (dynamic_cast<eventState*>(g.getActiveState()) != nullptr);
         logResult("Enslaving captive loads 'scene_enslavement_success' event narrative scene", sceneLoaded);
         allPassed &= sceneLoaded;
@@ -5266,7 +4871,6 @@ namespace EngineTests
         g.playerEntity = hero;
         g.Player = hero.get();
 
-        // 1. Category Tabs API in game
         std::vector<std::string> cats = { "All", "Intimacy", "Oral", "Penetration", "Dominance", "Stances", "Reactions" };
         g.setActionCategories(cats);
         bool catsConfigured = (g.getActionCategories().size() == 7 && g.getActiveActionCategory() == "All");
@@ -5279,7 +4883,6 @@ namespace EngineTests
         logResult("selectActionCategory switches active category and resets currentActionPage to 0", oralSelected);
         allPassed &= oralSelected;
 
-        // 2. Multi-Participant Scaling (Solo, 1-on-1, and 1-on-4 Lopsided Group Scene)
         auto soloState = std::make_unique<sexState>();
         bool soloOk = soloState->isSolo() && soloState->getParticipantCount() == 1;
         logResult("sexState creates solo encounter with participant count = 1 (isSolo == true)", soloOk);
@@ -5294,18 +4897,16 @@ namespace EngineTests
         logResult("sexState initializes 1-on-1 encounter with participant count = 2 (isSolo == false)", duoOk);
         allPassed &= duoOk;
 
-        // Lopsided 1-on-4 group encounter
         auto p1 = std::make_shared<entity>("p1", "Foe 1");
         auto p2 = std::make_shared<entity>("p2", "Foe 2");
         auto p3 = std::make_shared<entity>("p3", "Foe 3");
         auto p4 = std::make_shared<entity>("p4", "Foe 4");
         std::vector<std::shared_ptr<entity>> foes = { p1, p2, p3, p4 };
         auto groupState = std::make_unique<sexState>(std::vector<std::shared_ptr<entity>>{}, foes, SexStance::MISSIONARY, -30.0f);
-        bool groupScaled = (groupState->getParticipantCount() == 5); // 1 player + 4 foes
+        bool groupScaled = (groupState->getParticipantCount() == 5);
         logResult("sexState supports arbitrary multi-participant scaling (1-on-4 group: count = 5)", groupScaled);
         allPassed &= groupScaled;
 
-        // Target Switching in Group Scene
         groupState->selectTargetParticipant(3);
         bool targetSwitched = (groupState->getTargetParticipantIndex() == 3 &&
                                groupState->getTargetParticipant() &&
@@ -5313,7 +4914,6 @@ namespace EngineTests
         logResult("selectTargetParticipant switches active partner target dynamically", targetSwitched);
         allPassed &= targetSwitched;
 
-        // 3. Continuous Dominance Continuum and Dynamic Switch Role
         SexParticipant domP;
         domP.dominanceScore = 60.0f;
         SexParticipant subP;
@@ -5328,7 +4928,6 @@ namespace EngineTests
                   roleDom && roleSub && roleSwitch);
         allPassed &= (roleDom && roleSub && roleSwitch);
 
-        // 4. Universal Personality Traits Integration
         partnerA->addTrait("Cruel");
         partnerA->addTrait("Lewd");
         bool hasCruel = partnerA->hasTrait("Cruel");
@@ -5344,7 +4943,6 @@ namespace EngineTests
         allPassed &= cruelRemoved;
         partnerA->addTrait("Cruel");
 
-        // 5. Holistic Attitude Engine
         SexParticipant testPart;
         testPart.character = partnerA;
         testPart.dominanceScore = 60.0f;
@@ -5356,7 +4954,6 @@ namespace EngineTests
         logResult("Holistic attitude engine synthesizes cruel/mocking attitude from Cruel trait and high dominance", attitudeSadistic);
         allPassed &= attitudeSadistic;
 
-        // Test Spent & Blissful attitude on 2+ climaxes
         testPart.climaxes = 2;
         std::string attitudeSpent = duoState->computeHolisticAttitude(testPart);
         bool isSpent = (attitudeSpent.find("Spent") != std::string::npos ||
@@ -5364,32 +4961,27 @@ namespace EngineTests
         logResult("Holistic attitude engine transitions to Spent & Blissful on multiple climaxes", isSpent);
         allPassed &= isSpent;
 
-        // 6. Contextual Struggle Mechanics
-        // A) Exhausted post-defeat submissive participant (stamina < 20)
         duoState->setConsensual(false);
         auto pPlayer = duoState->getPlayerParticipant();
         pPlayer->dominanceScore = -50.0f;
-        pPlayer->stamina = 5.0f; // Exhausted after losing combat
+        pPlayer->stamina = 5.0f;
         std::string blockReason;
         bool canStruggleExhausted = duoState->canParticipantStruggle(0, &blockReason);
         bool correctlyBlocked = (!canStruggleExhausted && blockReason.find("Exhausted") != std::string::npos);
         logResult("Post-defeat exhausted participant (stamina < 20) is blocked from struggling", correctlyBlocked);
         allPassed &= correctlyBlocked;
 
-        // B) Stamina recovered (>= 20) allows struggling in non-consensual scene
         pPlayer->stamina = 80.0f;
         bool canStruggleRecovered = duoState->canParticipantStruggle(0, &blockReason);
         logResult("Recovered stamina unlocks struggle capability in non-consensual encounter", canStruggleRecovered);
         allPassed &= canStruggleRecovered;
 
-        // C) Consensual scene without struggle fetish blocks struggling
         duoState->setConsensual(true);
         bool canStruggleConsensual = duoState->canParticipantStruggle(0, &blockReason);
         bool blockedConsensual = (!canStruggleConsensual && blockReason.find("consensual") != std::string::npos);
         logResult("Consensual scene blocks struggling unless specific fetish or boundary violation occurs", blockedConsensual);
         allPassed &= blockedConsensual;
 
-        // D) Executing Struggle yields dominance swing
         duoState->setConsensual(false);
         float domBeforeStruggle = pPlayer->dominanceScore;
         sexState* rawSex = duoState.get();
@@ -5399,8 +4991,7 @@ namespace EngineTests
         logResult("Successful struggle awards major dominance swing (+35) turning the tables", dominanceShifted);
         allPassed &= dominanceShifted;
 
-        // 7. Intelligent NPC AI Turn evaluating Loved Fetishes
-        partnerA->setFetishDesire("Oral", 2); // Loved fetish
+        partnerA->setFetishDesire("Oral", 2);
         rawSex->processPartnerTurn(&g);
         bool aiActed = (rawSex->getParticipants().size() >= 2);
         logResult("Intelligent NPC AI executes turn evaluating personal fetishes and advancing scene", aiActed);
@@ -5414,7 +5005,6 @@ namespace EngineTests
         std::cout << "\n--- Running Test 43: Dynamic Unit Formatter, Refined Global Settings & Narrative ---" << std::endl;
         bool allPassed = true;
 
-        // 1. Unit Formatter Conversions
         bool lenMetric = (unitFormatter::formatLength(18.0f, "Metric") == "18.0cm");
         bool lenImperial = (unitFormatter::formatLength(18.0f, "Imperial") == "7.1 inches");
         bool lenShort = (unitFormatter::formatLength(18.0f, "Imperial", true) == "7.1\"");
@@ -5441,17 +5031,15 @@ namespace EngineTests
         logResult("unitFormatter converts weight accurately (65kg <-> 143 lbs)", weightOk);
         allPassed &= weightOk;
 
-        // 2. Standard Difficulty Tiers (0..4) and Multipliers
         game g;
-        g.settings.gameplay.difficultyLevel = 0; // Very Easy
+        g.settings.gameplay.difficultyLevel = 0;
         float d0 = (g.settings.gameplay.difficultyLevel == 0) ? 0.75f : 1.0f;
-        g.settings.gameplay.difficultyLevel = 4; // Nightmare
+        g.settings.gameplay.difficultyLevel = 4;
         float d4 = (g.settings.gameplay.difficultyLevel == 4) ? 2.50f : 1.0f;
         bool diffTiersOk = (d0 == 0.75f && d4 == 2.50f);
         logResult("Standard difficulty tiers correctly map [Very Easy (0.75x) .. Nightmare (2.50x)]", diffTiersOk);
         allPassed &= diffTiersOk;
 
-        // 3. Trigger-Based Autosaves and Serialization
         g.settings.gameplay.autoSaveOnMapChange = true;
         g.settings.gameplay.autoSaveOnSceneExit = false;
         g.settings.gameplay.maxAutoSaves = 5;
@@ -5470,20 +5058,16 @@ namespace EngineTests
         logResult("Refined settings serialize trigger autosaves and global preferences accurately", autosaveSerOk);
         allPassed &= autosaveSerOk;
 
-        // 4. SaveManager Global Settings Isolation
-        // Loading a character save must never overwrite active global theme, units, or filters
         auto hero = std::make_shared<entity>("save_hero", "TestHero");
         hero->stats.setBaseStat("health", 100.0f);
         g.playerEntity = hero;
         g.Player = hero.get();
         saveManager::saveNamedGame(&g, "GlobalIsoTest");
 
-        // Mutate global settings
         g.settings.display.activeTheme = "theme_dark_fantasy";
         g.settings.gameplay.unitPreference = "Metric";
         g.settings.content.fluidMultiplier = 3.5f;
 
-        // Load the saved character back
         saveManager::loadFromFile(&g, "TestHero_GlobalIsoTest.json");
 
         bool globalPreserved = (g.settings.display.activeTheme == "theme_dark_fantasy" &&
@@ -5492,10 +5076,8 @@ namespace EngineTests
         logResult("saveManager::loadFromFile preserves active global theme, units, and content preferences", globalPreserved);
         allPassed &= globalPreserved;
 
-        // Clean up test save file
         saveManager::deleteSave("TestHero_GlobalIsoTest.json");
 
-        // 5. SexState Narrative Generation & Static Category Tabs
         auto partner = std::make_shared<entity>("npc_succubus_test", "Succubus");
         bodyPart groinPart;
         groinPart.name = "Vagina";
@@ -5521,14 +5103,12 @@ namespace EngineTests
         logResult("sexState configures static category tabs without 'All' (Generic, Self, Partner, Position)", categoriesRefined);
         allPassed &= categoriesRefined;
 
-        // Verify active tab persistence across state category updates
         g.selectActionCategory("Partner");
         g.setActionCategories(g.getActionCategories(), "Generic");
         bool tabPersisted = (g.getActiveActionCategory() == "Partner");
         logResult("Active category tab persists across turns/actions without resetting", tabPersisted);
         allPassed &= tabPersisted;
 
-        // Verify dominance-driven action gating
         auto domActions = rawSex->getAvailableActions();
         bool hasDominantAction = false;
         bool hasSubmissiveAction = false;
@@ -5541,7 +5121,6 @@ namespace EngineTests
         logResult("Dominance score gates action availability (dominant actions available, submissive hidden)", domGatingOk);
         allPassed &= domGatingOk;
 
-        // Verify action grid buttons populate rich mechanics tooltips with effects
         g.refreshActionGrid();
         const auto& buttons = g.getActiveActionSlots();
         bool hasActionButtons = !buttons.empty();
@@ -5559,7 +5138,6 @@ namespace EngineTests
         logResult("Action grid buttons populate rich mechanics tooltips (Arousal/Dom Shift)", buttonsOk);
         allPassed &= buttonsOk;
 
-        // Verify continuous action mechanics: initiation, turn processing, and explicit stop
         auto avail = rawSex->getAvailableActions();
         auto contIt = std::find_if(avail.begin(), avail.end(), [](const SexAction& a) { return a.isContinuous; });
         if (contIt != avail.end())
@@ -5579,7 +5157,6 @@ namespace EngineTests
             allPassed &= continuousOk;
         }
 
-        // Execute action and verify procedural narrative log generation
         if (!avail.empty())
         {
             rawSex->executeAction(&g, avail[0]);
@@ -5588,7 +5165,6 @@ namespace EngineTests
             allPassed &= narrativeGenerated;
         }
 
-        // 6. Multi-Ongoing Actions based on Available Body Parts
         SexAction kissAct;
         kissAct.id = "partner_kiss";
         kissAct.name = "Passionate Kiss";
@@ -5631,15 +5207,14 @@ namespace EngineTests
 
         rawSex->executeAction(&g, fingerAct);
         auto ongoing3 = rawSex->getOngoingActionsForParticipant(0);
-        bool threeParts = (ongoing3.size() == 3); // Mouth + Hand 1 + Hand 2
+        bool threeParts = (ongoing3.size() == 3);
         bool multiBodyPartsOk = kissActive && kissAndHand1 && threeParts;
         logResult("Actions use available body parts simultaneously (1 mouth + 2 hands)", multiBodyPartsOk);
         allPassed &= multiBodyPartsOk;
 
-        // Picking 2-handed action overrides both hands while mouth remains active
         rawSex->executeAction(&g, pinAct);
         auto ongoingPin = rawSex->getOngoingActionsForParticipant(0);
-        bool pinOverridesHands = (ongoingPin.size() == 2); // Mouth + Both Hands
+        bool pinOverridesHands = (ongoingPin.size() == 2);
         bool hasMouth = false, hasBothHands = false, hasOldHands = false;
         for (const auto* oa : ongoingPin)
         {
@@ -5651,7 +5226,6 @@ namespace EngineTests
         logResult("Two-handed action overrides and cancels both hand actions while preserving mouth", twoHandsOverrideOk);
         allPassed &= twoHandsOverrideOk;
 
-        // 7. Clothing Access Gating & Greyed-out Options
         auto skirt = std::make_shared<item>();
         skirt->id = "test_skirt";
         skirt->targetSlot = equipSlot::LEGS_OUTER;
@@ -5663,7 +5237,6 @@ namespace EngineTests
         bool oralBlocked = !rawSex->isActionAccessible(fingerAct, *rawSex->getPlayerParticipant(), *rawSex->getTargetParticipant(), &accessReason);
         bool oralReasonOk = (accessReason.find("groin is covered") != std::string::npos);
 
-        // In action grid, inaccessible button is disabled (greyed out)
         g.refreshActionGrid();
         bool actionGridGreyedOut = false;
         for (const auto& slot : g.getActiveActionSlots())
@@ -5678,13 +5251,11 @@ namespace EngineTests
         logResult("Clothing blocks intimate access and greys out actions with descriptive tooltip", clothingGatingOk);
         allPassed &= clothingGatingOk;
 
-        // Undressing partner exposes groin and restores access
         rawSex->undressEntity(partner.get());
         bool oralNowAccessible = rawSex->isActionAccessible(fingerAct, *rawSex->getPlayerParticipant(), *rawSex->getTargetParticipant());
         logResult("Undressing displaces clothing and restores full access to intimate actions", oralNowAccessible);
         allPassed &= oralNowAccessible;
 
-        // 8. Dedicated Clothing Item Selection & Action Grid Undressing Options
         partner->inventory.resetAllDisplacements();
         g.selectedEquipmentSlot = equipSlot::LEGS_OUTER;
         g.selectedEquipmentSide = 1;
@@ -5707,7 +5278,6 @@ namespace EngineTests
         logResult("Selecting equipped clothing item populates partial and full undressing options", clothingSelectionGridOk);
         allPassed &= clothingSelectionGridOk;
 
-        // Partially undress piece via Pull Down -> advances turn, creates narrative, exposes groin
         rawSex->handleClothingAction(&g, 1, equipSlot::LEGS_OUTER, DisplacementMode::PULL_DOWN, false);
         bool partnerGroinExposed = partner->inventory.isSlotExposed(bodySlot::GROIN);
         bool clothNarrativeOk = !rawSex->getNarrativeLog().empty();
@@ -5715,7 +5285,6 @@ namespace EngineTests
         logResult("Partial undressing action displaces garment, generates narrative, and exposes underlying body part", partialUndressOk);
         allPassed &= partialUndressOk;
 
-        // 9. First Tab (Generic) Undress All (Self) and Undress All (Partner) Buttons
         g.selectedEquipmentSlot = equipSlot::NONE;
         g.selectActionCategory("Generic");
         g.refreshActionGrid();
@@ -5747,7 +5316,6 @@ namespace EngineTests
         std::cout << "\n--- Running Test 44: Unified Mature Content Fetishes & Combat Resolution Sex Transition ---\n";
         bool allPassed = true;
 
-        // 1. Unified Fetish Preferences Roster & Auto-Sync
         ContentSettings cs;
         static const std::vector<std::string> unifiedFetishes = {
             "Non-Consent", "Sadistic sex / Extreme", "Public Sex Exposure", "Watersports",
@@ -5768,7 +5336,6 @@ namespace EngineTests
         logResult("All mature content toggles integrated into unified fetish preference roster", allUnifiedPresent);
         allPassed &= allUnifiedPresent;
 
-        // 2. setFetishPreference auto-syncs boolean flags and aliases
         cs.setFetishPreference("Non-Consent", 0);
         bool nonConOffSynced = (cs.nonConEnabled == false && cs.getFetishRating("Non-Consent") == 0);
         cs.setFetishPreference("Non-Consent", 4);
@@ -5779,7 +5346,6 @@ namespace EngineTests
         logResult("setFetishPreference synchronizes boolean flags and aliased preferences", syncOk);
         allPassed &= syncOk;
 
-        // 3. Global contentFilterMode governs behavior for rating 0 (Never)
         cs.setFetishPreference("Incest", 0);
         cs.contentFilterMode = ContentFilterMode::BLOCK_AND_SKIP;
         bool blockOk = (ContentFilterManager::evaluateTag(cs, "incest") == ContentTagStatus::BLOCKED);
@@ -5791,7 +5357,6 @@ namespace EngineTests
         logResult("Global contentFilterMode actively controls handling of fetishes set to Never (0)", modeGatingOk);
         allPassed &= modeGatingOk;
 
-        // 4. Combat Resolution Hub Dom/Sub Scene Transition when Non-Consent enabled
         game g;
         auto player = std::make_shared<entity>("hero", "Hero");
         auto enemy = std::make_shared<entity>("orc", "Orc Raider");
@@ -5805,13 +5370,11 @@ namespace EngineTests
         auto* rawRes = resState.get();
         g.changeState(std::move(resState));
 
-        // Dom scene button should be active
         const auto& slots = g.getActiveActionSlots();
         bool domBtnActive = (slots.size() > 1 && slots[1].label == "Dom Scene" && slots[1].isEnabled);
         logResult("Encounter resolution Dom Scene button is active when Non-Consent is enabled", domBtnActive);
         allPassed &= domBtnActive;
 
-        // Trigger Dom scene command -> switches state to sexState
         g.handleCommand({ CommandType::INTERACTIVE_SEX_DOM, 0, 0, "" });
         auto* rawSex = dynamic_cast<sexState*>(g.getActiveState());
         bool transitionedToSex = (rawSex != nullptr);
@@ -5819,7 +5382,6 @@ namespace EngineTests
         logResult("Clicking Dom Scene transitions smoothly into sexState with non-consensual dynamic", nonConDynamic);
         allPassed &= nonConDynamic;
 
-        // 5. Combat Resolution when Non-Consent is Never (0) and mode is DROPDOWN -> consensual framing
         g.settings.content.setFetishPreference("Non-Consent", 0);
         g.settings.content.contentFilterMode = ContentFilterMode::DROPDOWN;
         auto resState2 = std::make_unique<encounterResolutionState>(std::vector<std::shared_ptr<entity>>{ enemy });
@@ -5830,7 +5392,6 @@ namespace EngineTests
         logResult("Under Non-Consent Never with Dropdown mode, Dom Scene transitions with consensual framing", consensualFraming);
         allPassed &= consensualFraming;
 
-        // 6. Combat Resolution when Non-Consent is Never (0) and mode is BLOCK_AND_SKIP -> buttons locked
         g.settings.content.setFetishPreference("Non-Consent", 0);
         g.settings.content.contentFilterMode = ContentFilterMode::BLOCK_AND_SKIP;
         auto resState3 = std::make_unique<encounterResolutionState>(std::vector<std::shared_ptr<entity>>{ enemy });
@@ -5843,7 +5404,6 @@ namespace EngineTests
         logResult("Under Non-Consent Never with Block & Skip mode, Dom/Sub buttons are locked and disabled", domLocked && subLocked);
         allPassed &= (domLocked && subLocked);
 
-        // Verify command execution blocks with log notice
         rawRes3->handleCommand(&g, { CommandType::INTERACTIVE_SEX_DOM, 0, 0, "" });
         bool blockedLogOk = (rawRes3->getResolutionLog().find("Non-consensual content is disabled") != std::string::npos);
         logResult("Direct command execution is blocked with content filter notice", blockedLogOk);

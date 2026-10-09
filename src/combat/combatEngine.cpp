@@ -217,7 +217,6 @@ void combatEngine::generateCompanionQueues()
         if (!compP.character || compP.character->getStat("health") <= 0) continue;
         if (m_enemyParty.empty()) continue;
 
-        // Target first living enemy
         entity* enemyTarget = nullptr;
         for (const auto& ep : m_enemyParty)
         {
@@ -372,7 +371,6 @@ void combatEngine::executeAction(const QueuedAction& qa, game* g)
     for (auto& ep : m_enemyParty) { if (ep.character.get() == target) targetPart = &ep; }
     for (auto& pp : m_playerParty) { if (pp.character.get() == target) targetPart = &pp; }
 
-    // Seduction / Lust Action Resolution
     if (qa.action.lustDamage > 0.0f)
     {
         float lustGained = qa.action.lustDamage * (1.0f + (qa.user->getStat("willpower") * 0.02f));
@@ -401,12 +399,10 @@ void combatEngine::executeAction(const QueuedAction& qa, game* g)
             std::string attackType = node.element.empty() ? "physical" : node.element;
             std::transform(attackType.begin(), attackType.end(), attackType.begin(), ::tolower);
 
-            // Target Defensive Element Check
             std::string targetDefElement = target->elementalType.empty() ? "physical" : target->elementalType;
             float elemMult = getElementalMultiplier(attackType, targetDefElement);
             float modifiedDamage = rawDamage * elemMult;
 
-            // Attacker & Defender Perk Multipliers
             std::string targetRace = target->anatomy.getDominantRace();
             float perkDmgMult = qa.user->getPerkDamageMultiplier(targetRace, attackType);
             modifiedDamage *= (1.0f + perkDmgMult);
@@ -415,7 +411,6 @@ void combatEngine::executeAction(const QueuedAction& qa, game* g)
             float perkDefMult = target->getPerkDefenseMultiplier(attackerRace, attackType);
             modifiedDamage *= std::max(0.05f, (1.0f - perkDefMult));
 
-            // Elemental Reactions Check
             if (targetPart && !targetPart->currentElementStatus.empty() && targetPart->currentElementStatus != attackType)
             {
                 std::string comboKey = targetPart->currentElementStatus + "+" + attackType;
@@ -437,7 +432,6 @@ void combatEngine::executeAction(const QueuedAction& qa, game* g)
 
             if (targetPart) targetPart->currentElementStatus = attackType;
 
-            // Gameplay Difficulty Multiplier: scale enemy attack power
             if (g && g->settings.gameplay.difficultyMultiplier > 0.0f)
             {
                 bool userIsEnemy = false;
@@ -455,7 +449,6 @@ void combatEngine::executeAction(const QueuedAction& qa, game* g)
                 }
             }
 
-            // Guard Absorption
             int finalDamage = std::max(1, static_cast<int>(std::round(modifiedDamage)));
             if (targetPart && targetPart->isGuarding)
             {

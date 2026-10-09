@@ -423,7 +423,6 @@ void characterCreationState::applyWardrobePreset(const std::string& presetName)
             wardrobeEquipped[static_cast<size_t>(equipSlot::GROIN_OVER)] = itemDatabase::getItem("item_cotton_boxers");
         }
     }
-    // "Nude / Exposed" leaves all nullptr
 
     rebuildAvailableWardrobe();
 }
@@ -437,7 +436,6 @@ bool characterCreationState::equipWardrobeItem(size_t wardrobeIndex)
     equipSlot target = itemToEquip->targetSlot;
     if (target == equipSlot::NONE) return false;
 
-    // Special handling for full-body evening dress
     if (itemToEquip->id == "item_evening_dress")
     {
         unequipWardrobeItem(equipSlot::TORSO_UNDER);
@@ -452,7 +450,6 @@ bool characterCreationState::equipWardrobeItem(size_t wardrobeIndex)
         }
     }
 
-    // Erase from available pile (locating by pointer in case unequip modified indices)
     auto it = std::find(availableWardrobe.begin(), availableWardrobe.end(), itemToEquip);
     if (it != availableWardrobe.end())
     {
@@ -484,17 +481,14 @@ bool characterCreationState::unequipWardrobeItem(equipSlot slot)
 
 bool characterCreationState::isClothedEnough() const
 {
-    // 1. Must wear footwear
     if (!wardrobeEquipped[static_cast<size_t>(equipSlot::FEET)]) return false;
 
-    // 2. Must cover groin
     bool groinCovered = (wardrobeEquipped[static_cast<size_t>(equipSlot::GROIN_OVER)] != nullptr ||
                          wardrobeEquipped[static_cast<size_t>(equipSlot::LEGS_OUTER)] != nullptr ||
                          (wardrobeEquipped[static_cast<size_t>(equipSlot::TORSO_OVER)] &&
                           wardrobeEquipped[static_cast<size_t>(equipSlot::TORSO_OVER)]->id == "item_evening_dress"));
     if (!groinCovered) return false;
 
-    // 3. Must cover chest if breasts exist or character is feminine
     bool isFem = (gender == "Female" || femininity == "Feminine" || femininity == "Very Feminine" || breastCupSize > 0);
     if (isFem)
     {
@@ -639,7 +633,6 @@ void characterCreationState::applyToEntity(entity* player)
     player->anatomy.bodySize = bodySize;
     player->anatomy.muscleTone = muscleDefinition;
 
-    // Head & Hair
     bodyPart hair;
     hair.id = "hair_human";
     hair.name = "Hair";
@@ -698,7 +691,6 @@ void characterCreationState::applyToEntity(entity* player)
     torso.covering = stringToCoveringType(skinCovering);
     player->anatomy.setPart(bodySlot::TORSO, torso);
 
-    // Breasts
     bodyPart breasts;
     breasts.id = "breasts_human";
     breasts.name = "Breasts";
@@ -758,7 +750,6 @@ void characterCreationState::applyToEntity(entity* player)
     if (anusBleached) ass.tags.push_back("bleached");
     player->anatomy.setPart(bodySlot::ASS, ass);
 
-    // Genitals
     if (gender == "Female")
     {
         bodyPart vagina;
@@ -814,7 +805,6 @@ void characterCreationState::applyToEntity(entity* player)
     feet.covering = stringToCoveringType(skinCovering);
     player->anatomy.setPart(bodySlot::FEET, feet);
 
-    // Appendages
     if (hornsType != "None")
     {
         bodyPart horns;
@@ -860,7 +850,6 @@ void characterCreationState::applyToEntity(entity* player)
         player->anatomy.removePart(bodySlot::TAIL);
     }
 
-    // Transfer Cosmetics
     player->cosmetics["blusher"] = blusher;
     player->cosmetics["lipstick"] = lipstick;
     player->cosmetics["eyeliner"] = eyeliner;
@@ -868,25 +857,20 @@ void characterCreationState::applyToEntity(entity* player)
     player->cosmetics["nailPolish"] = nailPolish;
     player->cosmetics["toenailPolish"] = toenailPolish;
 
-    // Transfer Piercings
     player->piercings = piercings;
 
-    // Transfer Tattoos
     player->tattoos = tattoos;
 
-    // Transfer Body Hair
     player->bodyHair["colour"] = bodyHairColour;
     player->bodyHair["facial"] = facialHair;
     player->bodyHair["pubic"] = pubicHair;
     player->bodyHair["underarm"] = underarmHair;
     player->bodyHair["ass"] = assHair;
 
-    // Transfer Personality & Occupation
     player->personalityTraits.clear();
     for (const auto& tr : personalityTraits) player->personalityTraits.push_back(tr);
     player->startingOccupation = startingOccupation;
 
-    // Starting core stats & currency
     player->stats.setBaseStat("currency", 5000.0f);
     player->stats.setBaseStat("health", 100.0f);
     player->stats.setBaseStat("max_health", 100.0f);
@@ -917,13 +901,10 @@ void characterCreationState::finalizeCharacter(game* gameContext)
     {
         applyToEntity(player);
 
-        // Clear all ground clothes
         availableWardrobe.clear();
 
-        // Ensure player receives starter test kit (elixirs, tonics, garments, weapons, essence)
         saveManager::grantStarterTestKit(player);
 
-        // Grant starting quests (Main Quest + Side Quests)
         if (!player->quests.hasQuest("root_delivery"))
         {
             player->quests.setQuestStage("root_delivery", 0);

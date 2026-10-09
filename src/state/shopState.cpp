@@ -100,7 +100,6 @@ void shopState::handleBuyAction(game* gameContext, int merchantStackIndex, int c
         totalCost = unitPrice * buyCount;
     }
 
-    // Execute transaction
     player->stats.modifyBaseStat("currency", -static_cast<float>(totalCost));
     m_merchant->stats.modifyBaseStat("currency", static_cast<float>(totalCost));
 
@@ -118,7 +117,6 @@ void shopState::handleBuyAction(game* gameContext, int merchantStackIndex, int c
 
     m_feedbackText = std::format("Purchased {} x{} for {}¤.", boughtItemName, buyCount, totalCost);
 
-    // Refresh stack view bounds
     auto updatedMerchView = m_merchant->inventory.getStackedView();
     if (merchantStackIndex >= static_cast<int>(updatedMerchView.size()))
     {
@@ -166,7 +164,6 @@ void shopState::handleSellAction(game* gameContext, int playerStackIndex, int co
         totalEarned = unitPrice * sellCount;
     }
 
-    // Execute transaction
     std::string soldItemId = slot.itemPtr->id;
     std::string soldItemName = slot.itemPtr->name;
 

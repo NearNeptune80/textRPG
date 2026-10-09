@@ -4,9 +4,6 @@
 #include <SDL3/SDL.h>
 #include <nlohmann/json.hpp>
 
-/**
- * Colour palette data structure loaded from JSON.
- */
 struct ThemeColors
 {
     SDL_Color bgDark{ 30, 30, 30, 255 };
@@ -64,10 +61,6 @@ struct ThemeColors
     SDL_Color elementLust{ 255, 105, 180, 255 };
 };
 
-/**
- * UI Theme Engine.
- * Loads and manages global theme palettes and colour configurations.
- */
 class Theme
 {
 public:

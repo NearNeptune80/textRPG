@@ -111,7 +111,6 @@ bool gameMap::loadFromFile(const std::string& filePath)
             }
         }
 
-        // Tile-specific or Zone Persistent Encounters
         if (data.contains("tileEncounters") && data["tileEncounters"].is_object())
         {
             for (const auto& [coordStr, encJson] : data["tileEncounters"].items())
@@ -153,7 +152,6 @@ bool gameMap::loadFromFile(const std::string& filePath)
             }
         }
 
-        // For any dangerous tile without explicit encounter template, assign default template
         for (int y = 0; y < height; ++y)
         {
             for (int x = 0; x < width; ++x)
@@ -170,7 +168,6 @@ bool gameMap::loadFromFile(const std::string& filePath)
             }
         }
 
-        // Descriptions & Tags
         defaultDescriptions.clear();
         if (data.contains("defaultDescriptions") && data["defaultDescriptions"].is_array())
         {
@@ -287,28 +284,24 @@ std::string gameMap::getTileTitle(int x, int y) const
 {
     std::string key = std::to_string(x) + "," + std::to_string(y);
 
-    // 1. Specific coordinate title from JSON
     auto itTitle = tileTitles.find(key);
     if (itTitle != tileTitles.end() && !itTitle->second.empty())
     {
         return itTitle->second;
     }
 
-    // 2. Warp label from JSON
     MapWarp warp;
     if (checkWarp(x, y, warp) && !warp.label.empty())
     {
         return warp.label;
     }
 
-    // 3. Trigger label from JSON
     auto trigs = getTriggersAt(x, y);
     if (!trigs.empty() && !trigs.front().label.empty())
     {
         return trigs.front().label;
     }
 
-    // 4. Tag title from JSON
     auto itTags = tileTags.find(key);
     if (itTags != tileTags.end())
     {
@@ -322,7 +315,6 @@ std::string gameMap::getTileTitle(int x, int y) const
         }
     }
 
-    // 5. Default map title from JSON, or fallback to mapName
     if (!defaultTileTitle.empty())
     {
         return defaultTileTitle;
@@ -340,14 +332,12 @@ std::string gameMap::getTileDescription(int x, int y) const
         return list[h % list.size()];
     };
 
-    // 1. Specific coordinate description
     auto itDesc = tileDescriptions.find(key);
     if (itDesc != tileDescriptions.end() && !itDesc->second.empty())
     {
         return pickStable(itDesc->second);
     }
 
-    // 2. Tag-based descriptions
     auto itTags = tileTags.find(key);
     if (itTags != tileTags.end())
     {
@@ -361,7 +351,6 @@ std::string gameMap::getTileDescription(int x, int y) const
         }
     }
 
-    // 3. Default map descriptions
     if (!defaultDescriptions.empty())
     {
         return pickStable(defaultDescriptions);
@@ -388,14 +377,12 @@ void gameMap::updateDiscovery(int playerX, int playerY, int visionRadius)
 {
     if (playerX < 0 || playerX >= width || playerY < 0 || playerY >= height) return;
 
-    // 1. The tile the player has physically walked on is marked as visited & fully revealed
     if (grid[playerY][playerX].type != TILE_VOID)
     {
         grid[playerY][playerX].visited = true;
         grid[playerY][playerX].discovery = STATE_REVEALED;
     }
 
-    // 2. Tiles the player has stood next to (cardinal adjacency: up, down, left, right) become partially discovered
     static const int cardinals[4][2] = { {0, -1}, {0, 1}, {-1, 0}, {1, 0} };
     for (const auto& [dx, dy] : cardinals)
     {
@@ -439,11 +426,9 @@ void gameMap::restockAmbushNPC(PersistentAmbushState& ambush)
         ambush.npc->stats.setBaseStat("health", maxHp);
         ambush.npc->stats.setBaseStat("mana", maxMana);
 
-        // Restore / top up random currency (e.g. 20-50 gold)
         float freshGold = static_cast<float>(dice::rollInt(20, 50));
         ambush.npc->stats.setBaseStat("currency", freshGold);
 
-        // Restock items from template
         if (!ambush.templateId.empty())
         {
             auto fresh = npcGenerator::generateFromTemplate(ambush.templateId);
@@ -463,7 +448,6 @@ void gameMap::processTimePassage(int minutesPassed)
     {
         runtime.processItemDecay(minutesPassed);
 
-        // 24-hour restock countdown for defeated persistent ambushers
         if (runtime.ambushState.isDefeated)
         {
             runtime.ambushState.restockMinutesRemaining -= minutesPassed;

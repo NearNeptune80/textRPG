@@ -14,11 +14,9 @@ bool encounterResolver::shouldTriggerEncounter(int dangerLevel, TimePhase phase,
 
     float baseChance = static_cast<float>(dangerLevel) * 15.0f;
 
-    // Time phase danger modifiers
     if (phase == TimePhase::NIGHT) baseChance += 15.0f;
     else if (phase == TimePhase::DUSK) baseChance += 5.0f;
 
-    // Reduce chance based on player stealth / agility
     baseChance -= (playerStealth * 0.5f);
 
     float finalChance = std::clamp(baseChance, 5.0f, 85.0f);
@@ -33,7 +31,6 @@ std::shared_ptr<entity> encounterResolver::createEncounterNPC(int dangerLevel, c
         npc = std::make_shared<entity>("npc_ambush", "Shadowy Ambush");
     }
 
-    // Scale stats with tile danger level
     npc->stats.level = std::max(1, npc->stats.level + (dangerLevel - 1));
     float hpScale = 50.0f + (dangerLevel * 15.0f);
     npc->stats.setBaseStat("health", hpScale);

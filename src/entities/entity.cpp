@@ -14,9 +14,6 @@ entity::entity(std::string entityId, std::string entityName) : id(entityId), nam
     stats.setBaseStat("perk_points", 3.0f);
 }
 
-/**
- * Applies or refreshes duration of a status effect.
- */
 void entity::addStatusEffect(const StatusEffect& effect)
 {
     for (auto& fx : statusEffects)
@@ -35,9 +32,6 @@ void entity::addStatusEffect(const StatusEffect& effect)
     invalidateStatCache();
 }
 
-/**
- * Removes all active status effects with the matching ID.
- */
 void entity::removeStatusEffect(const std::string& effectId)
 {
     std::erase_if(statusEffects, [&](const StatusEffect& fx) { return fx.id == effectId; });
@@ -53,9 +47,6 @@ bool entity::hasStatusEffect(const std::string& effectId) const
     return false;
 }
 
-/**
- * Decrements turn-based durations and prunes expired status effects.
- */
 void entity::updateStatusEffectsOnTurn()
 {
     std::erase_if(statusEffects, [](StatusEffect& fx) {
@@ -74,10 +65,6 @@ void entity::updateStatusEffectsOnTurn()
     invalidateStatCache();
 }
 
-/**
- * Advances real-time / overworld time and prunes expired status effects.
- * Remaining effects naturally shift left / shuffle over.
- */
 void entity::updateStatusEffectsOnTime(int minutesPassed)
 {
     if (minutesPassed <= 0) return;
@@ -139,7 +126,6 @@ float entity::getStat(const std::string& statName) const
 
     float val = stats.getEffectiveStat(statName, statusEffects);
 
-    // Sum flat and percent bonuses from equipped items
     float flatEquipment = 0.0f;
     float percentEquipment = 0.0f;
 
@@ -156,7 +142,6 @@ float entity::getStat(const std::string& statName) const
         }
     }
 
-    // Sum bonuses from unlocked perks
     float flatPerks = 0.0f;
     float percentPerks = 0.0f;
     for (const auto& perkId : unlockedPerks)
@@ -637,7 +622,7 @@ std::vector<std::string> entity::getAllPerkFlags() const
 int entity::getFetishDesire(const std::string& fetishKey) const
 {
     auto it = fetishDesires.find(fetishKey);
-    return (it != fetishDesires.end()) ? it->second : 2; // Default 2 = Neutral
+    return (it != fetishDesires.end()) ? it->second : 2;
 }
 
 void entity::setFetishDesire(const std::string& fetishKey, int level)
@@ -648,7 +633,7 @@ void entity::setFetishDesire(const std::string& fetishKey, int level)
 bool entity::hasFetish(const std::string& fetishKey) const
 {
     auto it = fetishDesires.find(fetishKey);
-    return (it != fetishDesires.end() && it->second >= 3); // 3=Like, 4=Love
+    return (it != fetishDesires.end() && it->second >= 3);
 }
 
 bool entity::hasTrait(const std::string& traitName) const

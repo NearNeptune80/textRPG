@@ -38,7 +38,6 @@ public:
     bool isEquipped(equipSlot slot) const;
     std::shared_ptr<item> getEquippedItem(equipSlot slot);
 
-    // Partial Clothing Displacement Engine
     void setDisplacement(equipSlot slot, DisplacementMode mode);
     DisplacementMode getDisplacement(equipSlot slot) const;
     void resetAllDisplacements();

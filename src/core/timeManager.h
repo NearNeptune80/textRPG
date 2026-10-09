@@ -11,11 +11,6 @@ enum class TimePhase
     DUSK
 };
 
-/**
- * World simulation clock & calendar manager.
- * Tracks minute, hour, day, month, year, and day of week.
- * Calculates seasonal sunrise/sunset and light phases.
- */
 class timeManager
 {
 public:

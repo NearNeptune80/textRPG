@@ -46,7 +46,6 @@ std::string ContentFilterManager::getTagDisplayName(const std::string& tag)
     if (norm == "prolapse" || norm == "stretching") return "Prolapse";
     if (norm == "aphrodisiacs" || norm == "drugs") return "Aphrodisiacs";
 
-    // Capitalize normalized tag as fallback
     if (!norm.empty())
     {
         norm[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(norm[0])));
@@ -67,7 +66,6 @@ ContentTagStatus ContentFilterManager::evaluateTag(const ContentSettings& settin
         return ContentTagStatus::BLOCKED;
     };
 
-    // 1. Check legacy/backward-compatible boolean flags first: if disabled, tag is blocked/warned
     if ((norm == "non_con" || norm == "noncon" || norm == "rape") && !settings.nonConEnabled) return makeBlockedOrWarn();
     if ((norm == "extreme" || norm == "sadism" || norm == "sadistic" || norm == "gore" || norm == "snuff") && !settings.extremeContentEnabled) return makeBlockedOrWarn();
     if ((norm == "public_sex" || norm == "publicsex" || norm == "exhibitionism") && !settings.publicSexEnabled) return makeBlockedOrWarn();
@@ -86,8 +84,6 @@ ContentTagStatus ContentFilterManager::evaluateTag(const ContentSettings& settin
     if ((norm == "cum_inflation" || norm == "inflation") && !settings.cumInflationEnabled) return makeBlockedOrWarn();
     if ((norm == "feral" || norm == "bestiality") && !settings.feralEnabled) return makeBlockedOrWarn();
 
-    // 2. Check Fetish Preferences: rating 0 = Never
-    // Global filter handling setting (contentFilterMode) dictates how Never is treated!
     for (const auto& [fetName, rating] : settings.fetishPreferences)
     {
         std::string normFet = normalizeTag(fetName);
@@ -247,15 +243,13 @@ std::vector<NarrativeSegment> ContentFilterManager::parseNarrativeSegments(const
         }
         else if (settings.contentFilterMode == ContentFilterMode::BLOCK_AND_SKIP)
         {
-            // Redact completely
             NarrativeSegment seg;
             seg.isDropdown = false;
             seg.text = " [Content omitted: " + title + "] ";
             segments.push_back(seg);
         }
-        else // DROPDOWN or WARN_CONFIRM
+        else
         {
-            // Collapsible dropdown with content warning
             NarrativeSegment seg;
             seg.isDropdown = true;
             seg.dropdown.id = "dropdown_" + std::to_string(blockIdx) + "_" + normalizeTag(tag);

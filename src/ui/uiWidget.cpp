@@ -159,7 +159,6 @@ namespace UIWidget
         SDL_SetRenderDrawColor(renderer, border.r, border.g, border.b, border.a);
         SDL_RenderRect(renderer, &rect);
 
-        // Draw subtle hotkey badge in top right corner
         if (!hotkey.empty())
         {
             float hkScale = scale * 0.65f;
@@ -168,7 +167,6 @@ namespace UIWidget
             drawText(renderer, hotkey, rect.x + rect.w - hotkeyW - (6.0f * scale), rect.y + (3.0f * scale), hkCol, hkScale);
         }
 
-        // Draw centered button label
         if (!label.empty())
         {
             float labelScale = scale * 0.85f;
@@ -178,7 +176,6 @@ namespace UIWidget
 
             if (!isEnabled)
             {
-                // Unconditionally greyed out when requirements are unmet
                 drawText(renderer, label, labelX, labelY, Theme::colors.textMuted, labelScale);
             }
             else
