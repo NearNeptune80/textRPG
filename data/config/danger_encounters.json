@@ -1,0 +1,8 @@
+{
+  "version": "1.0",
+  "defaultTemplate": "tpl_alley_bandit",
+  "dangerLevelTemplates": {
+    "1": "tpl_alley_bandit",
+    "2": "tpl_rogue_mage"
+  }
+}

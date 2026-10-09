@@ -9,9 +9,30 @@
 #include "common/randomEngine.h"
 #include "entities/entity.h"
 #include "items/itemDatabase.h"
+#include "state/editorConfig.h"
 
 using json = nlohmann::json;
 namespace fs = std::filesystem;
+
+namespace {
+struct AnatomyBaselinesData
+{
+    json data;
+    static const AnatomyBaselinesData& get()
+    {
+        static AnatomyBaselinesData instance;
+        return instance;
+    }
+    AnatomyBaselinesData()
+    {
+        std::ifstream f("data/catalogs/anatomy_baselines.json");
+        if (f.is_open())
+        {
+            try { f >> data; } catch (...) {}
+        }
+    }
+};
+}
 
 std::unordered_map<std::string, NPCTemplate> npcGenerator::registry;
 
@@ -158,7 +179,18 @@ void npcGenerator::applyDemographicConfiguration(entity* npc, const GameSettings
     bodyPart breasts; breasts.id = "part_breasts_" + race; breasts.name = "Breasts"; breasts.race = race; breasts.covering = mainCovering;
     bodyPart groin; groin.id = "part_groin_" + race; groin.name = "Groin"; groin.race = race; groin.covering = mainCovering;
     bodyPart ass; ass.id = "part_ass_" + race; ass.name = "Ass"; ass.race = race; ass.covering = mainCovering;
-    ass.orifice.exists = true; ass.orifice.elasticity = 60.0f; ass.orifice.maxCapacityMl = 80.0f;
+    const auto& baselines = AnatomyBaselinesData::get().data;
+    if (baselines.contains("defaultOrifices") && baselines["defaultOrifices"].contains("ass"))
+    {
+        const auto& assOrf = baselines["defaultOrifices"]["ass"];
+        ass.orifice.exists = assOrf.value("exists", true);
+        ass.orifice.elasticity = assOrf.value("elasticity", 60.0f);
+        ass.orifice.maxCapacityMl = assOrf.value("maxCapacityMl", 80.0f);
+    }
+    else
+    {
+        ass.orifice.exists = true; ass.orifice.elasticity = 60.0f; ass.orifice.maxCapacityMl = 80.0f;
+    }
 
     if (furryStage == "Partial" || furryStage == "Anthro" || furryStage == "Feral")
     {
@@ -186,53 +218,56 @@ void npcGenerator::applyDemographicConfiguration(entity* npc, const GameSettings
         }
     }
 
+    std::string archKey = "ASEXUAL_NULL";
     switch (npc->genderArchetype)
     {
-        case GenderArchetype::MALE:
-            breasts.cupSize = 0;
-            groin.name = "Penis"; groin.length = 15.0f; groin.diameter = 3.5f;
-            groin.currentFluidMl = 10.0f; groin.maxFluidMl = 20.0f; groin.fluidRegenPerHour = 2.0f;
-            groin.tags.push_back("penis"); groin.tags.push_back("has_penis");
-            torso.tags.push_back("masculine");
-            break;
-
-        case GenderArchetype::FEMALE:
-            breasts.cupSize = 3;
-            groin.name = "Vagina"; groin.orifice.exists = true; groin.orifice.elasticity = 75.0f; groin.orifice.maxCapacityMl = 120.0f;
-            groin.tags.push_back("vagina"); groin.tags.push_back("has_vagina");
-            torso.tags.push_back("feminine");
-            break;
-
-        case GenderArchetype::HERMAPHRODITE:
-            breasts.cupSize = 3;
-            groin.name = "Hermaphrodite Genitals"; groin.length = 14.0f; groin.diameter = 3.2f;
-            groin.currentFluidMl = 10.0f; groin.maxFluidMl = 20.0f; groin.fluidRegenPerHour = 2.0f;
-            groin.orifice.exists = true; groin.orifice.elasticity = 75.0f; groin.orifice.maxCapacityMl = 120.0f;
-            groin.tags.push_back("penis"); groin.tags.push_back("vagina"); groin.tags.push_back("hermaphrodite");
-            torso.tags.push_back("feminine"); torso.tags.push_back("masculine");
-            break;
-
-        case GenderArchetype::GYNOMORPH:
-            breasts.cupSize = 4;
-            groin.name = "Penis"; groin.length = 16.0f; groin.diameter = 3.6f;
-            groin.currentFluidMl = 12.0f; groin.maxFluidMl = 25.0f; groin.fluidRegenPerHour = 2.5f;
-            groin.tags.push_back("penis"); groin.tags.push_back("gynomorph");
-            torso.tags.push_back("feminine");
-            break;
-
-        case GenderArchetype::ANDROMORPH:
-            breasts.cupSize = 0;
-            groin.name = "Vagina"; groin.orifice.exists = true; groin.orifice.elasticity = 70.0f; groin.orifice.maxCapacityMl = 100.0f;
-            groin.tags.push_back("vagina"); groin.tags.push_back("andromorph");
-            torso.tags.push_back("masculine");
-            break;
-
+        case GenderArchetype::MALE: archKey = "MALE"; break;
+        case GenderArchetype::FEMALE: archKey = "FEMALE"; break;
+        case GenderArchetype::HERMAPHRODITE: archKey = "HERMAPHRODITE"; break;
+        case GenderArchetype::GYNOMORPH: archKey = "GYNOMORPH"; break;
+        case GenderArchetype::ANDROMORPH: archKey = "ANDROMORPH"; break;
         case GenderArchetype::ASEXUAL_NULL:
-        default:
-            breasts.cupSize = 0;
-            groin.name = "Smooth Groin";
-            groin.tags.push_back("null");
-            break;
+        default: archKey = "ASEXUAL_NULL"; break;
+    }
+
+    if (baselines.contains("archetypeBaselines") && baselines["archetypeBaselines"].contains(archKey))
+    {
+        const auto& arch = baselines["archetypeBaselines"][archKey];
+        if (arch.contains("breasts"))
+        {
+            breasts.cupSize = arch["breasts"].value("cupSize", 0);
+        }
+        if (arch.contains("groin"))
+        {
+            const auto& g = arch["groin"];
+            groin.name = g.value("name", groin.name);
+            groin.length = g.value("length", 0.0f);
+            groin.diameter = g.value("diameter", 0.0f);
+            groin.currentFluidMl = g.value("currentFluidMl", 0.0f);
+            groin.maxFluidMl = g.value("maxFluidMl", 0.0f);
+            groin.fluidRegenPerHour = g.value("fluidRegenPerHour", 0.0f);
+            if (g.contains("orifice"))
+            {
+                const auto& orf = g["orifice"];
+                groin.orifice.exists = orf.value("exists", false);
+                groin.orifice.elasticity = orf.value("elasticity", 0.0f);
+                groin.orifice.maxCapacityMl = orf.value("maxCapacityMl", 0.0f);
+            }
+            if (g.contains("tags") && g["tags"].is_array())
+            {
+                for (const auto& tag : g["tags"])
+                {
+                    groin.tags.push_back(tag.get<std::string>());
+                }
+            }
+        }
+        if (arch.contains("torsoTags") && arch["torsoTags"].is_array())
+        {
+            for (const auto& tag : arch["torsoTags"])
+            {
+                torso.tags.push_back(tag.get<std::string>());
+            }
+        }
     }
 
     ContentSettings defaultContent;
@@ -363,9 +398,10 @@ std::shared_ptr<entity> npcGenerator::generateFromTemplate(const std::string& te
     }
 
     npc->personalityTraits = tpl.tags;
+    const auto& transformTraits = EditorConfig::Catalogs::innateTransformTraits();
     for (const auto& tag : tpl.tags)
     {
-        if (tag == "shapeshifter" || tag == "transform" || tag == "can_transform")
+        if (std::find(transformTraits.begin(), transformTraits.end(), tag) != transformTraits.end())
         {
             npc->canSelfTransform = true;
         }

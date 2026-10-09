@@ -4,6 +4,8 @@
 #include <vector>
 #include <unordered_map>
 #include <algorithm>
+#include <fstream>
+#include <nlohmann/json.hpp>
 
 enum class EditorTabId {
     IDENTITY,
@@ -64,36 +66,128 @@ struct EditorConfig {
         int minLengthCm;
     };
 
-    static const std::vector<HairstyleDef>& getAllHairstyles() {
-        static const std::vector<HairstyleDef> s_styles = {
-            { "Bald", 0 },
-            { "Stubble", 1 },
-            { "Short", 3 },
-            { "Messy", 3 },
-            { "Slicked-back", 5 },
-            { "Pixie-cut", 5 },
-            { "Mohawk", 5 },
-            { "Afro", 5 },
-            { "Sidecut", 5 },
-            { "Bob Cut", 10 },
-            { "Straight", 15 },
-            { "Wavy", 15 },
-            { "Curly", 15 },
-            { "Topknot", 15 },
-            { "Dreadlocks", 15 },
-            { "Shoulder-length", 20 },
-            { "Ponytail", 20 },
-            { "Low Ponytail", 20 },
-            { "Bun", 25 },
-            { "Chignon", 25 },
-            { "Braided", 25 },
-            { "Twin Tails", 25 },
-            { "Twin Braids", 25 },
-            { "Crown Braid", 30 },
-            { "Hime Cut", 30 },
-            { "Floor-length", 80 }
+    struct Catalogs {
+    private:
+        struct CatalogData {
+            std::vector<std::string> racialTypes;
+            std::vector<std::string> minorRacesWithNone;
+            std::vector<std::string> bodySizes;
+            std::vector<std::string> muscleTiers;
+            std::vector<std::string> footTypes;
+            std::vector<std::string> legConfigs;
+            std::vector<std::string> genitalPlacements;
+            std::vector<std::string> bodyHairOptions;
+            std::vector<std::string> eyeShapes;
+            std::vector<std::string> hornTypes;
+            std::vector<std::string> antennaTypes;
+            std::vector<std::string> lipSizes;
+            std::vector<std::string> wetnessLevels;
+            std::vector<std::string> orificeModifiers;
+            std::vector<std::string> penetrationModifiers;
+            std::vector<std::string> cupSizes;
+            std::vector<std::string> breastShapes;
+            std::vector<std::string> nippleShapes;
+            std::vector<std::string> areolaeShapes;
+            std::vector<std::string> girthLevels;
+            std::vector<std::string> wingSizes;
+            std::vector<std::string> size5;
+            std::vector<std::string> allHairStyles;
+            std::vector<std::string> fluidFlavours;
+            std::vector<std::string> fluidModifiers;
+            std::vector<HairstyleDef> hairstyles;
+            std::vector<std::string> innateTransformTraits;
+            std::vector<std::string> innateTransformRaces;
         };
-        return s_styles;
+
+        static const CatalogData& get() {
+            static CatalogData data = loadCatalogs();
+            return data;
+        }
+
+        static CatalogData loadCatalogs() {
+            CatalogData cd;
+            std::ifstream file("data/catalogs/character_creation.json");
+            if (file.is_open()) {
+                try {
+                    nlohmann::json j;
+                    file >> j;
+                    auto loadVec = [&](const char* key, std::vector<std::string>& out) {
+                        if (j.contains(key) && j[key].is_array()) {
+                            out = j[key].get<std::vector<std::string>>();
+                        }
+                    };
+                    loadVec("racialTypes", cd.racialTypes);
+                    loadVec("bodySizes", cd.bodySizes);
+                    loadVec("muscleTiers", cd.muscleTiers);
+                    loadVec("footTypes", cd.footTypes);
+                    loadVec("legConfigs", cd.legConfigs);
+                    loadVec("genitalPlacements", cd.genitalPlacements);
+                    loadVec("bodyHairOptions", cd.bodyHairOptions);
+                    loadVec("eyeShapes", cd.eyeShapes);
+                    loadVec("hornTypes", cd.hornTypes);
+                    loadVec("antennaTypes", cd.antennaTypes);
+                    loadVec("lipSizes", cd.lipSizes);
+                    loadVec("wetnessLevels", cd.wetnessLevels);
+                    loadVec("orificeModifiers", cd.orificeModifiers);
+                    loadVec("penetrationModifiers", cd.penetrationModifiers);
+                    loadVec("cupSizes", cd.cupSizes);
+                    loadVec("breastShapes", cd.breastShapes);
+                    loadVec("nippleShapes", cd.nippleShapes);
+                    loadVec("areolaeShapes", cd.areolaeShapes);
+                    loadVec("girthLevels", cd.girthLevels);
+                    loadVec("wingSizes", cd.wingSizes);
+                    loadVec("size5", cd.size5);
+                    loadVec("allHairStyles", cd.allHairStyles);
+                    loadVec("fluidFlavours", cd.fluidFlavours);
+                    loadVec("fluidModifiers", cd.fluidModifiers);
+                    loadVec("innateTransformTraits", cd.innateTransformTraits);
+                    loadVec("innateTransformRaces", cd.innateTransformRaces);
+
+                    if (j.contains("hairstyles") && j["hairstyles"].is_array()) {
+                        for (const auto& h : j["hairstyles"]) {
+                            cd.hairstyles.push_back({ h.value("name", ""), h.value("minLengthCm", 0) });
+                        }
+                    }
+                } catch (...) {}
+            }
+            cd.minorRacesWithNone = { "None" };
+            cd.minorRacesWithNone.insert(cd.minorRacesWithNone.end(), cd.racialTypes.begin(), cd.racialTypes.end());
+            return cd;
+        }
+
+    public:
+        static const std::vector<std::string>& racialTypes() { return get().racialTypes; }
+        static const std::vector<std::string>& minorRacesWithNone() { return get().minorRacesWithNone; }
+        static const std::vector<std::string>& bodySizes() { return get().bodySizes; }
+        static const std::vector<std::string>& muscleTiers() { return get().muscleTiers; }
+        static const std::vector<std::string>& footTypes() { return get().footTypes; }
+        static const std::vector<std::string>& legConfigs() { return get().legConfigs; }
+        static const std::vector<std::string>& genitalPlacements() { return get().genitalPlacements; }
+        static const std::vector<std::string>& bodyHairOptions() { return get().bodyHairOptions; }
+        static const std::vector<std::string>& eyeShapes() { return get().eyeShapes; }
+        static const std::vector<std::string>& hornTypes() { return get().hornTypes; }
+        static const std::vector<std::string>& antennaTypes() { return get().antennaTypes; }
+        static const std::vector<std::string>& lipSizes() { return get().lipSizes; }
+        static const std::vector<std::string>& wetnessLevels() { return get().wetnessLevels; }
+        static const std::vector<std::string>& orificeModifiers() { return get().orificeModifiers; }
+        static const std::vector<std::string>& penetrationModifiers() { return get().penetrationModifiers; }
+        static const std::vector<std::string>& cupSizes() { return get().cupSizes; }
+        static const std::vector<std::string>& breastShapes() { return get().breastShapes; }
+        static const std::vector<std::string>& nippleShapes() { return get().nippleShapes; }
+        static const std::vector<std::string>& areolaeShapes() { return get().areolaeShapes; }
+        static const std::vector<std::string>& girthLevels() { return get().girthLevels; }
+        static const std::vector<std::string>& wingSizes() { return get().wingSizes; }
+        static const std::vector<std::string>& size5() { return get().size5; }
+        static const std::vector<std::string>& allHairStyles() { return get().allHairStyles; }
+        static const std::vector<std::string>& fluidFlavours() { return get().fluidFlavours; }
+        static const std::vector<std::string>& fluidModifiers() { return get().fluidModifiers; }
+        static const std::vector<HairstyleDef>& hairstyles() { return get().hairstyles; }
+        static const std::vector<std::string>& innateTransformTraits() { return get().innateTransformTraits; }
+        static const std::vector<std::string>& innateTransformRaces() { return get().innateTransformRaces; }
+    };
+
+    static const std::vector<HairstyleDef>& getAllHairstyles() {
+        return Catalogs::hairstyles();
     }
 
     static std::vector<std::string> getValidHairstyles(int hairLengthCm) {
@@ -106,129 +200,6 @@ struct EditorConfig {
         if (valid.empty()) valid.push_back("Bald");
         return valid;
     }
-
-    struct Catalogs {
-        static const std::vector<std::string>& racialTypes() {
-            static const std::vector<std::string> s = {
-                "Human", "Demon", "Cat-morph", "Dog-morph", "Wolf-morph", "Horse-morph", "Fox-morph", "Harpy",
-                "Bovine-morph", "Dragon-morph", "Rabbit-morph", "Bat-morph", "Alligator-morph", "Rat-morph",
-                "Squirrel-morph", "Reindeer-morph", "Spider-morph", "Shark-morph", "Dolphin-morph", "Elf", "Slime", "Angel", "Imp"
-            };
-            return s;
-        }
-        static const std::vector<std::string>& minorRacesWithNone() {
-            static const std::vector<std::string> s = {
-                "None", "Human", "Demon", "Cat-morph", "Dog-morph", "Wolf-morph", "Horse-morph", "Fox-morph", "Harpy",
-                "Bovine-morph", "Dragon-morph", "Rabbit-morph", "Bat-morph", "Alligator-morph", "Rat-morph",
-                "Squirrel-morph", "Reindeer-morph", "Spider-morph", "Shark-morph", "Dolphin-morph", "Elf", "Slime", "Angel", "Imp"
-            };
-            return s;
-        }
-        static const std::vector<std::string>& bodySizes() {
-            static const std::vector<std::string> s = { "Skinny", "Slender", "Average", "Large", "Huge" };
-            return s;
-        }
-        static const std::vector<std::string>& muscleTiers() {
-            static const std::vector<std::string> s = { "Soft", "Lightly Muscled", "Toned", "Muscular", "Ripped" };
-            return s;
-        }
-        static const std::vector<std::string>& footTypes() {
-            static const std::vector<std::string> s = { "Plantigrade", "Digitigrade", "Unguligrade", "Arachnoid" };
-            return s;
-        }
-        static const std::vector<std::string>& legConfigs() {
-            static const std::vector<std::string> s = { "Bipedal", "Taur", "Serpent", "Arachnid", "Cephalopod", "Avian" };
-            return s;
-        }
-        static const std::vector<std::string>& genitalPlacements() {
-            static const std::vector<std::string> s = { "Normal", "Cloaca", "Rear Cloaca" };
-            return s;
-        }
-        static const std::vector<std::string>& bodyHairOptions() {
-            static const std::vector<std::string> s = { "None", "Stubble", "Manicured", "Trimmed", "Natural", "Unkempt", "Bushy", "Wild" };
-            return s;
-        }
-        static const std::vector<std::string>& eyeShapes() {
-            static const std::vector<std::string> s = { "Round", "Horizontal", "Vertical", "Heart", "Star" };
-            return s;
-        }
-        static const std::vector<std::string>& hornTypes() {
-            static const std::vector<std::string> s = { "None", "Curved", "Swept-back", "Spiral", "Ram", "Demon", "Antlers", "Bull", "Unicorn", "Dragon" };
-            return s;
-        }
-        static const std::vector<std::string>& antennaTypes() {
-            static const std::vector<std::string> s = { "None", "Moth", "Bee", "Butterfly", "Ant" };
-            return s;
-        }
-        static const std::vector<std::string>& lipSizes() {
-            static const std::vector<std::string> s = { "Thin", "Average", "Full", "Plump", "Huge" };
-            return s;
-        }
-        static const std::vector<std::string>& wetnessLevels() {
-            static const std::vector<std::string> s = { "Dry", "Slightly Moist", "Moist", "Wet", "Slimy", "Sloppy", "Sopping Wet", "Drooling" };
-            return s;
-        }
-        static const std::vector<std::string>& orificeModifiers() {
-            static const std::vector<std::string> s = { "Puffy", "Internally-ribbed", "Tentacled", "Internally-muscled" };
-            return s;
-        }
-        static const std::vector<std::string>& penetrationModifiers() {
-            static const std::vector<std::string> s = { "Sheathed", "Ribbed", "Tentacled", "Knotted", "Blunt", "Tapered", "Flared", "Barbed", "Veiny", "Prehensile", "Ovipositor" };
-            return s;
-        }
-        static const std::vector<std::string>& cupSizes() {
-            static const std::vector<std::string> s = {
-                "Flat", "A", "B", "C", "D", "DD", "E", "F", "FF", "G", "GG", "H", "HH", "J", "Enormous"
-            };
-            return s;
-        }
-        static const std::vector<std::string>& breastShapes() {
-            static const std::vector<std::string> s = { "Round", "Pointy", "Perky", "Side-set", "Wide", "Narrow" };
-            return s;
-        }
-        static const std::vector<std::string>& nippleShapes() {
-            static const std::vector<std::string> s = { "Normal", "Inverted", "Lips", "Vagina" };
-            return s;
-        }
-        static const std::vector<std::string>& areolaeShapes() {
-            static const std::vector<std::string> s = { "Round", "Heart", "Star" };
-            return s;
-        }
-        static const std::vector<std::string>& girthLevels() {
-            static const std::vector<std::string> s = { "Thin", "Slender", "Narrow", "Average", "Girthy", "Thick", "Chubby", "Fat" };
-            return s;
-        }
-        static const std::vector<std::string>& wingSizes() {
-            static const std::vector<std::string> s = { "None", "Tiny", "Small", "Average", "Large", "Huge", "Massive", "Unreasonable" };
-            return s;
-        }
-        static const std::vector<std::string>& size5() {
-            static const std::vector<std::string> s = { "Tiny", "Small", "Average", "Large", "Huge" };
-            return s;
-        }
-        static const std::vector<std::string>& allHairStyles() {
-            static const std::vector<std::string> s = {
-                "Bald", "Messy", "Loose", "Slicked-back", "Mohawk", "Afro", "Sidecut", "Pixie", "Bob cut",
-                "Straight", "Wavy", "Curly", "Ponytail", "Low ponytail", "Bun", "Chignon", "Braided",
-                "Twin tails", "Twin braids", "Side braids", "Crown braid", "Hime cut", "Topknot", "Dreadlocks"
-            };
-            return s;
-        }
-        static const std::vector<std::string>& fluidFlavours() {
-            static const std::vector<std::string> s = {
-                "Milk", "Cum", "Girlcum", "Bubblegum", "Beer", "Vanilla", "Strawberry", "Chocolate", "Pineapple",
-                "Honey", "Mint", "Cherry", "Coffee", "Tea", "Maple", "Cinnamon", "Lemon", "Orange", "Grape",
-                "Melon", "Coconut", "Blueberry", "Banana"
-            };
-            return s;
-        }
-        static const std::vector<std::string>& fluidModifiers() {
-            static const std::vector<std::string> s = {
-                "Viscous", "Sticky", "Slimy", "Bubbling", "Musky", "Mineral Oil", "Alcoholic", "Strongly Alcoholic", "Addictive", "Psychoactive"
-            };
-            return s;
-        }
-    };
 
     static std::string calculateBodyShape(const std::string& muscle, const std::string& bodySize) {
         auto toLower = [](std::string str) {

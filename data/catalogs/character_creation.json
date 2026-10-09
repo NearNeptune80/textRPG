@@ -23,6 +23,67 @@
   "bodyHairOptions": [
     "None", "Stubble", "Manicured", "Trimmed", "Natural", "Unkempt", "Bushy", "Wild"
   ],
+  "eyeShapes": [
+    "Round", "Horizontal", "Vertical", "Heart", "Star"
+  ],
+  "hornTypes": [
+    "None", "Curved", "Swept-back", "Spiral", "Ram", "Demon", "Antlers", "Bull", "Unicorn", "Dragon"
+  ],
+  "antennaTypes": [
+    "None", "Moth", "Bee", "Butterfly", "Ant"
+  ],
+  "lipSizes": [
+    "Thin", "Average", "Full", "Plump", "Huge"
+  ],
+  "wetnessLevels": [
+    "Dry", "Slightly Moist", "Moist", "Wet", "Slimy", "Sloppy", "Sopping Wet", "Drooling"
+  ],
+  "orificeModifiers": [
+    "Puffy", "Internally-ribbed", "Tentacled", "Internally-muscled"
+  ],
+  "penetrationModifiers": [
+    "Sheathed", "Ribbed", "Tentacled", "Knotted", "Blunt", "Tapered", "Flared", "Barbed", "Veiny", "Prehensile", "Ovipositor"
+  ],
+  "cupSizes": [
+    "Flat", "A", "B", "C", "D", "DD", "E", "F", "FF", "G", "GG", "H", "HH", "J", "Enormous"
+  ],
+  "breastShapes": [
+    "Round", "Pointy", "Perky", "Side-set", "Wide", "Narrow"
+  ],
+  "nippleShapes": [
+    "Normal", "Inverted", "Lips", "Vagina"
+  ],
+  "areolaeShapes": [
+    "Round", "Heart", "Star"
+  ],
+  "girthLevels": [
+    "Thin", "Slender", "Narrow", "Average", "Girthy", "Thick", "Chubby", "Fat"
+  ],
+  "wingSizes": [
+    "None", "Tiny", "Small", "Average", "Large", "Huge", "Massive", "Unreasonable"
+  ],
+  "size5": [
+    "Tiny", "Small", "Average", "Large", "Huge"
+  ],
+  "allHairStyles": [
+    "Bald", "Messy", "Loose", "Slicked-back", "Mohawk", "Afro", "Sidecut", "Pixie", "Bob cut",
+    "Straight", "Wavy", "Curly", "Ponytail", "Low ponytail", "Bun", "Chignon", "Braided",
+    "Twin tails", "Twin braids", "Side braids", "Crown braid", "Hime cut", "Topknot", "Dreadlocks"
+  ],
+  "fluidFlavours": [
+    "Milk", "Cum", "Girlcum", "Bubblegum", "Beer", "Vanilla", "Strawberry", "Chocolate", "Pineapple",
+    "Honey", "Mint", "Cherry", "Coffee", "Tea", "Maple", "Cinnamon", "Lemon", "Orange", "Grape",
+    "Melon", "Coconut", "Blueberry", "Banana"
+  ],
+  "fluidModifiers": [
+    "Viscous", "Sticky", "Slimy", "Bubbling", "Musky", "Mineral Oil", "Alcoholic", "Strongly Alcoholic", "Addictive", "Psychoactive"
+  ],
+  "innateTransformTraits": [
+    "shapeshifter", "metamorph", "changeling", "transform", "can_transform"
+  ],
+  "innateTransformRaces": [
+    "slime", "demon", "succubus", "incubus", "kitsune", "doppelganger", "changeling"
+  ],
   "hairstyles": [
     { "name": "Bald", "minLengthCm": 0 },
     { "name": "Stubble", "minLengthCm": 1 },

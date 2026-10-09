@@ -636,6 +636,202 @@
       ],
       "supportedDisplacements": {},
       "category": "CONSUMABLE"
+    },
+    {
+      "id": "item_infused_predator",
+      "name": "Elixir of Predator's Instinct",
+      "description": "A shimmering amber tonic imbued with acute predatory senses. Drinking this elixir grants +3 Agility for 4 hours.",
+      "tooltip": "Infused Elixir (+3 Agility for 4h).",
+      "baseValue": 75,
+      "isFood": false,
+      "isConsumable": true,
+      "isEquippable": false,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "NONE",
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [],
+      "supportedDisplacements": {},
+      "category": "CONSUMABLE",
+      "infusionEffects": [
+        {
+          "targetType": 0,
+          "focus": "HAIR",
+          "property": "AGILITY_STAT",
+          "tier": "GREATER_BOON",
+          "limitThreshold": -1
+        }
+      ]
+    },
+    {
+      "id": "item_infused_primal",
+      "name": "Elixir of Primal Surge",
+      "description": "A deep crimson elixir radiating primordial warmth. Drinking this elixir grants +45 Vitality for 24 hours.",
+      "tooltip": "Infused Elixir (+45 Vitality for 24h).",
+      "baseValue": 90,
+      "isFood": false,
+      "isConsumable": true,
+      "isEquippable": false,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "NONE",
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [],
+      "supportedDisplacements": {},
+      "category": "CONSUMABLE",
+      "infusionEffects": [
+        {
+          "targetType": 0,
+          "focus": "TORSO",
+          "property": "HEALTH_CEILING",
+          "tier": "BOON",
+          "limitThreshold": -1
+        }
+      ]
+    },
+    {
+      "id": "item_shirt_cotton",
+      "name": "Cotton Blouse",
+      "description": "A comfortable everyday buttoned cotton blouse.",
+      "baseValue": 120,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "TORSO_UNDER",
+      "validSlots": ["TORSO_UNDER"],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [],
+      "supportedDisplacements": {
+        "UNBUTTON": ["TORSO", "BREASTS"],
+        "LIFT_UP": ["STOMACH", "BREASTS"]
+      },
+      "category": "CLOTHING"
+    },
+    {
+      "id": "item_skirt_pleated",
+      "name": "Pleated Skirt",
+      "description": "A stylish pleated skirt that rests neatly on the hips.",
+      "baseValue": 150,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "LEGS_OUTER",
+      "validSlots": ["LEGS_OUTER"],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [],
+      "supportedDisplacements": {
+        "LIFT_UP": ["GROIN", "ASS"]
+      },
+      "category": "CLOTHING"
+    },
+    {
+      "id": "item_iron_key",
+      "name": "Iron Key",
+      "description": "An old dungeon key.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": false,
+      "isStackable": false,
+      "isKeyItem": true,
+      "count": 1,
+      "targetSlot": "NONE",
+      "validSlots": [],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [],
+      "supportedDisplacements": {},
+      "category": "KEY"
+    },
+    {
+      "id": "item_staff_arcane",
+      "name": "Arcane Staff",
+      "description": "A wooden staff humming with mana.",
+      "baseValue": 250,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "WEAPON_MAIN",
+      "validSlots": ["WEAPON_MAIN"],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [],
+      "supportedDisplacements": {},
+      "category": "WEAPON"
+    },
+    {
+      "id": "player_top",
+      "name": "Cotton Camisole",
+      "description": "A light and breezy cotton camisole.",
+      "baseValue": 45,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "TORSO_UNDER",
+      "validSlots": ["TORSO_UNDER"],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [],
+      "supportedDisplacements": {
+        "LIFT_UP": ["TORSO", "BREASTS"],
+        "PULL_ASIDE": ["BREASTS"]
+      },
+      "category": "CLOTHING"
+    },
+    {
+      "id": "morrigan_skirt",
+      "name": "Leather Skirt",
+      "description": "A daring short skirt crafted from supple leather.",
+      "baseValue": 120,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "LEGS_OUTER",
+      "validSlots": ["LEGS_OUTER"],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [],
+      "supportedDisplacements": {
+        "PULL_DOWN": ["GROIN", "ASS", "LEGS"],
+        "PULL_ASIDE": ["GROIN"],
+        "LIFT_UP": ["GROIN", "ASS"]
+      },
+      "category": "CLOTHING"
+    },
+    {
+      "id": "morrigan_blouse",
+      "name": "Silk Blouse",
+      "description": "A lavish silk blouse with delicate embroidery.",
+      "baseValue": 180,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "TORSO_OVER",
+      "validSlots": ["TORSO_OVER"],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [],
+      "supportedDisplacements": {
+        "UNBUTTON": ["TORSO", "BREASTS"],
+        "OPEN": ["TORSO", "BREASTS"]
+      },
+      "category": "CLOTHING"
     }
   ]
 }

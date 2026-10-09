@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <fstream>
 #include <nlohmann/json.hpp>
 
 #include "common/enums.h"
@@ -307,20 +308,38 @@ struct ContentSettings
     float transformationSpeedMultiplier = 1.0f;
     ContentFilterMode contentFilterMode = ContentFilterMode::DROPDOWN;
 
-    // Desires & Frequency Fetish Preferences: 0=Never, 1=V.Rare, 2=Rare, 3=Average, 4=Common, 5=V.Common, 6=Always
-    std::unordered_map<std::string, int> fetishPreferences = {
-        { "Anal", 3 }, { "Aphrodisiacs & Drugs", 3 }, { "BDSM & Restraints", 3 }, { "BDSM / Sadism", 3 },
-        { "Bondage", 3 }, { "Breasts", 3 }, { "Breasts lover", 3 }, { "Buttslut", 3 },
-        { "Crossdressing", 3 }, { "Cum Inflation & Expansion", 3 }, { "Defloration", 3 }, { "Denial & Edging", 3 },
-        { "Dominance", 3 }, { "Exhibitionism / Public Sex", 3 }, { "Exhibitionism", 3 }, { "Feet", 3 },
-        { "Foot worship", 3 }, { "Feral / Bestiality", 3 }, { "Hypnosis & Mind Control", 3 }, { "Incest", 3 },
-        { "Insemination / Cum", 3 }, { "Insemination", 3 }, { "Lactation", 3 }, { "Masochism", 3 },
-        { "Milk lover", 3 }, { "Non-Consent", 3 }, { "Oral", 3 }, { "Oral performer", 3 },
-        { "Penetration", 3 }, { "Pregnancy", 3 }, { "Prolapse", 3 }, { "Pussy slut", 3 },
-        { "Sadistic sex / Extreme", 3 }, { "Size Difference", 3 }, { "Spitting", 3 }, { "Submission", 3 },
-        { "Tentacles & Monsters", 3 }, { "Tentacles", 3 }, { "Transformations", 3 }, { "Vaginal", 3 },
-        { "Voyeurism", 3 }, { "Watersports", 3 }
-    };
+    static std::unordered_map<std::string, int> loadDefaultFetishPreferences()
+    {
+        std::unordered_map<std::string, int> prefs;
+        std::ifstream file("data/catalogs/fetishes.json");
+        if (file.is_open())
+        {
+            try
+            {
+                nlohmann::json j;
+                file >> j;
+                if (j.contains("defaultPreferences") && j["defaultPreferences"].is_object())
+                {
+                    prefs = j["defaultPreferences"].get<std::unordered_map<std::string, int>>();
+                }
+                else if (j.contains("fetishes") && j["fetishes"].is_array())
+                {
+                    int defRating = j.value("defaultRating", 3);
+                    for (const auto& item : j["fetishes"])
+                    {
+                        if (item.contains("name"))
+                        {
+                            prefs[item["name"].get<std::string>()] = defRating;
+                        }
+                    }
+                }
+            }
+            catch (...) {}
+        }
+        return prefs;
+    }
+
+    std::unordered_map<std::string, int> fetishPreferences = loadDefaultFetishPreferences();
 };
 
 struct GameplaySettings

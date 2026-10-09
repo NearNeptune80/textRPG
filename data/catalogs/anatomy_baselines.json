@@ -1,0 +1,105 @@
+{
+  "version": "1.0",
+  "baseParts": [
+    { "slot": "TORSO", "prefix": "part_torso_", "name": "Torso", "primaryColor": "Fair" },
+    { "slot": "HEAD", "prefix": "part_head_", "name": "Face", "primaryColor": "Fair" },
+    { "slot": "LEGS", "prefix": "part_legs_", "name": "Legs", "count": 2 },
+    { "slot": "FEET", "prefix": "part_feet_", "name": "Feet", "count": 2 },
+    { "slot": "ARMS", "prefix": "part_arms_", "name": "Arms", "count": 2 },
+    { "slot": "HAIR", "prefix": "part_hair_", "name": "Hair", "primaryColor": "Brown", "covering": "HAIR_COVERING" },
+    { "slot": "EYES", "prefix": "part_eyes_", "name": "Eyes", "primaryColor": "Blue", "covering": "IRIS" },
+    { "slot": "BREASTS", "prefix": "part_breasts_", "name": "Breasts" },
+    { "slot": "GROIN", "prefix": "part_groin_", "name": "Groin" },
+    { "slot": "ASS", "prefix": "part_ass_", "name": "Ass" }
+  ],
+  "defaultOrifices": {
+    "ass": {
+      "exists": true,
+      "elasticity": 60.0,
+      "maxCapacityMl": 80.0
+    }
+  },
+  "archetypeBaselines": {
+    "MALE": {
+      "breasts": { "cupSize": 0 },
+      "groin": {
+        "name": "Penis",
+        "length": 15.0,
+        "diameter": 3.5,
+        "currentFluidMl": 10.0,
+        "maxFluidMl": 20.0,
+        "fluidRegenPerHour": 2.0,
+        "tags": ["penis", "has_penis"],
+        "orifice": { "exists": false }
+      },
+      "torsoTags": ["masculine"]
+    },
+    "FEMALE": {
+      "breasts": { "cupSize": 3 },
+      "groin": {
+        "name": "Vagina",
+        "orifice": {
+          "exists": true,
+          "elasticity": 75.0,
+          "maxCapacityMl": 120.0
+        },
+        "tags": ["vagina", "has_vagina"]
+      },
+      "torsoTags": ["feminine"]
+    },
+    "HERMAPHRODITE": {
+      "breasts": { "cupSize": 3 },
+      "groin": {
+        "name": "Hermaphrodite Genitals",
+        "length": 14.0,
+        "diameter": 3.2,
+        "currentFluidMl": 10.0,
+        "maxFluidMl": 20.0,
+        "fluidRegenPerHour": 2.0,
+        "orifice": {
+          "exists": true,
+          "elasticity": 75.0,
+          "maxCapacityMl": 120.0
+        },
+        "tags": ["penis", "vagina", "hermaphrodite"]
+      },
+      "torsoTags": ["feminine", "masculine"]
+    },
+    "GYNOMORPH": {
+      "breasts": { "cupSize": 4 },
+      "groin": {
+        "name": "Penis",
+        "length": 16.0,
+        "diameter": 3.6,
+        "currentFluidMl": 12.0,
+        "maxFluidMl": 25.0,
+        "fluidRegenPerHour": 2.5,
+        "tags": ["penis", "gynomorph"],
+        "orifice": { "exists": false }
+      },
+      "torsoTags": ["feminine"]
+    },
+    "ANDROMORPH": {
+      "breasts": { "cupSize": 0 },
+      "groin": {
+        "name": "Vagina",
+        "orifice": {
+          "exists": true,
+          "elasticity": 70.0,
+          "maxCapacityMl": 100.0
+        },
+        "tags": ["vagina", "andromorph"]
+      },
+      "torsoTags": ["masculine"]
+    },
+    "ASEXUAL_NULL": {
+      "breasts": { "cupSize": 0 },
+      "groin": {
+        "name": "Smooth Groin",
+        "tags": ["null"],
+        "orifice": { "exists": false }
+      },
+      "torsoTags": []
+    }
+  }
+}

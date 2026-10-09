@@ -149,9 +149,31 @@ void game::init()
     settingsManager::loadFromFile(settings, "data/settings.json");
 
     clearEventLog();
-    addLogEntry("[ZONE]", "Sanctuary Manor F1", { 80, 160, 220, 255 });
-    addLogEntry("[QUEST]", "Sanctuary Research", { 210, 175, 80, 255 });
-    addLogEntry("[INFO]", "Systems active", { 180, 180, 190, 255 });
+
+    std::ifstream defFile("data/config/new_game_defaults.json");
+    if (defFile.is_open())
+    {
+        try
+        {
+            nlohmann::json j;
+            defFile >> j;
+            if (j.contains("initialLogs") && j["initialLogs"].is_array())
+            {
+                for (const auto& logEntry : j["initialLogs"])
+                {
+                    std::string tag = logEntry.value("tag", "");
+                    std::string text = logEntry.value("text", "");
+                    LogColor col = { 200, 200, 200, 255 };
+                    if (logEntry.contains("color") && logEntry["color"].is_array() && logEntry["color"].size() >= 4)
+                    {
+                        col = { logEntry["color"][0], logEntry["color"][1], logEntry["color"][2], logEntry["color"][3] };
+                    }
+                    addLogEntry(tag, text, col);
+                }
+            }
+        }
+        catch (...) {}
+    }
 
     PerkDatabase::loadFromFile("data/perks.json");
 
@@ -588,7 +610,7 @@ void game::ensureTileAmbushNPC(TileRuntimeData& tileData) const
 
     if (tileData.ambushState.templateId.empty())
     {
-        std::string defTpl = (dangerLevel >= 2) ? "tpl_rogue_mage" : "tpl_alley_bandit";
+        std::string defTpl = encounterResolver::getDefaultTemplateForDanger(dangerLevel);
         tileData.ambushState.templateId = defTpl;
         if (tileData.ambushState.templatePool.empty())
         {

@@ -6,6 +6,7 @@
 #include "entities/perkDatabase.h"
 #include "items/itemDatabase.h"
 #include "core/timeManager.h"
+#include "state/editorConfig.h"
 
 using json = nlohmann::json;
 
@@ -187,6 +188,7 @@ json entity::toJson() const
     j["birthYear"] = birthYear;
     j["age"] = age;
     j["fetishDesires"] = fetishDesires;
+    j["personalityTraits"] = personalityTraits;
 
     j["isElemental"] = isElemental;
     j["elementalType"] = elementalType;
@@ -344,6 +346,10 @@ void entity::fromJson(const json& j)
     {
         fetishDesires = j["fetishDesires"].get<std::unordered_map<std::string, int>>();
     }
+    if (j.contains("personalityTraits") && j["personalityTraits"].is_array())
+    {
+        personalityTraits = j["personalityTraits"].get<std::vector<std::string>>();
+    }
     if (j.contains("unlockedPerks") && j["unlockedPerks"].is_array())
     {
         unlockedPerks = j["unlockedPerks"].get<std::vector<std::string>>();
@@ -462,10 +468,28 @@ void entity::fromJson(const json& j)
     inventory.backpack.clear();
     if (j.contains("backpack"))
     {
-        for (const auto& itemId : j["backpack"])
+        for (const auto& itemEntry : j["backpack"])
         {
-            auto itemPtr = itemDatabase::getItem(itemId.get<std::string>());
-            if (itemPtr) inventory.addItem(itemPtr);
+            std::string itemId;
+            int count = 1;
+            if (itemEntry.is_string())
+            {
+                itemId = itemEntry.get<std::string>();
+            }
+            else if (itemEntry.is_object())
+            {
+                itemId = itemEntry.value("id", "");
+                count = itemEntry.value("count", 1);
+            }
+            if (!itemId.empty())
+            {
+                auto itemPtr = itemDatabase::getItem(itemId);
+                if (itemPtr)
+                {
+                    itemPtr->count = count;
+                    inventory.addItem(itemPtr);
+                }
+            }
         }
     }
 
@@ -797,9 +821,10 @@ bool entity::canTransform() const
     if (hasPerk("metamorphosis") || hasPerk("shapeshifter") || hasPerk("transformation")) return true;
     if (hasPerkFlag("can_transform") || hasPerkFlag("shapeshifter")) return true;
 
+    const auto& validTraits = EditorConfig::Catalogs::innateTransformTraits();
     for (const auto& trait : personalityTraits)
     {
-        if (trait == "shapeshifter" || trait == "metamorph" || trait == "changeling" || trait == "transform" || trait == "can_transform")
+        if (std::find(validTraits.begin(), validTraits.end(), trait) != validTraits.end())
         {
             return true;
         }
@@ -807,8 +832,8 @@ bool entity::canTransform() const
 
     std::string race = anatomy.getDominantRace();
     for (char& c : race) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-    if (race == "slime" || race == "demon" || race == "succubus" || race == "incubus" ||
-        race == "kitsune" || race == "doppelganger" || race == "changeling")
+    const auto& validRaces = EditorConfig::Catalogs::innateTransformRaces();
+    if (std::find(validRaces.begin(), validRaces.end(), race) != validRaces.end())
     {
         return true;
     }

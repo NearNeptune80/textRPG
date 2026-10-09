@@ -2,6 +2,9 @@
 
 #include <algorithm>
 #include <format>
+#include <fstream>
+#include <map>
+#include <nlohmann/json.hpp>
 
 #include "common/randomEngine.h"
 #include "core/game.h"
@@ -124,4 +127,50 @@ questScene encounterResolver::buildVictoryScene(game* g, entity* targetNPC, cons
     }
 
     return scene;
+}
+
+std::string encounterResolver::getDefaultTemplateForDanger(int dangerLevel)
+{
+    static std::string defaultTpl = "tpl_alley_bandit";
+    static std::map<int, std::string> dangerTemplates = {
+        { 1, "tpl_alley_bandit" },
+        { 2, "tpl_rogue_mage" }
+    };
+    static bool loaded = false;
+    if (!loaded)
+    {
+        loaded = true;
+        std::ifstream f("data/config/danger_encounters.json");
+        if (f.is_open())
+        {
+            try
+            {
+                nlohmann::json j;
+                f >> j;
+                if (j.contains("defaultTemplate"))
+                {
+                    defaultTpl = j["defaultTemplate"].get<std::string>();
+                }
+                if (j.contains("dangerLevelTemplates") && j["dangerLevelTemplates"].is_object())
+                {
+                    dangerTemplates.clear();
+                    for (auto& [key, val] : j["dangerLevelTemplates"].items())
+                    {
+                        dangerTemplates[std::stoi(key)] = val.get<std::string>();
+                    }
+                }
+            }
+            catch (...) {}
+        }
+    }
+
+    if (dangerTemplates.count(dangerLevel))
+    {
+        return dangerTemplates[dangerLevel];
+    }
+    if (!dangerTemplates.empty() && dangerLevel >= dangerTemplates.rbegin()->first)
+    {
+        return dangerTemplates.rbegin()->second;
+    }
+    return defaultTpl;
 }

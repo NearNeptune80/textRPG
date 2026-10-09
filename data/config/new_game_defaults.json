@@ -1,0 +1,35 @@
+{
+  "version": "1.0",
+  "starterQuests": [
+    { "id": "root_delivery", "stage": 0, "tracked": true },
+    { "id": "cottage_investigation", "stage": 0, "tracked": false },
+    { "id": "patrol_duty", "stage": 0, "tracked": false }
+  ],
+  "spawn": {
+    "map": "overworld",
+    "x": 1,
+    "y": 1
+  },
+  "calendar": {
+    "day": 29,
+    "hour": 21,
+    "minute": 47
+  },
+  "initialLogs": [
+    {
+      "tag": "[ZONE]",
+      "text": "Sanctuary Manor F1",
+      "color": [180, 200, 220, 255]
+    },
+    {
+      "tag": "[QUEST]",
+      "text": "Sanctuary Research",
+      "color": [220, 180, 80, 255]
+    },
+    {
+      "tag": "[INFO]",
+      "text": "Systems active",
+      "color": [160, 200, 160, 255]
+    }
+  ]
+}

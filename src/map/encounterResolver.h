@@ -17,6 +17,7 @@ public:
 	static std::shared_ptr<entity> createEncounterNPC(int dangerLevel, const GameSettings& settings);
 	static questScene buildEncounterScene(game* g, std::shared_ptr<entity> npc);
 	static questScene buildVictoryScene(game* g, entity* targetNPC, const std::string& mapId);
+	static std::string getDefaultTemplateForDanger(int dangerLevel);
 
 private:
 	static std::string selectFlavorText(const std::string& mapId, entity* target);

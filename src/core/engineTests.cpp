@@ -5492,6 +5492,50 @@ namespace EngineTests
         return allPassed;
     }
 
+    bool testCoreCatalogsAndDefaults()
+    {
+        std::cout << "\n--- Running Test 46: Core Data Catalogs & Defaults Integrity ---\n";
+        bool allPassed = true;
+
+        bool hasRaces = (!EditorConfig::Catalogs::racialTypes().empty());
+        bool hasHair = (!EditorConfig::Catalogs::allHairStyles().empty());
+        bool hasTransformTraits = (!EditorConfig::Catalogs::innateTransformTraits().empty());
+        bool catalogsOk = (hasRaces && hasHair && hasTransformTraits);
+        logResult("EditorConfig::Catalogs deserializes character creation vectors from JSON", catalogsOk);
+        allPassed &= catalogsOk;
+
+        ContentSettings cSettings;
+        bool fetishesLoaded = (!cSettings.fetishPreferences.empty() && cSettings.fetishPreferences.size() >= 28);
+        logResult("Fetishes catalog loads 28 default preferences into ContentSettings", fetishesLoaded);
+        allPassed &= fetishesLoaded;
+
+        std::string tplD1 = encounterResolver::getDefaultTemplateForDanger(1);
+        std::string tplD2 = encounterResolver::getDefaultTemplateForDanger(2);
+        bool dangerTplOk = (!tplD1.empty() && !tplD2.empty() && tplD1 != tplD2);
+        logResult("encounterResolver queries data-driven danger encounters templates", dangerTplOk);
+        allPassed &= dangerTplOk;
+
+        entity entShapeshifter("test_ent_1", "Shapeshifter");
+        entShapeshifter.personalityTraits.push_back("shapeshifter");
+        entity entSlime("test_ent_2", "Slime");
+        bodyPart slimeTorso; slimeTorso.id = "torso_slime"; slimeTorso.race = "slime";
+        entSlime.anatomy.setPart(bodySlot::TORSO, slimeTorso);
+        entity entHuman("test_ent_3", "Plain Human");
+        bodyPart humanTorso; humanTorso.id = "torso_human"; humanTorso.race = "Human";
+        entHuman.anatomy.setPart(bodySlot::TORSO, humanTorso);
+        bool transformOk = (entShapeshifter.canTransform() && entSlime.canTransform() && !entHuman.canTransform());
+        logResult("entity::canTransform evaluates data-driven catalog tags and races", transformOk);
+        allPassed &= transformOk;
+
+        entity entKit("test_ent_kit", "Kit Recipient");
+        saveManager::grantStarterTestKit(&entKit);
+        bool kitGranted = (!entKit.inventory.backpack.empty() && entKit.inventory.backpack.size() >= 5);
+        logResult("saveManager::grantStarterTestKit deserializes starter kit from JSON configuration", kitGranted);
+        allPassed &= kitGranted;
+
+        return allPassed;
+    }
+
     bool runAllTests()
     {
         g_passCount = 0;
@@ -5545,6 +5589,7 @@ namespace EngineTests
         bool t43 = testUnitFormatterAndRefinedSettings();
         bool t44 = testUnifiedFetishesAndCombatResolutionSex();
         bool t45 = testCoreSimulationAndWiring();
+        bool t46 = testCoreCatalogsAndDefaults();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";

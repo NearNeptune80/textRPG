@@ -10,6 +10,7 @@
 #include "entities/entity.h"
 #include "entities/npcGenerator.h"
 #include "items/itemDatabase.h"
+#include "map/encounterResolver.h"
 
 using json = nlohmann::json;
 
@@ -131,7 +132,7 @@ bool gameMap::loadFromFile(const std::string& filePath)
                     }
                     if (encJson.contains("template"))
                     {
-                        tData.ambushState.templateId = encJson.value("template", "tpl_alley_bandit");
+                        tData.ambushState.templateId = encJson.value("template", encounterResolver::getDefaultTemplateForDanger(tData.baseDangerLevel));
                         if (tData.ambushState.templatePool.empty())
                         {
                             tData.ambushState.templatePool.push_back(tData.ambushState.templateId);
@@ -143,8 +144,9 @@ bool gameMap::loadFromFile(const std::string& filePath)
                     }
                     else
                     {
-                        tData.ambushState.templateId = "tpl_alley_bandit";
-                        tData.ambushState.templatePool.push_back("tpl_alley_bandit");
+                        std::string defTpl = encounterResolver::getDefaultTemplateForDanger(tData.baseDangerLevel);
+                        tData.ambushState.templateId = defTpl;
+                        tData.ambushState.templatePool.push_back(defTpl);
                     }
                     tData.ambushState.ambushChance = encJson.value("ambushChance", 50);
                     restockAmbushNPC(tData.ambushState);
@@ -159,7 +161,7 @@ bool gameMap::loadFromFile(const std::string& filePath)
                 auto& tData = getRuntimeData(x, y);
                 if (tData.baseDangerLevel > 0 && tData.ambushState.templateId.empty())
                 {
-                    std::string defTpl = (tData.baseDangerLevel >= 2) ? "tpl_rogue_mage" : "tpl_alley_bandit";
+                    std::string defTpl = encounterResolver::getDefaultTemplateForDanger(tData.baseDangerLevel);
                     tData.ambushState.templateId = defTpl;
                     tData.ambushState.templatePool = { defTpl };
                     tData.ambushState.ambushChance = std::clamp(tData.baseDangerLevel * 25, 20, 75);

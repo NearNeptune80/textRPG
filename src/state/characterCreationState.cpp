@@ -1,7 +1,9 @@
 #include "state/characterCreationState.h"
 
 #include <algorithm>
+#include <fstream>
 #include <random>
+#include <nlohmann/json.hpp>
 #include "core/game.h"
 #include "items/itemDatabase.h"
 #include "state/explorationState.h"
@@ -896,6 +898,33 @@ void characterCreationState::finalizeCharacter(game* gameContext)
         gameContext->Player = gameContext->playerEntity.get();
     }
 
+    std::string spawnMap = "overworld";
+    int spawnX = 1, spawnY = 1;
+    int calDay = 29, calHour = 21, calMinute = 47;
+
+    std::ifstream defFile("data/config/new_game_defaults.json");
+    nlohmann::json jDef;
+    if (defFile.is_open())
+    {
+        try
+        {
+            defFile >> jDef;
+            if (jDef.contains("spawn"))
+            {
+                spawnMap = jDef["spawn"].value("map", "overworld");
+                spawnX = jDef["spawn"].value("x", 1);
+                spawnY = jDef["spawn"].value("y", 1);
+            }
+            if (jDef.contains("calendar"))
+            {
+                calDay = jDef["calendar"].value("day", 29);
+                calHour = jDef["calendar"].value("hour", 21);
+                calMinute = jDef["calendar"].value("minute", 47);
+            }
+        }
+        catch (...) {}
+    }
+
     entity* player = gameContext->getPlayer();
     if (player)
     {
@@ -905,29 +934,33 @@ void characterCreationState::finalizeCharacter(game* gameContext)
 
         saveManager::grantStarterTestKit(player);
 
-        if (!player->quests.hasQuest("root_delivery"))
+        if (jDef.contains("starterQuests") && jDef["starterQuests"].is_array())
         {
-            player->quests.setQuestStage("root_delivery", 0);
-            player->quests.setTrackedQuest("root_delivery");
-        }
-        if (!player->quests.hasQuest("cottage_investigation"))
-        {
-            player->quests.setQuestStage("cottage_investigation", 0);
-        }
-        if (!player->quests.hasQuest("patrol_duty"))
-        {
-            player->quests.setQuestStage("patrol_duty", 0);
+            for (const auto& q : jDef["starterQuests"])
+            {
+                std::string qId = q.value("id", "");
+                int qStage = q.value("stage", 0);
+                bool tracked = q.value("tracked", false);
+                if (!qId.empty() && !player->quests.hasQuest(qId))
+                {
+                    player->quests.setQuestStage(qId, qStage);
+                    if (tracked)
+                    {
+                        player->quests.setTrackedQuest(qId);
+                    }
+                }
+            }
         }
     }
 
     if (gameContext)
     {
-        gameContext->loadMap("overworld", 1, 1);
+        gameContext->loadMap(spawnMap, spawnX, spawnY);
         gameContext->gameTime.month = startMonthIdx + 1;
         int maxDays = timeManager::getDaysInMonth(gameContext->gameTime.month, gameContext->gameTime.year);
-        gameContext->gameTime.day = std::clamp(29, 1, maxDays);
-        gameContext->gameTime.hour = 21;
-        gameContext->gameTime.minute = 47;
+        gameContext->gameTime.day = std::clamp(calDay, 1, maxDays);
+        gameContext->gameTime.hour = calHour;
+        gameContext->gameTime.minute = calMinute;
     }
 
     gameContext->changeState(std::make_unique<explorationState>());

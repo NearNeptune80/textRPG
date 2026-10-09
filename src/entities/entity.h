@@ -67,7 +67,7 @@ public:
     void addTrait(const std::string& traitName);
     void removeTrait(const std::string& traitName);
 
-    entity(std::string entityId, std::string entityName);
+    entity(std::string entityId = "", std::string entityName = "");
 
     std::array<std::string, 10> preparedCombatSlots; // Holds action/spell IDs for Primary Tab
 

@@ -476,58 +476,30 @@ void saveManager::grantStarterTestKit(entity* player)
         }
     };
 
-    addIfMissing("item_plain_elixir", 3);
-
-    addIfMissing("item_canis_root", 2);
-    addIfMissing("item_potion_health", 2);
-    addIfMissing("item_potion_mana", 2);
-    addIfMissing("item_apple_crisp", 2);
-    addIfMissing("item_feline_mint", 2);
-
-    addIfMissing("item_golden_pendant", 1);
-    addIfMissing("item_dagger_iron", 1);
-    addIfMissing("item_cloth_gloves", 1);
-    addIfMissing("item_leather_choker", 1);
-    addIfMissing("item_leather_boots", 1);
-    addIfMissing("item_leather_skirt", 1);
-    addIfMissing("item_ancient_tome", 1);
-
-    bool hasPredator = false;
-    bool hasPrimal = false;
-    for (const auto& it : player->inventory.backpack)
+    std::ifstream cfgFile("data/config/starter_kit.json");
+    if (cfgFile.is_open())
     {
-        if (it && it->id == "item_infused_predator") hasPredator = true;
-        if (it && it->id == "item_infused_primal") hasPrimal = true;
-    }
-
-    if (!hasPredator)
-    {
-        auto infusedPredator = std::make_shared<item>();
-        infusedPredator->id = "item_infused_predator";
-        infusedPredator->name = "Elixir of Predator's Instinct";
-        infusedPredator->description = "A shimmering amber tonic imbued with acute predatory senses. Drinking this elixir grants +3 Agility for 4 hours.";
-        infusedPredator->tooltip = "Infused Elixir (+3 Agility for 4h).";
-        infusedPredator->baseValue = 75;
-        infusedPredator->isConsumable = true;
-        infusedPredator->count = 1;
-        InfusionEffect effPredator{ InfusionTargetType::CONSUMABLE_TONIC, EnchantmentFocus::HAIR, AspectProperty::AGILITY_STAT, InfusionTier::GREATER_BOON };
-        infusedPredator->infusionEffects.push_back(effPredator);
-        player->inventory.addItem(infusedPredator);
-    }
-
-    if (!hasPrimal)
-    {
-        auto infusedPrimal = std::make_shared<item>();
-        infusedPrimal->id = "item_infused_primal";
-        infusedPrimal->name = "Elixir of Primal Surge";
-        infusedPrimal->description = "A deep crimson elixir radiating primordial warmth. Drinking this elixir grants +45 Vitality for 24 hours.";
-        infusedPrimal->tooltip = "Infused Elixir (+45 Vitality for 24h).";
-        infusedPrimal->baseValue = 90;
-        infusedPrimal->isConsumable = true;
-        infusedPrimal->count = 1;
-        InfusionEffect effPrimal{ InfusionTargetType::CONSUMABLE_TONIC, EnchantmentFocus::TORSO, AspectProperty::HEALTH_CEILING, InfusionTier::BOON };
-        infusedPrimal->infusionEffects.push_back(effPrimal);
-        player->inventory.addItem(infusedPrimal);
+        try
+        {
+            json j;
+            cfgFile >> j;
+            if (j.contains("starterItems") && j["starterItems"].is_array())
+            {
+                for (const auto& itemEntry : j["starterItems"])
+                {
+                    std::string id = itemEntry.value("id", "");
+                    int count = itemEntry.value("count", 1);
+                    if (!id.empty())
+                    {
+                        addIfMissing(id, count);
+                    }
+                }
+            }
+        }
+        catch (const std::exception& e)
+        {
+            std::cerr << "[SaveManager] Error loading starter kit config: " << e.what() << "\n";
+        }
     }
 
     if (player->getStat("arcaneEssence") < 50.0f)

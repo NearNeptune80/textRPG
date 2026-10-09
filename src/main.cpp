@@ -1,5 +1,7 @@
 #include <iostream>
 #include <filesystem>
+#include <fstream>
+#include <nlohmann/json.hpp>
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
 
@@ -20,6 +22,22 @@
 #include "save/saveManager.h"
 #include "ui/theme.h"
 #include "ui/uiRenderer.h"
+
+static nlohmann::json getScreenshotMocks()
+{
+    static nlohmann::json mocks;
+    static bool loaded = false;
+    if (!loaded)
+    {
+        loaded = true;
+        std::ifstream f("data/config/screenshot_mocks.json");
+        if (f.is_open())
+        {
+            try { f >> mocks; } catch (...) {}
+        }
+    }
+    return mocks;
+}
 
 int main(int argc, char* argv[])
 {
@@ -246,108 +264,28 @@ int main(int argc, char* argv[])
         }
         else if (screenshotState.starts_with("inventory") || screenshotState == "tooltip_inventory" || screenshotState == "tooltip_equipment")
         {
-            if (!engine.getPlayer())
+            auto mocks = getScreenshotMocks();
+            if (!engine.getPlayer() && mocks.contains("inventoryTestPlayer"))
             {
-                auto p = std::make_shared<entity>("hero_player", "Aria Vesper");
-                p->genderArchetype = GenderArchetype::FEMALE;
-                p->stats.setBaseStat("health", 100.0f);
-                p->stats.setBaseStat("max_health", 100.0f);
-                p->stats.setBaseStat("mana", 80.0f);
-                p->stats.setBaseStat("max_mana", 80.0f);
-                p->stats.setBaseStat("currency", 5000.0f);
-                p->stats.setBaseStat("arcaneEssence", 20.0f);
-                
-                auto pot = std::make_shared<item>();
-                pot->id = "item_potion_health";
-                pot->name = "Health Potion";
-                pot->description = "Restores 50 HP with revitalizing arcane herbs.";
-                pot->baseValue = 50;
-                pot->isConsumable = true;
-                pot->count = 3;
-                p->inventory.addItem(pot);
-
-                auto blouse = std::make_shared<item>();
-                blouse->id = "item_shirt_cotton";
-                blouse->name = "Cotton Blouse";
-                blouse->description = "A comfortable everyday buttoned cotton blouse.";
-                blouse->baseValue = 120;
-                blouse->isEquippable = true;
-                blouse->targetSlot = equipSlot::TORSO_UNDER;
-                blouse->supportedDisplacements[DisplacementMode::UNBUTTON] = { bodySlot::TORSO, bodySlot::BREASTS };
-                blouse->supportedDisplacements[DisplacementMode::LIFT_UP] = { bodySlot::STOMACH, bodySlot::BREASTS };
-                p->inventory.addItem(blouse);
-
-                auto skirt = std::make_shared<item>();
-                skirt->id = "item_skirt_pleated";
-                skirt->name = "Pleated Skirt";
-                skirt->description = "A stylish pleated skirt that rests neatly on the hips.";
-                skirt->baseValue = 150;
-                skirt->isEquippable = true;
-                skirt->targetSlot = equipSlot::LEGS_OUTER;
-                skirt->supportedDisplacements[DisplacementMode::LIFT_UP] = { bodySlot::GROIN, bodySlot::ASS };
-                p->inventory.addItem(skirt);
-
-                auto dagger = std::make_shared<item>();
-                dagger->id = "item_dagger_iron";
-                dagger->name = "Iron Dagger";
-                dagger->description = "A sharp utility dagger for close combat.";
-                dagger->baseValue = 200;
-                dagger->isEquippable = true;
-                dagger->targetSlot = equipSlot::WEAPON_MAIN;
-                p->inventory.addItem(dagger);
-
-                auto heels = std::make_shared<item>();
-                heels->id = "item_high_heels";
-                heels->name = "Evening Stilettos";
-                heels->description = "Polished black high heel stilettos that accentuate posture and leg definition.";
-                heels->tooltip = "Elegant polished footwear (+Allure). Elevates posture and formal appeal.";
-                heels->baseValue = 35;
-                heels->isEquippable = true;
-                heels->targetSlot = equipSlot::FEET;
-                p->inventory.addItem(heels);
-
-                auto bra = std::make_shared<item>();
-                bra->id = "item_silk_bra";
-                bra->name = "Silk Bra";
-                bra->description = "Delicate lace and silk bra.";
-                bra->isEquippable = true;
-                bra->targetSlot = equipSlot::CHEST_WEAR;
-                p->inventory.addItem(bra);
-
-                auto key = std::make_shared<item>();
-                key->id = "item_iron_key";
-                key->name = "Iron Key";
-                key->description = "An old dungeon key.";
-                key->isKeyItem = true;
-                p->inventory.addItem(key);
-
-                p->inventory.equipped[static_cast<size_t>(equipSlot::TORSO_UNDER)] = blouse;
-                p->inventory.equipped[static_cast<size_t>(equipSlot::LEGS_OUTER)] = skirt;
-
+                auto p = std::make_shared<entity>();
+                p->fromJson(mocks["inventoryTestPlayer"]);
                 engine.playerEntity = p;
             }
 
-            if (engine.map)
+            if (engine.map && mocks.contains("inventoryDroppedItems"))
             {
                 auto& tileData = engine.map->getRuntimeData(engine.gridX, engine.gridY);
                 if (tileData.droppedItems.empty())
                 {
-                    auto dropStaff = std::make_shared<item>();
-                    dropStaff->id = "item_staff_arcane";
-                    dropStaff->name = "Arcane Staff";
-                    dropStaff->description = "A wooden staff humming with mana.";
-                    dropStaff->isEquippable = true;
-                    dropStaff->targetSlot = equipSlot::WEAPON_MAIN;
-                    tileData.addDroppedItem(dropStaff, 120);
-
-                    auto dropPot = std::make_shared<item>();
-                    dropPot->id = "item_potion_mana";
-                    dropPot->name = "Mana Potion";
-                    dropPot->description = "Restores 40 MP.";
-                    dropPot->isConsumable = true;
-                    dropPot->isStackable = true;
-                    dropPot->count = 2;
-                    tileData.addDroppedItem(dropPot, 120);
+                    for (const auto& itemEntry : mocks["inventoryDroppedItems"])
+                    {
+                        auto itm = itemDatabase::getItem(itemEntry.value("id", ""));
+                        if (itm)
+                        {
+                            if (itemEntry.contains("count")) itm->count = itemEntry.value("count", 1);
+                            tileData.addDroppedItem(itm, itemEntry.value("durationMinutes", 120));
+                        }
+                    }
                 }
             }
 
@@ -508,52 +446,11 @@ int main(int argc, char* argv[])
         }
         else if (screenshotState.starts_with("enchanting"))
         {
-            if (!engine.getPlayer())
+            auto mocks = getScreenshotMocks();
+            if (!engine.getPlayer() && mocks.contains("enchantingTestPlayer"))
             {
-                auto p = std::make_shared<entity>("hero_player", "Aria Vesper");
-                p->genderArchetype = GenderArchetype::FEMALE;
-                p->stats.level = 1;
-                p->stats.setBaseStat("health", 100.0f);
-                p->stats.setBaseStat("max_health", 100.0f);
-                p->stats.setBaseStat("mana", 80.0f);
-                p->stats.setBaseStat("max_mana", 80.0f);
-                p->stats.setBaseStat("currency", 500.0f);
-                p->stats.setBaseStat("arcaneEssence", 40.0f);
-
-                auto basePotion = std::make_shared<item>();
-                basePotion->id = "item_plain_elixir";
-                basePotion->name = "Plain Elixir";
-                basePotion->description = "An uninfused tonic ready to absorb arcane essence.";
-                basePotion->isConsumable = true;
-                basePotion->baseValue = 10;
-                p->inventory.addItem(basePotion);
-
-                auto dagger = std::make_shared<item>();
-                dagger->id = "item_dagger_iron";
-                dagger->name = "Iron Dagger";
-                dagger->category = ItemCategory::WEAPON;
-                dagger->isEquippable = true;
-                dagger->targetSlot = equipSlot::WEAPON_MAIN;
-                p->inventory.addItem(dagger);
-
-                auto choker = std::make_shared<item>();
-                choker->id = "item_leather_choker";
-                choker->name = "Leather Choker";
-                choker->category = ItemCategory::ACCESSORY;
-                choker->isEquippable = true;
-                choker->targetSlot = equipSlot::NECKWEAR;
-                p->inventory.addItem(choker);
-
-                auto canisRoot = std::make_shared<item>();
-                canisRoot->id = "item_canis_root";
-                canisRoot->name = "Canis Root";
-                canisRoot->category = ItemCategory::CONSUMABLE;
-                canisRoot->isConsumable = true;
-                canisRoot->baseRace = "canine";
-                canisRoot->description = "A pungent feral root exuding lupine essence.";
-                canisRoot->baseValue = 25;
-                p->inventory.addItem(canisRoot);
-
+                auto p = std::make_shared<entity>();
+                p->fromJson(mocks["enchantingTestPlayer"]);
                 engine.playerEntity = p;
                 engine.Player = p.get();
             }
@@ -612,47 +509,27 @@ int main(int argc, char* argv[])
                 engine.Player = p.get();
             }
 
+            auto mocks = getScreenshotMocks();
             if (auto p = engine.getPlayer())
             {
-                auto shirt = std::make_shared<item>();
-                shirt->id = "player_top";
-                shirt->name = "Cotton Camisole";
-                shirt->targetSlot = equipSlot::TORSO_UNDER;
-                shirt->isEquippable = true;
-                shirt->supportedDisplacements[DisplacementMode::LIFT_UP] = { bodySlot::TORSO, bodySlot::BREASTS };
-                shirt->supportedDisplacements[DisplacementMode::PULL_ASIDE] = { bodySlot::BREASTS };
-                p->inventory.addItem(shirt);
-                p->inventory.equipItem(0, equipSlot::TORSO_UNDER);
+                std::string shirtId = mocks.value("sexTestPlayerShirt", "player_top");
+                auto shirt = itemDatabase::getItem(shirtId);
+                if (shirt)
+                {
+                    p->inventory.addItem(shirt);
+                    p->inventory.equipItem(p->inventory.backpack.size() - 1, equipSlot::TORSO_UNDER);
+                }
             }
 
-            auto partner = std::make_shared<entity>("npc_succubus", "Morrigan");
-            partner->genderArchetype = GenderArchetype::FEMALE;
-            partner->stats.setBaseStat("arousal", 45.0f);
-            partner->stats.setBaseStat("stamina", 90.0f);
-            partner->addTrait("Cruel");
-            partner->addTrait("Lewd");
-            partner->setFetishDesire("Oral", 2);
-
-            auto skirt = std::make_shared<item>();
-            skirt->id = "morrigan_skirt";
-            skirt->name = "Leather Skirt";
-            skirt->targetSlot = equipSlot::LEGS_OUTER;
-            skirt->isEquippable = true;
-            skirt->supportedDisplacements[DisplacementMode::PULL_DOWN] = { bodySlot::GROIN, bodySlot::ASS, bodySlot::LEGS };
-            skirt->supportedDisplacements[DisplacementMode::PULL_ASIDE] = { bodySlot::GROIN };
-            skirt->supportedDisplacements[DisplacementMode::LIFT_UP] = { bodySlot::GROIN, bodySlot::ASS };
-            partner->inventory.addItem(skirt);
-            partner->inventory.equipItem(0, equipSlot::LEGS_OUTER);
-
-            auto blouse = std::make_shared<item>();
-            blouse->id = "morrigan_blouse";
-            blouse->name = "Silk Blouse";
-            blouse->targetSlot = equipSlot::TORSO_OVER;
-            blouse->isEquippable = true;
-            blouse->supportedDisplacements[DisplacementMode::UNBUTTON] = { bodySlot::TORSO, bodySlot::BREASTS };
-            blouse->supportedDisplacements[DisplacementMode::OPEN] = { bodySlot::TORSO, bodySlot::BREASTS };
-            partner->inventory.addItem(blouse);
-            partner->inventory.equipItem(1, equipSlot::TORSO_OVER);
+            auto partner = std::make_shared<entity>();
+            if (mocks.contains("sexTestPartner"))
+            {
+                partner->fromJson(mocks["sexTestPartner"]);
+            }
+            else
+            {
+                partner = std::make_shared<entity>("npc_succubus", "Morrigan");
+            }
 
             auto sState = std::make_unique<sexState>(partner, SexStance::MISSIONARY, 30.0f);
             auto* rawS = sState.get();
@@ -692,6 +569,7 @@ int main(int argc, char* argv[])
         }
         else if (screenshotState.starts_with("encounter_resolution"))
         {
+            auto mocks = getScreenshotMocks();
             if (!engine.getPlayer())
             {
                 auto p = std::make_shared<entity>("hero_player", "Aria Vesper");
@@ -701,11 +579,25 @@ int main(int argc, char* argv[])
                 engine.Player = p.get();
             }
 
-            auto enemyA = std::make_shared<entity>("enemy_a", "Goblin Scout");
-            auto enemyB = std::make_shared<entity>("enemy_b", "Goblin Shaman");
-            enemyB->canSelfTransform = true;
+            std::vector<std::shared_ptr<entity>> enemies;
+            if (mocks.contains("encounterResolutionEnemies") && mocks["encounterResolutionEnemies"].is_array())
+            {
+                for (const auto& eJson : mocks["encounterResolutionEnemies"])
+                {
+                    auto enemy = std::make_shared<entity>();
+                    enemy->fromJson(eJson);
+                    enemies.push_back(enemy);
+                }
+            }
+            if (enemies.empty())
+            {
+                auto enemyA = std::make_shared<entity>("enemy_a", "Goblin Scout");
+                auto enemyB = std::make_shared<entity>("enemy_b", "Goblin Shaman");
+                enemyB->canSelfTransform = true;
+                enemies = { enemyA, enemyB };
+            }
 
-            auto resState = std::make_unique<encounterResolutionState>(std::vector<std::shared_ptr<entity>>{ enemyA, enemyB });
+            auto resState = std::make_unique<encounterResolutionState>(enemies);
             engine.changeState(std::move(resState));
         }
 

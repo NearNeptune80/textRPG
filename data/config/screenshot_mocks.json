@@ -1,0 +1,105 @@
+{
+  "version": "1.0",
+  "inventoryTestPlayer": {
+    "id": "hero_player",
+    "name": "Aria Vesper",
+    "genderArchetype": "FEMALE",
+    "stats": {
+      "level": 1,
+      "baseValues": {
+        "health": 100.0,
+        "max_health": 100.0,
+        "mana": 80.0,
+        "max_mana": 80.0,
+        "currency": 5000.0,
+        "arcaneEssence": 20.0
+      }
+    },
+    "backpack": [
+      { "id": "item_potion_health", "count": 3 },
+      { "id": "item_shirt_cotton", "count": 1 },
+      { "id": "item_skirt_pleated", "count": 1 },
+      { "id": "item_dagger_iron", "count": 1 },
+      { "id": "item_high_heels", "count": 1 },
+      { "id": "item_silk_bra", "count": 1 },
+      { "id": "item_iron_key", "count": 1 }
+    ],
+    "equipped": {
+      "TORSO_UNDER": "item_shirt_cotton",
+      "LEGS_OUTER": "item_skirt_pleated"
+    }
+  },
+  "inventoryDroppedItems": [
+    {
+      "id": "item_staff_arcane",
+      "count": 1,
+      "durationMinutes": 120
+    },
+    {
+      "id": "item_potion_mana",
+      "count": 2,
+      "durationMinutes": 120
+    }
+  ],
+  "enchantingTestPlayer": {
+    "id": "hero_player",
+    "name": "Aria Vesper",
+    "genderArchetype": "FEMALE",
+    "stats": {
+      "level": 1,
+      "baseValues": {
+        "health": 100.0,
+        "max_health": 100.0,
+        "mana": 80.0,
+        "max_mana": 80.0,
+        "currency": 500.0,
+        "arcaneEssence": 40.0
+      }
+    },
+    "backpack": [
+      { "id": "item_plain_elixir", "count": 1 },
+      { "id": "item_dagger_iron", "count": 1 },
+      { "id": "item_leather_choker", "count": 1 },
+      { "id": "item_canis_root", "count": 1 }
+    ]
+  },
+  "sexTestPlayerShirt": "player_top",
+  "sexTestPartner": {
+    "id": "npc_succubus",
+    "name": "Morrigan",
+    "genderArchetype": "FEMALE",
+    "stats": {
+      "level": 1,
+      "baseValues": {
+        "arousal": 45.0,
+        "stamina": 90.0
+      }
+    },
+    "personalityTraits": [
+      "Cruel",
+      "Lewd"
+    ],
+    "fetishDesires": {
+      "Oral": 2
+    },
+    "backpack": [
+      { "id": "morrigan_skirt", "count": 1 },
+      { "id": "morrigan_blouse", "count": 1 }
+    ],
+    "equipped": {
+      "LEGS_OUTER": "morrigan_skirt",
+      "TORSO_OVER": "morrigan_blouse"
+    }
+  },
+  "encounterResolutionEnemies": [
+    {
+      "id": "enemy_a",
+      "name": "Goblin Scout"
+    },
+    {
+      "id": "enemy_b",
+      "name": "Goblin Shaman",
+      "canSelfTransform": true
+    }
+  ]
+}

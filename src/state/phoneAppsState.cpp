@@ -9,16 +9,29 @@ phoneAppsState::phoneAppsState(PhoneAppMode mode)
     : m_mode(mode)
 {
     loadData(m_mode);
-    static const std::vector<std::string> defaultFetishes = {
-        "Anal", "Buttslut", "Vaginal", "Pussy slut",
-        "Oral", "Oral performer", "Breasts lover", "Breasts",
-        "Milk lover", "Lactation", "Foot worship", "Feet",
-        "Dominance", "Submission", "BDSM / Sadism", "Masochism",
-        "Bondage", "Exhibitionism", "Voyeurism", "Insemination",
-        "Pregnancy", "Transformations", "Watersports", "Spitting",
-        "Tentacles", "Size Difference", "Crossdressing", "Denial & Edging"
-    };
-    for (const auto& fKey : defaultFetishes)
+    std::vector<std::string> fetishes;
+    std::ifstream file("data/catalogs/fetishes.json");
+    if (file.is_open())
+    {
+        try
+        {
+            nlohmann::json j;
+            file >> j;
+            if (j.contains("fetishes") && j["fetishes"].is_array())
+            {
+                for (const auto& item : j["fetishes"])
+                {
+                    if (item.contains("name"))
+                    {
+                        fetishes.push_back(item["name"].get<std::string>());
+                    }
+                }
+            }
+        }
+        catch (...) {}
+    }
+
+    for (const auto& fKey : fetishes)
     {
         if (m_fetishDesires.find(fKey) == m_fetishDesires.end())
         {
