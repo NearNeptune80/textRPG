@@ -14,4 +14,7 @@ public:
 
 	void onEnter(game* gameContext) override;
 	void onExit(game* gameContext) override;
+
+private:
+	float m_secondAccumulator = 0.0f;
 };

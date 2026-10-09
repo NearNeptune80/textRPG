@@ -64,7 +64,11 @@ SaveMetaData saveManager::readMetadata(const std::string& filePath)
     SaveMetaData meta;
     meta.fileName = fs::path(filePath).filename().string();
     std::ifstream file(filePath);
-    if (!file.is_open()) return meta;
+    if (!file.is_open())
+    {
+        meta.saveVersion = 0;
+        return meta;
+    }
 
     try
     {
@@ -85,7 +89,18 @@ SaveMetaData saveManager::readMetadata(const std::string& filePath)
             meta.isAutosave = m.value("isAutosave", false);
         }
     }
-    catch (...) {}
+    catch (const std::exception& e)
+    {
+        std::cerr << "[SaveManager] Error reading metadata from " << filePath << ": " << e.what() << "\n";
+        meta.saveVersion = 0;
+        return meta;
+    }
+    catch (...)
+    {
+        std::cerr << "[SaveManager] Unknown error reading metadata from " << filePath << "\n";
+        meta.saveVersion = 0;
+        return meta;
+    }
 
     if (!ec)
     {
@@ -209,10 +224,20 @@ bool saveManager::writeAtomicJson(const std::string& targetPath, const json& pay
     std::string tmpPath = targetPath + ".tmp";
     std::error_code ec;
 
+    try
     {
         std::ofstream file(tmpPath);
-        if (!file.is_open()) return false;
+        if (!file.is_open())
+        {
+            std::cerr << "[SaveManager] Failed to create temp save file: " << tmpPath << "\n";
+            return false;
+        }
         file << payload.dump(4);
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << "[SaveManager] Serialization error writing to " << tmpPath << ": " << e.what() << "\n";
+        return false;
     }
 
     fs::rename(tmpPath, targetPath, ec);
@@ -220,6 +245,11 @@ bool saveManager::writeAtomicJson(const std::string& targetPath, const json& pay
     {
         fs::copy_file(tmpPath, targetPath, fs::copy_options::overwrite_existing, ec);
         fs::remove(tmpPath, ec);
+        if (ec)
+        {
+            std::cerr << "[SaveManager] Failed to finalize save file " << targetPath << ": " << ec.message() << "\n";
+            return false;
+        }
     }
 
     return !ec;

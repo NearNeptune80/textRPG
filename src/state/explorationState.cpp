@@ -27,7 +27,32 @@ void explorationState::onEnter(game* gameContext)
 
 void explorationState::onExit(game* gameContext) {}
 
-void explorationState::update(game* gameContext, float deltaTime) {}
+void explorationState::update(game* gameContext, float deltaTime)
+{
+    if (!gameContext) return;
+
+    if (gameContext->hasPendingTransformationInterrupt())
+    {
+        gameContext->triggerNextPendingTransformationInterrupt();
+        return;
+    }
+
+    if (deltaTime > 0.0f)
+    {
+        m_secondAccumulator += deltaTime;
+        while (m_secondAccumulator >= 60.0f)
+        {
+            m_secondAccumulator -= 60.0f;
+            gameContext->gameTime.advanceTime(1);
+
+            if (gameContext->hasPendingTransformationInterrupt())
+            {
+                gameContext->triggerNextPendingTransformationInterrupt();
+                return;
+            }
+        }
+    }
+}
 
 void explorationState::handleCommand(game* gameContext, const UICommand& cmd)
 {

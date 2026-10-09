@@ -317,6 +317,15 @@ void combatEngine::resolveTurn(game* g)
         if (isCombatOver()) break;
     }
 
+    for (auto& p : m_playerParty)
+    {
+        if (p.character) p.character->updateStatusEffectsOnTurn();
+    }
+    for (auto& p : m_enemyParty)
+    {
+        if (p.character) p.character->updateStatusEffectsOnTurn();
+    }
+
     if (!isCombatOver())
     {
         startNewRound();

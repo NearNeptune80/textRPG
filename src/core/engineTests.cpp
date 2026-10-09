@@ -38,6 +38,7 @@
 #include "state/combatState.h"
 #include "state/encounterResolutionState.h"
 #include "state/sexState.h"
+#include "map/encounterResolver.h"
 #include "ui/layoutEngine.h"
 #include "core/contentFilterManager.h"
 #include "ui/widgets/entityListWidgets.h"
@@ -5412,6 +5413,85 @@ namespace EngineTests
         return allPassed;
     }
 
+    bool testCoreSimulationAndWiring()
+    {
+        std::cout << "\n--- Running Test 45: Core Simulation & Wiring Integrity ---\n";
+        bool allPassed = true;
+
+        // 1. Exploration Update Loop
+        game g;
+        g.init();
+        g.changeState(std::make_unique<explorationState>());
+        int initialMinute = g.gameTime.minute;
+        g.update(65.0f);
+        bool minuteAdvanced = (g.gameTime.minute == (initialMinute + 1) % 60);
+        logResult("explorationState::update accumulates deltaTime and ticks gameTime after 60 continuous seconds", minuteAdvanced);
+        allPassed &= minuteAdvanced;
+
+        g.queueTransformationInterrupt("HAIR_GROW");
+        g.update(0.1f);
+        bool interruptTriggered = (dynamic_cast<explorationState*>(g.getActiveState()) == nullptr);
+        logResult("explorationState::update triggers pending transformation interrupts immediately", interruptTriggered);
+        allPassed &= interruptTriggered;
+
+        // 2. Save Error Resilience
+        SaveMetaData missingMeta = saveManager::readMetadata("invalid/path/that/does/not/exist.json");
+        bool saveResilienceOk = (missingMeta.saveVersion == 0);
+        logResult("saveManager::readMetadata handles missing/corrupt save files gracefully with zero exit version", saveResilienceOk);
+        allPassed &= saveResilienceOk;
+
+        // 3. Turn-Based Status Effect Decay
+        auto combatant = std::make_shared<entity>("combatant_test", "Tester");
+        combatant->stats.setBaseStat("health", 100.0f);
+        combatant->stats.setBaseStat("stamina", 100.0f);
+        combatant->stats.setBaseStat("agility", 15.0f);
+        StatusEffect turnBuff("buff_test", "Turn Buff", "+10 Power", 2, false, 0, 0, "BUF");
+        combatant->addStatusEffect(turnBuff);
+
+        combatant->updateStatusEffectsOnTurn();
+        int turnsAfter1 = combatant->statusEffects[0].durationTurns;
+        combatant->updateStatusEffectsOnTurn();
+        bool buffExpired = !combatant->hasStatusEffect("buff_test");
+        bool turnDecayOk = (turnsAfter1 == 1 && buffExpired);
+        logResult("entity::updateStatusEffectsOnTurn properly decrements turn-based durations and prunes expired effects", turnDecayOk);
+        allPassed &= turnDecayOk;
+
+        // 4. Ambush Encounter Resolver
+        bool zeroDangerNeverAmbush = !encounterResolver::shouldTriggerEncounter(0, TimePhase::DAY, 0.0f);
+        logResult("encounterResolver::shouldTriggerEncounter validates zero danger invariant strictly", zeroDangerNeverAmbush);
+        allPassed &= zeroDangerNeverAmbush;
+
+        // 5. Persistent Time Passage for companions and persistent map NPCs
+        game gTime;
+        gTime.init();
+        gTime.loadMap("overworld", 1, 1);
+        auto companion = std::make_shared<entity>("comp_pregnant", "Companion");
+        companion->gestation.isPregnant = true;
+        companion->gestation.gestationDaysRemaining = 10;
+        gTime.addCompanion(companion);
+
+        if (gTime.map)
+        {
+            auto& tile = gTime.map->getRuntimeData(1, 1);
+            tile.persistentNPC = std::make_shared<entity>("persistent_npc", "Local Villager");
+            tile.persistentNPC->gestation.isPregnant = true;
+            tile.persistentNPC->gestation.gestationDaysRemaining = 15;
+
+            int initialCompanionDays = companion->gestation.gestationDaysRemaining;
+            int initialNPCDays = tile.persistentNPC->gestation.gestationDaysRemaining;
+
+            gTime.gameTime.advanceTime(1440);
+
+            bool companionAdvanced = (companion->gestation.gestationDaysRemaining < initialCompanionDays);
+            bool npcAdvanced = (tile.persistentNPC->gestation.gestationDaysRemaining < initialNPCDays);
+            bool persistentBiologyOk = (companionAdvanced && npcAdvanced);
+            logResult("gameEvent::timeAdvanced pipeline updates biological gestation across both companions and persistent map NPCs", persistentBiologyOk);
+            allPassed &= persistentBiologyOk;
+        }
+
+        return allPassed;
+    }
+
     bool runAllTests()
     {
         g_passCount = 0;
@@ -5464,6 +5544,7 @@ namespace EngineTests
         bool t42 = testCategoryTabsAndAdaptiveSexEncounters();
         bool t43 = testUnitFormatterAndRefinedSettings();
         bool t44 = testUnifiedFetishesAndCombatResolutionSex();
+        bool t45 = testCoreSimulationAndWiring();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";

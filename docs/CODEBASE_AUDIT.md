@@ -16,8 +16,8 @@ This audit inspects all C++ header (`.h`) and source (`.cpp`) files across the c
 
 ### 1.1 Core Engine (16 items)
 
-- [ ] `src/state/explorationState.cpp:30`: `explorationState::update(game*, float)` — Empty method body `{}`. World simulation, tile passage, and continuous timers are never ticked during exploration. `[Missing Logic]`
-- [ ] `src/save/saveManager.cpp:88`: `catch (...) {}` — Empty exception block swallows save game serialization errors silently. `[Missing Logic]`
+- [x] `src/state/explorationState.cpp:30`: `explorationState::update(game*, float)` — Empty method body `{}`. World simulation, tile passage, and continuous timers are never ticked during exploration. `[Missing Logic]`
+- [x] `src/save/saveManager.cpp:88`: `catch (...) {}` — Empty exception block swallows save game serialization errors silently. `[Missing Logic]`
 - [ ] `src/core/game.cpp:152-154`: Hardcoded mock initialization log entries (`"[ZONE] Sanctuary Manor F1"`, `"[QUEST] Sanctuary Research"`, `"[INFO] Systems active"`). `[Hardcoded Mock Data]`
 - [ ] `src/state/characterCreationState.cpp:928-939`: Hardcoded starter quest IDs and starting stages (`"root_delivery"`, `"cottage_investigation"`, `"patrol_duty"`). `[Hardcoded Mock Data]`
 - [ ] `src/state/characterCreationState.cpp:941-945`: Hardcoded spawn map (`"overworld"`, 1, 1) and calendar time (month, day 29, 21:47). `[Hardcoded Mock Data]`
@@ -29,9 +29,9 @@ This audit inspects all C++ header (`.h`) and source (`.cpp`) files across the c
 - [ ] `src/entities/npcGenerator.cpp:145-250`: Procedural anatomical body part IDs, names, fluid baselines, and orifice capacities hardcoded directly in C++. `[Hardcoded Mock Data]`
 - [ ] `src/save/saveManager.cpp:445-520`: `grantStarterTestKit()` hardcodes item deliveries, counts, and manually instantiates mock items (`item_infused_predator`, `item_infused_primal`) in C++. `[Hardcoded Mock Data]`
 - [ ] `src/main.cpp:240-350, 520-565, 620-660`: Hundreds of lines of hardcoded mock entities, stats, inventory items, and scene setups embedded in the game executable's CLI entry point. `[Hardcoded Mock Data]`
-- [ ] `src/entities/entity.cpp:59`: `entity::updateStatusEffectsOnTurn()` decrements turn-based durations and prunes expired status effects, but is never called anywhere in the codebase. `[Unwired State]`
-- [ ] `src/map/encounterResolver.cpp:11`: `encounterResolver::shouldTriggerEncounter(dangerLevel, phase, playerStealth)` calculates ambush chance based on time of day and player stealth, but is never invoked; `game.cpp:movePlayer` bypasses it completely. `[Unwired State]`
-- [ ] `src/core/game.cpp:312-335`: Time passage listener (`gameEvent::timeAdvanced`) only processes gestation for `Player` and `activeTargetNPC`; party companions and persistent map NPCs never have their pregnancy/gestation updated. `[Unwired State]`
+- [x] `src/entities/entity.cpp:59`: `entity::updateStatusEffectsOnTurn()` decrements turn-based durations and prunes expired status effects, but is never called anywhere in the codebase. `[Unwired State]`
+- [x] `src/map/encounterResolver.cpp:11`: `encounterResolver::shouldTriggerEncounter(dangerLevel, phase, playerStealth)` calculates ambush chance based on time of day and player stealth, but is never invoked; `game.cpp:movePlayer` bypasses it completely. `[Unwired State]`
+- [x] `src/core/game.cpp:312-335`: Time passage listener (`gameEvent::timeAdvanced`) only processes gestation for `Player` and `activeTargetNPC`; party companions and persistent map NPCs never have their pregnancy/gestation updated. `[Unwired State]`
 
 ### 1.2 Combat (11 items)
 

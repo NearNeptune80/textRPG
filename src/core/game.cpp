@@ -291,10 +291,6 @@ void game::init()
             }
 
             this->Player->updateStatusEffectsOnTime(mins);
-            for (auto& comp : this->partyCompanions)
-            {
-                if (comp) comp->updateStatusEffectsOnTime(mins);
-            }
 
             if (this->Player->gestation.isPregnant)
             {
@@ -311,14 +307,82 @@ void game::init()
             }
         }
 
-        if (this->activeTargetNPC)
+        std::unordered_set<entity*> processedEntities;
+        if (this->Player) processedEntities.insert(this->Player);
+
+        for (auto& comp : this->partyCompanions)
         {
+            if (!comp || processedEntities.contains(comp.get())) continue;
+            processedEntities.insert(comp.get());
+
+            comp->anatomy.processMutations(mins);
+            comp->anatomy.processBiologicalRecovery(mins);
+            comp->updateStatusEffectsOnTime(mins);
+            if (comp->gestation.isPregnant)
+            {
+                bool readyToGiveBirth = comp->gestation.processGestationMinutes(mins);
+                if (readyToGiveBirth || comp->gestation.gestationDaysRemaining <= 0)
+                {
+                    auto offspring = comp->gestation.giveBirth(comp->id);
+                    if (!offspring.empty())
+                    {
+                        std::cout << "[Biological Pipeline] Companion " << comp->name
+                                  << " has given birth to " << offspring.size() << " offspring!\n";
+                    }
+                }
+            }
+        }
+
+        if (this->activeTargetNPC && !processedEntities.contains(this->activeTargetNPC.get()))
+        {
+            processedEntities.insert(this->activeTargetNPC.get());
             this->activeTargetNPC->anatomy.processMutations(mins);
             this->activeTargetNPC->anatomy.processBiologicalRecovery(mins);
             this->activeTargetNPC->updateStatusEffectsOnTime(mins);
             if (this->activeTargetNPC->gestation.isPregnant)
             {
-                this->activeTargetNPC->gestation.processGestationMinutes(mins);
+                bool readyToGiveBirth = this->activeTargetNPC->gestation.processGestationMinutes(mins);
+                if (readyToGiveBirth || this->activeTargetNPC->gestation.gestationDaysRemaining <= 0)
+                {
+                    auto offspring = this->activeTargetNPC->gestation.giveBirth(this->activeTargetNPC->id);
+                    if (!offspring.empty())
+                    {
+                        std::cout << "[Biological Pipeline] " << this->activeTargetNPC->name
+                                  << " has given birth to " << offspring.size() << " offspring!\n";
+                    }
+                }
+            }
+        }
+
+        if (this->map)
+        {
+            for (int y = 0; y < this->map->getHeight(); ++y)
+            {
+                for (int x = 0; x < this->map->getWidth(); ++x)
+                {
+                    auto& tileData = this->map->getRuntimeData(x, y);
+                    if (tileData.persistentNPC && !processedEntities.contains(tileData.persistentNPC.get()))
+                    {
+                        processedEntities.insert(tileData.persistentNPC.get());
+                        auto& npc = tileData.persistentNPC;
+                        npc->anatomy.processMutations(mins);
+                        npc->anatomy.processBiologicalRecovery(mins);
+                        npc->updateStatusEffectsOnTime(mins);
+                        if (npc->gestation.isPregnant)
+                        {
+                            bool readyToGiveBirth = npc->gestation.processGestationMinutes(mins);
+                            if (readyToGiveBirth || npc->gestation.gestationDaysRemaining <= 0)
+                            {
+                                auto offspring = npc->gestation.giveBirth(npc->id);
+                                if (!offspring.empty())
+                                {
+                                    std::cout << "[Biological Pipeline] " << npc->name
+                                              << " has given birth to " << offspring.size() << " offspring!\n";
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -496,13 +560,7 @@ void game::movePlayer(int nextX, int nextY)
         bool isRestocking = tileData.ambushState.isDefeated && tileData.ambushState.restockMinutesRemaining > 0;
         if (!isRestocking && !tileData.ambushState.isPermanentlyRemoved)
         {
-            int chance = tileData.ambushState.ambushChance > 0 ? tileData.ambushState.ambushChance : (dangerLevel * 25);
-            if (gameTime.getPhase() == TimePhase::NIGHT) chance += 15;
-            else if (gameTime.getPhase() == TimePhase::DUSK) chance += 5;
-            chance -= static_cast<int>(playerStealth * 0.5f);
-            chance = std::clamp(chance, 5, 85);
-
-            if (dice::rollPercent(static_cast<float>(chance)))
+            if (encounterResolver::shouldTriggerEncounter(dangerLevel, gameTime.getPhase(), playerStealth))
             {
                 ensureTileAmbushNPC(tileData);
                 triggerEncounter(tileData.ambushState.npc);
@@ -1982,13 +2040,7 @@ void game::exploreTile()
     int dangerLevel = tileData.getEffectiveDangerLevel() + bonusDanger;
     float playerStealth = Player ? Player->getStat("agility") : 0.0f;
 
-    int chance = tileData.ambushState.ambushChance > 0 ? tileData.ambushState.ambushChance : (dangerLevel * 25);
-    if (gameTime.getPhase() == TimePhase::NIGHT) chance += 15;
-    else if (gameTime.getPhase() == TimePhase::DUSK) chance += 5;
-    chance -= static_cast<int>(playerStealth * 0.5f);
-    chance = std::clamp(chance, 5, 85);
-
-    if (dice::rollPercent(static_cast<float>(chance)))
+    if (encounterResolver::shouldTriggerEncounter(dangerLevel, gameTime.getPhase(), playerStealth))
     {
         ensureTileAmbushNPC(tileData);
         if (tileData.ambushState.npc)
