@@ -419,6 +419,29 @@
       "category": "CONSUMABLE"
     },
     {
+      "id": "item_health_potion",
+      "name": "Health Potion",
+      "description": "A vibrant crimson vial of soothing alchemical medicine. Restores 50 health upon consumption.",
+      "tooltip": "Consumable medicine. Restores 50 HP.",
+      "baseValue": 35,
+      "isConsumable": true,
+      "isEquippable": false,
+      "isStackable": true,
+      "count": 1,
+      "targetSlot": "NONE",
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "health",
+          "flatValue": 50.0,
+          "percentValue": 0.0
+        }
+      ],
+      "supportedDisplacements": {},
+      "category": "CONSUMABLE"
+    },
+    {
       "id": "item_potion_mana",
       "name": "Mana Potion",
       "description": "A glowing azure potion humming with concentrated arcane energy. Restores 40 mana upon consumption.",

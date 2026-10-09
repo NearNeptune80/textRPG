@@ -35,5 +35,6 @@ namespace EngineTests
     bool testCategoryTabsAndAdaptiveSexEncounters();
     bool testUnitFormatterAndRefinedSettings();
     bool testUnifiedFetishesAndCombatResolutionSex();
+    bool testCombatDataMigrationAndStatusEvaluation();
 }
 

@@ -1,0 +1,56 @@
+{
+  "scenes": [
+    {
+      "id": "scene_combat_defeat_erotic",
+      "speakerName": "{speaker}",
+      "bodyText": "With your strength exhausted, you collapse to the ground. {speaker} ({archetype}, {race}) stands over your helpless body with a hungry, aroused glare. Rather than finishing you off, they claim their erotic prize (and take {currency}¤) before leaving you thoroughly spent.",
+      "contentTags": ["erotic", "defeat"],
+      "choices": [
+        {
+          "label": "Recover and Continue",
+          "tooltip": "Pull yourself together and pick up where you left off.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "scene_combat_seduction",
+      "speakerName": "{speaker}",
+      "bodyText": "With your strength exhausted, you collapse to the ground. {speaker} ({archetype}, {race}) stands over your helpless body with a hungry, aroused glare. Rather than finishing you off, they claim their erotic prize (and take {currency}¤) before leaving you thoroughly spent.",
+      "contentTags": ["erotic", "defeat"],
+      "choices": [
+        {
+          "label": "Recover and Continue",
+          "tooltip": "Pull yourself together and pick up where you left off.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "scene_combat_defeat_standard",
+      "speakerName": "{speaker}",
+      "bodyText": "You were defeated in combat! Your opponent looted {currency}¤ from your purse before departing.",
+      "contentTags": ["defeat"],
+      "choices": [
+        {
+          "label": "Continue",
+          "tooltip": "Tend to your wounds and continue onwards.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "scene_combat_defeat",
+      "speakerName": "{speaker}",
+      "bodyText": "You were defeated in combat! Your opponent looted {currency}¤ from your purse before departing.",
+      "contentTags": ["defeat"],
+      "choices": [
+        {
+          "label": "Continue",
+          "tooltip": "Tend to your wounds and continue onwards.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    }
+  ]
+}

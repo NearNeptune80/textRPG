@@ -1,0 +1,210 @@
+{
+  "version": "1.0",
+  "actions": [
+    {
+      "id": "action_guard",
+      "name": "Guard Stance",
+      "description": "Brace for impact, absorbing incoming damage with stamina.",
+      "staminaCost": 15.0,
+      "isGuarding": true
+    },
+    {
+      "id": "action_dodge",
+      "name": "Evasive Dodge",
+      "description": "Prepare to dodge incoming attacks, increasing evasion.",
+      "staminaCost": 20.0,
+      "isDodging": true
+    },
+    {
+      "id": "action_parry",
+      "name": "Counter Parry",
+      "description": "Ready weapon to deflect and counter enemy attacks.",
+      "staminaCost": 25.0,
+      "isParrying": true
+    },
+    {
+      "id": "action_seduce_tease",
+      "name": "Tease",
+      "description": "Taunt and tease the foe, stoking their arousal.",
+      "staminaCost": 10.0,
+      "lustDamage": 15.0
+    },
+    {
+      "id": "action_seduce_flirt",
+      "name": "Flirtatious Whisper",
+      "description": "Whisper alluring words to bewilder and enchant the enemy.",
+      "staminaCost": 15.0,
+      "lustDamage": 25.0
+    },
+    {
+      "id": "action_seduce_expose",
+      "name": "Sensual Exposure",
+      "description": "Reveal sensuous skin to overwhelm the opponent's resolve.",
+      "staminaCost": 20.0,
+      "lustDamage": 35.0
+    },
+    {
+      "id": "action_basic_strike",
+      "name": "Strike",
+      "description": "A basic physical strike against the enemy.",
+      "staminaCost": 20.0,
+      "damageMultiplier": 1.0,
+      "damageType": "physical",
+      "effectNodes": [
+        {
+          "effectType": "DAMAGE",
+          "element": "physical",
+          "baseMagnitude": 10.0,
+          "scalingFactor": 1.0
+        }
+      ]
+    },
+    {
+      "id": "action_strike",
+      "name": "Strike",
+      "description": "A swift, disciplined physical strike.",
+      "staminaCost": 15.0,
+      "damageMultiplier": 1.0,
+      "damageType": "physical",
+      "effectNodes": [
+        {
+          "effectType": "DAMAGE",
+          "element": "physical",
+          "baseMagnitude": 8.0,
+          "scalingFactor": 0.8
+        }
+      ]
+    },
+    {
+      "id": "action_heavy_strike",
+      "name": "Heavy Strike",
+      "description": "A crushing physical strike delivering devastating impact.",
+      "staminaCost": 35.0,
+      "damageMultiplier": 1.0,
+      "damageType": "physical",
+      "effectNodes": [
+        {
+          "effectType": "DAMAGE",
+          "element": "physical",
+          "baseMagnitude": 18.0,
+          "scalingFactor": 1.8
+        }
+      ]
+    },
+    {
+      "id": "action_disarm",
+      "name": "Disarm",
+      "description": "A precise strike targeting the opponent's weapon.",
+      "staminaCost": 30.0,
+      "damageMultiplier": 1.0,
+      "damageType": "physical",
+      "effectNodes": [
+        {
+          "effectType": "DAMAGE",
+          "element": "physical",
+          "baseMagnitude": 14.0,
+          "scalingFactor": 1.0
+        }
+      ]
+    },
+    {
+      "id": "action_companion_attack",
+      "name": "Familiar Strike",
+      "description": "Direct your companion to unleash a focused elemental strike.",
+      "staminaCost": 15.0,
+      "damageMultiplier": 1.0,
+      "effectNodes": [
+        {
+          "effectType": "DAMAGE",
+          "element": "air",
+          "baseMagnitude": 30.0,
+          "scalingFactor": 1.0
+        }
+      ]
+    },
+    {
+      "id": "companion_strike_fire",
+      "name": "Flame Burst",
+      "description": "Companion hurls a burst of flame at the target.",
+      "staminaCost": 15.0,
+      "damageMultiplier": 1.0,
+      "effectNodes": [
+        {
+          "effectType": "DAMAGE",
+          "element": "fire",
+          "baseMagnitude": 12.0,
+          "scalingFactor": 1.0
+        }
+      ]
+    },
+    {
+      "id": "companion_strike_water",
+      "name": "Aqua Splash",
+      "description": "Companion unleashes a pressurized jet of water.",
+      "staminaCost": 15.0,
+      "damageMultiplier": 1.0,
+      "effectNodes": [
+        {
+          "effectType": "DAMAGE",
+          "element": "water",
+          "baseMagnitude": 12.0,
+          "scalingFactor": 1.0
+        }
+      ]
+    },
+    {
+      "id": "companion_strike_earth",
+      "name": "Rock Toss",
+      "description": "Companion hurls jagged stones at the enemy.",
+      "staminaCost": 15.0,
+      "damageMultiplier": 1.0,
+      "effectNodes": [
+        {
+          "effectType": "DAMAGE",
+          "element": "earth",
+          "baseMagnitude": 12.0,
+          "scalingFactor": 1.0
+        }
+      ]
+    },
+    {
+      "id": "companion_strike_air",
+      "name": "Gale Gust",
+      "description": "Companion blasts the target with cutting wind currents.",
+      "staminaCost": 15.0,
+      "damageMultiplier": 1.0,
+      "effectNodes": [
+        {
+          "effectType": "DAMAGE",
+          "element": "air",
+          "baseMagnitude": 12.0,
+          "scalingFactor": 1.0
+        }
+      ]
+    },
+    {
+      "id": "item_potion",
+      "name": "Health Potion",
+      "description": "Consume a health potion to restore 50 vitality.",
+      "staminaCost": 0.0,
+      "effectNodes": [
+        {
+          "effectType": "HEAL",
+          "baseMagnitude": 50.0
+        }
+      ]
+    },
+    {
+      "id": "item_mana",
+      "name": "Mana Crystal",
+      "description": "Crush a mana crystal to recover 50 mana.",
+      "staminaCost": 0.0,
+      "effectNodes": [
+        {
+          "effectType": "MANA_RESTORE",
+          "baseMagnitude": 50.0
+        }
+      ]
+    }
+  ]
+}

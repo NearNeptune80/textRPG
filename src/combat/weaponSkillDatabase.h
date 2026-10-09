@@ -20,6 +20,7 @@ struct WeaponSkill
     bool isAoe = false;
     std::string statusEffect = "";
     std::string description;
+    float baseMagnitude = 25.0f;
 
     CombatAction toCombatAction(const std::string& weaponElement = "physical") const;
 };

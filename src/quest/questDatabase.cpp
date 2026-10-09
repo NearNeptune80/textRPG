@@ -244,6 +244,12 @@ bool questDatabase::loadDatabase(const std::string& pathStr)
         appendDirectory("data/transformations");
     }
 
+    fs::path scenesPath("data/scenes");
+    if (fs::exists(scenesPath) && scenesPath != p)
+    {
+        appendDirectory("data/scenes");
+    }
+
     return true;
 }
 

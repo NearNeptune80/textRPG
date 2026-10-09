@@ -7,6 +7,7 @@
       "staminaCost": 20,
       "damageType": "slashing",
       "damageMult": 1.0,
+      "baseMagnitude": 25.0,
       "statusEffect": "",
       "description": "A swift, disciplined blade slash dealing clean physical damage."
     },
@@ -16,6 +17,7 @@
       "staminaCost": 20,
       "damageType": "piercing",
       "damageMult": 0.95,
+      "baseMagnitude": 22.0,
       "critBonus": 0.25,
       "armorBypass": 0.30,
       "statusEffect": "",
@@ -27,6 +29,7 @@
       "staminaCost": 45,
       "damageType": "slashing",
       "damageMult": 2.1,
+      "baseMagnitude": 35.0,
       "staggerBonus": 30.0,
       "statusEffect": "",
       "description": "A crushing, two-handed overhead chop delivering devastating impact."
@@ -37,6 +40,7 @@
       "staminaCost": 25,
       "damageType": "bludgeoning",
       "damageMult": 0.7,
+      "baseMagnitude": 18.0,
       "statusEffect": "stun",
       "description": "A sharp strike using the heavy pommel, dazing and stunning the foe."
     },
@@ -46,6 +50,7 @@
       "staminaCost": 25,
       "damageType": "piercing",
       "damageMult": 1.25,
+      "baseMagnitude": 20.0,
       "statusEffect": "bleed",
       "description": "A rapid succession of lacerating cuts that inflicts bleeding."
     },
@@ -55,6 +60,7 @@
       "staminaCost": 35,
       "damageType": "bludgeoning",
       "damageMult": 1.45,
+      "baseMagnitude": 30.0,
       "armorShred": 0.40,
       "description": "A brutal blunt impact that fractures bone and shatters heavy armor."
     },
@@ -64,6 +70,7 @@
       "staminaCost": 35,
       "damageType": "slashing",
       "damageMult": 1.2,
+      "baseMagnitude": 24.0,
       "isAoe": true,
       "description": "A wide horizontal swing cleaving through the enemy ranks."
     },
@@ -73,6 +80,7 @@
       "staminaCost": 30,
       "damageType": "piercing",
       "damageMult": 1.15,
+      "baseMagnitude": 26.0,
       "counterGuard": true,
       "description": "Deflects incoming melee strikes and instantly delivers a lethal counter-thrust."
     },
@@ -82,6 +90,7 @@
       "staminaCost": 25,
       "damageType": "bludgeoning",
       "damageMult": 0.85,
+      "baseMagnitude": 16.0,
       "statusEffect": "stun",
       "description": "Slams a reinforced shield into the target's face, staggering their stance."
     }

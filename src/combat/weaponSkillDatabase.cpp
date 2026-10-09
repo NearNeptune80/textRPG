@@ -20,7 +20,7 @@ CombatAction WeaponSkill::toCombatAction(const std::string& weaponElement) const
     SpellEffectNode node;
     node.effectType = "DAMAGE";
     node.element = (weaponElement.empty() || weaponElement == "physical") ? "physical" : weaponElement;
-    node.baseMagnitude = 25.0f;
+    node.baseMagnitude = baseMagnitude;
     act.effectNodes.push_back(node);
 
     return act;
@@ -59,6 +59,7 @@ bool WeaponSkillDatabase::loadFromFile(const std::string& filePath)
                 ws.isAoe = skillJson.value("isAoe", false);
                 ws.statusEffect = skillJson.value("statusEffect", "");
                 ws.description = skillJson.value("description", "");
+                ws.baseMagnitude = skillJson.value("baseMagnitude", 25.0f);
 
                 if (!ws.id.empty())
                 {

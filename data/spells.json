@@ -6,6 +6,7 @@
       "name": "Arcane Dart",
       "school": "Arcane",
       "mpCost": 10,
+      "staminaCost": 10.0,
       "damage": 25.0,
       "description": "Fires a sharp dart of concentrated arcane power at the target, dealing direct damage.",
       "unlocked": true
@@ -15,6 +16,7 @@
       "name": "Fireball",
       "school": "Fire",
       "mpCost": 25,
+      "staminaCost": 15.0,
       "damage": 55.0,
       "description": "Hurls an explosive sphere of demonic flame that incinerates foes.",
       "unlocked": false
@@ -24,7 +26,8 @@
       "name": "Arcane Shield",
       "school": "Arcane",
       "mpCost": 15,
-      "defense": 30.0,
+      "staminaCost": 10.0,
+      "defense": 35.0,
       "description": "Conjures a shimmering protective barrier that absorbs incoming physical and magical attacks.",
       "unlocked": true
     },
@@ -33,6 +36,7 @@
       "name": "Cleanse",
       "school": "Restoration",
       "mpCost": 20,
+      "staminaCost": 10.0,
       "heal": 40.0,
       "description": "Channels pure energy to purge negative debuffs and restore physical health.",
       "unlocked": true
@@ -42,6 +46,8 @@
       "name": "Blink",
       "school": "Translocation",
       "mpCost": 30,
+      "staminaCost": 10.0,
+      "agilityBonus": 15.0,
       "description": "Instantly teleports the caster a short distance across the battlefield or room.",
       "unlocked": false
     },
@@ -50,6 +56,7 @@
       "name": "Summon Sylph",
       "school": "Air",
       "mpCost": 35,
+      "staminaCost": 15.0,
       "isSummon": true,
       "summonType": "air",
       "companionId": "companion_sylph",
@@ -61,6 +68,7 @@
       "name": "Summon Ignis",
       "school": "Fire",
       "mpCost": 40,
+      "staminaCost": 15.0,
       "isSummon": true,
       "summonType": "fire",
       "companionId": "companion_ignis",

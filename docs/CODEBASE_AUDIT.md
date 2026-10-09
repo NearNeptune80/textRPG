@@ -35,17 +35,17 @@ This audit inspects all C++ header (`.h`) and source (`.cpp`) files across the c
 
 ### 1.2 Combat (11 items)
 
-- [ ] `src/combat/weaponSkillDatabase.cpp:23`: `node.baseMagnitude = 25.0f;` — Hardcoded arbitrary literal magnitude for all weapon skill action conversions. `[Missing Logic / Stub]`
-- [ ] `src/combat/combatEngine.cpp:235-246`: Companion attacks hardcoded in C++ (`"companion_strike_" + cElem`, names: `"Flame Burst"`, `"Aqua Splash"`, `"Rock Toss"`, `"Gale Gust"`, stamina cost 15.0f, damage calculation) rather than loaded from JSON. `[Hardcoded Mock Data]`
-- [ ] `src/combat/combatEngine.cpp:267-277`: Enemy basic strike hardcoded in C++ (`"action_basic_strike"`, `"Strike"`, staminaCost 20.0f, physical damage equal to physique) rather than loaded from JSON. `[Hardcoded Mock Data]`
-- [ ] `src/state/combatState.cpp:216-248`: Defensive maneuvers hardcoded in C++ (`"DEFENSE_GUARD"`, `"DEFENSE_DODGE"`, `"DEFENSE_PARRY"`) with hardcoded stamina costs and flags. `[Hardcoded Mock Data]`
-- [ ] `src/state/combatState.cpp:249-270`: Seduction maneuvers hardcoded in C++ (`"SEDUCE_TEASE"`, `"SEDUCE_FLIRT"`, `"SEDUCE_EXPOSE"`) with hardcoded lust damage values (+15, +25, +35). `[Hardcoded Mock Data]`
-- [ ] `src/state/combatState.cpp:271-310`: Companion attack and physical strikes hardcoded in C++ (`"COMPANION_ATTACK"`, `"STRIKE"`, `"HEAVY_STRIKE"`, `"DISARM"`). `[Hardcoded Mock Data]`
-- [ ] `src/state/combatState.cpp:311-380`: Spells and restorative items hardcoded in C++ (`"SPELL_DART"`, `"SPELL_FIREBALL"`, `"SPELL_SHIELD"`, `"SPELL_CLEANSE"`, `"SPELL_BLINK"`, `"ITEM_POTION"`) despite the existence of `data/spells.json`. `[Hardcoded Mock Data]`
-- [ ] `src/state/combatState.cpp:480-530`: Erotic and standard defeat scenes constructed via inline C++ string templates and choices (`"scene_combat_defeat"`, `"Recover and Continue"`). `[Hardcoded Mock Data]`
-- [ ] `src/state/combatState.cpp:555-565`: `handleClearQueue` manually constructs a hardcoded item (`item_health_potion`) via C++ `std::make_shared<item>()` when refunding potion actions. `[Hardcoded Mock Data]`
-- [ ] `src/combat/combatEngine.cpp`: `statusEffects` is never referenced or evaluated during combat damage calculation or turn execution; combatants' status effects are neither triggered nor updated. `[Unwired State]`
-- [ ] `src/combat/combatEngine.cpp`: Turn resolution does not call `entity::updateStatusEffectsOnTurn()`; turn-based buffs and debuffs never decay during combat rounds. `[Unwired State]`
+- [x] `src/combat/weaponSkillDatabase.cpp:23`: `node.baseMagnitude = 25.0f;` — Hardcoded arbitrary literal magnitude for all weapon skill action conversions. `[Missing Logic / Stub]`
+- [x] `src/combat/combatEngine.cpp:235-246`: Companion attacks hardcoded in C++ (`"companion_strike_" + cElem`, names: `"Flame Burst"`, `"Aqua Splash"`, `"Rock Toss"`, `"Gale Gust"`, stamina cost 15.0f, damage calculation) rather than loaded from JSON. `[Hardcoded Mock Data]`
+- [x] `src/combat/combatEngine.cpp:267-277`: Enemy basic strike hardcoded in C++ (`"action_basic_strike"`, `"Strike"`, staminaCost 20.0f, physical damage equal to physique) rather than loaded from JSON. `[Hardcoded Mock Data]`
+- [x] `src/state/combatState.cpp:216-248`: Defensive maneuvers hardcoded in C++ (`"DEFENSE_GUARD"`, `"DEFENSE_DODGE"`, `"DEFENSE_PARRY"`) with hardcoded stamina costs and flags. `[Hardcoded Mock Data]`
+- [x] `src/state/combatState.cpp:249-270`: Seduction maneuvers hardcoded in C++ (`"SEDUCE_TEASE"`, `"SEDUCE_FLIRT"`, `"SEDUCE_EXPOSE"`) with hardcoded lust damage values (+15, +25, +35). `[Hardcoded Mock Data]`
+- [x] `src/state/combatState.cpp:271-310`: Companion attack and physical strikes hardcoded in C++ (`"COMPANION_ATTACK"`, `"STRIKE"`, `"HEAVY_STRIKE"`, `"DISARM"`). `[Hardcoded Mock Data]`
+- [x] `src/state/combatState.cpp:311-380`: Spells and restorative items hardcoded in C++ (`"SPELL_DART"`, `"SPELL_FIREBALL"`, `"SPELL_SHIELD"`, `"SPELL_CLEANSE"`, `"SPELL_BLINK"`, `"ITEM_POTION"`) despite the existence of `data/spells.json`. `[Hardcoded Mock Data]`
+- [x] `src/state/combatState.cpp:480-530`: Erotic and standard defeat scenes constructed via inline C++ string templates and choices (`"scene_combat_defeat"`, `"Recover and Continue"`). `[Hardcoded Mock Data]`
+- [x] `src/state/combatState.cpp:555-565`: `handleClearQueue` manually constructs a hardcoded item (`item_health_potion`) via C++ `std::make_shared<item>()` when refunding potion actions. `[Hardcoded Mock Data]`
+- [x] `src/combat/combatEngine.cpp`: `statusEffects` is never referenced or evaluated during combat damage calculation or turn execution; combatants' status effects are neither triggered nor updated. `[Unwired State]`
+- [x] `src/combat/combatEngine.cpp`: Turn resolution does not call `entity::updateStatusEffectsOnTurn()`; turn-based buffs and debuffs never decay during combat rounds. `[Unwired State]`
 
 ### 1.3 Inventory (10 items)
 

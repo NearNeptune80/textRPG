@@ -35,6 +35,8 @@
 #include "entities/npcGenerator.h"
 #include "entities/perkDatabase.h"
 #include "combat/combatEngine.h"
+#include "combat/combatActionDatabase.h"
+#include "combat/spellDatabase.h"
 #include "state/combatState.h"
 #include "state/encounterResolutionState.h"
 #include "state/sexState.h"
@@ -5536,6 +5538,159 @@ namespace EngineTests
         return allPassed;
     }
 
+    bool testCombatDataMigrationAndStatusEvaluation()
+    {
+        std::cout << "\n--- Running Test 47: Combat Actions, Spells, Weapon Skills & Status Effect Evaluation ---\n";
+        bool allPassed = true;
+
+        // 1. Combat Actions JSON loading
+        bool actionsLoaded = CombatActionDatabase::loadFromFile("data/combat/actions.json");
+        const auto* guardAct = CombatActionDatabase::getAction("action_guard");
+        const auto* teaseAct = CombatActionDatabase::getAction("action_seduce_tease");
+        const auto* compFireAct = CombatActionDatabase::getAction("companion_strike_fire");
+        const auto* basicStrike = CombatActionDatabase::getAction("action_basic_strike");
+        bool actionsValid = actionsLoaded && guardAct && teaseAct && compFireAct && basicStrike &&
+                            guardAct->isGuarding && guardAct->staminaCost == 15.0f &&
+                            teaseAct->lustDamage == 15.0f &&
+                            !compFireAct->effectNodes.empty() && compFireAct->effectNodes[0].element == "fire";
+        logResult("CombatActionDatabase loads maneuvers and elemental companion actions from 'data/combat/actions.json'", actionsValid);
+        allPassed &= actionsValid;
+
+        // 2. Spells JSON loading
+        bool spellsLoaded = SpellDatabase::loadFromFile("data/spells.json");
+        const auto* dartSpell = SpellDatabase::getSpell("arcane_dart");
+        const auto* shieldSpell = SpellDatabase::getSpell("arcane_shield");
+        const auto* cleanseSpell = SpellDatabase::getSpell("cleanse");
+        const auto* blinkSpell = SpellDatabase::getSpell("teleport");
+        bool spellsValid = spellsLoaded && dartSpell && shieldSpell && cleanseSpell && blinkSpell;
+        if (spellsValid)
+        {
+            CombatAction dartAct = dartSpell->toCombatAction();
+            CombatAction shieldAct = shieldSpell->toCombatAction();
+            CombatAction cleanseAct = cleanseSpell->toCombatAction();
+            CombatAction blinkAct = blinkSpell->toCombatAction();
+
+            bool dartOk = (dartAct.manaCost == 10.0f && !dartAct.effectNodes.empty() && dartAct.effectNodes[0].baseMagnitude == 25.0f);
+            bool shieldOk = (shieldAct.manaCost == 15.0f && !shieldAct.effectNodes.empty() && shieldAct.effectNodes[0].effectType == "SHIELD");
+            bool cleanseOk = (cleanseAct.manaCost == 20.0f && !cleanseAct.effectNodes.empty() && cleanseAct.effectNodes[0].effectType == "CLEANSE");
+            bool blinkOk = (blinkAct.manaCost == 30.0f && !blinkAct.effectNodes.empty() && blinkAct.effectNodes[0].effectType == "BUFF");
+            bool spellConversionOk = (dartOk && shieldOk && cleanseOk && blinkOk);
+            logResult("SpellDatabase converts spells from 'data/spells.json' into CombatActions cleanly", spellConversionOk);
+            allPassed &= spellConversionOk;
+        }
+
+        // 3. Weapon skill magnitude from JSON
+        WeaponSkillDatabase::loadFromFile("data/weapon_skills.json");
+        const auto* cleave = WeaponSkillDatabase::getSkill("skill_heavy_cleave");
+        const auto* slash = WeaponSkillDatabase::getSkill("skill_slash");
+        bool weaponSkillMagnitudeOk = (cleave && slash && cleave->baseMagnitude == 35.0f && slash->baseMagnitude == 25.0f &&
+                                       cleave->toCombatAction().effectNodes[0].baseMagnitude == 35.0f &&
+                                       slash->toCombatAction().effectNodes[0].baseMagnitude == 25.0f);
+        logResult("WeaponSkill converts with data-driven baseMagnitude loaded from 'data/weapon_skills.json'", weaponSkillMagnitudeOk);
+        allPassed &= weaponSkillMagnitudeOk;
+
+        // 4. Combat status effects evaluate during damage calculations
+        combatEngine engStatus;
+        auto atkHero = std::make_shared<entity>("atk_hero", "Attacker");
+        atkHero->stats.setBaseStat("physique", 20.0f);
+        atkHero->stats.setBaseStat("health", 100.0f);
+        atkHero->stats.setBaseStat("mana", 100.0f);
+
+        auto defDummy = std::make_shared<entity>("def_dummy", "Defender");
+        defDummy->stats.setBaseStat("health", 200.0f);
+        defDummy->elementalType = "physical";
+
+        engStatus.initialiseCombat({ atkHero }, { defDummy });
+
+        CombatAction testStrike;
+        testStrike.id = "test_strike";
+        testStrike.name = "Test Strike";
+        testStrike.damageMultiplier = 1.0f;
+        SpellEffectNode testNode;
+        testNode.effectType = "DAMAGE";
+        testNode.element = "physical";
+        testNode.baseMagnitude = 20.0f;
+        testStrike.effectNodes.push_back(testNode);
+
+        QueuedAction qTest;
+        qTest.action = testStrike;
+        qTest.user = atkHero.get();
+        qTest.target = defDummy.get();
+
+        // Baseline damage (20 raw * 1.0 = 20)
+        float hp0 = defDummy->getStat("health");
+        engStatus.executeAction(qTest, nullptr);
+        float baseDmg = hp0 - defDummy->getStat("health");
+
+        // Attacker empowered (+25% damage)
+        StatusEffect empowerBuff("fx_empowered", "Empowered", "+25% Damage", 3);
+        atkHero->addStatusEffect(empowerBuff);
+        float hp1 = defDummy->getStat("health");
+        engStatus.executeAction(qTest, nullptr);
+        float empDmg = hp1 - defDummy->getStat("health");
+
+        // Defender vulnerable (+30% damage taken)
+        StatusEffect vulnDebuff("fx_vulnerable", "Vulnerable", "+30% Damage Taken", 3);
+        defDummy->addStatusEffect(vulnDebuff);
+        float hp2 = defDummy->getStat("health");
+        engStatus.executeAction(qTest, nullptr);
+        float empVulnDmg = hp2 - defDummy->getStat("health");
+
+        atkHero->removeStatusEffect("fx_empowered");
+        defDummy->removeStatusEffect("fx_vulnerable");
+
+        // Defender ward (-25% damage taken)
+        StatusEffect wardBuff("fx_ward", "Ward", "-25% Damage Taken", 3);
+        defDummy->addStatusEffect(wardBuff);
+        float hp3 = defDummy->getStat("health");
+        engStatus.executeAction(qTest, nullptr);
+        float wardDmg = hp3 - defDummy->getStat("health");
+
+        bool statusDmgOk = (baseDmg == 20.0f && empDmg == 25.0f && empVulnDmg == 33.0f && wardDmg == 15.0f);
+        logResult("Combat status effects (Empowered, Vulnerable, Ward) evaluate accurately in damage pipeline", statusDmgOk);
+        allPassed &= statusDmgOk;
+
+        // 5. Turn resolution DoT application and decay
+        combatEngine engTurn;
+        auto dotVictim = std::make_shared<entity>("dot_victim", "Victim");
+        dotVictim->stats.setBaseStat("health", 100.0f);
+        StatusEffect bleedFx("bleed", "Bleed", "Bleeding", 2, true);
+        dotVictim->addStatusEffect(bleedFx);
+
+        auto dotAttacker = std::make_shared<entity>("dot_attacker", "Attacker");
+        dotAttacker->stats.setBaseStat("health", 100.0f);
+
+        engTurn.initialiseCombat({ dotAttacker }, { dotVictim });
+        float hpBeforeTurn1 = dotVictim->getStat("health");
+        engTurn.resolveTurn(nullptr);
+        float hpAfterTurn1 = dotVictim->getStat("health");
+        bool dotTicked = (hpBeforeTurn1 - hpAfterTurn1 == 8.0f);
+        bool durationDecayed = (dotVictim->statusEffects.size() == 1 && dotVictim->statusEffects[0].durationTurns == 1);
+
+        engTurn.resolveTurn(nullptr);
+        bool dotExpired = !dotVictim->hasStatusEffect("bleed");
+        bool dotTurnOk = (dotTicked && durationDecayed && dotExpired);
+        logResult("Combat turn resolution triggers DoT ticks and applies updateStatusEffectsOnTurn decay", dotTurnOk);
+        allPassed &= dotTurnOk;
+
+        // 6. Defeat scenes in JSON and itemDatabase potion refund
+        questDatabase::loadDatabase("data/quests");
+        questScene eroticDefeat = questDatabase::getScene("scene_combat_defeat_erotic");
+        questScene standardDefeat = questDatabase::getScene("scene_combat_defeat");
+        bool scenesLoaded = (!eroticDefeat.id.empty() && !eroticDefeat.choices.empty() &&
+                             !standardDefeat.id.empty() && !standardDefeat.choices.empty());
+        logResult("Combat defeat scene templates load dynamically from 'data/scenes/combat_defeat.json'", scenesLoaded);
+        allPassed &= scenesLoaded;
+
+        itemDatabase::loadDatabase("data/items.json");
+        auto potionItem = itemDatabase::getItem("item_health_potion");
+        bool potionRetrieved = (potionItem != nullptr && potionItem->id == "item_health_potion" && potionItem->isConsumable);
+        logResult("itemDatabase returns 'item_health_potion' for combat queue refunds", potionRetrieved);
+        allPassed &= potionRetrieved;
+
+        return allPassed;
+    }
+
     bool runAllTests()
     {
         g_passCount = 0;
@@ -5590,6 +5745,7 @@ namespace EngineTests
         bool t44 = testUnifiedFetishesAndCombatResolutionSex();
         bool t45 = testCoreSimulationAndWiring();
         bool t46 = testCoreCatalogsAndDefaults();
+        bool t47 = testCombatDataMigrationAndStatusEvaluation();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";

@@ -4,6 +4,10 @@
 #include <format>
 #include <memory>
 #include "combat/weaponSkillDatabase.h"
+#include "combat/combatActionDatabase.h"
+#include "combat/spellDatabase.h"
+#include "items/itemDatabase.h"
+#include "quest/questDatabase.h"
 
 #include "common/randomEngine.h"
 #include "core/eventBus.h"
@@ -215,179 +219,106 @@ void CombatState::handleCommand(game* gameContext, const UICommand& cmd)
         }
         else if (cmd.stringPayload == "DEFENSE_GUARD" || cmd.stringPayload == "DEFEND")
         {
-            act.id = "action_guard";
-            act.name = "Guard Stance";
-            act.staminaCost = 15.0f;
-            act.isGuarding = true;
+            if (const auto* a = CombatActionDatabase::getAction("action_guard")) act = *a;
         }
         else if (cmd.stringPayload == "DEFENSE_DODGE")
         {
-            act.id = "action_dodge";
-            act.name = "Evasive Dodge";
-            act.staminaCost = 20.0f;
-            act.isDodging = true;
+            if (const auto* a = CombatActionDatabase::getAction("action_dodge")) act = *a;
         }
         else if (cmd.stringPayload == "DEFENSE_PARRY")
         {
-            act.id = "action_parry";
-            act.name = "Counter Parry";
-            act.staminaCost = 25.0f;
-            act.isParrying = true;
+            if (const auto* a = CombatActionDatabase::getAction("action_parry")) act = *a;
         }
         else if (cmd.stringPayload == "SEDUCE_TEASE")
         {
-            act.id = "action_seduce_tease";
-            act.name = "Tease";
-            act.staminaCost = 10.0f;
-            act.lustDamage = 15.0f;
+            if (const auto* a = CombatActionDatabase::getAction("action_seduce_tease")) act = *a;
         }
         else if (cmd.stringPayload == "SEDUCE_FLIRT")
         {
-            act.id = "action_seduce_flirt";
-            act.name = "Flirtatious Whisper";
-            act.staminaCost = 15.0f;
-            act.lustDamage = 25.0f;
+            if (const auto* a = CombatActionDatabase::getAction("action_seduce_flirt")) act = *a;
         }
         else if (cmd.stringPayload == "SEDUCE_EXPOSE")
         {
-            act.id = "action_seduce_expose";
-            act.name = "Sensual Exposure";
-            act.staminaCost = 20.0f;
-            act.lustDamage = 35.0f;
+            if (const auto* a = CombatActionDatabase::getAction("action_seduce_expose")) act = *a;
         }
         else if (cmd.stringPayload == "COMPANION_ATTACK")
         {
-            act.id = "action_companion_attack";
-            act.name = "Familiar Strike";
-            act.staminaCost = 15.0f;
-            SpellEffectNode node;
-            node.effectType = "DAMAGE";
-            std::string cElem = "air";
-            if (m_engine.getPlayerParty().size() > 1 && m_engine.getPlayerParty()[1].character)
+            if (const auto* a = CombatActionDatabase::getAction("action_companion_attack"))
             {
-                cElem = m_engine.getPlayerParty()[1].character->elementalType.empty() ? "air" : m_engine.getPlayerParty()[1].character->elementalType;
+                act = *a;
+                std::string cElem = "air";
+                if (m_engine.getPlayerParty().size() > 1 && m_engine.getPlayerParty()[1].character)
+                {
+                    cElem = m_engine.getPlayerParty()[1].character->elementalType.empty() ? "air" : m_engine.getPlayerParty()[1].character->elementalType;
+                }
+                else if (gameContext && !gameContext->getCompanions().empty() && gameContext->getCompanions()[0])
+                {
+                    cElem = gameContext->getCompanions()[0]->elementalType.empty() ? "air" : gameContext->getCompanions()[0]->elementalType;
+                }
+                if (!act.effectNodes.empty()) act.effectNodes[0].element = cElem;
             }
-            else if (gameContext && !gameContext->getCompanions().empty() && gameContext->getCompanions()[0])
-            {
-                cElem = gameContext->getCompanions()[0]->elementalType.empty() ? "air" : gameContext->getCompanions()[0]->elementalType;
-            }
-            node.element = cElem;
-            node.baseMagnitude = 30.0f;
-            act.effectNodes.push_back(node);
         }
         else if (cmd.stringPayload == "STRIKE")
         {
-            act.id = "action_strike";
-            act.name = "Strike";
-            act.staminaCost = 15.0f;
-            SpellEffectNode node;
-            node.effectType = "DAMAGE";
-            node.element = "physical";
-            node.baseMagnitude = std::max(8.0f, player->getStat("physique") * 0.8f);
-            act.effectNodes.push_back(node);
+            if (const auto* a = CombatActionDatabase::getAction("action_strike"))
+            {
+                act = *a;
+                if (!act.effectNodes.empty() && player)
+                {
+                    act.effectNodes[0].baseMagnitude = std::max(act.effectNodes[0].baseMagnitude, player->getStat("physique") * 0.8f);
+                }
+            }
         }
         else if (cmd.stringPayload == "HEAVY_STRIKE")
         {
-            act.id = "action_heavy_strike";
-            act.name = "Heavy Strike";
-            act.staminaCost = 35.0f;
-            SpellEffectNode node;
-            node.effectType = "DAMAGE";
-            node.element = "physical";
-            node.baseMagnitude = std::max(18.0f, player->getStat("physique") * 1.8f);
-            act.effectNodes.push_back(node);
+            if (const auto* a = CombatActionDatabase::getAction("action_heavy_strike"))
+            {
+                act = *a;
+                if (!act.effectNodes.empty() && player)
+                {
+                    act.effectNodes[0].baseMagnitude = std::max(act.effectNodes[0].baseMagnitude, player->getStat("physique") * 1.8f);
+                }
+            }
         }
         else if (cmd.stringPayload == "DISARM")
         {
-            act.id = "action_disarm";
-            act.name = "Disarm";
-            act.staminaCost = 30.0f;
-            SpellEffectNode node;
-            node.effectType = "DAMAGE";
-            node.element = "physical";
-            node.baseMagnitude = 14.0f;
-            act.effectNodes.push_back(node);
+            if (const auto* a = CombatActionDatabase::getAction("action_disarm")) act = *a;
         }
         else if (cmd.stringPayload == "SPELL_DART")
         {
-            act.id = "spell_arcane_dart";
-            act.name = "Arcane Dart";
-            act.staminaCost = 10.0f;
-            act.manaCost = 10.0f;
-            SpellEffectNode node;
-            node.effectType = "DAMAGE";
-            node.element = "arcane";
-            node.baseMagnitude = 25.0f;
-            act.effectNodes.push_back(node);
+            if (const auto* sp = SpellDatabase::getSpell("arcane_dart")) act = sp->toCombatAction();
         }
         else if (cmd.stringPayload == "SPELL_FIREBALL")
         {
-            act.id = "spell_fireball";
-            act.name = "Fireball";
-            act.staminaCost = 15.0f;
-            act.manaCost = 25.0f;
-            SpellEffectNode node;
-            node.effectType = "DAMAGE";
-            node.element = "fire";
-            node.baseMagnitude = 55.0f;
-            act.effectNodes.push_back(node);
+            if (const auto* sp = SpellDatabase::getSpell("fireball")) act = sp->toCombatAction();
         }
         else if (cmd.stringPayload == "SPELL_SHIELD")
         {
-            act.id = "spell_arcane_shield";
-            act.name = "Arcane Shield";
-            act.staminaCost = 10.0f;
-            act.manaCost = 15.0f;
-            act.customExecute = [this](entity* user, entity* target, game* g) {
-                if (!user) return;
-                user->stats.modifyBaseStat("health", 35.0f);
-                m_engine.appendLog(std::format("{} conjures an Arcane Shield, absorbing 35 HP damage!", user->name));
-            };
+            if (const auto* sp = SpellDatabase::getSpell("arcane_shield")) act = sp->toCombatAction();
         }
         else if (cmd.stringPayload == "SPELL_CLEANSE")
         {
-            act.id = "spell_cleanse";
-            act.name = "Cleanse";
-            act.staminaCost = 10.0f;
-            act.manaCost = 20.0f;
-            act.customExecute = [this](entity* user, entity* target, game* g) {
-                if (!user) return;
-                user->stats.modifyBaseStat("health", 40.0f);
-                user->statusEffects.clear();
-                m_engine.appendLog(std::format("[Spell] {} cast Cleanse, purged debuffs and restored 40 HP!", user->name));
-            };
+            if (const auto* sp = SpellDatabase::getSpell("cleanse")) act = sp->toCombatAction();
         }
         else if (cmd.stringPayload == "SPELL_BLINK")
         {
-            act.id = "spell_blink";
-            act.name = "Blink";
-            act.staminaCost = 10.0f;
-            act.manaCost = 30.0f;
-            act.customExecute = [this](entity* user, entity* target, game* g) {
-                if (!user) return;
-                user->stats.modifyBaseStat("agility", 15.0f);
-                m_engine.appendLog(std::format("[Spell] {} cast Blink, evading enemy strikes!", user->name));
-            };
+            if (const auto* sp = SpellDatabase::getSpell("teleport")) act = sp->toCombatAction();
         }
         else if (cmd.stringPayload == "ITEM_POTION")
         {
-            act.id = "item_potion";
-            act.name = "Health Potion";
-            act.customExecute = [this](entity* user, entity* target, game* g) {
-                if (!user) return;
-                user->stats.modifyBaseStat("health", 50.0f);
-                m_engine.appendLog(std::format("[Item] {} consumed a Health Potion and recovered 50 HP!", user->name));
-            };
+            if (const auto* a = CombatActionDatabase::getAction("item_potion")) act = *a;
         }
         else if (cmd.stringPayload == "ITEM_MANA")
         {
-            act.id = "item_mana";
-            act.name = "Mana Crystal";
-            act.customExecute = [this](entity* user, entity* target, game* g) {
-                if (!user) return;
-                user->stats.modifyBaseStat("mana", 50.0f);
-                m_engine.appendLog(std::format("[Item] {} consumed a Mana Crystal and recovered 50 MP!", user->name));
-            };
+            if (const auto* a = CombatActionDatabase::getAction("item_mana")) act = *a;
+        }
+        else if (const auto* a = CombatActionDatabase::getAction(cmd.stringPayload))
+        {
+            act = *a;
+        }
+        else if (const auto* sp = SpellDatabase::getSpell(cmd.stringPayload))
+        {
+            act = sp->toCombatAction();
         }
 
         if (m_engine.queuePlayerAction(0, act, target))
@@ -473,22 +404,24 @@ void CombatState::resolveDefeat(game* gameContext)
 
         eventBus::getInstance().publishEvent({ gameEvent::combatEnded, data.numericValue, "DEFEAT_SEDUCTION", nullptr });
 
-        questScene defeatScene;
-        defeatScene.id = "scene_combat_seduction";
-        defeatScene.speakerName = defeatingNPC->name;
-
         std::string npcArchetype = genderArchetypeToString(defeatingNPC->genderArchetype);
         std::string npcRace = defeatingNPC->anatomy.getDominantRace();
 
-        defeatScene.bodyText = std::format("With your strength exhausted, you collapse to the ground. "
-                                          "{} ({}, {}) stands over your helpless body with a hungry, aroused glare. "
-                                          "Rather than finishing you off, they claim their erotic prize (and take {}¤) before leaving you thoroughly spent.",
-                                          defeatingNPC->name, npcArchetype, npcRace, currencyLost);
+        questScene defeatScene = questDatabase::getScene("scene_combat_defeat_erotic");
+        defeatScene.speakerName = defeatingNPC->name;
 
-        dialogueChoice continueChoice;
-        continueChoice.label = "Recover and Continue";
-        continueChoice.nextSceneId = "EXIT";
-        defeatScene.choices.push_back(continueChoice);
+        auto replaceAll = [](std::string& str, const std::string& from, const std::string& to) {
+            size_t startPos = 0;
+            while ((startPos = str.find(from, startPos)) != std::string::npos) {
+                str.replace(startPos, from.length(), to);
+                startPos += to.length();
+            }
+        };
+
+        replaceAll(defeatScene.bodyText, "{speaker}", defeatingNPC->name);
+        replaceAll(defeatScene.bodyText, "{archetype}", npcArchetype);
+        replaceAll(defeatScene.bodyText, "{race}", npcRace);
+        replaceAll(defeatScene.bodyText, "{currency}", std::to_string(currencyLost));
 
         gameContext->currentScene = defeatScene;
         gameContext->activeTargetNPC = nullptr;
@@ -508,15 +441,19 @@ void CombatState::resolveDefeat(game* gameContext)
 
         eventBus::getInstance().publishEvent({ gameEvent::combatEnded, data.numericValue, "DEFEAT_ROBBERY", nullptr });
 
-        questScene defeatScene;
-        defeatScene.id = "scene_combat_defeat";
+        questScene defeatScene = questDatabase::getScene("scene_combat_defeat");
         defeatScene.speakerName = defeatingNPC ? defeatingNPC->name : "System";
-        defeatScene.bodyText = std::format("You were defeated in combat! Your opponent looted {}¤ from your purse before departing.", currencyLost);
 
-        dialogueChoice continueChoice;
-        continueChoice.label = "Continue";
-        continueChoice.nextSceneId = "EXIT";
-        defeatScene.choices.push_back(continueChoice);
+        auto replaceAll = [](std::string& str, const std::string& from, const std::string& to) {
+            size_t startPos = 0;
+            while ((startPos = str.find(from, startPos)) != std::string::npos) {
+                str.replace(startPos, from.length(), to);
+                startPos += to.length();
+            }
+        };
+
+        replaceAll(defeatScene.bodyText, "{speaker}", defeatScene.speakerName);
+        replaceAll(defeatScene.bodyText, "{currency}", std::to_string(currencyLost));
 
         gameContext->currentScene = defeatScene;
         gameContext->activeTargetNPC = nullptr;
@@ -550,16 +487,14 @@ void CombatState::handleClearQueue(game* gameContext)
                 {
                     p.character->stats.modifyBaseStat("mana", qa.action.manaCost);
                 }
-                if (qa.action.id == "item_potion")
+                if (qa.action.id == "item_potion" || qa.action.id == "item_health_potion" || qa.action.id == "item_potion_health")
                 {
-                    auto pot = std::make_shared<item>();
-                    pot->id = "item_health_potion";
-                    pot->name = "Health Potion";
-                    pot->description = "Restores 50 health";
-                    pot->category = ItemCategory::CONSUMABLE;
-                    pot->isConsumable = true;
-                    pot->count = 1;
-                    p.character->inventory.addItem(pot);
+                    auto pot = itemDatabase::getItem("item_health_potion");
+                    if (!pot) pot = itemDatabase::getItem("item_potion_health");
+                    if (pot)
+                    {
+                        p.character->inventory.addItem(pot);
+                    }
                 }
             }
         }

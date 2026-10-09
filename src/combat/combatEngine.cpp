@@ -9,6 +9,7 @@
 
 #include "core/game.h"
 #include "entities/entity.h"
+#include "combat/combatActionDatabase.h"
 
 using json = nlohmann::json;
 
@@ -231,23 +232,38 @@ void combatEngine::generateCompanionQueues()
 
         if (compP.turnQueue.empty() && compP.currentStamina >= 15.0f)
         {
-            CombatAction cAct;
             std::string cElem = compP.character->elementalType.empty() ? "air" : compP.character->elementalType;
-            cAct.id = "companion_strike_" + cElem;
-            cAct.name = compP.character->name + " " + (cElem == "fire" ? "Flame Burst" : (cElem == "water" ? "Aqua Splash" : (cElem == "earth" ? "Rock Toss" : "Gale Gust")));
-            cAct.staminaCost = 15.0f;
-            SpellEffectNode dmgNode;
-            dmgNode.effectType = "DAMAGE";
-            dmgNode.element = cElem;
-            dmgNode.baseMagnitude = std::max(12.0f, compP.character->getStat("arcane") * 0.8f + compP.character->getStat("physique") * 0.5f);
-            cAct.effectNodes.push_back(dmgNode);
+            std::string actId = "companion_strike_" + cElem;
+            const auto* baseAct = CombatActionDatabase::getAction(actId);
+            CombatAction cAct;
+            if (baseAct)
+            {
+                cAct = *baseAct;
+                cAct.name = compP.character->name + " " + cAct.name;
+            }
+            else
+            {
+                cAct.id = actId;
+                cAct.name = compP.character->name + " " + (cElem == "fire" ? "Flame Burst" : (cElem == "water" ? "Aqua Splash" : (cElem == "earth" ? "Rock Toss" : "Gale Gust")));
+                cAct.staminaCost = 15.0f;
+                SpellEffectNode dmgNode;
+                dmgNode.effectType = "DAMAGE";
+                dmgNode.element = cElem;
+                dmgNode.baseMagnitude = 12.0f;
+                cAct.effectNodes.push_back(dmgNode);
+            }
+            if (!cAct.effectNodes.empty())
+            {
+                cAct.effectNodes[0].baseMagnitude = std::max(cAct.effectNodes[0].baseMagnitude,
+                    compP.character->getStat("arcane") * 0.8f + compP.character->getStat("physique") * 0.5f);
+            }
 
             QueuedAction qa;
             qa.action = cAct;
             qa.user = compP.character.get();
             qa.target = enemyTarget;
             compP.turnQueue.push_back(qa);
-            compP.currentStamina -= 15.0f;
+            compP.currentStamina -= cAct.staminaCost;
         }
     }
 }
@@ -263,16 +279,28 @@ void combatEngine::generateNpcQueues()
 
         while (enemyP.currentStamina >= 20.0f)
         {
+            const auto* baseStrike = CombatActionDatabase::getAction("action_basic_strike");
             CombatAction strike;
-            strike.id = "action_basic_strike";
-            strike.name = "Strike";
-            strike.staminaCost = 20.0f;
+            if (baseStrike)
+            {
+                strike = *baseStrike;
+            }
+            else
+            {
+                strike.id = "action_basic_strike";
+                strike.name = "Strike";
+                strike.staminaCost = 20.0f;
+                SpellEffectNode dmgNode;
+                dmgNode.effectType = "DAMAGE";
+                dmgNode.element = "physical";
+                dmgNode.baseMagnitude = 10.0f;
+                strike.effectNodes.push_back(dmgNode);
+            }
 
-            SpellEffectNode dmgNode;
-            dmgNode.effectType = "DAMAGE";
-            dmgNode.element = "physical";
-            dmgNode.baseMagnitude = enemyP.character->getStat("physique");
-            strike.effectNodes.push_back(dmgNode);
+            if (!strike.effectNodes.empty())
+            {
+                strike.effectNodes[0].baseMagnitude = std::max(strike.effectNodes[0].baseMagnitude, enemyP.character->getStat("physique"));
+            }
 
             QueuedAction qa;
             qa.action = strike;
@@ -280,7 +308,7 @@ void combatEngine::generateNpcQueues()
             qa.target = playerTarget;
 
             enemyP.turnQueue.push_back(qa);
-            enemyP.currentStamina -= 20.0f;
+            enemyP.currentStamina -= strike.staminaCost;
         }
     }
 }
@@ -315,6 +343,42 @@ void combatEngine::resolveTurn(game* g)
         }
 
         if (isCombatOver()) break;
+    }
+
+    auto applyDotEffects = [this](const std::shared_ptr<entity>& ent) {
+        if (!ent || ent->getStat("health") <= 0.0f) return;
+        for (const auto& fx : ent->statusEffects)
+        {
+            if (fx.id == "bleed" || fx.id == "fx_bleed" ||
+                fx.id == "burn" || fx.id == "fx_burn" ||
+                fx.id == "poison" || fx.id == "fx_poison")
+            {
+                float dotDmg = 8.0f;
+                for (const auto& mod : fx.statModifiers)
+                {
+                    if (mod.statName == "dot_damage" || mod.statName == "damage")
+                    {
+                        dotDmg = std::max(dotDmg, mod.flatValue);
+                    }
+                }
+                ent->stats.modifyBaseStat("health", -dotDmg);
+                appendLog(std::format("{} suffers {:.0f} damage from {}!",
+                    ent->name, dotDmg, fx.name.empty() ? fx.id : fx.name));
+                if (ent->getStat("health") <= 0.0f)
+                {
+                    appendLog(std::format("{} has succumbed to {}!", ent->name, fx.name.empty() ? fx.id : fx.name));
+                }
+            }
+        }
+    };
+
+    for (auto& p : m_playerParty)
+    {
+        if (p.character) applyDotEffects(p.character);
+    }
+    for (auto& p : m_enemyParty)
+    {
+        if (p.character) applyDotEffects(p.character);
     }
 
     for (auto& p : m_playerParty)
@@ -420,6 +484,56 @@ void combatEngine::executeAction(const QueuedAction& qa, game* g)
             float perkDefMult = target->getPerkDefenseMultiplier(attackerRace, attackType);
             modifiedDamage *= std::max(0.05f, (1.0f - perkDefMult));
 
+            // Status effect modifiers on attacker
+            float attackerStatusDmgMult = 1.0f;
+            float attackerFlatDmg = 0.0f;
+            for (const auto& fx : qa.user->statusEffects)
+            {
+                for (const auto& mod : fx.statModifiers)
+                {
+                    if (mod.statName == "damage" || mod.statName == "attack" || mod.statName == (attackType + "_damage"))
+                    {
+                        attackerStatusDmgMult += mod.percentValue;
+                        attackerFlatDmg += mod.flatValue;
+                    }
+                }
+                if (fx.id == "fx_empowered" || fx.id == "buff_attack" || fx.id == "attack_buff")
+                {
+                    attackerStatusDmgMult += 0.25f;
+                }
+                else if (fx.id == "fx_weakened" || fx.id == "debuff_weak")
+                {
+                    attackerStatusDmgMult -= 0.25f;
+                }
+            }
+            modifiedDamage = (modifiedDamage + attackerFlatDmg) * std::max(0.1f, attackerStatusDmgMult);
+
+            // Status effect modifiers on defender
+            float defenderStatusDefMult = 1.0f;
+            for (const auto& fx : target->statusEffects)
+            {
+                for (const auto& mod : fx.statModifiers)
+                {
+                    if (mod.statName == "defense" || mod.statName == "resistance" || mod.statName == "damage_reduction")
+                    {
+                        defenderStatusDefMult -= mod.percentValue;
+                    }
+                    if (mod.statName == "vulnerability" || mod.statName == "vuln")
+                    {
+                        defenderStatusDefMult += mod.percentValue;
+                    }
+                }
+                if (fx.id == "fx_vulnerable" || fx.id == "debuff_vulnerable" || fx.id == "vulnerable")
+                {
+                    defenderStatusDefMult += 0.30f;
+                }
+                if (fx.id == "fx_ward" || fx.id == "buff_defense" || fx.id == "shield" || fx.id == "protection")
+                {
+                    defenderStatusDefMult -= 0.25f;
+                }
+            }
+            modifiedDamage *= std::max(0.05f, defenderStatusDefMult);
+
             if (targetPart && !targetPart->currentElementStatus.empty() && targetPart->currentElementStatus != attackType)
             {
                 std::string comboKey = targetPart->currentElementStatus + "+" + attackType;
@@ -488,6 +602,16 @@ void combatEngine::executeAction(const QueuedAction& qa, game* g)
                     finalDamage, attackType, effectivenessText));
             }
 
+            if (!node.statusEffectId.empty())
+            {
+                StatusEffect fx;
+                fx.id = node.statusEffectId;
+                fx.name = node.statusEffectId;
+                fx.durationTurns = 3;
+                target->addStatusEffect(fx);
+                appendLog(std::format("{} is afflicted with {}!", target->name, fx.name));
+            }
+
             if (target->getStat("health") <= 0.0f)
             {
                 appendLog(std::format("{} has been defeated!", target->name));
@@ -502,6 +626,31 @@ void combatEngine::executeAction(const QueuedAction& qa, game* g)
         {
             qa.user->stats.modifyBaseStat("health", node.baseMagnitude);
             appendLog(std::format("{} bolsters a shield barrier of {} HP!", qa.user->name, static_cast<int>(node.baseMagnitude)));
+        }
+        else if (node.effectType == "CLEANSE")
+        {
+            target->stats.modifyBaseStat("health", node.baseMagnitude);
+            target->statusEffects.clear();
+            appendLog(std::format("[Spell] {} cast Cleanse, purged debuffs and restored {} HP!", qa.user->name, static_cast<int>(node.baseMagnitude)));
+        }
+        else if (node.effectType == "BUFF")
+        {
+            qa.user->stats.modifyBaseStat(node.element.empty() ? "agility" : node.element, node.baseMagnitude);
+            appendLog(std::format("[Spell] {} gained {} to {}!", qa.user->name, static_cast<int>(node.baseMagnitude), node.element.empty() ? "agility" : node.element));
+        }
+        else if (node.effectType == "MANA_RESTORE")
+        {
+            qa.user->stats.modifyBaseStat("mana", node.baseMagnitude);
+            appendLog(std::format("[Item] {} consumed an item and recovered {} MP!", qa.user->name, static_cast<int>(node.baseMagnitude)));
+        }
+        else if (node.effectType == "STATUS_EFFECT")
+        {
+            StatusEffect fx;
+            fx.id = node.statusEffectId;
+            fx.name = node.statusEffectId;
+            fx.durationTurns = 3;
+            target->addStatusEffect(fx);
+            appendLog(std::format("{} is afflicted with {}!", target->name, fx.name));
         }
     }
 }
