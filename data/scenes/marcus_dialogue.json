@@ -1,0 +1,50 @@
+{
+  "scenes": [
+    {
+      "id": "scene_marcus_dialogue",
+      "speakerName": "Marcus",
+      "bodyText": "Marcus looks up from sorting an assortment of polished gemstones and ancient trinkets, nodding warmly as you approach.\n\n'Greetings, traveler! Seeking curious oddities, alchemical reagents, or perhaps just a bit of local news?'",
+      "choices": [
+        {
+          "label": "Ask about local rumors",
+          "tooltip": "Inquire about recent happenings and dangers in the area.",
+          "nextSceneId": "scene_marcus_rumors"
+        },
+        {
+          "label": "Ask about his wares",
+          "tooltip": "Ask what kinds of goods Marcus specializes in.",
+          "nextSceneId": "scene_marcus_wares"
+        },
+        {
+          "label": "Farewell",
+          "tooltip": "Step away from the merchant stall.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "scene_marcus_rumors",
+      "speakerName": "Marcus",
+      "bodyText": "'Keep your eyes sharp on the roads beyond town,' Marcus warns quietly. 'Rogue mages and wandering bandits have grown bolder of late. If you venture into the deep woods, keep your guard up.'",
+      "choices": [
+        {
+          "label": "Back",
+          "tooltip": "Return to conversation.",
+          "nextSceneId": "scene_marcus_dialogue"
+        }
+      ]
+    },
+    {
+      "id": "scene_marcus_wares",
+      "speakerName": "Marcus",
+      "bodyText": "'I carry only genuine curios, potent essences, and sturdy traveling gear,' he chuckles proudly. 'Feel free to trade with me anytime.'",
+      "choices": [
+        {
+          "label": "Back",
+          "tooltip": "Return to conversation.",
+          "nextSceneId": "scene_marcus_dialogue"
+        }
+      ]
+    }
+  ]
+}

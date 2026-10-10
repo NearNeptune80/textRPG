@@ -1,7 +1,9 @@
 #include "core/game.h"
 
 #include <algorithm>
+#include <fstream>
 #include <iostream>
+#include <nlohmann/json.hpp>
 
 #include "common/randomEngine.h"
 #include "core/contentFilterManager.h"
@@ -1457,6 +1459,20 @@ bool game::checkSingleCondition(const gameCondition& cond) const
         float dom = Player->getStat("dominance");
         return dom >= cond.minValue && dom <= cond.maxValue;
     }
+    else if (cond.type == "HAS_PERK_FLAG" || cond.type == "PERK_FLAG" || cond.type == "has_perk_flag" || cond.type == "perk_flag")
+    {
+        std::string flag = !cond.target.empty() ? cond.target : cond.stringValue;
+        return Player->hasPerkFlag(flag);
+    }
+    else if (cond.type == "HAS_PERK" || cond.type == "has_perk")
+    {
+        std::string perkId = !cond.target.empty() ? cond.target : cond.stringValue;
+        return Player->hasPerk(perkId);
+    }
+    else if (cond.type == "TARGET_HAS_TAG" || cond.type == "target_has_tag")
+    {
+        return activeTargetNPC && activeTargetNPC->anatomy.hasGlobalTag(cond.target);
+    }
 
     return true;
 }
@@ -1500,6 +1516,59 @@ void game::popScene()
     }
 }
 
+struct SystemWarningConfig
+{
+    std::string choiceSpeaker = "CONTENT WARNING";
+    std::string choicePromptFormat = "Warning: The option '{}' leads to sensitive content: [{}]\n\nDo you wish to proceed or return?";
+    std::string choiceProceedLabel = "Proceed";
+    std::string choiceProceedTooltip = "Proceed with this choice.";
+    std::string choiceCancelLabel = "Cancel";
+    std::string choiceCancelTooltip = "Return to previous options.";
+
+    std::string sceneSpeaker = "CONTENT WARNING";
+    std::string scenePromptFormat = "Warning: The following scene contains sensitive content: [{}]\n\nDo you wish to proceed with this scene or skip it?";
+    std::string sceneProceedLabel = "Proceed to Scene";
+    std::string sceneProceedTooltip = "Acknowledge warning and view scene.";
+    std::string sceneSkipLabel = "Skip Scene";
+    std::string sceneSkipTooltip = "Cancel and return without viewing.";
+};
+
+static SystemWarningConfig loadSystemWarningConfig()
+{
+    SystemWarningConfig cfg;
+    std::ifstream file("data/scenes/system_warnings.json");
+    if (file.is_open())
+    {
+        try
+        {
+            nlohmann::json j;
+            file >> j;
+            if (j.contains("warning_choice"))
+            {
+                const auto& c = j["warning_choice"];
+                cfg.choiceSpeaker = c.value("speakerName", cfg.choiceSpeaker);
+                cfg.choicePromptFormat = c.value("promptFormat", cfg.choicePromptFormat);
+                cfg.choiceProceedLabel = c.value("proceedLabel", cfg.choiceProceedLabel);
+                cfg.choiceProceedTooltip = c.value("proceedTooltip", cfg.choiceProceedTooltip);
+                cfg.choiceCancelLabel = c.value("cancelLabel", cfg.choiceCancelLabel);
+                cfg.choiceCancelTooltip = c.value("cancelTooltip", cfg.choiceCancelTooltip);
+            }
+            if (j.contains("warning_scene"))
+            {
+                const auto& s = j["warning_scene"];
+                cfg.sceneSpeaker = s.value("speakerName", cfg.sceneSpeaker);
+                cfg.scenePromptFormat = s.value("promptFormat", cfg.scenePromptFormat);
+                cfg.sceneProceedLabel = s.value("proceedLabel", cfg.sceneProceedLabel);
+                cfg.sceneProceedTooltip = s.value("proceedTooltip", cfg.sceneProceedTooltip);
+                cfg.sceneSkipLabel = s.value("skipLabel", cfg.sceneSkipLabel);
+                cfg.sceneSkipTooltip = s.value("skipTooltip", cfg.sceneSkipTooltip);
+            }
+        }
+        catch (...) {}
+    }
+    return cfg;
+}
+
 void game::processChoice(const dialogueChoice& choice)
 {
     bool bypassWarning = false;
@@ -1536,23 +1605,32 @@ void game::processChoice(const dialogueChoice& choice)
                 tagListStr += ContentFilterManager::getTagDisplayName(tagsToDisplay[i]);
             }
 
+            static const auto warnCfg = loadSystemWarningConfig();
+
             currentScene.id = "warning_choice_" + choice.nextSceneId;
-            currentScene.speakerName = "CONTENT WARNING";
-            currentScene.bodyText = std::format("Warning: The option '{}' leads to sensitive content: [{}]\n\nDo you wish to proceed or return?", choice.label, tagListStr);
+            currentScene.speakerName = warnCfg.choiceSpeaker;
+            try
+            {
+                currentScene.bodyText = std::vformat(warnCfg.choicePromptFormat, std::make_format_args(choice.label, tagListStr));
+            }
+            catch (...)
+            {
+                currentScene.bodyText = std::format("Warning: The option '{}' leads to sensitive content: [{}]\n\nDo you wish to proceed or return?", choice.label, tagListStr);
+            }
             currentScene.contentTags.clear();
             currentScene.choices.clear();
 
             dialogueChoice proceedChoice;
-            proceedChoice.label = "Proceed";
-            proceedChoice.tooltip = "Proceed with this choice.";
+            proceedChoice.label = warnCfg.choiceProceedLabel;
+            proceedChoice.tooltip = warnCfg.choiceProceedTooltip;
             proceedChoice.nextSceneId = choice.nextSceneId;
             proceedChoice.results = choice.results;
             proceedChoice.results.push_back({ "BYPASS_WARNING", choice.nextSceneId, 0, 0, 0, 0.0f, "", {}, {} });
             currentScene.choices.push_back(proceedChoice);
 
             dialogueChoice returnChoice;
-            returnChoice.label = "Cancel";
-            returnChoice.tooltip = "Return to previous options.";
+            returnChoice.label = warnCfg.choiceCancelLabel;
+            returnChoice.tooltip = warnCfg.choiceCancelTooltip;
             returnChoice.nextSceneId = "POP_SCENE";
             currentScene.choices.push_back(returnChoice);
 
@@ -1981,22 +2059,31 @@ void game::loadScene(const std::string& sceneId, bool bypassWarning)
                 tagListStr += ContentFilterManager::getTagDisplayName(tagsToDisplay[i]);
             }
 
+            static const auto warnCfg = loadSystemWarningConfig();
+
             currentScene.id = "warning_" + sceneId;
-            currentScene.speakerName = "CONTENT WARNING";
-            currentScene.bodyText = std::format("Warning: The following scene contains sensitive content: [{}]\n\nDo you wish to proceed with this scene or skip it?", tagListStr);
+            currentScene.speakerName = warnCfg.sceneSpeaker;
+            try
+            {
+                currentScene.bodyText = std::vformat(warnCfg.scenePromptFormat, std::make_format_args(tagListStr));
+            }
+            catch (...)
+            {
+                currentScene.bodyText = std::format("Warning: The following scene contains sensitive content: [{}]\n\nDo you wish to proceed with this scene or skip it?", tagListStr);
+            }
             currentScene.contentTags.clear();
             currentScene.choices.clear();
 
             dialogueChoice proceedChoice;
-            proceedChoice.label = "Proceed to Scene";
-            proceedChoice.tooltip = "Acknowledge warning and view scene.";
+            proceedChoice.label = warnCfg.sceneProceedLabel;
+            proceedChoice.tooltip = warnCfg.sceneProceedTooltip;
             proceedChoice.nextSceneId = sceneId;
             proceedChoice.results.push_back({ "BYPASS_WARNING", sceneId, 0, 0, 0, 0.0f, "", {}, {} });
             currentScene.choices.push_back(proceedChoice);
 
             dialogueChoice skipChoice;
-            skipChoice.label = "Skip Scene";
-            skipChoice.tooltip = "Cancel and return without viewing.";
+            skipChoice.label = warnCfg.sceneSkipLabel;
+            skipChoice.tooltip = warnCfg.sceneSkipTooltip;
             skipChoice.nextSceneId = "EXIT";
             currentScene.choices.push_back(skipChoice);
 
@@ -2414,6 +2501,14 @@ void game::triggerTransformationInterrupt(const std::string& triggerKey)
     if (questDatabase::exists(sceneId))
     {
         loadScene(sceneId);
+    }
+    else if (questDatabase::exists("trans_generic_change"))
+    {
+        questScene fallback = questDatabase::getScene("trans_generic_change");
+        fallback.id = sceneId;
+        currentScene = fallback;
+        changeState(std::make_unique<eventState>());
+        refreshActionGrid();
     }
     else
     {

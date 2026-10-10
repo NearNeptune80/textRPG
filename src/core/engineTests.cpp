@@ -5691,6 +5691,129 @@ namespace EngineTests
         return allPassed;
     }
 
+    bool testDialogueScenesAndPerkConditionWiring()
+    {
+        std::cout << "\n--- Running Test 48: Dialogue Scenes, Warnings, Encounters & Perk Condition Wiring ---\n";
+        bool allPassed = true;
+
+        // 1. Data-Driven Scene Discovery from data/scenes/
+        questDatabase::loadDatabase("data/quests");
+
+        questScene debugScene = questDatabase::getScene("debug_content_test_scene");
+        bool debugSceneOk = (debugScene.id == "debug_content_test_scene" &&
+                             debugScene.speakerName == "Debug Content Inspector" &&
+                             debugScene.choices.size() == 5 &&
+                             debugScene.choices[1].contentTags.size() == 1 &&
+                             debugScene.choices[1].contentTags[0] == "tentacles");
+        logResult("JSON scene discovery loads 'debug_content_test_scene' with content tags from 'data/scenes/debug_scenes.json'", debugSceneOk);
+        allPassed &= debugSceneOk;
+
+        questScene enslaveScene = questDatabase::getScene("scene_enslavement_success");
+        bool enslaveSceneOk = (enslaveScene.id == "scene_enslavement_success" &&
+                              enslaveScene.speakerName == "ENSLAVEMENT BINDING" &&
+                              !enslaveScene.choices.empty());
+        logResult("JSON scene discovery loads 'scene_enslavement_success' from 'data/scenes/enslavement.json'", enslaveSceneOk);
+        allPassed &= enslaveSceneOk;
+
+        questScene genericTransScene = questDatabase::getScene("trans_generic_change");
+        bool genericTransOk = (genericTransScene.id == "trans_generic_change" &&
+                               genericTransScene.speakerName == "Bodily Sensation");
+        logResult("JSON scene discovery loads 'trans_generic_change' from 'data/scenes/transformation_fallback.json'", genericTransOk);
+        allPassed &= genericTransOk;
+
+        questScene marcusScene = questDatabase::getScene("scene_marcus_dialogue");
+        bool marcusSceneOk = (marcusScene.id == "scene_marcus_dialogue" &&
+                              marcusScene.speakerName == "Marcus" &&
+                              marcusScene.choices.size() >= 3);
+        logResult("JSON scene discovery loads 'scene_marcus_dialogue' from 'data/scenes/marcus_dialogue.json'", marcusSceneOk);
+        allPassed &= marcusSceneOk;
+
+        // 2. Procedural Encounter & Victory scenes
+        game testGame;
+        auto testPlayer = std::make_shared<entity>("player_hero", "Hero");
+        testGame.Player = testPlayer.get();
+        testGame.playerEntity = testPlayer;
+
+        auto testEnemy = std::make_shared<entity>("bandit_01", "Bandit Ruffian");
+        testEnemy->stats.level = 5;
+        testEnemy->genderArchetype = GenderArchetype::MALE;
+        bodyPart headPart;
+        headPart.id = "part_head";
+        headPart.tags.push_back("can_be_interrogated");
+        testEnemy->anatomy.setPart(bodySlot::HEAD, headPart);
+
+        questScene encounterScene = encounterResolver::buildEncounterScene(&testGame, testEnemy);
+        bool encSceneOk = (encounterScene.id == "scene_procedural_encounter" &&
+                           encounterScene.speakerName == "Bandit Ruffian" &&
+                           encounterScene.bodyText.find("Bandit Ruffian") != std::string::npos &&
+                           encounterScene.bodyText.find("Level 5") != std::string::npos &&
+                           encounterScene.choices.size() == 4);
+        logResult("encounterResolver::buildEncounterScene formats procedural encounter with dynamic NPC values", encSceneOk);
+        allPassed &= encSceneOk;
+
+        questScene victoryForest = encounterResolver::buildVictoryScene(&testGame, testEnemy.get(), "map_dark_forest");
+        bool vicForestOk = (victoryForest.id == "scene_procedural_victory" &&
+                            victoryForest.bodyText.find("dense undergrowth") != std::string::npos &&
+                            victoryForest.choices.size() == 4);
+        logResult("encounterResolver::buildVictoryScene generates environment flavor text and interrogate choice", vicForestOk);
+        allPassed &= vicForestOk;
+
+        // 3. Perk Flag Condition Evaluation in game::checkSingleCondition
+        PerkDefinition charmPerk;
+        charmPerk.id = "perk_silver_tongue_test";
+        charmPerk.name = "Silver Tongue";
+        charmPerk.modifiers.flags = { "can_charm", "merchant_discount" };
+        PerkDatabase::registerPerk(charmPerk);
+
+        gameCondition condFlag;
+        condFlag.type = "HAS_PERK_FLAG";
+        condFlag.target = "can_charm";
+
+        bool beforePerk = testGame.checkSingleCondition(condFlag);
+        testPlayer->unlockPerk("perk_silver_tongue_test");
+        bool afterPerk = testGame.checkSingleCondition(condFlag);
+
+        gameCondition condPerk;
+        condPerk.type = "HAS_PERK";
+        condPerk.target = "perk_silver_tongue_test";
+        bool hasPerkCheck = testGame.checkSingleCondition(condPerk);
+
+        gameCondition condTargetTag;
+        condTargetTag.type = "TARGET_HAS_TAG";
+        condTargetTag.target = "can_be_interrogated";
+        testGame.activeTargetNPC = testEnemy;
+        bool targetTagCheck = testGame.checkSingleCondition(condTargetTag);
+
+        bool perkWiringOk = (!beforePerk && afterPerk && hasPerkCheck && targetTagCheck);
+        logResult("game::checkSingleCondition evaluates HAS_PERK_FLAG, HAS_PERK, and TARGET_HAS_TAG conditions accurately", perkWiringOk);
+        allPassed &= perkWiringOk;
+
+        // 4. Intimate Scene Actions and Narratives
+        sexState testSex(testEnemy);
+        auto masterActions = testSex.buildMasterActionDatabase();
+        bool actionDbOk = (!masterActions.empty());
+        bool hasKissAction = false;
+        for (const auto& a : masterActions)
+        {
+            if (a.id == "partner_kiss") hasKissAction = true;
+        }
+        bool sexActionsOk = actionDbOk && hasKissAction;
+        logResult("sexState loads master and fallback actions from JSON without unhandled exceptions", sexActionsOk);
+        allPassed &= sexActionsOk;
+
+        // 5. NamedCharacter Default Scene Wiring
+        NamedCharacterManager::loadFromDirectory("data/characters");
+        auto marcus = NamedCharacterManager::getCharacter("marcus");
+        bool marcusWiringOk = (marcus != nullptr &&
+                               marcus->defaultSceneId == "scene_marcus_dialogue" &&
+                               marcus->characterEntity != nullptr &&
+                               marcus->characterEntity->defaultSceneId == "scene_marcus_dialogue");
+        logResult("NamedCharacterManager properly initializes and wires defaultSceneId to character entity", marcusWiringOk);
+        allPassed &= marcusWiringOk;
+
+        return allPassed;
+    }
+
     bool runAllTests()
     {
         g_passCount = 0;
@@ -5746,6 +5869,7 @@ namespace EngineTests
         bool t45 = testCoreSimulationAndWiring();
         bool t46 = testCoreCatalogsAndDefaults();
         bool t47 = testCombatDataMigrationAndStatusEvaluation();
+        bool t48 = testDialogueScenesAndPerkConditionWiring();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";

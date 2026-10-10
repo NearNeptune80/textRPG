@@ -247,6 +247,7 @@ public:
 
 	bool executeAction(game* gameContext, const SexAction& action);
 	void changeStance(SexStance newStance);
+	std::vector<SexAction> buildMasterActionDatabase() const;
 
 	void handlePleadSuggest(game* gameContext);
 	void handleEndure(game* gameContext);
@@ -323,8 +324,6 @@ private:
 	int m_turnCount = 1;
 
 	std::string m_narrativeLog;
-
-	std::vector<SexAction> buildMasterActionDatabase() const;
 	void syncCategories(game* gameContext);
 	std::string interpolateNarrative(const std::string& templateStr, const SexParticipant& actor, const SexParticipant& target, const SexAction& action) const;
 };

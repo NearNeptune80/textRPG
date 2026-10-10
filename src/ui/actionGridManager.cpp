@@ -1722,6 +1722,10 @@ void ActionGridManager::refresh(game* gameContext)
                             if (!namedChar->activeSceneId.empty()) sceneToLoad = namedChar->activeSceneId;
                             else if (!namedChar->defaultSceneId.empty()) sceneToLoad = namedChar->defaultSceneId;
                         }
+                        if (sceneToLoad.empty() && !targetNPC->defaultSceneId.empty())
+                        {
+                            sceneToLoad = targetNPC->defaultSceneId;
+                        }
 
                         if (!sceneToLoad.empty())
                         {

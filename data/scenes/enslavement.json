@@ -1,0 +1,16 @@
+{
+  "scenes": [
+    {
+      "id": "scene_enslavement_success",
+      "speakerName": "ENSLAVEMENT BINDING",
+      "bodyText": "You fasten the enchanted servitude binding securely onto {target.name}. A burst of coercive arcane light flares across the runes woven into the garment, sinking deep into their skin, aura, and mind.\n\nTheir resistance rapidly crumbles as their willpower is enveloped by the binding enchant. Looking up at you with wide, compliant eyes, their breathing slows.\n\n'{player.name}... I am yours. I submit to your authority completely.'\n\n{target.name} has been successfully enslaved and bound to your service.",
+      "choices": [
+        {
+          "label": "Continue",
+          "tooltip": "Acknowledge the subjugation and return to the overworld.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    }
+  ]
+}

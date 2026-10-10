@@ -1,0 +1,39 @@
+{
+  "scenes": [
+    {
+      "id": "debug_content_test_scene",
+      "speakerName": "Debug Content Inspector",
+      "bodyText": "Welcome to the Content Preference Test Suite.\n\nThis scene demonstrates text-level narrative gating and choice-level gating based on your Sex & Fetishes content toggles:\n\nStandard text: The chamber is dimly lit with glowing runes etched into the stone walls.\n\n[content:watersports:Golden Urination]A warm stream of golden fluid splashes across the dungeon stone floor, glistening in the torchlight.[/content]\n\n[content:bdsm:Heavy Bondage & Restraints]Heavy iron shackles and thick leather straps bind your arms firmly to the pillar, testing your endurance.[/content]\n\n[content:tentacles:Lurking Tentacles]Sinewy purple tentacles slide from the underground canal, pulsing with unnatural heat.[/content]\n\nSelect a choice below to verify choice-level gating and warning tags:",
+      "choices": [
+        {
+          "label": "Examine the chamber (Safe choice)",
+          "tooltip": "A safe action with no sensitive content tags.",
+          "nextSceneId": "debug_content_test_scene"
+        },
+        {
+          "label": "Touch the writhe of tentacles",
+          "tooltip": "Interacts with tentacle creatures.",
+          "nextSceneId": "debug_content_test_scene",
+          "contentTags": ["tentacles"]
+        },
+        {
+          "label": "Submit to heavy bondage",
+          "tooltip": "Tied with heavy leather and chains.",
+          "nextSceneId": "debug_content_test_scene",
+          "contentTags": ["bdsm"]
+        },
+        {
+          "label": "Experience watersports stream",
+          "tooltip": "Exposed to golden showers.",
+          "nextSceneId": "debug_content_test_scene",
+          "contentTags": ["watersports"]
+        },
+        {
+          "label": "Leave Test Scene",
+          "tooltip": "Exit back to exploration.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    }
+  ]
+}

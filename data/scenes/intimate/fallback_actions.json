@@ -1,0 +1,26 @@
+{
+  "actions": [
+    {
+      "id": "partner_kiss",
+      "name": "Passionate Kiss",
+      "description": "Lock lips with your partner in a passionate, tender embrace.",
+      "category": "Partner",
+      "isSolo": false,
+      "isContinuous": true,
+      "actorSlot": "MOUTH",
+      "targetSlot": "MOUTH",
+      "values": {
+        "arousalSelf": 12.0,
+        "arousalPartner": 14.0,
+        "dominanceShift": 0.0,
+        "fluidProducedMl": 0.5
+      },
+      "validStances": [
+        "MISSIONARY",
+        "KNEELING",
+        "STANDING",
+        "LAP_SITTING"
+      ]
+    }
+  ]
+}

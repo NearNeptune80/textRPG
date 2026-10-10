@@ -62,22 +62,22 @@ This audit inspects all C++ header (`.h`) and source (`.cpp`) files across the c
 
 ### 1.4 Dialogue (16 items)
 
-- [ ] `src/state/sexState.cpp:565`: `catch (...) {}` empty exception handler when loading `data/scenes/sex_actions.json`. `[Missing Logic]`
-- [ ] `src/quest/questDatabase.cpp:360-408`: Complete scene `debug_content_test_scene` with body text and 5 `dialogueChoice` options hardcoded directly in C++. `[Hardcoded Mock Data]`
-- [ ] `src/quest/questDatabase.cpp:410-425`: Complete narrative scene `scene_enslavement_success` with speaker, body text, and choice hardcoded in C++. `[Hardcoded Mock Data]`
-- [ ] `src/map/encounterResolver.cpp:50-80`: Ambush encounter scene (`buildEncounterScene`) body text and 4 choices (`"Fight"`, `"Bribe (25¤)"`, `"Evade / Flee"`, `"Surrender"`) hardcoded directly in C++. `[Hardcoded Mock Data]`
-- [ ] `src/map/encounterResolver.cpp:83-97`: Encounter victory flavor texts (`selectFlavorText`) hardcoded for forest, house, and generic environments directly in C++. `[Hardcoded Mock Data]`
-- [ ] `src/map/encounterResolver.cpp:99-130`: Post-combat victory scene (`buildVictoryScene`) with choices (`"Leave / Spare"`, `"Permanently Remove"`, `"Loot"`, `"Interrogate"`) hardcoded directly in C++. `[Hardcoded Mock Data]`
-- [ ] `src/core/game.cpp:1490-1515`: Content filter choice warning dialogue scene (`"warning_choice_"`) with prompt text and `"Proceed"` / `"Cancel"` choices constructed via C++ strings. `[Hardcoded Mock Data]`
-- [ ] `src/core/game.cpp:1945-1965`: Content filter scene warning dialogue (`"warning_"`) with prompt text and `"Proceed to Scene"` / `"Skip Scene"` choices constructed via C++ strings. `[Hardcoded Mock Data]`
-- [ ] `src/core/game.cpp:2385-2398`: Fallback transformation dialogue scene (`"Bodily Sensation"`, body text, and `"Continue"` choice) hardcoded in C++. `[Hardcoded Mock Data]`
-- [ ] `src/state/encounterResolutionState.cpp:331-335`: NPC conversation narrative log (`"You speak with {}. They look back at you with wary curiosity..."`) hardcoded in C++. `[Hardcoded Mock Data]`
-- [ ] `src/state/sexState.cpp:308-320`: Solitary and partner encounter intro narrative strings hardcoded in C++. `[Hardcoded Mock Data]`
-- [ ] `src/state/sexState.cpp:570-584`: Fallback action `partner_kiss` ("Passionate Kiss") hardcoded in C++ if JSON is missing. `[Hardcoded Mock Data]`
-- [ ] `src/state/sexState.cpp:2135-2225`: Plead, endure, beg climax, and struggle result narrative texts hardcoded in C++. `[Hardcoded Mock Data]`
-- [ ] `src/state/sexState.cpp:2235-2300`: Orgasm, ejaculation, and conception narrative generation strings hardcoded in C++. `[Hardcoded Mock Data]`
-- [ ] `src/entities/namedCharacter.cpp:185`: `nc->defaultSceneId = cJson.value("dialogueSceneId", "");` loads `defaultSceneId`, but character conversation interactions in `actionGridManager.cpp:1790` and exploration bypass NPC dialogue trees unless a specific quest trigger is active. `[Unwired State]`
-- [ ] `src/entities/perkDatabase.h:19`: `std::vector<std::string> flags;` stores dialogue/scene unlock flags, but these flags are never evaluated during dialogue choice condition checks in `game::checkSingleCondition`. `[Unwired State]`
+- [x] `src/state/sexState.cpp:565`: `catch (...) {}` empty exception handler when loading `data/scenes/sex_actions.json`. `[Missing Logic]`
+- [x] `src/quest/questDatabase.cpp:360-408`: Complete scene `debug_content_test_scene` with body text and 5 `dialogueChoice` options hardcoded directly in C++. `[Hardcoded Mock Data]`
+- [x] `src/quest/questDatabase.cpp:410-425`: Complete narrative scene `scene_enslavement_success` with speaker, body text, and choice hardcoded in C++. `[Hardcoded Mock Data]`
+- [x] `src/map/encounterResolver.cpp:50-80`: Ambush encounter scene (`buildEncounterScene`) body text and 4 choices (`"Fight"`, `"Bribe (25¤)"`, `"Evade / Flee"`, `"Surrender"`) hardcoded directly in C++. `[Hardcoded Mock Data]`
+- [x] `src/map/encounterResolver.cpp:83-97`: Encounter victory flavor texts (`selectFlavorText`) hardcoded for forest, house, and generic environments directly in C++. `[Hardcoded Mock Data]`
+- [x] `src/map/encounterResolver.cpp:99-130`: Post-combat victory scene (`buildVictoryScene`) with choices (`"Leave / Spare"`, `"Permanently Remove"`, `"Loot"`, `"Interrogate"`) hardcoded directly in C++. `[Hardcoded Mock Data]`
+- [x] `src/core/game.cpp:1490-1515`: Content filter choice warning dialogue scene (`"warning_choice_"`) with prompt text and `"Proceed"` / `"Cancel"` choices constructed via C++ strings. `[Hardcoded Mock Data]`
+- [x] `src/core/game.cpp:1945-1965`: Content filter scene warning dialogue (`"warning_"`) with prompt text and `"Proceed to Scene"` / `"Skip Scene"` choices constructed via C++ strings. `[Hardcoded Mock Data]`
+- [x] `src/core/game.cpp:2385-2398`: Fallback transformation dialogue scene (`"Bodily Sensation"`, body text, and `"Continue"` choice) hardcoded in C++. `[Hardcoded Mock Data]`
+- [x] `src/state/encounterResolutionState.cpp:331-335`: NPC conversation narrative log (`"You speak with {}. They look back at you with wary curiosity..."`) hardcoded in C++. `[Hardcoded Mock Data]`
+- [x] `src/state/sexState.cpp:308-320`: Solitary and partner encounter intro narrative strings hardcoded in C++. `[Hardcoded Mock Data]`
+- [x] `src/state/sexState.cpp:570-584`: Fallback action `partner_kiss` ("Passionate Kiss") hardcoded in C++ if JSON is missing. `[Hardcoded Mock Data]`
+- [x] `src/state/sexState.cpp:2135-2225`: Plead, endure, beg climax, and struggle result narrative texts hardcoded in C++. `[Hardcoded Mock Data]`
+- [x] `src/state/sexState.cpp:2235-2300`: Orgasm, ejaculation, and conception narrative generation strings hardcoded in C++. `[Hardcoded Mock Data]`
+- [x] `src/entities/namedCharacter.cpp:185`: `nc->defaultSceneId = cJson.value("dialogueSceneId", "");` loads `defaultSceneId`, but character conversation interactions in `actionGridManager.cpp:1790` and exploration bypass NPC dialogue trees unless a specific quest trigger is active. `[Unwired State]`
+- [x] `src/entities/perkDatabase.h:19`: `std::vector<std::string> flags;` stores dialogue/scene unlock flags, but these flags are never evaluated during dialogue choice condition checks in `game::checkSingleCondition`. `[Unwired State]`
 
 ### 1.5 UI Adapter (7 items)
 

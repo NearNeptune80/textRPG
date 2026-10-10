@@ -1,0 +1,28 @@
+{
+  "intros": {
+    "solo": "You find a private, quiet space to indulge in intimate solitary pleasure.",
+    "pair_dominant": "Encounter begins in {} position. You assume control over {}, dictating the pace of the encounter.",
+    "pair_submissive": "Encounter begins in {} position. {} takes control of the situation, holding you in a submissive position.",
+    "group": "An intense group intimate encounter begins in {} position with {} participants."
+  },
+  "struggle_actions": {
+    "plead": "You plead softly with {}, asking for gentle consideration.",
+    "endure": "You close your eyes and passively endure {}'s touch, letting the sensations wash over you.",
+    "beg_climax": "You whimper helplessly, begging your partner to let you climax!",
+    "struggle_success": "With a sudden burst of strength, you forcefully shove {} back, breaking free from their hold and seizing control!",
+    "struggle_overpowered": "You thrash against {}'s grip, but they effortlessly pin your wrists and overpower your resistance!"
+  },
+  "climax": {
+    "climax_player": "A violent shudder wracks your body as an overwhelming orgasm surges through your core!",
+    "climax_other": "A violent shudder wracks {}'s body as an overwhelming orgasm surges through their core!",
+    "ejaculate_orifice_player": "You ejaculate {} of warm cum directly into {}'s orifice!",
+    "ejaculate_orifice_target_player": "{} ejaculates {} of warm cum directly into your orifice!",
+    "ejaculate_orifice_other": "{} ejaculates {} of warm cum directly into {}'s orifice!",
+    "ejaculate_surface_player": "You ejaculate {} of warm cum across {}'s body surface!",
+    "ejaculate_surface_target_player": "{} ejaculates {} of warm cum across your body surface!",
+    "ejaculate_surface_other": "{} ejaculates {} of warm cum across {}'s body surface!",
+    "conception_player": "Your womb receives the potent seed, conceiving a new offspring!",
+    "conception_other": "{}'s womb receives the potent seed, conceiving a new offspring!",
+    "lactation": "{}'s engorged breasts leak {} of sweet milk in response to their intense orgasm!"
+  }
+}

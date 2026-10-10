@@ -1,7 +1,9 @@
 #include "state/encounterResolutionState.h"
 
 #include <format>
+#include <fstream>
 #include <memory>
+#include <nlohmann/json.hpp>
 
 #include "core/characterDescription.h"
 #include "core/game.h"
@@ -324,6 +326,26 @@ void encounterResolutionState::handleTransformEnemy(game* gameContext)
     gameContext->changeState(std::make_unique<transformationState>(TransformationTab::CORE, std::move(returnState), rec.npc));
 }
 
+static std::string loadTalkDefaultTemplate()
+{
+    std::string templateStr = "You speak with {}. They look back at you with wary curiosity, listening cautiously to your words.";
+    std::ifstream file("data/scenes/encounters.json");
+    if (file.is_open())
+    {
+        try
+        {
+            nlohmann::json j;
+            file >> j;
+            if (j.contains("dialogue_templates") && j["dialogue_templates"].contains("talk_default"))
+            {
+                templateStr = j["dialogue_templates"]["talk_default"].get<std::string>();
+            }
+        }
+        catch (...) {}
+    }
+    return templateStr;
+}
+
 void encounterResolutionState::handleTalkEnemy(game* gameContext)
 {
     if (!gameContext || m_selectedIndex >= m_records.size()) return;
@@ -331,7 +353,15 @@ void encounterResolutionState::handleTalkEnemy(game* gameContext)
     if (!rec.npc) return;
 
     rec.talkedTo = true;
-    m_resolutionLog = std::format("You speak with {}. They look back at you with wary curiosity, listening cautiously to your words.", rec.npc->name);
+    static const std::string talkTemplate = loadTalkDefaultTemplate();
+    try
+    {
+        m_resolutionLog = std::vformat(talkTemplate, std::make_format_args(rec.npc->name));
+    }
+    catch (...)
+    {
+        m_resolutionLog = std::format("You speak with {}. They look back at you with wary curiosity, listening cautiously to your words.", rec.npc->name);
+    }
     gameContext->addLogEntry("[TALK]", std::format("Spoke with {}.", rec.npc->name), { 180, 220, 180, 255 });
     gameContext->refreshActionGrid();
 }

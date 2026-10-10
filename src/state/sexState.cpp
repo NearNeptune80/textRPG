@@ -4,6 +4,7 @@
 #include <cmath>
 #include <format>
 #include <fstream>
+#include <iostream>
 #include <nlohmann/json.hpp>
 
 #include "common/randomEngine.h"
@@ -151,6 +152,177 @@ namespace
 			replaceAll(text, " their head between", " your head between");
 		}
 
+		return text;
+	}
+
+	struct IntimateNarrativeConfig
+	{
+		std::string introSolo = "You find a private, quiet space to indulge in intimate solitary pleasure.";
+		std::string introPairDominant = "Encounter begins in {} position. You assume control over {}, dictating the pace of the encounter.";
+		std::string introPairSubmissive = "Encounter begins in {} position. {} takes control of the situation, holding you in a submissive position.";
+		std::string introGroup = "An intense group intimate encounter begins in {} position with {} participants.";
+
+		std::string strugglePlead = "You plead softly with {}, asking for gentle consideration.";
+		std::string struggleEndure = "You close your eyes and passively endure {}'s touch, letting the sensations wash over you.";
+		std::string struggleBegClimax = "You whimper helplessly, begging your partner to let you climax!";
+		std::string struggleSuccess = "With a sudden burst of strength, you forcefully shove {} back, breaking free from their hold and seizing control!";
+		std::string struggleOverpowered = "You thrash against {}'s grip, but they effortlessly pin your wrists and overpower your resistance!";
+
+		std::string climaxPlayer = "A violent shudder wracks your body as an overwhelming orgasm surges through your core!";
+		std::string climaxOther = "A violent shudder wracks {}'s body as an overwhelming orgasm surges through their core!";
+		std::string ejaculateOrificePlayer = "You ejaculate {} of warm cum directly into {}'s orifice!";
+		std::string ejaculateOrificeTargetPlayer = "{} ejaculates {} of warm cum directly into your orifice!";
+		std::string ejaculateOrificeOther = "{} ejaculates {} of warm cum directly into {}'s orifice!";
+		std::string ejaculateSurfacePlayer = "You ejaculate {} of warm cum across {}'s body surface!";
+		std::string ejaculateSurfaceTargetPlayer = "{} ejaculates {} of warm cum across your body surface!";
+		std::string ejaculateSurfaceOther = "{} ejaculates {} of warm cum across {}'s body surface!";
+		std::string conceptionPlayer = "Your womb receives the potent seed, conceiving a new offspring!";
+		std::string conceptionOther = "{}'s womb receives the potent seed, conceiving a new offspring!";
+		std::string lactation = "{}'s engorged breasts leak {} of sweet milk in response to their intense orgasm!";
+	};
+
+	static IntimateNarrativeConfig loadIntimateNarrativeConfig()
+	{
+		IntimateNarrativeConfig cfg;
+		std::ifstream file("data/scenes/intimate/narratives.json");
+		if (file.is_open())
+		{
+			try
+			{
+				nlohmann::json j;
+				file >> j;
+				if (j.contains("intros"))
+				{
+					const auto& in = j["intros"];
+					cfg.introSolo = in.value("solo", cfg.introSolo);
+					cfg.introPairDominant = in.value("pair_dominant", cfg.introPairDominant);
+					cfg.introPairSubmissive = in.value("pair_submissive", cfg.introPairSubmissive);
+					cfg.introGroup = in.value("group", cfg.introGroup);
+				}
+				if (j.contains("struggle_actions"))
+				{
+					const auto& st = j["struggle_actions"];
+					cfg.strugglePlead = st.value("plead", cfg.strugglePlead);
+					cfg.struggleEndure = st.value("endure", cfg.struggleEndure);
+					cfg.struggleBegClimax = st.value("beg_climax", cfg.struggleBegClimax);
+					cfg.struggleSuccess = st.value("struggle_success", cfg.struggleSuccess);
+					cfg.struggleOverpowered = st.value("struggle_overpowered", cfg.struggleOverpowered);
+				}
+				if (j.contains("climax"))
+				{
+					const auto& cl = j["climax"];
+					cfg.climaxPlayer = cl.value("climax_player", cfg.climaxPlayer);
+					cfg.climaxOther = cl.value("climax_other", cfg.climaxOther);
+					cfg.ejaculateOrificePlayer = cl.value("ejaculate_orifice_player", cfg.ejaculateOrificePlayer);
+					cfg.ejaculateOrificeTargetPlayer = cl.value("ejaculate_orifice_target_player", cfg.ejaculateOrificeTargetPlayer);
+					cfg.ejaculateOrificeOther = cl.value("ejaculate_orifice_other", cfg.ejaculateOrificeOther);
+					cfg.ejaculateSurfacePlayer = cl.value("ejaculate_surface_player", cfg.ejaculateSurfacePlayer);
+					cfg.ejaculateSurfaceTargetPlayer = cl.value("ejaculate_surface_target_player", cfg.ejaculateSurfaceTargetPlayer);
+					cfg.ejaculateSurfaceOther = cl.value("ejaculate_surface_other", cfg.ejaculateSurfaceOther);
+					cfg.conceptionPlayer = cl.value("conception_player", cfg.conceptionPlayer);
+					cfg.conceptionOther = cl.value("conception_other", cfg.conceptionOther);
+					cfg.lactation = cl.value("lactation", cfg.lactation);
+				}
+			}
+			catch (const std::exception& e)
+			{
+				std::cerr << "Error loading data/scenes/intimate/narratives.json: " << e.what() << "\n";
+			}
+		}
+		return cfg;
+	}
+
+	static const IntimateNarrativeConfig& getIntimateNarratives()
+	{
+		static const auto cfg = loadIntimateNarrativeConfig();
+		return cfg;
+	}
+
+	static std::vector<SexAction> parseSexActionsFromFile(const std::string& path)
+	{
+		std::vector<SexAction> db;
+		std::ifstream file(path);
+		if (!file.is_open()) return db;
+
+		try
+		{
+			nlohmann::json j;
+			file >> j;
+			if (j.contains("actions") && j["actions"].is_array())
+			{
+				for (const auto& aJson : j["actions"])
+				{
+					SexAction act;
+					act.id = aJson.value("id", "");
+					act.name = aJson.value("name", "");
+					act.description = aJson.value("description", "");
+					act.category = aJson.value("category", "Generic");
+					act.isSolo = aJson.value("isSolo", false);
+					act.isContinuous = aJson.value("isContinuous", false);
+					act.continuousNarrative = aJson.value("continuousNarrative", "");
+					act.minDominance = aJson.value("minDominance", -100.0f);
+					act.maxDominance = aJson.value("maxDominance", 100.0f);
+					act.narrative = aJson.value("narrative", "");
+
+					if (aJson.contains("actorSlot")) act.actorSlot = stringToBodySlot(aJson["actorSlot"].get<std::string>());
+					if (aJson.contains("targetSlot")) act.targetSlot = stringToBodySlot(aJson["targetSlot"].get<std::string>());
+					act.handsRequired = aJson.value("handsRequired", 0);
+
+					if (aJson.contains("values"))
+					{
+						const auto& v = aJson["values"];
+						act.arousalGainSelf = v.value("arousalSelf", 15.0f);
+						act.arousalGainPartner = v.value("arousalPartner", 15.0f);
+						act.dominanceShift = v.value("dominanceShift", 0.0f);
+						act.fluidProducedMl = v.value("fluidProducedMl", 1.0f);
+					}
+
+					if (aJson.contains("requirements"))
+					{
+						const auto& r = aJson["requirements"];
+						if (r.contains("minDominance")) act.minDominance = r.value("minDominance", act.minDominance);
+						if (r.contains("maxDominance")) act.maxDominance = r.value("maxDominance", act.maxDominance);
+						act.requiresPenis = r.value("hasPenis", false);
+						act.requiresVagina = r.value("hasVagina", false);
+						act.requiresBreasts = r.value("hasBreasts", false);
+						act.actorRequiresPenis = r.value("actorHasPenis", false);
+						act.actorRequiresVagina = r.value("actorHasVagina", false);
+						act.actorRequiresBreasts = r.value("actorHasBreasts", false);
+						act.targetRequiresPenis = r.value("targetHasPenis", false);
+						act.targetRequiresVagina = r.value("targetHasVagina", false);
+						act.targetRequiresBreasts = r.value("targetHasBreasts", false);
+						act.minArousal = r.value("minArousal", 0.0f);
+					}
+
+					if (aJson.contains("validStances") && aJson["validStances"].is_array())
+					{
+						for (const auto& st : aJson["validStances"])
+						{
+							act.validStances.push_back(stringToSexStance(st.get<std::string>()));
+						}
+					}
+
+					db.push_back(act);
+				}
+			}
+		}
+		catch (const std::exception& e)
+		{
+			std::cerr << "Error loading actions from " << path << ": " << e.what() << "\n";
+		}
+		return db;
+	}
+
+	static std::string formatTemplate(std::string text, const std::vector<std::string>& args)
+	{
+		for (const auto& arg : args)
+		{
+			size_t pos = text.find("{}");
+			if (pos != std::string::npos)
+			{
+				text.replace(pos, 2, arg);
+			}
+		}
 		return text;
 	}
 }
@@ -301,9 +473,10 @@ void sexState::initialise(game* gameContext)
 	updateAllAttitudes();
 	syncCategories(gameContext);
 
+	const auto& narrCfg = getIntimateNarratives();
 	if (isSolo())
 	{
-		appendNarrativeEntry("You find a private, quiet space to indulge in intimate solitary pleasure.", "Scene", "Encounter Start", false, true);
+		appendNarrativeEntry(narrCfg.introSolo, "Scene", "Encounter Start", false, true);
 	}
 	else if (m_participants.size() == 2)
 	{
@@ -311,16 +484,16 @@ void sexState::initialise(game* gameContext)
 		std::string pName = targetP ? targetP->getName() : "your partner";
 		if (isPlayerDominant())
 		{
-			appendNarrativeEntry(std::format("Encounter begins in {} position. You assume control over {}, dictating the pace of the encounter.", sexStanceToString(m_stance), pName), "Scene", "Encounter Start", false, true);
+			appendNarrativeEntry(formatTemplate(narrCfg.introPairDominant, { sexStanceToString(m_stance), pName }), "Scene", "Encounter Start", false, true);
 		}
 		else
 		{
-			appendNarrativeEntry(std::format("Encounter begins in {} position. {} takes control of the situation, holding you in a submissive position.", sexStanceToString(m_stance), pName), "Scene", "Encounter Start", false, true);
+			appendNarrativeEntry(formatTemplate(narrCfg.introPairSubmissive, { sexStanceToString(m_stance), pName }), "Scene", "Encounter Start", false, true);
 		}
 	}
 	else
 	{
-		appendNarrativeEntry(std::format("An intense group intimate encounter begins in {} position with {} participants.", sexStanceToString(m_stance), m_participants.size()), "Scene", "Encounter Start", false, true);
+		appendNarrativeEntry(formatTemplate(narrCfg.introGroup, { sexStanceToString(m_stance), std::to_string(m_participants.size()) }), "Scene", "Encounter Start", false, true);
 	}
 }
 
@@ -490,76 +663,12 @@ SexPhase sexState::getScenePhase() const
 
 std::vector<SexAction> sexState::buildMasterActionDatabase() const
 {
-	std::vector<SexAction> db;
+	auto db = parseSexActionsFromFile("data/scenes/sex_actions.json");
+	if (!db.empty()) return db;
 
-	std::ifstream file("data/scenes/sex_actions.json");
-	if (file.is_open())
-	{
-		try
-		{
-			nlohmann::json j;
-			file >> j;
-			if (j.contains("actions") && j["actions"].is_array())
-			{
-				for (const auto& aJson : j["actions"])
-				{
-					SexAction act;
-					act.id = aJson.value("id", "");
-					act.name = aJson.value("name", "");
-					act.description = aJson.value("description", "");
-					act.category = aJson.value("category", "Generic");
-					act.isSolo = aJson.value("isSolo", false);
-					act.isContinuous = aJson.value("isContinuous", false);
-					act.continuousNarrative = aJson.value("continuousNarrative", "");
-					act.minDominance = aJson.value("minDominance", -100.0f);
-					act.maxDominance = aJson.value("maxDominance", 100.0f);
-					act.narrative = aJson.value("narrative", "");
-
-					if (aJson.contains("actorSlot")) act.actorSlot = stringToBodySlot(aJson["actorSlot"].get<std::string>());
-					if (aJson.contains("targetSlot")) act.targetSlot = stringToBodySlot(aJson["targetSlot"].get<std::string>());
-					act.handsRequired = aJson.value("handsRequired", 0);
-
-					if (aJson.contains("values"))
-					{
-						const auto& v = aJson["values"];
-						act.arousalGainSelf = v.value("arousalSelf", 15.0f);
-						act.arousalGainPartner = v.value("arousalPartner", 15.0f);
-						act.dominanceShift = v.value("dominanceShift", 0.0f);
-						act.fluidProducedMl = v.value("fluidProducedMl", 1.0f);
-					}
-
-					if (aJson.contains("requirements"))
-					{
-						const auto& r = aJson["requirements"];
-						if (r.contains("minDominance")) act.minDominance = r.value("minDominance", act.minDominance);
-						if (r.contains("maxDominance")) act.maxDominance = r.value("maxDominance", act.maxDominance);
-						act.requiresPenis = r.value("hasPenis", false);
-						act.requiresVagina = r.value("hasVagina", false);
-						act.requiresBreasts = r.value("hasBreasts", false);
-						act.actorRequiresPenis = r.value("actorHasPenis", false);
-						act.actorRequiresVagina = r.value("actorHasVagina", false);
-						act.actorRequiresBreasts = r.value("actorHasBreasts", false);
-						act.targetRequiresPenis = r.value("targetHasPenis", false);
-						act.targetRequiresVagina = r.value("targetHasVagina", false);
-						act.targetRequiresBreasts = r.value("targetHasBreasts", false);
-						act.minArousal = r.value("minArousal", 0.0f);
-					}
-
-					if (aJson.contains("validStances") && aJson["validStances"].is_array())
-					{
-						for (const auto& st : aJson["validStances"])
-						{
-							act.validStances.push_back(stringToSexStance(st.get<std::string>()));
-						}
-					}
-
-					db.push_back(act);
-				}
-				return db;
-			}
-		}
-		catch (...) {}
-	}
+	// Safe fallback behavior loading from data/scenes/intimate/fallback_actions.json
+	db = parseSexActionsFromFile("data/scenes/intimate/fallback_actions.json");
+	if (!db.empty()) return db;
 
 	SexAction kiss;
 	kiss.id = "partner_kiss";
@@ -2085,7 +2194,7 @@ void sexState::handlePleadSuggest(game* gameContext)
 
 	std::erase_if(m_ongoingActions, [](const auto& oa) { return oa.actorIndex == 0; });
 
-	appendNarrativeEntry(std::format("You plead softly with {}, asking for gentle consideration.", pName), "You", "Plead", true, false);
+	appendNarrativeEntry(formatTemplate(getIntimateNarratives().strugglePlead, { pName }), "You", "Plead", true, false);
 	if (playerP) playerP->dominanceScore = std::clamp(playerP->dominanceScore - 4.0f, -100.0f, 100.0f);
 
 	processPartnerTurn(gameContext);
@@ -2106,7 +2215,7 @@ void sexState::handleEndure(game* gameContext)
 		playerP->stamina = std::clamp(playerP->stamina + 15.0f, 0.0f, 100.0f);
 	}
 
-	appendNarrativeEntry(std::format("You close your eyes and passively endure {}'s touch, letting the sensations wash over you.", pName), "You", "Endure", true, false);
+	appendNarrativeEntry(formatTemplate(getIntimateNarratives().struggleEndure, { pName }), "You", "Endure", true, false);
 	processPartnerTurn(gameContext);
 }
 
@@ -2119,7 +2228,7 @@ void sexState::handleBegClimax(game* gameContext)
 		playerP->dominanceScore = std::clamp(playerP->dominanceScore - 6.0f, -100.0f, 100.0f);
 	}
 
-	appendNarrativeEntry("You whimper helplessly, begging your partner to let you climax!", "You", "Beg for Climax", true, false);
+	appendNarrativeEntry(getIntimateNarratives().struggleBegClimax, "You", "Beg for Climax", true, false);
 	processPartnerTurn(gameContext);
 }
 
@@ -2154,7 +2263,7 @@ void sexState::handleStruggle(game* gameContext)
 
 		clearAllOngoingActions();
 
-		appendNarrativeEntry(std::format("With a sudden burst of strength, you forcefully shove {} back, breaking free from their hold and seizing control!", targetP->getName()), "You", "Struggle Success", true, false);
+		appendNarrativeEntry(formatTemplate(getIntimateNarratives().struggleSuccess, { targetP->getName() }), "You", "Struggle Success", true, false);
 		checkAllOrgasms(gameContext);
 		m_turnCount++;
 		updateAllAttitudes();
@@ -2167,7 +2276,7 @@ void sexState::handleStruggle(game* gameContext)
 		playerP->stamina = std::clamp(playerP->stamina - 20.0f, 0.0f, 100.0f);
 		playerP->resistedLastTurn = true;
 
-		appendNarrativeEntry(std::format("You thrash against {}'s grip, but they effortlessly pin your wrists and overpower your resistance!", targetP->getName()), "You", "Struggle Overpowered", true, false);
+		appendNarrativeEntry(formatTemplate(getIntimateNarratives().struggleOverpowered, { targetP->getName() }), "You", "Struggle Overpowered", true, false);
 		processPartnerTurn(gameContext);
 	}
 }
@@ -2181,9 +2290,11 @@ void sexState::processOrgasm(game* gameContext, entity* orgasmingEntity, entity*
 	bool isPlayerOrg = (orgasmingEntity == (gameContext ? gameContext->getPlayer() : nullptr));
 	bool isPlayerRec = (receivingEntity == (gameContext ? gameContext->getPlayer() : nullptr));
 
+	const auto& narrCfg = getIntimateNarratives();
+
 	std::string climNarr = isPlayerOrg
-		? "A violent shudder wracks your body as an overwhelming orgasm surges through your core!"
-		: std::format("A violent shudder wracks {}'s body as an overwhelming orgasm surges through their core!", oName);
+		? narrCfg.climaxPlayer
+		: formatTemplate(narrCfg.climaxOther, { oName });
 	appendNarrativeEntry(climNarr, isPlayerOrg ? "You" : oName, "Climax", isPlayerOrg, true);
 
 	float fluidMult = (gameContext && gameContext->settings.content.fluidMultiplier > 0.0f) ? gameContext->settings.content.fluidMultiplier : 1.0f;
@@ -2202,13 +2313,13 @@ void sexState::processOrgasm(game* gameContext, entity* orgasmingEntity, entity*
 			std::string ejNarr;
 			if (isPlayerOrg)
 			{
-				ejNarr = std::format("You ejaculate {} of warm cum directly into {}'s orifice!", cumStr, rName);
+				ejNarr = formatTemplate(narrCfg.ejaculateOrificePlayer, { cumStr, rName });
 			}
 			else
 			{
 				ejNarr = isPlayerRec
-					? std::format("{} ejaculates {} of warm cum directly into your orifice!", oName, cumStr)
-					: std::format("{} ejaculates {} of warm cum directly into {}'s orifice!", oName, cumStr, rName);
+					? formatTemplate(narrCfg.ejaculateOrificeTargetPlayer, { oName, cumStr })
+					: formatTemplate(narrCfg.ejaculateOrificeOther, { oName, cumStr, rName });
 			}
 			appendNarrativeEntry(ejNarr, isPlayerOrg ? "You" : oName, "Ejaculation", isPlayerOrg, true);
 
@@ -2222,8 +2333,8 @@ void sexState::processOrgasm(game* gameContext, entity* orgasmingEntity, entity*
 				if (success)
 				{
 					std::string concNarr = isPlayerRec
-						? "Your womb receives the potent seed, conceiving a new offspring!"
-						: std::format("{}'s womb receives the potent seed, conceiving a new offspring!", rName);
+						? narrCfg.conceptionPlayer
+						: formatTemplate(narrCfg.conceptionOther, { rName });
 					appendNarrativeEntry(concNarr, isPlayerRec ? "You" : rName, "Conception", isPlayerRec, true);
 				}
 			}
@@ -2233,13 +2344,13 @@ void sexState::processOrgasm(game* gameContext, entity* orgasmingEntity, entity*
 			std::string ejNarr;
 			if (isPlayerOrg)
 			{
-				ejNarr = std::format("You ejaculate {} of warm cum across {}'s body surface!", cumStr, rName);
+				ejNarr = formatTemplate(narrCfg.ejaculateSurfacePlayer, { cumStr, rName });
 			}
 			else
 			{
 				ejNarr = isPlayerRec
-					? std::format("{} ejaculates {} of warm cum across your body surface!", oName, cumStr)
-					: std::format("{} ejaculates {} of warm cum across {}'s body surface!", oName, cumStr, rName);
+					? formatTemplate(narrCfg.ejaculateSurfaceTargetPlayer, { oName, cumStr })
+					: formatTemplate(narrCfg.ejaculateSurfaceOther, { oName, cumStr, rName });
 			}
 			appendNarrativeEntry(ejNarr, isPlayerOrg ? "You" : oName, "Ejaculation", isPlayerOrg, true);
 		}
@@ -2251,7 +2362,7 @@ void sexState::processOrgasm(game* gameContext, entity* orgasmingEntity, entity*
 		float milkAmount = std::min(breasts->currentFluidMl, 25.0f * fluidMult);
 		breasts->currentFluidMl = std::max(0.0f, breasts->currentFluidMl - milkAmount);
 		std::string milkStr = unitFormatter::formatFluid(milkAmount, unitPref);
-		appendNarrativeEntry(std::format("{}'s engorged breasts leak {} of sweet milk in response to their intense orgasm!", isPlayerOrg ? "Your" : (oName + "'s"), milkStr), isPlayerOrg ? "You" : oName, "Lactation", isPlayerOrg, true);
+		appendNarrativeEntry(formatTemplate(narrCfg.lactation, { isPlayerOrg ? "Your" : (oName + "'s"), milkStr }), isPlayerOrg ? "You" : oName, "Lactation", isPlayerOrg, true);
 	}
 
 	for (auto& p : m_participants)

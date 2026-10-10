@@ -177,12 +177,13 @@ bool NamedCharacterManager::loadFromDirectory(const std::string& dirPath)
         nc->id = cJson.at("id").get<std::string>();
         nc->name = cJson.value("name", "Unknown");
         nc->title = cJson.value("title", "");
-        nc->defaultSceneId = cJson.value("dialogueSceneId", "");
+        nc->defaultSceneId = cJson.value("dialogueSceneId", cJson.value("defaultSceneId", ""));
         nc->isMerchant = cJson.value("isMerchant", false);
         nc->buyMarkup = cJson.value("buyMarkup", 1.0f);
         nc->sellMarkdown = cJson.value("sellMarkdown", 0.5f);
 
         auto ent = std::make_shared<entity>(nc->id, nc->name);
+        ent->defaultSceneId = nc->defaultSceneId;
         ent->stats.level = cJson.value("level", 1);
         ent->stats.setBaseStat("currency", static_cast<float>(cJson.value("currency", 0)));
         ent->buyMarkup = nc->buyMarkup;

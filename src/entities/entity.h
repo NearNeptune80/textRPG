@@ -20,6 +20,7 @@ class entity
 public:
     std::string id;
     std::string name;
+    std::string defaultSceneId = "";
 
     SexualOrientation orientation = SexualOrientation::HETEROSEXUAL;
     GenderArchetype genderArchetype = GenderArchetype::MALE;

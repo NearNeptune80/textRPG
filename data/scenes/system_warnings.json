@@ -1,0 +1,18 @@
+{
+  "warning_choice": {
+    "speakerName": "CONTENT WARNING",
+    "promptFormat": "Warning: The option '{}' leads to sensitive content: [{}]\n\nDo you wish to proceed or return?",
+    "proceedLabel": "Proceed",
+    "proceedTooltip": "Proceed with this choice.",
+    "cancelLabel": "Cancel",
+    "cancelTooltip": "Return to previous options."
+  },
+  "warning_scene": {
+    "speakerName": "CONTENT WARNING",
+    "promptFormat": "Warning: The following scene contains sensitive content: [{}]\n\nDo you wish to proceed with this scene or skip it?",
+    "proceedLabel": "Proceed to Scene",
+    "proceedTooltip": "Acknowledge warning and view scene.",
+    "skipLabel": "Skip Scene",
+    "skipTooltip": "Cancel and return without viewing."
+  }
+}

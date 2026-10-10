@@ -1,0 +1,16 @@
+{
+  "scenes": [
+    {
+      "id": "trans_generic_change",
+      "speakerName": "Bodily Sensation",
+      "bodyText": "You feel a strange magical vibration course throughout your body, subtly altering your physical form.",
+      "choices": [
+        {
+          "label": "Continue",
+          "tooltip": "Acknowledge the transformation and proceed.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    }
+  ]
+}
