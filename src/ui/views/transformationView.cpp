@@ -582,7 +582,7 @@ namespace TransformationView
 
             case TransformationTab::CROTCH_BOOBS:
             {
-                static const std::vector<std::string> crotchTypes = { "None", "Bovine Udders", "Caprine Udders", "Feline Crotch-Boobs", "Canine Teats" };
+                const auto& crotchTypes = EditorConfig::Catalogs::crotchTypes();
                 bodyPart* crotchPart = player->anatomy.getPart(bodySlot::HIPS);
                 std::string curCrotchType = (crotchPart && !crotchPart->style.empty()) ? crotchPart->style : "None";
                 curY += drawPillCard(renderer, gameContext, rect, padX, curY, availableW, "Crotch-Boobs & Udders", "Secondary udder / crotch mammary glands.", crotchTypes, curCrotchType, [&](const std::string& ct) {

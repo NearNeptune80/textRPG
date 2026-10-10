@@ -57,6 +57,9 @@ public:
     const std::vector<std::string>& getTileTags(int x, int y) const;
     std::string getTileTitle(int x, int y) const;
 
+    static std::string getMapNameById(const std::string& mapId);
+    static std::string getMapEntranceDescription(const std::string& mapId);
+
 private:
     int width = 0;
     int height = 0;

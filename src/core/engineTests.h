@@ -37,5 +37,6 @@ namespace EngineTests
     bool testUnifiedFetishesAndCombatResolutionSex();
     bool testCombatDataMigrationAndStatusEvaluation();
     bool testDialogueScenesAndPerkConditionWiring();
+    bool testUIAdapterDynamicCatalogAndActionGrid();
 }
 

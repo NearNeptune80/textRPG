@@ -77,6 +77,7 @@ bool gameMap::loadFromFile(const std::string& filePath)
                 w.targetX = wJson.at("targetX").get<int>();
                 w.targetY = wJson.at("targetY").get<int>();
                 w.label = wJson.value("label", "");
+                w.entranceDescription = wJson.value("entranceDescription", wJson.value("doorDescription", wJson.value("description", "")));
                 warps.push_back(w);
 
                 getRuntimeData(w.x, w.y).iconId = "icon_door";
@@ -682,4 +683,61 @@ void gameMap::loadStateFromJson(const json& j)
             }
         }
     }
+}
+
+std::string gameMap::getMapNameById(const std::string& mapId)
+{
+    if (mapId.empty()) return "";
+    static std::unordered_map<std::string, std::string> cache;
+    auto it = cache.find(mapId);
+    if (it != cache.end()) return it->second;
+
+    std::string path = "data/maps/" + mapId + ".json";
+    std::ifstream file(path);
+    if (file.is_open())
+    {
+        try
+        {
+            nlohmann::json j;
+            file >> j;
+            std::string name = j.value("name", mapId);
+            cache[mapId] = name;
+            return name;
+        }
+        catch (...) {}
+    }
+    cache[mapId] = mapId;
+    return mapId;
+}
+
+std::string gameMap::getMapEntranceDescription(const std::string& mapId)
+{
+    if (mapId.empty()) return "";
+    static std::unordered_map<std::string, std::string> cache;
+    auto it = cache.find(mapId);
+    if (it != cache.end()) return it->second;
+
+    std::string path = "data/maps/" + mapId + ".json";
+    std::ifstream file(path);
+    if (file.is_open())
+    {
+        try
+        {
+            nlohmann::json j;
+            file >> j;
+            std::string desc = j.value("entranceDescription", "");
+            if (desc.empty())
+            {
+                std::string name = j.value("name", "");
+                if (!name.empty()) desc = "the " + name;
+                else desc = "the " + mapId;
+            }
+            cache[mapId] = desc;
+            return desc;
+        }
+        catch (...) {}
+    }
+    std::string fallback = "the " + mapId;
+    cache[mapId] = fallback;
+    return fallback;
 }

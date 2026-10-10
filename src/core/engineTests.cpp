@@ -40,6 +40,7 @@
 #include "state/combatState.h"
 #include "state/encounterResolutionState.h"
 #include "state/sexState.h"
+#include "state/editorConfig.h"
 #include "map/encounterResolver.h"
 #include "ui/layoutEngine.h"
 #include "core/contentFilterManager.h"
@@ -5814,6 +5815,119 @@ namespace EngineTests
         return allPassed;
     }
 
+    bool testUIAdapterDynamicCatalogAndActionGrid()
+    {
+        std::cout << "\n--- Running Test 49: UI Adapter Dynamic Catalogs, Warps & Combat Action Grid ---\n";
+        bool allPassed = true;
+
+        // 1. Dynamic Combat Action Grid Generation
+        game combatGame;
+        auto hero = std::make_shared<entity>("player_hero", "Hero");
+        hero->stats.setBaseStat("stamina", 100.0f);
+        hero->stats.setBaseStat("mana", 100.0f);
+        combatGame.Player = hero.get();
+        combatGame.playerEntity = hero;
+
+        auto bandit = std::make_shared<entity>("bandit_01", "Bandit");
+        combatGame.changeState(std::make_unique<CombatState>(
+            std::vector<std::shared_ptr<entity>>{ hero },
+            std::vector<std::shared_ptr<entity>>{ bandit }));
+        auto* combat = dynamic_cast<CombatState*>(combatGame.getActiveState());
+
+        // MAGIC focus
+        combat->setCombatFocus(CombatFocus::MAGIC);
+        combatGame.refreshActionGrid();
+        bool hasArcaneDart = false;
+        bool hasFireball = false;
+        for (const auto& slot : combatGame.activeActionSlots)
+        {
+            if (slot.label.find("Arcane Dart") != std::string::npos && slot.label.find("10 MP") != std::string::npos) hasArcaneDart = true;
+            if (slot.label.find("Fireball") != std::string::npos && slot.label.find("25 MP") != std::string::npos) hasFireball = true;
+        }
+        bool magicOk = hasArcaneDart && hasFireball;
+        logResult("ActionGrid dynamically populates combat spells from SpellDatabase with data-driven MP costs", magicOk);
+        allPassed &= magicOk;
+
+        // DEFENSE focus
+        combat->setCombatFocus(CombatFocus::DEFENSE);
+        combatGame.refreshActionGrid();
+        bool hasGuard = false;
+        bool hasParry = false;
+        for (const auto& slot : combatGame.activeActionSlots)
+        {
+            if (slot.label.find("Guard Stance") != std::string::npos && slot.label.find("15 Sta") != std::string::npos) hasGuard = true;
+            if (slot.label.find("Counter Parry") != std::string::npos && slot.label.find("25 Sta") != std::string::npos) hasParry = true;
+        }
+        bool defenseOk = hasGuard && hasParry;
+        logResult("ActionGrid dynamically populates defensive maneuvers from CombatActionDatabase", defenseOk);
+        allPassed &= defenseOk;
+
+        // SEDUCTION focus
+        combat->setCombatFocus(CombatFocus::SEDUCTION);
+        combatGame.refreshActionGrid();
+        bool hasTease = false;
+        bool hasFlirt = false;
+        for (const auto& slot : combatGame.activeActionSlots)
+        {
+            if (slot.label.find("Tease") != std::string::npos && slot.label.find("10 Sta") != std::string::npos) hasTease = true;
+            if (slot.label.find("Flirtatious Whisper") != std::string::npos && slot.label.find("15 Sta") != std::string::npos) hasFlirt = true;
+        }
+        bool seductionOk = hasTease && hasFlirt;
+        logResult("ActionGrid dynamically populates seduction maneuvers from CombatActionDatabase", seductionOk);
+        allPassed &= seductionOk;
+
+        // 2. Data-Driven Map Warp Labels & Descriptions
+        std::string cottageName = gameMap::getMapNameById("house_01");
+        std::string townName = gameMap::getMapNameById("overworld");
+        std::string cottageEntrance = gameMap::getMapEntranceDescription("house_01");
+        std::string townEntrance = gameMap::getMapEntranceDescription("overworld");
+
+        bool mapMetaOk = (cottageName == "Cozy Cottage" && townName == "Town District" &&
+                          cottageEntrance == "the Cozy Cottage" && townEntrance == "the Town District avenues");
+        logResult("gameMap queries map names and entrance descriptions directly from map JSON metadata", mapMetaOk);
+        allPassed &= mapMetaOk;
+
+        game exploreGame;
+        exploreGame.Player = hero.get();
+        exploreGame.playerEntity = hero;
+        exploreGame.changeState(std::make_unique<explorationState>());
+        exploreGame.loadMap("overworld", 8, 1);
+        exploreGame.refreshActionGrid();
+
+        bool hasCottageWarpBtn = false;
+        for (const auto& slot : exploreGame.activeActionSlots)
+        {
+            if (slot.label == "Entrance to Cozy Cottage") hasCottageWarpBtn = true;
+        }
+        logResult("Exploration action grid retrieves data-driven map warp button label ('Entrance to Cozy Cottage')", hasCottageWarpBtn);
+        allPassed &= hasCottageWarpBtn;
+
+        // 3. Catalog-Driven View Rendering
+        const auto& fetishCatalog = ContentSettings::getFetishCatalog();
+        bool fetishCatalogOk = (fetishCatalog.size() == 28 &&
+                                fetishCatalog[0].name == "Anal" &&
+                                !fetishCatalog[0].description.empty());
+        logResult("ContentSettings::getFetishCatalog deserializes 28 intimate fetishes from 'data/catalogs/fetishes.json'", fetishCatalogOk);
+        allPassed &= fetishCatalogOk;
+
+        const auto& optionsFetishes = ContentSettings::getOptionsFetishList();
+        bool optionsFetishesOk = (optionsFetishes.size() >= 39 &&
+                                  std::find(optionsFetishes.begin(), optionsFetishes.end(), "Anal") != optionsFetishes.end() &&
+                                  std::find(optionsFetishes.begin(), optionsFetishes.end(), "Non-Consent") != optionsFetishes.end());
+        logResult("ContentSettings::getOptionsFetishList loads 39 options preference tags from 'data/catalogs/fetishes.json'", optionsFetishesOk);
+        allPassed &= optionsFetishesOk;
+
+        const auto& crotchTypes = EditorConfig::Catalogs::crotchTypes();
+        bool crotchTypesOk = (crotchTypes.size() == 5 &&
+                              crotchTypes[0] == "None" &&
+                              crotchTypes[1] == "Bovine Udders" &&
+                              crotchTypes[4] == "Canine Teats");
+        logResult("EditorConfig::Catalogs::crotchTypes loads crotch mammary styles from 'data/catalogs/character_creation.json'", crotchTypesOk);
+        allPassed &= crotchTypesOk;
+
+        return allPassed;
+    }
+
     bool runAllTests()
     {
         g_passCount = 0;
@@ -5870,6 +5984,7 @@ namespace EngineTests
         bool t46 = testCoreCatalogsAndDefaults();
         bool t47 = testCombatDataMigrationAndStatusEvaluation();
         bool t48 = testDialogueScenesAndPerkConditionWiring();
+        bool t49 = testUIAdapterDynamicCatalogAndActionGrid();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";

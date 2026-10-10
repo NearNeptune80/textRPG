@@ -86,6 +86,15 @@ const CombatAction* CombatActionDatabase::getAction(const std::string& id)
     {
         return &it->second;
     }
+    if (id == "DEFENSE_GUARD" || id == "GUARD" || id == "DEFEND") return getAction("action_guard");
+    if (id == "DEFENSE_DODGE" || id == "DODGE") return getAction("action_dodge");
+    if (id == "DEFENSE_PARRY" || id == "PARRY") return getAction("action_parry");
+    if (id == "SEDUCE_TEASE" || id == "TEASE") return getAction("action_seduce_tease");
+    if (id == "SEDUCE_FLIRT" || id == "FLIRT") return getAction("action_seduce_flirt");
+    if (id == "SEDUCE_EXPOSE" || id == "EXPOSE") return getAction("action_seduce_expose");
+    if (id == "COMPANION_ATTACK") return getAction("action_companion_attack");
+    if (id == "ITEM_POTION") return getAction("item_potion");
+    if (id == "ITEM_MANA") return getAction("item_mana");
     return nullptr;
 }
 

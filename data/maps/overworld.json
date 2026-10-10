@@ -1,6 +1,7 @@
 {
   "id": "overworld",
   "name": "Town District",
+  "entranceDescription": "the Town District avenues",
   "width": 10,
   "height": 10,
   "tiles": [
@@ -34,7 +35,8 @@
       "targetMap": "house_01",
       "targetX": 2,
       "targetY": 3,
-      "label": "Entrance to Cozy Cottage"
+      "label": "Entrance to Cozy Cottage",
+      "entranceDescription": "the Cozy Cottage"
     }
   ],
   "tileEncounters": {

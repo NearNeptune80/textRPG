@@ -15,6 +15,8 @@
 #include "settings/settingsManager.h"
 #include "state/characterCreationState.h"
 #include "combat/weaponSkillDatabase.h"
+#include "combat/combatActionDatabase.h"
+#include "combat/spellDatabase.h"
 #include "state/combatState.h"
 #include "state/encounterResolutionState.h"
 #include "state/eventState.h"
@@ -1458,22 +1460,22 @@ void ActionGridManager::refresh(game* gameContext)
 
         if (combat->getCombatFocus() == CombatFocus::MAGIC)
         {
-            struct MagicOption { std::string id; std::string name; float mp; float sta; std::string tip; };
-            std::vector<MagicOption> spells = {
-                { "SPELL_DART", "Arcane Dart", 10.0f, 10.0f, "Concentrated dart of arcane force." },
-                { "SPELL_FIREBALL", "Fireball", 25.0f, 15.0f, "Explosive sphere of demonic flame." },
-                { "SPELL_SHIELD", "Arcane Shield", 15.0f, 10.0f, "Absorb 35 incoming damage." },
-                { "SPELL_CLEANSE", "Cleanse", 20.0f, 10.0f, "Purge debuffs and restore 40 HP." },
-                { "SPELL_BLINK", "Blink", 30.0f, 10.0f, "Teleport to evade enemy strikes." }
+            static const std::vector<std::string> spellIds = {
+                "arcane_dart", "fireball", "arcane_shield", "cleanse", "teleport"
             };
 
-            for (const auto& sp : spells)
+            for (const auto& sId : spellIds)
             {
-                bool canAfford = (curMp >= sp.mp && curStamina >= sp.sta);
-                std::string label = std::format("{} ({:.0f} MP)", sp.name, sp.mp);
-                addBtn(gameContext, label, [gameContext, sp]() {
-                    gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, sp.id });
-                }, canAfford, false, sp.tip);
+                const auto* sp = SpellDatabase::getSpell(sId);
+                if (sp)
+                {
+                    bool canAfford = (curMp >= sp->mpCost && curStamina >= sp->staminaCost);
+                    std::string label = std::format("{} ({:.0f} MP)", sp->name, sp->mpCost);
+                    std::string tip = std::format("{}\nCost: {:.0f} MP, {:.0f} Stamina", sp->description, sp->mpCost, sp->staminaCost);
+                    addBtn(gameContext, label, [gameContext, sId]() {
+                        gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, sId });
+                    }, canAfford, false, tip);
+                }
             }
 
             addBtn(gameContext, "Back (Reset)", [combat, gameContext]() {
@@ -1494,20 +1496,23 @@ void ActionGridManager::refresh(game* gameContext)
 
         if (combat->getCombatFocus() == CombatFocus::DEFENSE)
         {
-            bool canGuard = (curStamina >= 15.0f);
-            addBtn(gameContext, "Guard (15 Sta)", [gameContext]() {
-                gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, "DEFENSE_GUARD" });
-            }, canGuard, false, "Raise your guard to absorb incoming damage with stamina.");
+            static const std::vector<std::string> defActionIds = {
+                "action_guard", "action_dodge", "action_parry"
+            };
 
-            bool canDodge = (curStamina >= 20.0f);
-            addBtn(gameContext, "Dodge (20 Sta)", [gameContext]() {
-                gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, "DEFENSE_DODGE" });
-            }, canDodge, false, "Prepare to nimbly evade enemy attacks.");
-
-            bool canParry = (curStamina >= 25.0f);
-            addBtn(gameContext, "Parry (25 Sta)", [gameContext]() {
-                gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, "DEFENSE_PARRY" });
-            }, canParry, false, "Time a deflection to deliver counter damage.");
+            for (const auto& aId : defActionIds)
+            {
+                const auto* act = CombatActionDatabase::getAction(aId);
+                if (act)
+                {
+                    bool canAfford = (curStamina >= act->staminaCost);
+                    std::string label = std::format("{} ({:.0f} Sta)", act->name, act->staminaCost);
+                    std::string tip = std::format("{}\nCost: {:.0f} Stamina", act->description, act->staminaCost);
+                    addBtn(gameContext, label, [gameContext, aId]() {
+                        gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, aId });
+                    }, canAfford, false, tip);
+                }
+            }
 
             addBtn(gameContext, "Back (Reset)", [combat, gameContext]() {
                 combat->setCombatFocus(CombatFocus::ROOT);
@@ -1527,20 +1532,23 @@ void ActionGridManager::refresh(game* gameContext)
 
         if (combat->getCombatFocus() == CombatFocus::SEDUCTION)
         {
-            bool canTease = (curStamina >= 10.0f);
-            addBtn(gameContext, "Tease (10 Sta)", [gameContext]() {
-                gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, "SEDUCE_TEASE" });
-            }, canTease, false, "Tease target with seductive body movements (+15 Lust).");
+            static const std::vector<std::string> seduceActionIds = {
+                "action_seduce_tease", "action_seduce_flirt", "action_seduce_expose"
+            };
 
-            bool canFlirt = (curStamina >= 15.0f);
-            addBtn(gameContext, "Flirt (15 Sta)", [gameContext]() {
-                gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, "SEDUCE_FLIRT" });
-            }, canFlirt, false, "Whisper tantalizing promises (+25 Lust).");
-
-            bool canExpose = (curStamina >= 20.0f);
-            addBtn(gameContext, "Expose Flesh (20 Sta)", [gameContext]() {
-                gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, "SEDUCE_EXPOSE" });
-            }, canExpose, false, "Expose sensitive anatomy to drive foe wild (+35 Lust).");
+            for (const auto& aId : seduceActionIds)
+            {
+                const auto* act = CombatActionDatabase::getAction(aId);
+                if (act)
+                {
+                    bool canAfford = (curStamina >= act->staminaCost);
+                    std::string label = std::format("{} ({:.0f} Sta)", act->name, act->staminaCost);
+                    std::string tip = std::format("{}\nCost: {:.0f} Stamina\nLust: +{:.0f}", act->description, act->staminaCost, act->lustDamage);
+                    addBtn(gameContext, label, [gameContext, aId]() {
+                        gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, aId });
+                    }, canAfford, false, tip);
+                }
+            }
 
             addBtn(gameContext, "Back (Reset)", [combat, gameContext]() {
                 combat->setCombatFocus(CombatFocus::ROOT);
@@ -1560,10 +1568,16 @@ void ActionGridManager::refresh(game* gameContext)
 
         if (combat->getCombatFocus() == CombatFocus::COMPANION)
         {
-            bool canCompAtk = (curStamina >= 15.0f);
-            addBtn(gameContext, "Familiar Strike (15 Sta)", [gameContext]() {
+            const auto* act = CombatActionDatabase::getAction("action_companion_attack");
+            float staCost = act ? act->staminaCost : 15.0f;
+            std::string name = act ? act->name : "Familiar Strike";
+            std::string desc = act ? act->description : "Command your elemental companion to unleash an elemental burst.";
+            bool canCompAtk = (curStamina >= staCost);
+            std::string label = std::format("{} ({:.0f} Sta)", name, staCost);
+            std::string tip = std::format("{}\nCost: {:.0f} Stamina", desc, staCost);
+            addBtn(gameContext, label, [gameContext]() {
                 gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, "COMPANION_ATTACK" });
-            }, canCompAtk, false, "Command your elemental companion to unleash an elemental burst.");
+            }, canCompAtk, false, tip);
 
             addBtn(gameContext, "Back (Reset)", [combat, gameContext]() {
                 combat->setCombatFocus(CombatFocus::ROOT);
@@ -1583,15 +1597,28 @@ void ActionGridManager::refresh(game* gameContext)
 
         if (combat->getCombatFocus() == CombatFocus::ITEM)
         {
-            bool canPot = (potionCount > 0 && curStamina >= 5.0f);
-            addBtn(gameContext, "Health Potion (5 Sta)", [gameContext]() {
-                gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, "ITEM_POTION" });
-            }, canPot, false, canPot ? "Queue drinking a healing potion to restore 50 HP (costs 5 Sta)." : "No healing potions in inventory or insufficient stamina.");
+            const auto* potAct = CombatActionDatabase::getAction("item_potion");
+            const auto* manaAct = CombatActionDatabase::getAction("item_mana");
+            float potCost = (potAct && potAct->staminaCost > 0.0f) ? potAct->staminaCost : 5.0f;
+            float manaCost = (manaAct && manaAct->staminaCost > 0.0f) ? manaAct->staminaCost : 5.0f;
+            std::string potName = potAct ? potAct->name : "Health Potion";
+            std::string potDesc = potAct ? potAct->description : "Queue drinking a healing potion to restore 50 HP.";
+            std::string manaName = manaAct ? manaAct->name : "Mana Crystal";
+            std::string manaDesc = manaAct ? manaAct->description : "Queue consuming a mana crystal to restore 50 MP.";
 
-            bool canMana = (curStamina >= 5.0f);
-            addBtn(gameContext, "Mana Crystal (5 Sta)", [gameContext]() {
+            bool canPot = (potionCount > 0 && curStamina >= potCost);
+            std::string potLabel = std::format("{} ({:.0f} Sta)", potName, potCost);
+            std::string potTip = canPot ? std::format("{}\nCost: {:.0f} Stamina", potDesc, potCost) : "No healing potions in inventory or insufficient stamina.";
+            addBtn(gameContext, potLabel, [gameContext]() {
+                gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, "ITEM_POTION" });
+            }, canPot, false, potTip);
+
+            bool canMana = (curStamina >= manaCost);
+            std::string manaLabel = std::format("{} ({:.0f} Sta)", manaName, manaCost);
+            std::string manaTip = std::format("{}\nCost: {:.0f} Stamina", manaDesc, manaCost);
+            addBtn(gameContext, manaLabel, [gameContext]() {
                 gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, "ITEM_MANA" });
-            }, canMana, false, "Queue consuming a mana crystal to restore 50 MP (costs 5 Sta).");
+            }, canMana, false, manaTip);
 
             addBtn(gameContext, "Back (Reset)", [combat, gameContext]() {
                 combat->setCombatFocus(CombatFocus::ROOT);
@@ -1678,10 +1705,12 @@ void ActionGridManager::refresh(game* gameContext)
                 MapWarp warp;
                 if (gameContext->map->checkWarp(gameContext->gridX, gameContext->gridY, warp))
                 {
-                    std::string warpLabel = "Enter Area";
-                    if (warp.targetMap == "house_01") warpLabel = "Enter Cottage";
-                    else if (warp.targetMap == "overworld") warpLabel = "Enter Town";
-                    else if (!warp.targetMap.empty()) warpLabel = "Enter " + warp.targetMap;
+                    std::string warpLabel = warp.label;
+                    if (warpLabel.empty())
+                    {
+                        std::string targetName = gameMap::getMapNameById(warp.targetMap);
+                        warpLabel = targetName.empty() ? ("Enter " + warp.targetMap) : ("Enter " + targetName);
+                    }
 
                     addBtn(gameContext, warpLabel, [gameContext, warp]() {
                         gameContext->loadMap(warp.targetMap, warp.targetX, warp.targetY);

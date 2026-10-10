@@ -1,6 +1,7 @@
 {
   "id": "house_01",
   "name": "Cozy Cottage",
+  "entranceDescription": "the Cozy Cottage",
   "width": 5,
   "height": 5,
   "tiles": [
@@ -24,7 +25,8 @@
       "targetMap": "overworld",
       "targetX": 8,
       "targetY": 1,
-      "label": "Exit to Town District"
+      "label": "Exit to Town District",
+      "entranceDescription": "the Town District avenues"
     }
   ],
   "defaultDescriptions": [

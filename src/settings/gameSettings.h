@@ -339,6 +339,71 @@ struct ContentSettings
         return prefs;
     }
 
+    struct FetishCatalogEntry {
+        std::string id;
+        std::string name;
+        std::string category;
+        std::string description;
+    };
+
+    static const std::vector<FetishCatalogEntry>& getFetishCatalog()
+    {
+        static const std::vector<FetishCatalogEntry> catalog = []() {
+            std::vector<FetishCatalogEntry> list;
+            std::ifstream file("data/catalogs/fetishes.json");
+            if (file.is_open())
+            {
+                try
+                {
+                    nlohmann::json j;
+                    file >> j;
+                    if (j.contains("fetishes") && j["fetishes"].is_array())
+                    {
+                        for (const auto& f : j["fetishes"])
+                        {
+                            FetishCatalogEntry entry;
+                            entry.id = f.value("id", "");
+                            entry.name = f.value("name", "");
+                            entry.category = f.value("category", "");
+                            entry.description = f.value("description", "");
+                            list.push_back(entry);
+                        }
+                    }
+                }
+                catch (...) {}
+            }
+            return list;
+        }();
+        return catalog;
+    }
+
+    static const std::vector<std::string>& getOptionsFetishList()
+    {
+        static const std::vector<std::string> list = []() {
+            std::vector<std::string> names;
+            std::ifstream file("data/catalogs/fetishes.json");
+            if (file.is_open())
+            {
+                try
+                {
+                    nlohmann::json j;
+                    file >> j;
+                    if (j.contains("defaultPreferences") && j["defaultPreferences"].is_object())
+                    {
+                        for (const auto& [k, v] : j["defaultPreferences"].items())
+                        {
+                            names.push_back(k);
+                        }
+                        std::sort(names.begin(), names.end());
+                    }
+                }
+                catch (...) {}
+            }
+            return names;
+        }();
+        return list;
+    }
+
     std::unordered_map<std::string, int> fetishPreferences = loadDefaultFetishPreferences();
 };
 

@@ -97,6 +97,7 @@ struct EditorConfig {
             std::vector<HairstyleDef> hairstyles;
             std::vector<std::string> innateTransformTraits;
             std::vector<std::string> innateTransformRaces;
+            std::vector<std::string> crotchTypes;
         };
 
         static const CatalogData& get() {
@@ -142,6 +143,7 @@ struct EditorConfig {
                     loadVec("fluidModifiers", cd.fluidModifiers);
                     loadVec("innateTransformTraits", cd.innateTransformTraits);
                     loadVec("innateTransformRaces", cd.innateTransformRaces);
+                    loadVec("crotchTypes", cd.crotchTypes);
 
                     if (j.contains("hairstyles") && j["hairstyles"].is_array()) {
                         for (const auto& h : j["hairstyles"]) {
@@ -149,6 +151,9 @@ struct EditorConfig {
                         }
                     }
                 } catch (...) {}
+            }
+            if (cd.crotchTypes.empty()) {
+                cd.crotchTypes = { "None", "Bovine Udders", "Caprine Udders", "Feline Crotch-Boobs", "Canine Teats" };
             }
             cd.minorRacesWithNone = { "None" };
             cd.minorRacesWithNone.insert(cd.minorRacesWithNone.end(), cd.racialTypes.begin(), cd.racialTypes.end());
@@ -184,6 +189,7 @@ struct EditorConfig {
         static const std::vector<HairstyleDef>& hairstyles() { return get().hairstyles; }
         static const std::vector<std::string>& innateTransformTraits() { return get().innateTransformTraits; }
         static const std::vector<std::string>& innateTransformRaces() { return get().innateTransformRaces; }
+        static const std::vector<std::string>& crotchTypes() { return get().crotchTypes; }
     };
 
     static const std::vector<HairstyleDef>& getAllHairstyles() {

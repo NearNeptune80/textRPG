@@ -726,24 +726,13 @@ namespace OptionsView
 
                 renderInfoDropdown();
 
-                static const char* fetishes[] = {
-                    "Anal", "Aphrodisiacs & Drugs", "BDSM & Restraints", "Bondage",
-                    "Breasts", "Breasts lover", "Buttslut", "Crossdressing",
-                    "Cum Inflation & Expansion", "Defloration", "Denial & Edging", "Dominance",
-                    "Exhibitionism / Public Sex", "Feet", "Foot worship", "Feral / Bestiality",
-                    "Forced Transformation", "Hypnosis & Mind Control", "Incest", "Insemination",
-                    "Lactation", "Masochism", "Milk lover", "Non-Consent",
-                    "Oral", "Oral performer", "Penetration", "Pregnancy",
-                    "Prolapse", "Pussy slut", "Sadistic sex / Extreme", "Size Difference",
-                    "Spitting", "Submission", "Tentacles & Monsters", "Transformations",
-                    "Vaginal", "Voyeurism", "Watersports"
-                };
+                const auto& fetishes = ContentSettings::getOptionsFetishList();
 
                 static constexpr std::string_view fetPills[] = {
                     "Never", "V.Rare", "Rare", "Average", "Common", "V.Common", "Always"
                 };
 
-                for (size_t i = 0; i < std::size(fetishes); ++i)
+                for (size_t i = 0; i < fetishes.size(); ++i)
                 {
                     float cardWidth = availableW;
                     float rowMinH = 34.0f * uiScale;

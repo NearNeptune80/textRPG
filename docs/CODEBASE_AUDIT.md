@@ -81,13 +81,13 @@ This audit inspects all C++ header (`.h`) and source (`.cpp`) files across the c
 
 ### 1.5 UI Adapter (7 items)
 
-- [ ] `src/ui/actionGridManager.cpp:1515-1525`: Hardcoded list of combat spells (`SPELL_DART`, `SPELL_FIREBALL`, `SPELL_SHIELD`, `SPELL_CLEANSE`, `SPELL_BLINK`) with names, MP costs, and tooltips hardcoded directly in UI grid builder. `[Hardcoded Mock Data]`
-- [ ] `src/ui/actionGridManager.cpp:1545-1620`: Hardcoded combat maneuver buttons (`DEFENSE_GUARD`, `DEFENSE_DODGE`, `DEFENSE_PARRY`, `SEDUCE_TEASE`, `SEDUCE_FLIRT`, `SEDUCE_EXPOSE`) with costs and descriptions embedded in UI code. `[Hardcoded Mock Data]`
-- [ ] `src/ui/actionGridManager.cpp:1741-1743`: Hardcoded map warp label overrides (`"house_01"` -> `"Enter Cottage"`, `"overworld"` -> `"Enter Town"`). `[Hardcoded Mock Data]`
-- [ ] `src/ui/views/gameplayViews.cpp:722-752`: Hardcoded list of all 28 fetish names and description strings directly inside gameplay view rendering. `[Hardcoded Mock Data]`
-- [ ] `src/ui/views/gameplayViews.cpp:3442-3444`: Hardcoded map warp door descriptions (`"house_01"` -> `"the Cozy Cottage"`, `"overworld"` -> `"the Town District avenues"`). `[Hardcoded Mock Data]`
-- [ ] `src/ui/views/optionsView.cpp:744-758`: Hardcoded static array of 39 fetishes and sensitivity tags in options view rendering. `[Hardcoded Mock Data]`
-- [ ] `src/ui/views/transformationView.cpp:589`: `static const std::vector<std::string> crotchTypes = { "None", "Bovine Udders", "Caprine Udders", "Feline Crotch-Boobs", "Canine Teats" };` defined directly in view. `[Hardcoded Mock Data]`
+- [x] `src/ui/actionGridManager.cpp:1515-1525`: Hardcoded list of combat spells (`SPELL_DART`, `SPELL_FIREBALL`, `SPELL_SHIELD`, `SPELL_CLEANSE`, `SPELL_BLINK`) with names, MP costs, and tooltips hardcoded directly in UI grid builder. `[Hardcoded Mock Data]`
+- [x] `src/ui/actionGridManager.cpp:1545-1620`: Hardcoded combat maneuver buttons (`DEFENSE_GUARD`, `DEFENSE_DODGE`, `DEFENSE_PARRY`, `SEDUCE_TEASE`, `SEDUCE_FLIRT`, `SEDUCE_EXPOSE`) with costs and descriptions embedded in UI code. `[Hardcoded Mock Data]`
+- [x] `src/ui/actionGridManager.cpp:1741-1743`: Hardcoded map warp label overrides (`"house_01"` -> `"Enter Cottage"`, `"overworld"` -> `"Enter Town"`). `[Hardcoded Mock Data]`
+- [x] `src/ui/views/gameplayViews.cpp:722-752`: Hardcoded list of all 28 fetish names and description strings directly inside gameplay view rendering. `[Hardcoded Mock Data]`
+- [x] `src/ui/views/gameplayViews.cpp:3442-3444`: Hardcoded map warp door descriptions (`"house_01"` -> `"the Cozy Cottage"`, `"overworld"` -> `"the Town District avenues"`). `[Hardcoded Mock Data]`
+- [x] `src/ui/views/optionsView.cpp:744-758`: Hardcoded static array of 39 fetishes and sensitivity tags in options view rendering. `[Hardcoded Mock Data]`
+- [x] `src/ui/views/transformationView.cpp:589`: `static const std::vector<std::string> crotchTypes = { "None", "Bovine Udders", "Caprine Udders", "Feline Crotch-Boobs", "Canine Teats" };` defined directly in view. `[Hardcoded Mock Data]`
 
 ---
 

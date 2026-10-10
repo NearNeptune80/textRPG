@@ -699,36 +699,7 @@ namespace GameplayViews
             float fH = UIWidget::drawTextWrapped(renderer, fDesc, padX, curY, innerW, Theme::colors.textSecondary, uiScale * 0.82f);
             curY += fH + (12.0f * uiScale);
 
-            static const std::vector<std::pair<std::string, std::string>> fetishList = {
-                { "Anal", "Appreciation for rear penetration and backdoor pleasures." },
-                { "Buttslut", "Craving and submitting to receiving anal penetration." },
-                { "Vaginal", "Traditional intercourse and vaginal penetration." },
-                { "Pussy slut", "Craving and delighting in being penetrated vaginally." },
-                { "Oral", "Delight in giving and performing oral stimulation." },
-                { "Oral performer", "Joy in being worshipped and stimulated orally by others." },
-                { "Breasts lover", "Erotic fascination with breasts and fondling chests." },
-                { "Breasts", "Sensual pleasure in having one's own breasts touched and admired." },
-                { "Milk lover", "Desire to drink and nurse on sweet bodily fluids and milk." },
-                { "Lactation", "Affinity for swollen lactating breasts and milk expression." },
-                { "Foot worship", "Adoration and worship of bare feet and soles." },
-                { "Feet", "Pleasure in having one's own feet worshipped and kissed." },
-                { "Dominance", "Desire to command, control, and take the lead in intimate scenes." },
-                { "Submission", "Surrendering authority and deriving pleasure from obedience." },
-                { "BDSM / Sadism", "Sensory bondage, discipline, and administering physical pain." },
-                { "Masochism", "Deriving intense arousal from physical pain and rough treatment." },
-                { "Bondage", "Sensory thrill of rope, leather restraints, and immobilization." },
-                { "Exhibitionism", "Sensual thrill of public nudity and being watched." },
-                { "Voyeurism", "Erotic pleasure from secretly watching others engage in intimacy." },
-                { "Insemination", "The primal drive to impregnate and leave potent seed." },
-                { "Pregnancy", "The erotic urge to be impregnated and carry developing progeny." },
-                { "Transformations", "Erotic fascination with bodily mutations and morphs." },
-                { "Watersports", "Arousal connected to urination and bladder relief." },
-                { "Spitting", "Sensory degradation through saliva exchange and spitting." },
-                { "Tentacles", "Fascination with inhuman appendages, monsters, and creatures." },
-                { "Size Difference", "Erotic tension from dramatic height and scale disparities." },
-                { "Crossdressing", "Sensory delight in donning clothing of the opposite sex." },
-                { "Denial & Edging", "Frustrating and prolonged delay of orgasmic climax." }
-            };
+            const auto& fetishCatalog = ContentSettings::getFetishCatalog();
 
             static const std::vector<std::pair<std::string, FetishDesireLevel>> desirePills = {
                 { "Hate", FetishDesireLevel::HATE },
@@ -738,8 +709,11 @@ namespace GameplayViews
                 { "Love", FetishDesireLevel::LOVE }
             };
 
-            for (const auto& [fName, fDetail] : fetishList)
+            for (const auto& item : fetishCatalog)
             {
+                const std::string& fName = item.name;
+                const std::string& fDetail = item.description;
+
                 float cardW = innerW;
                 float cardH = 38.0f * uiScale;
                 SDL_FRect cardR = { padX, curY, cardW, cardH };
@@ -3279,9 +3253,8 @@ namespace GameplayViews
             MapWarp warp;
             if (m->checkWarp(pX, pY, warp))
             {
-                std::string targetName = warp.targetMap;
-                if (targetName == "house_01") targetName = "the Cozy Cottage";
-                else if (targetName == "overworld") targetName = "the Town District avenues";
+                std::string targetName = warp.entranceDescription;
+                if (targetName.empty()) targetName = gameMap::getMapEntranceDescription(warp.targetMap);
                 contextParagraphs.push_back(std::format("A doorway or threshold here leads toward {}.", targetName));
             }
         }

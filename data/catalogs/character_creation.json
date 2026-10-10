@@ -84,6 +84,9 @@
   "innateTransformRaces": [
     "slime", "demon", "succubus", "incubus", "kitsune", "doppelganger", "changeling"
   ],
+  "crotchTypes": [
+    "None", "Bovine Udders", "Caprine Udders", "Feline Crotch-Boobs", "Canine Teats"
+  ],
   "hairstyles": [
     { "name": "Bald", "minLengthCm": 0 },
     { "name": "Stubble", "minLengthCm": 1 },
