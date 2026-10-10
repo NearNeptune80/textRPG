@@ -9,6 +9,7 @@
 #include "core/game.h"
 #include "state/inventoryState.h"
 #include "state/phoneAppsState.h"
+#include "state/loadGameState.h"
 #include "state/mainMenuState.h"
 #include "state/characterCreationState.h"
 
@@ -22,13 +23,14 @@ namespace SidebarGeometry
         const float gridStartX = getGridStartX(panelRect, uiScale);
         const float toolH = getToolbarH(uiScale);
         const float gap = 4.0f * uiScale;
-        const float toolW = (boxSize - (2.0f * gap)) / 3.0f;
+        const float toolW = (boxSize - (3.0f * gap)) / 4.0f;
         const float toolbarY = cardTopY + (18.0f * uiScale) + boxSize + (5.0f * uiScale);
 
         static const std::vector<std::pair<std::string, CommandType>> tools = {
             { "Inv", CommandType::OPEN_INVENTORY },
             { "Phone", CommandType::OPEN_PHONE },
-            { "Main Menu", CommandType::OPEN_MAIN_MENU }
+            { "Saves", CommandType::OPEN_LOAD_MENU },
+            { "Menu", CommandType::OPEN_MAIN_MENU }
         };
 
         TooltipPoint mousePos = gameContext->input.getMousePosition();
@@ -44,7 +46,8 @@ namespace SidebarGeometry
             bool isActive = false;
             if (i == 0 && dynamic_cast<inventoryState*>(gameContext->getActiveState())) isActive = true;
             else if (i == 1 && dynamic_cast<phoneAppsState*>(gameContext->getActiveState())) isActive = true;
-            else if (i == 2 && dynamic_cast<mainMenuState*>(gameContext->getActiveState())) isActive = true;
+            else if (i == 2 && dynamic_cast<loadGameState*>(gameContext->getActiveState())) isActive = true;
+            else if (i == 3 && dynamic_cast<mainMenuState*>(gameContext->getActiveState())) isActive = true;
 
             UIWidget::drawButton(renderer, tRect, tools[i].first, hov, isEnabled, isActive, uiScale * 0.70f);
 
@@ -52,7 +55,8 @@ namespace SidebarGeometry
             {
                 if (i == 0) TooltipManager::setHoverTooltip(tRect, mousePos, "Wardrobe & Inventory", inCharacterCreation ? "Open full dual 5x4 inventory and ground storage to equip starting garments and inspect items." : "Opens dual 5x4 player inventory and ground loot storage.", "Storage", "[ I ]");
                 else if (i == 1) TooltipManager::setHoverTooltip(tRect, mousePos, "Phone & In-Game Actions", "Access smartphone apps, transformations, resting, and regional map.", "Communication", "[ P ]");
-                else if (i == 2) TooltipManager::setHoverTooltip(tRect, mousePos, "Main Menu", "Open main menu, save/load, settings, and game options.", "System", "[ ESC ]");
+                else if (i == 2) TooltipManager::setHoverTooltip(tRect, mousePos, "Save & Load Game", "Directly access save and load manager to record or restore your adventure.", "System", "[ F5 / F9 ]");
+                else if (i == 3) TooltipManager::setHoverTooltip(tRect, mousePos, "Main Menu", "Open main menu, settings, and game options.", "System", "[ ESC ]");
 
                 if (hov && clicked)
                 {

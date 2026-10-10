@@ -5985,6 +5985,160 @@ namespace EngineTests
         return allPassed;
     }
 
+    bool testCombatNavigationAndGeneralStatusEffects()
+    {
+        std::cout << "\n--- Running Test 51: Combat Navigation Alignment, Saves Toolbar & General Status Effects ---\n";
+        bool allPassed = true;
+
+        // 1. Combat Action Grid Layout Verification
+        game combatGame;
+        combatGame.init();
+        combatGame.settings.gameplay.autoSaveOnMapChange = false;
+        combatGame.settings.gameplay.autoSaveOnSceneExit = false;
+
+        auto testHero = std::make_shared<entity>("hero_player", "Combat Hero");
+        testHero->stats.setBaseStat("health", 100.0f);
+        testHero->stats.setBaseStat("max_health", 100.0f);
+        testHero->stats.setBaseStat("stamina", 100.0f);
+        testHero->stats.setBaseStat("mana", 100.0f);
+        combatGame.playerEntity = testHero;
+
+        auto testOpp = std::make_shared<entity>("opp_dummy", "Combat Dummy");
+        testOpp->stats.setBaseStat("health", 100.0f);
+        testOpp->stats.setBaseStat("max_health", 100.0f);
+
+        auto cState = std::make_unique<CombatState>(std::vector<std::shared_ptr<entity>>{ testHero }, std::vector<std::shared_ptr<entity>>{ testOpp });
+        combatGame.changeState(std::move(cState));
+        auto* combat = dynamic_cast<CombatState*>(combatGame.getActiveState());
+
+        // Test ROOT layout: slot 10 is End Turn, slot 14 is Reset
+        combatGame.refreshActionGrid();
+        bool rootEndTurn = (combatGame.activeActionSlots.size() > 10 && combatGame.activeActionSlots[10].label == "End Turn");
+        bool rootReset = (combatGame.activeActionSlots.size() > 14 && combatGame.activeActionSlots[14].label == "Reset");
+        bool rootOk = rootEndTurn && rootReset;
+        logResult("Combat ROOT action grid aligns 'End Turn' to bottom-left (slot 10) and 'Reset' to bottom-right (slot 14)", rootOk);
+        allPassed &= rootOk;
+
+        // Test WEAPON layout: slot 10 is End Turn, slot 14 is Back (Reset)
+        combat->setCombatFocus(CombatFocus::WEAPON);
+        combatGame.refreshActionGrid();
+        bool weaponEndTurn = (combatGame.activeActionSlots.size() > 10 && combatGame.activeActionSlots[10].label == "End Turn");
+        bool weaponBackReset = (combatGame.activeActionSlots.size() > 14 && combatGame.activeActionSlots[14].label == "Back (Reset)");
+        bool weaponOk = weaponEndTurn && weaponBackReset;
+        logResult("Combat WEAPON focus aligns 'End Turn' to bottom-left and 'Back (Reset)' to bottom-right", weaponOk);
+        allPassed &= weaponOk;
+
+        // Test MAGIC layout: slot 10 is End Turn, slot 14 is Back (Reset)
+        combat->setCombatFocus(CombatFocus::MAGIC);
+        combatGame.refreshActionGrid();
+        bool magicEndTurn = (combatGame.activeActionSlots.size() > 10 && combatGame.activeActionSlots[10].label == "End Turn");
+        bool magicBackReset = (combatGame.activeActionSlots.size() > 14 && combatGame.activeActionSlots[14].label == "Back (Reset)");
+        bool magicOk = magicEndTurn && magicBackReset;
+        logResult("Combat MAGIC focus aligns 'End Turn' to bottom-left and 'Back (Reset)' to bottom-right", magicOk);
+        allPassed &= magicOk;
+
+        // Test DEFENSE layout: slot 10 is End Turn, slot 14 is Back (Reset)
+        combat->setCombatFocus(CombatFocus::DEFENSE);
+        combatGame.refreshActionGrid();
+        bool defenseEndTurn = (combatGame.activeActionSlots.size() > 10 && combatGame.activeActionSlots[10].label == "End Turn");
+        bool defenseBackReset = (combatGame.activeActionSlots.size() > 14 && combatGame.activeActionSlots[14].label == "Back (Reset)");
+        bool defOk = defenseEndTurn && defenseBackReset;
+        logResult("Combat DEFENSE focus aligns 'End Turn' to bottom-left and 'Back (Reset)' to bottom-right", defOk);
+        allPassed &= defOk;
+
+        // 2. Navigation Toolbar Saves Button Command
+        game navGame;
+        navGame.init();
+        navGame.settings.gameplay.autoSaveOnMapChange = false;
+        navGame.settings.gameplay.autoSaveOnSceneExit = false;
+        navGame.playerEntity = testHero;
+        navGame.handleCommand(UICommand{ CommandType::OPEN_LOAD_MENU });
+        bool loadStateActive = (dynamic_cast<loadGameState*>(navGame.getActiveState()) != nullptr);
+        logResult("Navigation toolbar CommandType::OPEN_LOAD_MENU opens loadGameState in SAVE_AND_LOAD mode directly", loadStateActive);
+        allPassed &= loadStateActive;
+
+        // 3. General Status Effects System & Testing
+        game fxGame;
+        fxGame.init();
+        fxGame.settings.gameplay.autoSaveOnMapChange = false;
+        fxGame.settings.gameplay.autoSaveOnSceneExit = false;
+        auto fxHero = std::make_shared<entity>("fx_hero", "Status Tester");
+        fxHero->stats.setBaseStat("health", 100.0f);
+        fxHero->stats.setBaseStat("mana", 100.0f);
+        fxHero->stats.setBaseStat("stamina", 100.0f);
+        fxGame.playerEntity = fxHero;
+        fxGame.Player = fxHero.get();
+
+        // 3a. APPLY_STATUS_EFFECT (Permanent Blessing: +25% Health, amount = 0 / permanent)
+        gameEffect effPermanent;
+        effPermanent.action = "APPLY_STATUS_EFFECT";
+        effPermanent.target = "player";
+        effPermanent.stringVal = "fx_blessing_vitality";
+        effPermanent.secondaryTarget = "Blessing of Vitality";
+        effPermanent.extraString = "Permanent divine health blessing.";
+        effPermanent.statName = "health";
+        effPermanent.floatAmount = 0.25f;
+        effPermanent.amount = 0;
+        effPermanent.branches = { "VIT" };
+        fxGame.processEffect(effPermanent);
+
+        bool hasPerm = fxHero->hasStatusEffect("fx_blessing_vitality");
+        float boostedHp = fxHero->getStat("health");
+        bool permApplied = hasPerm && (boostedHp == 125.0f);
+        logResult("processEffect applies permanent StatusEffect with stat modifier (+25% HP)", permApplied);
+        allPassed &= permApplied;
+
+        // 3b. checkSingleCondition with HAS_STATUS_EFFECT
+        gameCondition condPerm;
+        condPerm.type = "HAS_STATUS_EFFECT";
+        condPerm.target = "fx_blessing_vitality";
+        bool condPermOk = fxGame.checkSingleCondition(condPerm);
+        logResult("game::checkSingleCondition evaluates HAS_STATUS_EFFECT accurately for active status", condPermOk);
+        allPassed &= condPermOk;
+
+        // 3c. APPLY_STATUS_EFFECT (Timed Buff: 120 minutes)
+        gameEffect effTimed;
+        effTimed.action = "APPLY_STATUS_EFFECT";
+        effTimed.target = "player";
+        effTimed.stringVal = "fx_well_rested";
+        effTimed.secondaryTarget = "Well Rested";
+        effTimed.amount = 120;
+        effTimed.branches = { "RST" };
+        fxGame.processEffect(effTimed);
+        bool hasTimed = fxHero->hasStatusEffect("fx_well_rested");
+        logResult("processEffect applies timed StatusEffect (120 minutes duration)", hasTimed);
+        allPassed &= hasTimed;
+
+        // 3d. Time Advance: verify permanent effect NEVER expires while timed effect decrements and expires
+        fxHero->updateStatusEffectsOnTime(60);
+        bool timedTicked = (fxHero->hasStatusEffect("fx_well_rested") && fxHero->statusEffects.back().durationMinutes == 60);
+        bool permUntouched = (fxHero->hasStatusEffect("fx_blessing_vitality") && fxHero->statusEffects.front().durationMinutes == -1);
+        bool midDecayOk = timedTicked && permUntouched;
+        logResult("updateStatusEffectsOnTime decrements timed effect while preserving permanent effect indefinitely", midDecayOk);
+        allPassed &= midDecayOk;
+
+        fxHero->updateStatusEffectsOnTime(90);
+        bool timedExpired = !fxHero->hasStatusEffect("fx_well_rested");
+        bool permStillAlive = fxHero->hasStatusEffect("fx_blessing_vitality");
+        bool fullDecayOk = timedExpired && permStillAlive;
+        logResult("updateStatusEffectsOnTime purges expired timed effect without affecting permanent effect", fullDecayOk);
+        allPassed &= fullDecayOk;
+
+        // 3e. REMOVE_STATUS_EFFECT
+        gameEffect effRemove;
+        effRemove.action = "REMOVE_STATUS_EFFECT";
+        effRemove.target = "player";
+        effRemove.stringVal = "fx_blessing_vitality";
+        fxGame.processEffect(effRemove);
+        bool cleansed = !fxHero->hasStatusEffect("fx_blessing_vitality");
+        float restoredHp = fxHero->getStat("health");
+        bool cleanseOk = cleansed && (restoredHp == 100.0f);
+        logResult("processEffect REMOVE_STATUS_EFFECT cleanses status effect and restores baseline stats", cleanseOk);
+        allPassed &= cleanseOk;
+
+        return allPassed;
+    }
+
     bool runAllTests()
     {
         g_passCount = 0;
@@ -6043,6 +6197,7 @@ namespace EngineTests
         bool t48 = testDialogueScenesAndPerkConditionWiring();
         bool t49 = testUIAdapterDynamicCatalogAndActionGrid();
         bool t50 = testTier2TriageMinorFixesAndIntegrity();
+        bool t51 = testCombatNavigationAndGeneralStatusEffects();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";

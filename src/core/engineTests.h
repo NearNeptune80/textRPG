@@ -39,5 +39,6 @@ namespace EngineTests
     bool testDialogueScenesAndPerkConditionWiring();
     bool testUIAdapterDynamicCatalogAndActionGrid();
     bool testTier2TriageMinorFixesAndIntegrity();
+    bool testCombatNavigationAndGeneralStatusEffects();
 }
 

@@ -1473,6 +1473,16 @@ bool game::checkSingleCondition(const gameCondition& cond) const
     {
         return activeTargetNPC && activeTargetNPC->anatomy.hasGlobalTag(cond.target);
     }
+    else if (cond.type == "HAS_STATUS_EFFECT" || cond.type == "has_status_effect")
+    {
+        std::string fxId = !cond.target.empty() ? cond.target : cond.stringValue;
+        return Player->hasStatusEffect(fxId);
+    }
+    else if (cond.type == "TARGET_HAS_STATUS_EFFECT" || cond.type == "target_has_status_effect")
+    {
+        std::string fxId = !cond.target.empty() ? cond.target : cond.stringValue;
+        return activeTargetNPC && activeTargetNPC->hasStatusEffect(fxId);
+    }
 
     return true;
 }
@@ -2024,6 +2034,58 @@ void game::processEffect(const gameEffect& eff)
         if (activeTargetNPC && activeTargetNPC->id == eff.target)
         {
             activeTargetNPC = nullptr;
+        }
+    }
+    else if (eff.action == "APPLY_STATUS_EFFECT" || eff.action == "ADD_STATUS_EFFECT")
+    {
+        entity* tgt = (eff.target == "npc" || eff.target == "target") && activeTargetNPC ? activeTargetNPC.get() : Player;
+        if (tgt)
+        {
+            StatusEffect fx;
+            fx.id = !eff.stringVal.empty() ? eff.stringVal : (!eff.target.empty() && eff.target != "player" && eff.target != "npc" && eff.target != "target" ? eff.target : "status_effect");
+            fx.name = !eff.secondaryTarget.empty() ? eff.secondaryTarget : fx.id;
+            fx.description = !eff.extraString.empty() ? eff.extraString : fx.name;
+            fx.durationMinutes = eff.amount > 0 ? eff.amount : -1;
+            fx.isDebuff = (eff.floatAmount < 0.0f);
+            if (!eff.branches.empty()) fx.iconId = eff.branches[0];
+            if (fx.iconId.empty() && fx.name.length() >= 3)
+            {
+                fx.iconId = fx.name.substr(0, 3);
+                for (auto& c : fx.iconId) c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+            }
+
+            if (!eff.statName.empty())
+            {
+                StatModifier sm;
+                sm.statName = eff.statName;
+                if (std::abs(eff.floatAmount) <= 1.0f && eff.floatAmount != 0.0f)
+                {
+                    sm.percentValue = eff.floatAmount;
+                }
+                else
+                {
+                    sm.flatValue = eff.floatAmount != 0.0f ? eff.floatAmount : static_cast<float>(eff.amount);
+                }
+                fx.statModifiers.push_back(sm);
+            }
+
+            tgt->addStatusEffect(fx);
+        }
+    }
+    else if (eff.action == "REMOVE_STATUS_EFFECT")
+    {
+        entity* tgt = (eff.target == "npc" || eff.target == "target") && activeTargetNPC ? activeTargetNPC.get() : Player;
+        if (tgt)
+        {
+            std::string fxId = !eff.stringVal.empty() ? eff.stringVal : eff.target;
+            if (fxId == "ALL" || fxId == "all")
+            {
+                tgt->clearStatusEffects();
+            }
+            else
+            {
+                tgt->removeStatusEffect(fxId);
+            }
         }
     }
 }

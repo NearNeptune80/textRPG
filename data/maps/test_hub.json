@@ -1,0 +1,548 @@
+{
+  "id": "test_hub",
+  "name": "Validation Proving Grounds",
+  "entranceDescription": "the Validation Proving Grounds",
+  "width": 10,
+  "height": 10,
+  "tiles": [
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      3,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      1,
+      1,
+      1,
+      1,
+      3,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ]
+  ],
+  "dangerLevels": [
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      1,
+      2,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ]
+  ],
+  "warps": [
+    {
+      "x": 5,
+      "y": 3,
+      "targetMap": "test_facility",
+      "targetX": 1,
+      "targetY": 1,
+      "label": "Enter Test Facility",
+      "entranceDescription": "the Test Facility Research Lab"
+    },
+    {
+      "x": 0,
+      "y": 1,
+      "targetMap": "overworld",
+      "targetX": 1,
+      "targetY": 1,
+      "label": "Exit to Town District",
+      "entranceDescription": "the Town District avenues"
+    }
+  ],
+  "tileEncounters": {
+    "4,1": {
+      "pool": [
+        "tpl_alley_bandit",
+        "tpl_cutpurse"
+      ],
+      "ambushChance": 40
+    },
+    "5,1": {
+      "pool": [
+        "tpl_rogue_mage"
+      ],
+      "ambushChance": 35
+    },
+    "4,2": {
+      "pool": [
+        "tpl_test_beast"
+      ],
+      "ambushChance": 50
+    },
+    "5,2": {
+      "pool": [
+        "tpl_test_target_dummy"
+      ],
+      "ambushChance": 50
+    }
+  },
+  "triggers": [
+    {
+      "id": "trig_hub_gauntlet",
+      "mapId": "test_hub",
+      "x": 1,
+      "y": 1,
+      "label": "Inspect Gauntlet Terminal",
+      "tooltip": "Access condition tests, wardrobe, intimacy, and system test menus.",
+      "description": "A brass mechanical terminal with glowing dials and arcane indicator gems.",
+      "sceneId": "scene_condition_gauntlet",
+      "conditions": []
+    },
+    {
+      "id": "trig_hub_sparring",
+      "mapId": "test_hub",
+      "x": 1,
+      "y": 1,
+      "label": "Spar with Combat Dummy",
+      "tooltip": "Initiate turn-based tactical combat to test maneuvers, spells, and victory/defeat scenes.",
+      "description": "A reinforced mechanical sparring automaton awaiting combat practice.",
+      "sceneId": "scene_sparring_challenge",
+      "conditions": []
+    },
+    {
+      "id": "trig_hub_intimate",
+      "mapId": "test_hub",
+      "x": 3,
+      "y": 2,
+      "label": "Private Intimate Pavilion",
+      "tooltip": "Initiate interactive sex engine simulations (consensual, solo, and dom/sub).",
+      "description": "A secluded pavilion screened by translucent silk drapes and cushioned divans.",
+      "sceneId": "scene_intimate_simulation",
+      "conditions": []
+    },
+    {
+      "id": "trig_hub_rest",
+      "mapId": "test_hub",
+      "x": 2,
+      "y": 3,
+      "label": "Rest by the Hearth",
+      "tooltip": "Rest and recover health, mana, stamina, and reduce lust.",
+      "description": "A crackling hearth fire radiating steady, soothing warmth.",
+      "sceneId": "scene_hearth_rest",
+      "conditions": []
+    },
+    {
+      "id": "trig_hub_library",
+      "mapId": "test_hub",
+      "x": 1,
+      "y": 3,
+      "label": "Browse Library Tomes",
+      "tooltip": "Study combat treatises and acquire gold, reagents, and potions.",
+      "description": "Rows of mahogany shelves laden with arcane treatises and tactical ledgers.",
+      "sceneId": "scene_arcane_library",
+      "conditions": []
+    },
+    {
+      "id": "trig_hub_status_effects",
+      "mapId": "test_hub",
+      "x": 2,
+      "y": 1,
+      "label": "Approach Status Effects Shrine",
+      "tooltip": "Inspect, apply, and test permanent, timed, biological, and future status effects on self and targets.",
+      "description": "An enchanted runic shrine radiating pulsating auras of vital blessings, timed surges, and biological states.",
+      "sceneId": "scene_status_effects_lab",
+      "conditions": []
+    }
+  ],
+  "defaultDescriptions": [
+    "You stand in the Validation Proving Grounds, an expansive open testing district built with distinct biomes, research fixtures, and curated testing lanes.",
+    "The proving grounds stretch out beneath an engineered atmospheric dome, maintaining optimal conditions for rigorous engine testing."
+  ],
+  "tileDescriptions": {
+    "1,1": [
+      "You stand at the central testing concourse. A brass terminal pedestal hums in the center of the flagstones.",
+      "The grand plaza hub connects multiple experimental simulation avenues."
+    ],
+    "2,2": [
+      "You stand before the curator pavilion. Valida's research trading desk is neatly organized with catalog specimens.",
+      "A serene shrine pavilion sheltered by carved pillars where validation materials are displayed."
+    ],
+    "5,3": [
+      "You stand before the heavy reinforced vault door of the Test Facility.",
+      "Reinforced steel and brass bulkheads seal the entrance to the indoor research laboratories."
+    ]
+  },
+  "tileTags": {
+    "1,1": [
+      "plaza",
+      "central_square"
+    ],
+    "2,1": [
+      "high_street",
+      "cobblestone"
+    ],
+    "3,1": [
+      "avenue",
+      "walkway"
+    ],
+    "4,1": [
+      "residential",
+      "alleyway"
+    ],
+    "5,1": [
+      "market_quarter"
+    ],
+    "1,2": [
+      "cobblestone"
+    ],
+    "2,2": [
+      "shrine"
+    ],
+    "3,2": [
+      "waterfront",
+      "canal"
+    ],
+    "4,2": [
+      "forest",
+      "woods"
+    ],
+    "5,2": [
+      "cave",
+      "dungeon"
+    ],
+    "1,3": [
+      "bookshelf_corner"
+    ],
+    "2,3": [
+      "hearth"
+    ],
+    "3,3": [
+      "window_nook"
+    ],
+    "4,3": [
+      "kitchenette"
+    ],
+    "5,3": [
+      "walkway"
+    ]
+  },
+  "tagDescriptions": {
+    "plaza": [
+      "A broad open square paved with polished stone slabs, suitable for large assemblies and tests.",
+      "Sunlight pours across the wide expanse of the testing plaza."
+    ],
+    "central_square": [
+      "The geometric midpoint of the proving district, framed by stone markers.",
+      "Paved with concentric rings of granite."
+    ],
+    "high_street": [
+      "A wide thoroughfare engineered for rapid movement and thoroughfare trials.",
+      "Evenly spaced cobblestones form a pristine arterial street."
+    ],
+    "cobblestone": [
+      "Carefully laid rounded stones bedded in dense mortar, sturdy underfoot.",
+      "Classic stone cobbles providing reliable traction."
+    ],
+    "avenue": [
+      "A scenic boulevard flanked by decorative stone columns.",
+      "A clean, straight transit avenue."
+    ],
+    "walkway": [
+      "A dedicated pedestrian footpath flanked by brass guide markers.",
+      "Smooth paved flagstones marking a clear route."
+    ],
+    "residential": [
+      "Quaint facade models representing domestic living quarters and dwellings.",
+      "Timber-framed mockup houses built for urban simulation."
+    ],
+    "alleyway": [
+      "A narrow passage between tall mock buildings casting deep shadows.",
+      "A tight, shaded alleyway ideal for ambushes and line-of-sight tests."
+    ],
+    "market_quarter": [
+      "Covered stalls and exchange counters arranged for trade simulation.",
+      "Canvas awnings and wooden counters stocked with display wares."
+    ],
+    "shrine": [
+      "A consecrated altar pavilion humming with peaceful protective magic.",
+      "Carved stone pillars enclose a tranquil sanctuary space."
+    ],
+    "waterfront": [
+      "A reinforced stone embankment overlooking a placid test channel.",
+      "Mooring posts and stone steps leading down to the water."
+    ],
+    "canal": [
+      "A clear artificial waterway flowing through cut-stone sluices.",
+      "Cool, reflective water courses gently along the channel."
+    ],
+    "forest": [
+      "Dense simulated woodland featuring towering pines and thick undergrowth.",
+      "Earthy mulch and fallen leaves cushion your steps beneath canopy boughs."
+    ],
+    "woods": [
+      "Gnarled oak and birch trees growing wild in the botanical simulation tract.",
+      "Sunlight filters in dappled patterns through thick foliage."
+    ],
+    "cave": [
+      "Rough-hewn subterranean rock walls dripping with mineral moisture.",
+      "Cold stalactites hang from the low vaulted limestone ceiling."
+    ],
+    "dungeon": [
+      "Heavy iron-bound masonry and barred holding cells forming a test labyrinth.",
+      "Chiseled dungeon blocks chilled by damp air."
+    ],
+    "bookshelf_corner": [
+      "Tall library stacks crammed with reference folios, data ledgers, and arcane codices.",
+      "Rows of leather bindings resting on sturdy cedar shelves."
+    ],
+    "hearth": [
+      "A crackling fireplace set into a brick hearth, radiating cozy warmth.",
+      "Glowing embers warming a quiet relaxation nook."
+    ],
+    "window_nook": [
+      "A cushioned bay window seat overlooking the testing ground perimeter.",
+      "A pleasant resting corner catching ambient daylight."
+    ],
+    "kitchenette": [
+      "A tidy preparation counter equipped with kettles, spices, and utensils.",
+      "A fully equipped kitchenette counter for sustenance trials."
+    ]
+  },
+  "defaultTileTitle": "Proving Concourse",
+  "tileTitles": {
+    "1,1": "Central Concourse",
+    "2,2": "Curator Pavilion",
+    "5,3": "Facility Vault Gate"
+  },
+  "tagTitles": {
+    "plaza": "Grand Plaza",
+    "central_square": "Central Square",
+    "high_street": "High Street",
+    "cobblestone": "Cobblestone Way",
+    "avenue": "Main Avenue",
+    "walkway": "Walkway",
+    "residential": "Residential Mockup",
+    "alleyway": "Shadowed Alley",
+    "market_quarter": "Bazaar Quarter",
+    "shrine": "Shrine Pavilion",
+    "waterfront": "Embankment",
+    "canal": "Canal Channel",
+    "forest": "Sylvan Grove",
+    "woods": "Deep Woods",
+    "cave": "Cavern Hollow",
+    "dungeon": "Subterranean Cell",
+    "bookshelf_corner": "Library Stacks",
+    "hearth": "Warm Hearth",
+    "window_nook": "Window Nook",
+    "kitchenette": "Prep Kitchen"
+  }
+}

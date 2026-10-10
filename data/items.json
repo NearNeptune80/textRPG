@@ -725,13 +725,21 @@
       "isStackable": false,
       "count": 1,
       "targetSlot": "TORSO_UNDER",
-      "validSlots": ["TORSO_UNDER"],
+      "validSlots": [
+        "TORSO_UNDER"
+      ],
       "requiredTags": [],
       "forbiddenTags": [],
       "statModifiers": [],
       "supportedDisplacements": {
-        "UNBUTTON": ["TORSO", "BREASTS"],
-        "LIFT_UP": ["STOMACH", "BREASTS"]
+        "UNBUTTON": [
+          "TORSO",
+          "BREASTS"
+        ],
+        "LIFT_UP": [
+          "STOMACH",
+          "BREASTS"
+        ]
       },
       "category": "CLOTHING"
     },
@@ -746,12 +754,17 @@
       "isStackable": false,
       "count": 1,
       "targetSlot": "LEGS_OUTER",
-      "validSlots": ["LEGS_OUTER"],
+      "validSlots": [
+        "LEGS_OUTER"
+      ],
       "requiredTags": [],
       "forbiddenTags": [],
       "statModifiers": [],
       "supportedDisplacements": {
-        "LIFT_UP": ["GROIN", "ASS"]
+        "LIFT_UP": [
+          "GROIN",
+          "ASS"
+        ]
       },
       "category": "CLOTHING"
     },
@@ -785,7 +798,9 @@
       "isStackable": false,
       "count": 1,
       "targetSlot": "WEAPON_MAIN",
-      "validSlots": ["WEAPON_MAIN"],
+      "validSlots": [
+        "WEAPON_MAIN"
+      ],
       "requiredTags": [],
       "forbiddenTags": [],
       "statModifiers": [],
@@ -803,13 +818,20 @@
       "isStackable": false,
       "count": 1,
       "targetSlot": "TORSO_UNDER",
-      "validSlots": ["TORSO_UNDER"],
+      "validSlots": [
+        "TORSO_UNDER"
+      ],
       "requiredTags": [],
       "forbiddenTags": [],
       "statModifiers": [],
       "supportedDisplacements": {
-        "LIFT_UP": ["TORSO", "BREASTS"],
-        "PULL_ASIDE": ["BREASTS"]
+        "LIFT_UP": [
+          "TORSO",
+          "BREASTS"
+        ],
+        "PULL_ASIDE": [
+          "BREASTS"
+        ]
       },
       "category": "CLOTHING"
     },
@@ -824,14 +846,25 @@
       "isStackable": false,
       "count": 1,
       "targetSlot": "LEGS_OUTER",
-      "validSlots": ["LEGS_OUTER"],
+      "validSlots": [
+        "LEGS_OUTER"
+      ],
       "requiredTags": [],
       "forbiddenTags": [],
       "statModifiers": [],
       "supportedDisplacements": {
-        "PULL_DOWN": ["GROIN", "ASS", "LEGS"],
-        "PULL_ASIDE": ["GROIN"],
-        "LIFT_UP": ["GROIN", "ASS"]
+        "PULL_DOWN": [
+          "GROIN",
+          "ASS",
+          "LEGS"
+        ],
+        "PULL_ASIDE": [
+          "GROIN"
+        ],
+        "LIFT_UP": [
+          "GROIN",
+          "ASS"
+        ]
       },
       "category": "CLOTHING"
     },
@@ -846,15 +879,1067 @@
       "isStackable": false,
       "count": 1,
       "targetSlot": "TORSO_OVER",
-      "validSlots": ["TORSO_OVER"],
+      "validSlots": [
+        "TORSO_OVER"
+      ],
       "requiredTags": [],
       "forbiddenTags": [],
       "statModifiers": [],
       "supportedDisplacements": {
-        "UNBUTTON": ["TORSO", "BREASTS"],
-        "OPEN": ["TORSO", "BREASTS"]
+        "UNBUTTON": [
+          "TORSO",
+          "BREASTS"
+        ],
+        "OPEN": [
+          "TORSO",
+          "BREASTS"
+        ]
       },
       "category": "CLOTHING"
+    },
+    {
+      "id": "test_eq_eyewear",
+      "name": "Validation Eyewear",
+      "description": "Standardized test item for validating equipment slot EYEWEAR.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "EYEWEAR",
+      "validSlots": [
+        "EYEWEAR"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "arcane",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "CLOTHING",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "armor"
+    },
+    {
+      "id": "test_eq_headwear",
+      "name": "Validation Headwear",
+      "description": "Standardized test item for validating equipment slot HEADWEAR.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "HEADWEAR",
+      "validSlots": [
+        "HEADWEAR"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "toughness",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "CLOTHING",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "armor"
+    },
+    {
+      "id": "test_eq_hair_wear",
+      "name": "Validation Hairpin",
+      "description": "Standardized test item for validating equipment slot HAIR_WEAR.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "HAIR_WEAR",
+      "validSlots": [
+        "HAIR_WEAR"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "agility",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "CLOTHING",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "armor"
+    },
+    {
+      "id": "test_eq_horns_slot",
+      "name": "Validation Horn Ring",
+      "description": "Standardized test item for validating equipment slot HORNS_SLOT.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "HORNS_SLOT",
+      "validSlots": [
+        "HORNS_SLOT"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "willpower",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "CLOTHING",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "armor"
+    },
+    {
+      "id": "test_eq_weapon_main",
+      "name": "Validation Training Blade",
+      "description": "Standardized test item for validating equipment slot WEAPON_MAIN.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "WEAPON_MAIN",
+      "validSlots": [
+        "WEAPON_MAIN"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "physique",
+          "flatValue": 2.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "WEAPON",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "weapon",
+      "weaponSkills": [
+        "slash",
+        "thrust"
+      ]
+    },
+    {
+      "id": "test_eq_weapon_off",
+      "name": "Validation Guard Buckler",
+      "description": "Standardized test item for validating equipment slot WEAPON_OFF.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "WEAPON_OFF",
+      "validSlots": [
+        "WEAPON_OFF"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "toughness",
+          "flatValue": 2.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "WEAPON",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "weapon",
+      "weaponSkills": [
+        "shield_bash"
+      ]
+    },
+    {
+      "id": "test_eq_mouthwear",
+      "name": "Validation Face Veil",
+      "description": "Standardized test item for validating equipment slot MOUTHWEAR.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "MOUTHWEAR",
+      "validSlots": [
+        "MOUTHWEAR"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "willpower",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "CLOTHING",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "armor"
+    },
+    {
+      "id": "test_eq_torso_over",
+      "name": "Validation Over Tunic",
+      "description": "Standardized test item for validating equipment slot TORSO_OVER.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "TORSO_OVER",
+      "validSlots": [
+        "TORSO_OVER"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "toughness",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "CLOTHING",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "armor",
+      "supportedDisplacements": {
+        "UNBUTTON": [
+          "TORSO",
+          "BREASTS"
+        ],
+        "LIFT_UP": [
+          "TORSO",
+          "BREASTS",
+          "STOMACH"
+        ],
+        "OPEN": [
+          "TORSO",
+          "BREASTS"
+        ]
+      }
+    },
+    {
+      "id": "test_eq_neckwear",
+      "name": "Validation Amulet",
+      "description": "Standardized test item for validating equipment slot NECKWEAR.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "NECKWEAR",
+      "validSlots": [
+        "NECKWEAR"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "willpower",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "ACCESSORY",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "accessory"
+    },
+    {
+      "id": "test_eq_wings_slot",
+      "name": "Validation Wing Harness",
+      "description": "Standardized test item for validating equipment slot WINGS_SLOT.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "WINGS_SLOT",
+      "validSlots": [
+        "WINGS_SLOT"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "agility",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "CLOTHING",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "armor"
+    },
+    {
+      "id": "test_eq_piercing_ear",
+      "name": "Validation Ear Stud",
+      "description": "Standardized test item for validating equipment slot PIERCING_EAR.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "PIERCING_EAR",
+      "validSlots": [
+        "PIERCING_EAR"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "arcane",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "ACCESSORY",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "accessory"
+    },
+    {
+      "id": "test_eq_piercing_nose",
+      "name": "Validation Nose Stud",
+      "description": "Standardized test item for validating equipment slot PIERCING_NOSE.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "PIERCING_NOSE",
+      "validSlots": [
+        "PIERCING_NOSE"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "agility",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "ACCESSORY",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "accessory"
+    },
+    {
+      "id": "test_eq_wrists",
+      "name": "Validation Bracers",
+      "description": "Standardized test item for validating equipment slot WRISTS.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "WRISTS",
+      "validSlots": [
+        "WRISTS"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "physique",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "ACCESSORY",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "accessory"
+    },
+    {
+      "id": "test_eq_torso_under",
+      "name": "Validation Under Tunic",
+      "description": "Standardized test item for validating equipment slot TORSO_UNDER.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "TORSO_UNDER",
+      "validSlots": [
+        "TORSO_UNDER"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "physique",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "CLOTHING",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "armor",
+      "supportedDisplacements": {
+        "UNBUTTON": [
+          "TORSO",
+          "BREASTS"
+        ],
+        "LIFT_UP": [
+          "TORSO",
+          "BREASTS",
+          "STOMACH"
+        ],
+        "OPEN": [
+          "TORSO",
+          "BREASTS"
+        ]
+      }
+    },
+    {
+      "id": "test_eq_chest_wear",
+      "name": "Validation Chest Wrap",
+      "description": "Standardized test item for validating equipment slot CHEST_WEAR.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "CHEST_WEAR",
+      "validSlots": [
+        "CHEST_WEAR"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "agility",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "UNDERWEAR",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "armor",
+      "supportedDisplacements": {
+        "PULL_DOWN": [
+          "BREASTS"
+        ],
+        "PULL_ASIDE": [
+          "BREASTS"
+        ],
+        "LIFT_UP": [
+          "BREASTS"
+        ]
+      }
+    },
+    {
+      "id": "test_eq_nipples_wear",
+      "name": "Validation Nipple Pasties",
+      "description": "Standardized test item for validating equipment slot NIPPLES_WEAR.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "NIPPLES_WEAR",
+      "validSlots": [
+        "NIPPLES_WEAR"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "willpower",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "UNDERWEAR",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "armor",
+      "supportedDisplacements": {
+        "PULL_ASIDE": [
+          "BREASTS"
+        ]
+      }
+    },
+    {
+      "id": "test_eq_piercing_lip",
+      "name": "Validation Lip Ring",
+      "description": "Standardized test item for validating equipment slot PIERCING_LIP.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "PIERCING_LIP",
+      "validSlots": [
+        "PIERCING_LIP"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "willpower",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "ACCESSORY",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "accessory"
+    },
+    {
+      "id": "test_eq_piercing_tongue",
+      "name": "Validation Tongue Stud",
+      "description": "Standardized test item for validating equipment slot PIERCING_TONGUE.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "PIERCING_TONGUE",
+      "validSlots": [
+        "PIERCING_TONGUE"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "willpower",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "ACCESSORY",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "accessory"
+    },
+    {
+      "id": "test_eq_hands",
+      "name": "Validation Gloves",
+      "description": "Standardized test item for validating equipment slot HANDS.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "HANDS",
+      "validSlots": [
+        "HANDS"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "toughness",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "CLOTHING",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "armor"
+    },
+    {
+      "id": "test_eq_hips_wear",
+      "name": "Validation Hip Belt",
+      "description": "Standardized test item for validating equipment slot HIPS_WEAR.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "HIPS_WEAR",
+      "validSlots": [
+        "HIPS_WEAR"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "agility",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "CLOTHING",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "armor"
+    },
+    {
+      "id": "test_eq_stomach_wear",
+      "name": "Validation Belly Wrap",
+      "description": "Standardized test item for validating equipment slot STOMACH_WEAR.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "STOMACH_WEAR",
+      "validSlots": [
+        "STOMACH_WEAR"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "toughness",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "CLOTHING",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "armor"
+    },
+    {
+      "id": "test_eq_finger_primary",
+      "name": "Validation Ring",
+      "description": "Standardized test item for validating equipment slot FINGER_PRIMARY.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "FINGER_PRIMARY",
+      "validSlots": [
+        "FINGER_PRIMARY"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "arcane",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "ACCESSORY",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "accessory"
+    },
+    {
+      "id": "test_eq_piercing_nipple",
+      "name": "Validation Nipple Ring",
+      "description": "Standardized test item for validating equipment slot PIERCING_NIPPLE.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "PIERCING_NIPPLE",
+      "validSlots": [
+        "PIERCING_NIPPLE"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "willpower",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "ACCESSORY",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "accessory"
+    },
+    {
+      "id": "test_eq_piercing_navel",
+      "name": "Validation Navel Gem",
+      "description": "Standardized test item for validating equipment slot PIERCING_NAVEL.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "PIERCING_NAVEL",
+      "validSlots": [
+        "PIERCING_NAVEL"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "willpower",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "ACCESSORY",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "accessory"
+    },
+    {
+      "id": "test_eq_ankles",
+      "name": "Validation Ankle Cuffs",
+      "description": "Standardized test item for validating equipment slot ANKLES.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "ANKLES",
+      "validSlots": [
+        "ANKLES"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "agility",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "CLOTHING",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "armor"
+    },
+    {
+      "id": "test_eq_legs_outer",
+      "name": "Validation Outer Breeches",
+      "description": "Standardized test item for validating equipment slot LEGS_OUTER.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "LEGS_OUTER",
+      "validSlots": [
+        "LEGS_OUTER"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "toughness",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "CLOTHING",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "armor",
+      "supportedDisplacements": {
+        "PULL_DOWN": [
+          "GROIN",
+          "ASS",
+          "LEGS"
+        ],
+        "PULL_ASIDE": [
+          "GROIN"
+        ],
+        "LIFT_UP": [
+          "GROIN",
+          "ASS"
+        ]
+      }
+    },
+    {
+      "id": "test_eq_groin_over",
+      "name": "Validation Codpiece",
+      "description": "Standardized test item for validating equipment slot GROIN_OVER.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "GROIN_OVER",
+      "validSlots": [
+        "GROIN_OVER"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "toughness",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "UNDERWEAR",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "armor",
+      "supportedDisplacements": {
+        "PULL_DOWN": [
+          "GROIN"
+        ],
+        "PULL_ASIDE": [
+          "GROIN"
+        ]
+      }
+    },
+    {
+      "id": "test_eq_tail_slot",
+      "name": "Validation Tail Ribbon",
+      "description": "Standardized test item for validating equipment slot TAIL_SLOT.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "TAIL_SLOT",
+      "validSlots": [
+        "TAIL_SLOT"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "agility",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "CLOTHING",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "armor"
+    },
+    {
+      "id": "test_eq_piercing_cock",
+      "name": "Validation Cock Ring",
+      "description": "Standardized test item for validating equipment slot PIERCING_COCK.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "PIERCING_COCK",
+      "validSlots": [
+        "PIERCING_COCK"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "physique",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "ACCESSORY",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "accessory"
+    },
+    {
+      "id": "test_eq_piercing_vagina",
+      "name": "Validation Labia Ring",
+      "description": "Standardized test item for validating equipment slot PIERCING_VAGINA.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "PIERCING_VAGINA",
+      "validSlots": [
+        "PIERCING_VAGINA"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "physique",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "ACCESSORY",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "accessory"
+    },
+    {
+      "id": "test_eq_calves",
+      "name": "Validation Greaves",
+      "description": "Standardized test item for validating equipment slot CALVES.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "CALVES",
+      "validSlots": [
+        "CALVES"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "toughness",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "CLOTHING",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "armor"
+    },
+    {
+      "id": "test_eq_feet",
+      "name": "Validation Boots",
+      "description": "Standardized test item for validating equipment slot FEET.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "FEET",
+      "validSlots": [
+        "FEET"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "agility",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "CLOTHING",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "armor"
+    },
+    {
+      "id": "test_eq_ass_wear",
+      "name": "Validation Butt Plug",
+      "description": "Standardized test item for validating equipment slot ASS_WEAR.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "ASS_WEAR",
+      "validSlots": [
+        "ASS_WEAR"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "willpower",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "UNDERWEAR",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "armor",
+      "supportedDisplacements": {
+        "PULL_DOWN": [
+          "ASS"
+        ],
+        "PULL_ASIDE": [
+          "ASS"
+        ]
+      }
+    },
+    {
+      "id": "test_eq_penis_wear",
+      "name": "Validation Cock Sleeve",
+      "description": "Standardized test item for validating equipment slot PENIS_WEAR.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "PENIS_WEAR",
+      "validSlots": [
+        "PENIS_WEAR"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "physique",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "UNDERWEAR",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "armor",
+      "supportedDisplacements": {
+        "PULL_DOWN": [
+          "GROIN"
+        ],
+        "PULL_ASIDE": [
+          "GROIN"
+        ]
+      }
+    },
+    {
+      "id": "test_eq_vagina_wear",
+      "name": "Validation Vagina Insert",
+      "description": "Standardized test item for validating equipment slot VAGINA_WEAR.",
+      "baseValue": 10,
+      "isFood": false,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "VAGINA_WEAR",
+      "validSlots": [
+        "VAGINA_WEAR"
+      ],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "willpower",
+          "flatValue": 1.0,
+          "percentValue": 0.0
+        }
+      ],
+      "category": "UNDERWEAR",
+      "maxEnchantments": 3,
+      "enchantmentGroup": "armor",
+      "supportedDisplacements": {
+        "PULL_DOWN": [
+          "GROIN"
+        ],
+        "PULL_ASIDE": [
+          "GROIN"
+        ]
+      }
     }
   ]
 }

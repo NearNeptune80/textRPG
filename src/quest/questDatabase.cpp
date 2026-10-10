@@ -59,6 +59,7 @@ static gameEffect parseGameEffect(const json& res)
     eff.secondaryTarget = res.value("secondaryTarget", "");
     eff.stringVal = res.value("stringVal", "");
     eff.extraString = res.value("extraString", "");
+    eff.statName = res.value("statName", "");
     if (res.contains("weights")) eff.weights = res["weights"].get<std::vector<int>>();
     if (res.contains("branches")) eff.branches = res["branches"].get<std::vector<std::string>>();
     return eff;

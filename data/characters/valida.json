@@ -1,0 +1,219 @@
+{
+  "id": "valida",
+  "name": "Valida",
+  "title": "Proving Grounds Curator",
+  "gender": "Female",
+  "race": "Human",
+  "level": 20,
+  "currency": 9999,
+  "isMerchant": true,
+  "buyMarkup": 1.0,
+  "sellMarkdown": 1.0,
+  "restockItems": [
+    "test_eq_eyewear",
+    "test_eq_headwear",
+    "test_eq_hair_wear",
+    "test_eq_horns_slot",
+    "test_eq_weapon_main",
+    "test_eq_weapon_off",
+    "test_eq_mouthwear",
+    "test_eq_torso_over",
+    "test_eq_neckwear",
+    "test_eq_wings_slot",
+    "test_eq_piercing_ear",
+    "test_eq_piercing_nose",
+    "test_eq_wrists",
+    "test_eq_torso_under",
+    "test_eq_chest_wear",
+    "test_eq_nipples_wear",
+    "test_eq_piercing_lip",
+    "test_eq_piercing_tongue",
+    "test_eq_hands",
+    "test_eq_hips_wear",
+    "test_eq_stomach_wear",
+    "test_eq_finger_primary",
+    "test_eq_piercing_nipple",
+    "test_eq_piercing_navel",
+    "test_eq_ankles",
+    "test_eq_legs_outer",
+    "test_eq_groin_over",
+    "test_eq_tail_slot",
+    "test_eq_piercing_cock",
+    "test_eq_piercing_vagina",
+    "test_eq_calves",
+    "test_eq_feet",
+    "test_eq_ass_wear",
+    "test_eq_penis_wear",
+    "test_eq_vagina_wear"
+  ],
+  "description": "The senior curator of the Validation Proving Grounds. She maintains the complete experimental equipment archive and oversees condition testing routines.",
+  "dialogueSceneId": "scene_condition_gauntlet",
+  "unlockedPerks": [
+    "silver_tongue",
+    "master_trader"
+  ],
+  "baseStats": {
+    "health": 500.0,
+    "max_health": 500.0,
+    "mana": 200.0,
+    "max_mana": 200.0,
+    "physique": 20.0,
+    "agility": 20.0,
+    "toughness": 20.0,
+    "arcane": 25.0,
+    "willpower": 25.0,
+    "corruption": 0.0
+  },
+  "inventory": [
+    {
+      "id": "test_eq_eyewear",
+      "count": 5
+    },
+    {
+      "id": "test_eq_headwear",
+      "count": 5
+    },
+    {
+      "id": "test_eq_hair_wear",
+      "count": 5
+    },
+    {
+      "id": "test_eq_horns_slot",
+      "count": 5
+    },
+    {
+      "id": "test_eq_weapon_main",
+      "count": 5
+    },
+    {
+      "id": "test_eq_weapon_off",
+      "count": 5
+    },
+    {
+      "id": "test_eq_mouthwear",
+      "count": 5
+    },
+    {
+      "id": "test_eq_torso_over",
+      "count": 5
+    },
+    {
+      "id": "test_eq_neckwear",
+      "count": 5
+    },
+    {
+      "id": "test_eq_wings_slot",
+      "count": 5
+    },
+    {
+      "id": "test_eq_piercing_ear",
+      "count": 5
+    },
+    {
+      "id": "test_eq_piercing_nose",
+      "count": 5
+    },
+    {
+      "id": "test_eq_wrists",
+      "count": 5
+    },
+    {
+      "id": "test_eq_torso_under",
+      "count": 5
+    },
+    {
+      "id": "test_eq_chest_wear",
+      "count": 5
+    },
+    {
+      "id": "test_eq_nipples_wear",
+      "count": 5
+    },
+    {
+      "id": "test_eq_piercing_lip",
+      "count": 5
+    },
+    {
+      "id": "test_eq_piercing_tongue",
+      "count": 5
+    },
+    {
+      "id": "test_eq_hands",
+      "count": 5
+    },
+    {
+      "id": "test_eq_hips_wear",
+      "count": 5
+    },
+    {
+      "id": "test_eq_stomach_wear",
+      "count": 5
+    },
+    {
+      "id": "test_eq_finger_primary",
+      "count": 5
+    },
+    {
+      "id": "test_eq_piercing_nipple",
+      "count": 5
+    },
+    {
+      "id": "test_eq_piercing_navel",
+      "count": 5
+    },
+    {
+      "id": "test_eq_ankles",
+      "count": 5
+    },
+    {
+      "id": "test_eq_legs_outer",
+      "count": 5
+    },
+    {
+      "id": "test_eq_groin_over",
+      "count": 5
+    },
+    {
+      "id": "test_eq_tail_slot",
+      "count": 5
+    },
+    {
+      "id": "test_eq_piercing_cock",
+      "count": 5
+    },
+    {
+      "id": "test_eq_piercing_vagina",
+      "count": 5
+    },
+    {
+      "id": "test_eq_calves",
+      "count": 5
+    },
+    {
+      "id": "test_eq_feet",
+      "count": 5
+    },
+    {
+      "id": "test_eq_ass_wear",
+      "count": 5
+    },
+    {
+      "id": "test_eq_penis_wear",
+      "count": 5
+    },
+    {
+      "id": "test_eq_vagina_wear",
+      "count": 5
+    }
+  ],
+  "schedules": [
+    {
+      "startHour": 0,
+      "endHour": 24,
+      "mapId": "test_hub",
+      "x": 2,
+      "y": 2,
+      "activity": "curating the validation proving grounds equipment archive"
+    }
+  ]
+}

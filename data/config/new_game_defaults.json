@@ -1,35 +1,62 @@
 {
   "version": "1.0",
   "starterQuests": [
-    { "id": "root_delivery", "stage": 0, "tracked": true },
-    { "id": "cottage_investigation", "stage": 0, "tracked": false },
-    { "id": "patrol_duty", "stage": 0, "tracked": false }
+    {
+      "id": "root_delivery",
+      "stage": 0,
+      "tracked": true
+    },
+    {
+      "id": "cottage_investigation",
+      "stage": 0,
+      "tracked": false
+    },
+    {
+      "id": "patrol_duty",
+      "stage": 0,
+      "tracked": false
+    }
   ],
   "spawn": {
-    "map": "overworld",
+    "map": "test_hub",
     "x": 1,
     "y": 1
   },
   "calendar": {
-    "day": 29,
-    "hour": 21,
-    "minute": 47
+    "day": 1,
+    "hour": 8,
+    "minute": 0
   },
   "initialLogs": [
     {
       "tag": "[ZONE]",
-      "text": "Sanctuary Manor F1",
-      "color": [180, 200, 220, 255]
+      "text": "Entered Validation Proving Grounds",
+      "color": [
+        180,
+        200,
+        220,
+        255
+      ]
     },
     {
-      "tag": "[QUEST]",
-      "text": "Sanctuary Research",
-      "color": [220, 180, 80, 255]
+      "tag": "[TEST]",
+      "text": "100% Schema-Coverage Test Environment Initialized",
+      "color": [
+        220,
+        180,
+        80,
+        255
+      ]
     },
     {
       "tag": "[INFO]",
-      "text": "Systems active",
-      "color": [160, 200, 160, 255]
+      "text": "All test systems active (Combat, Intimacy, Biomancy, Altar, Gauntlet)",
+      "color": [
+        160,
+        200,
+        160,
+        255
+      ]
     }
   ]
 }

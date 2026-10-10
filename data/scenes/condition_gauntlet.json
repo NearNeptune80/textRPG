@@ -1,0 +1,1163 @@
+{
+  "scenes": [
+    {
+      "id": "scene_condition_gauntlet",
+      "speakerName": "Gauntlet Terminal",
+      "bodyText": "=== VALIDATION MASTER TESTING CONSOLE ===\n\nSelect a system or feature domain to inspect and verify:",
+      "choices": [
+        {
+          "label": "Provision Complete 35-Piece Wardrobe",
+          "tooltip": "Instantly place all 35 test equipment items into your backpack.",
+          "nextSceneId": "scene_wardrobe_claimed",
+          "results": [
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_eyewear",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_headwear",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_hair_wear",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_horns_slot",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_weapon_main",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_weapon_off",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_mouthwear",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_torso_over",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_neckwear",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_wings_slot",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_piercing_ear",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_piercing_nose",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_wrists",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_torso_under",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_chest_wear",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_nipples_wear",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_piercing_lip",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_piercing_tongue",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_hands",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_hips_wear",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_stomach_wear",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_finger_primary",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_piercing_nipple",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_piercing_navel",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_ankles",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_legs_outer",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_groin_over",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_tail_slot",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_piercing_cock",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_piercing_vagina",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_calves",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_feet",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_ass_wear",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_penis_wear",
+              "amount": 1
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "test_eq_vagina_wear",
+              "amount": 1
+            }
+          ]
+        },
+        {
+          "label": "Launch Interactive Sex Simulation",
+          "tooltip": "Test interactive CYOA sex mechanics (solo, consensual partner, or dom/sub).",
+          "nextSceneId": "scene_intimate_simulation"
+        },
+        {
+          "label": "Access Biomantic Transformation Lab",
+          "tooltip": "Test transformation chamber UI, body mutations, fluids, and gestation.",
+          "nextSceneId": "scene_transformation_lab"
+        },
+        {
+          "label": "Approach Arcane Infusion Altar",
+          "tooltip": "Test enchanting UI, essences, focus paths, and infusion crafting.",
+          "nextSceneId": "scene_infusion_altar"
+        },
+        {
+          "label": "Spar with Combat Dummy",
+          "tooltip": "Engage in turn-based combat to test maneuvers, spells, and weapon skills.",
+          "nextSceneId": "scene_sparring_challenge"
+        },
+        {
+          "label": "1. Inventory & Equipment Checks",
+          "tooltip": "Verify HAS_ITEM and EQUIPPED_SLOT condition evaluations.",
+          "nextSceneId": "scene_gauntlet_inventory"
+        },
+        {
+          "label": "2. Quest & Variable Checks",
+          "tooltip": "Verify QUEST_STAGE, VAR_MIN, VAR_MAX, and VAR_EQUALS conditions.",
+          "nextSceneId": "scene_gauntlet_quests"
+        },
+        {
+          "label": "3. Time & Calendar Checks",
+          "tooltip": "Verify TIME_PHASE and TIME_HOUR_BETWEEN conditions.",
+          "nextSceneId": "scene_gauntlet_time"
+        },
+        {
+          "label": "4. Stat Threshold Checks",
+          "tooltip": "Verify STAT_MIN, STAT_MAX, STAT_CHECK, and DOMINANCE_BETWEEN conditions.",
+          "nextSceneId": "scene_gauntlet_stats"
+        },
+        {
+          "label": "5. Biology & Anatomy Checks",
+          "tooltip": "Verify HAS_TAG, HAS_MUTATION, IS_PREGNANT, GENDER_IS, RACE_IS, and TARGET_HAS_TAG.",
+          "nextSceneId": "scene_gauntlet_anatomy"
+        },
+        {
+          "label": "6. Perks & Trait Flag Checks",
+          "tooltip": "Verify HAS_PERK and HAS_PERK_FLAG conditions.",
+          "nextSceneId": "scene_gauntlet_perks"
+        },
+        {
+          "label": "7. Boolean Compound Logic (AND, OR, NOT, LEAF)",
+          "tooltip": "Verify compound boolean node tree evaluation.",
+          "nextSceneId": "scene_gauntlet_logic"
+        },
+        {
+          "label": "8. General Status Effects System Lab",
+          "tooltip": "Inspect, apply, and test permanent, timed, biological, and future status effects on self and targets.",
+          "nextSceneId": "scene_status_effects_lab"
+        },
+        {
+          "label": "Close Terminal",
+          "tooltip": "Exit the testing terminal.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "scene_wardrobe_claimed",
+      "speakerName": "Gauntlet Terminal",
+      "bodyText": "All 35 validation equipment items (test_eq_*) have been successfully transferred to your inventory backpack. You may now equip, unequip, and displace all 35 slots of your character paperdoll.",
+      "choices": [
+        {
+          "label": "Return to Master Console",
+          "nextSceneId": "scene_condition_gauntlet"
+        }
+      ]
+    },
+    {
+      "id": "scene_intimate_simulation",
+      "speakerName": "Intimacy Simulation Hub",
+      "bodyText": "=== INTERACTIVE CYOA SEX SIMULATION ===\n\nSelect a scenario to launch the interactive intimate state (sexState):",
+      "choices": [
+        {
+          "label": "Consensual Intimate Scene (with Valida)",
+          "tooltip": "Enter sexState with Valida as an active, consenting partner.",
+          "nextSceneId": "START_SEX"
+        },
+        {
+          "label": "Solo Intimacy & Body Exploration",
+          "tooltip": "Enter solo sexState for self-exploration and arousal mechanics.",
+          "nextSceneId": "START_SEX"
+        },
+        {
+          "label": "Return to Console",
+          "nextSceneId": "scene_condition_gauntlet"
+        }
+      ]
+    },
+    {
+      "id": "scene_sparring_challenge",
+      "speakerName": "Sparring Automaton",
+      "bodyText": "A clockwork combat dummy raises its padded training armaments, ready to engage in tactical turn-based combat. Choose an approach:",
+      "choices": [
+        {
+          "label": "Fight (Engage in Combat)",
+          "tooltip": "Enter turn-based combat to test maneuvers, weapon skills, and spells.",
+          "nextSceneId": "ENCOUNTER_FIGHT"
+        },
+        {
+          "label": "Bribe (Offer 25\u00a4)",
+          "tooltip": "Test bribe resolution.",
+          "nextSceneId": "ENCOUNTER_BRIBE"
+        },
+        {
+          "label": "Evade / Flee",
+          "tooltip": "Test flight resolution.",
+          "nextSceneId": "ENCOUNTER_FLEE"
+        },
+        {
+          "label": "Surrender",
+          "tooltip": "Test submission and defeat resolution.",
+          "nextSceneId": "ENCOUNTER_SURRENDER"
+        },
+        {
+          "label": "Step Away",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "scene_transformation_lab",
+      "speakerName": "Biomancy Console",
+      "bodyText": "=== BIOMANTIC TRANSFORMATION MATRIX ===\n\nConfigure anatomical transformations, fluid saturation, and gestation parameters:",
+      "choices": [
+        {
+          "label": "Open Interactive Transformation Chamber UI",
+          "tooltip": "Transition to transformationState to test character customization sliders and views.",
+          "nextSceneId": "OPEN_TRANSFORMATION"
+        },
+        {
+          "label": "Expand Breasts (+10 cm)",
+          "tooltip": "Apply growth transformation to chest tissue.",
+          "nextSceneId": "scene_trans_applied",
+          "results": [
+            {
+              "action": "TRANSFORM_PART",
+              "target": "BREASTS",
+              "amount": 10
+            }
+          ]
+        },
+        {
+          "label": "Reduce Breasts (-5 cm)",
+          "tooltip": "Apply reduction transformation to chest tissue.",
+          "nextSceneId": "scene_trans_applied",
+          "results": [
+            {
+              "action": "TRANSFORM_PART",
+              "target": "BREASTS",
+              "amount": -5
+            }
+          ]
+        },
+        {
+          "label": "Grow Virile Member (+5 cm)",
+          "tooltip": "Apply length expansion transformation to penis.",
+          "nextSceneId": "scene_trans_applied",
+          "results": [
+            {
+              "action": "TRANSFORM_PART",
+              "target": "PENIS",
+              "amount": 5
+            }
+          ]
+        },
+        {
+          "label": "Infuse Lactation (+250 ml Milk)",
+          "tooltip": "Fill breast glands with nourishing fluid.",
+          "nextSceneId": "scene_trans_applied",
+          "results": [
+            {
+              "action": "FILL_FLUID",
+              "target": "milk",
+              "amount": 250,
+              "secondaryTarget": "BREASTS"
+            }
+          ]
+        },
+        {
+          "label": "Stretch Orifice (+1.0 cm)",
+          "tooltip": "Increase vaginal elasticity and resting diameter.",
+          "nextSceneId": "scene_trans_applied",
+          "results": [
+            {
+              "action": "STRETCH_ORIFICE",
+              "target": "VAGINA",
+              "floatAmount": 1.0
+            }
+          ]
+        },
+        {
+          "label": "Impregnate (Induce Gestation)",
+          "tooltip": "Initiate pregnancy with litter size 2.",
+          "nextSceneId": "scene_trans_applied",
+          "results": [
+            {
+              "action": "IMPREGNATE",
+              "target": "player",
+              "secondaryTarget": "Valida",
+              "stringVal": "Human",
+              "amount": 2
+            }
+          ]
+        },
+        {
+          "label": "Induce Immediate Childbirth",
+          "tooltip": "Trigger birth resolution if pregnant.",
+          "nextSceneId": "scene_trans_applied",
+          "results": [
+            {
+              "action": "INDUCE_BIRTH",
+              "target": "player"
+            }
+          ]
+        },
+        {
+          "label": "Mutate Body Covering (Soft Fur)",
+          "tooltip": "Change skin covering to Fur.",
+          "nextSceneId": "scene_trans_applied",
+          "results": [
+            {
+              "action": "TRANSFORM_PART",
+              "target": "TORSO",
+              "amount": 0,
+              "extraString": "FUR"
+            }
+          ]
+        },
+        {
+          "label": "Return to Master Console",
+          "nextSceneId": "scene_condition_gauntlet"
+        }
+      ]
+    },
+    {
+      "id": "scene_trans_applied",
+      "speakerName": "Biomancy Console",
+      "bodyText": "The biomantic realignment cycle has successfully completed. Biological adjustments have been committed to player anatomy.",
+      "choices": [
+        {
+          "label": "Return to Biomancy Lab",
+          "nextSceneId": "scene_transformation_lab"
+        },
+        {
+          "label": "Return to Master Console",
+          "nextSceneId": "scene_condition_gauntlet"
+        }
+      ]
+    },
+    {
+      "id": "scene_infusion_altar",
+      "speakerName": "Arcane Infusion Altar",
+      "bodyText": "=== ARCANE INFUSION & ENCHANTING ALTAR ===\n\nChannels of distilled mana pulse through the altar's runic lattice. Select an option:",
+      "choices": [
+        {
+          "label": "Launch Interactive Enchanting Altar UI",
+          "tooltip": "Transition to enchantingState to select base items, set focus, and craft infusions.",
+          "nextSceneId": "OPEN_ENCHANTER"
+        },
+        {
+          "label": "Grant Arcane Essence (+100 Essence)",
+          "tooltip": "Acquire essence required for crafting enchantments.",
+          "nextSceneId": "scene_essence_claimed",
+          "results": [
+            {
+              "action": "MODIFY_STAT",
+              "target": "arcaneEssence",
+              "amount": 100
+            }
+          ]
+        },
+        {
+          "label": "Grant Infusion Reagents",
+          "tooltip": "Receive infused reagents for altar crafting trials.",
+          "nextSceneId": "scene_essence_claimed",
+          "results": [
+            {
+              "action": "GIVE_ITEM",
+              "target": "item_infused_predator",
+              "amount": 2
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "item_infused_primal",
+              "amount": 2
+            }
+          ]
+        },
+        {
+          "label": "Return to Master Console",
+          "nextSceneId": "scene_condition_gauntlet"
+        }
+      ]
+    },
+    {
+      "id": "scene_essence_claimed",
+      "speakerName": "Arcane Infusion Altar",
+      "bodyText": "Raw magical essence and infusion matrices have been channeled into your possession.",
+      "choices": [
+        {
+          "label": "Return to Altar Menu",
+          "nextSceneId": "scene_infusion_altar"
+        }
+      ]
+    },
+    {
+      "id": "scene_hearth_rest",
+      "speakerName": "Cozy Hearth",
+      "bodyText": "A warm, mellow glow emanates from the fireplace embers. Resting here restores physical and mental vigor.",
+      "choices": [
+        {
+          "label": "Rest and Restore Vitality (+200 HP, +100 MP, +100 Stamina, -50 Lust)",
+          "tooltip": "Full health and stamina restoration.",
+          "nextSceneId": "scene_rest_complete",
+          "results": [
+            {
+              "action": "MODIFY_STAT",
+              "target": "health",
+              "amount": 200
+            },
+            {
+              "action": "MODIFY_STAT",
+              "target": "mana",
+              "amount": 100
+            },
+            {
+              "action": "MODIFY_STAT",
+              "target": "stamina",
+              "amount": 100
+            },
+            {
+              "action": "MODIFY_STAT",
+              "target": "lust",
+              "amount": -50
+            }
+          ]
+        },
+        {
+          "label": "Step Away",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "scene_rest_complete",
+      "speakerName": "Cozy Hearth",
+      "bodyText": "You take a long, peaceful rest beside the warm hearth. Your body feels rejuvenated and ready for trials.",
+      "choices": [
+        {
+          "label": "Stand Up",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "scene_arcane_library",
+      "speakerName": "Archive Stacks",
+      "bodyText": "The quiet alcove holds scholarly tomes, maps, and field provisions:",
+      "choices": [
+        {
+          "label": "Collect Field Stipend (+500 Gold & Potions)",
+          "tooltip": "Receive currency and consumable health/mana potions.",
+          "nextSceneId": "scene_library_studied",
+          "results": [
+            {
+              "action": "MODIFY_STAT",
+              "target": "currency",
+              "amount": 500
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "item_potion_health",
+              "amount": 5
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "item_potion_mana",
+              "amount": 5
+            }
+          ]
+        },
+        {
+          "label": "Step Away",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "scene_library_studied",
+      "speakerName": "Archive Stacks",
+      "bodyText": "You collect the designated field stipend and storable rations.",
+      "choices": [
+        {
+          "label": "Step Away",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "scene_gauntlet_inventory",
+      "speakerName": "Gauntlet Terminal",
+      "bodyText": "[Domain: Inventory & Equipment]\nSelect an inventory condition verification probe:",
+      "choices": [
+        {
+          "label": "Probe: HAS_ITEM (Check test_eq_headwear count >= 1)",
+          "tooltip": "Verifies player has test_eq_headwear in backpack.",
+          "nextSceneId": "scene_gauntlet_success",
+          "requirements": [
+            {
+              "type": "HAS_ITEM",
+              "target": "test_eq_headwear",
+              "requiredValue": 1
+            }
+          ]
+        },
+        {
+          "label": "Probe: EQUIPPED_SLOT (Check any item equipped in TORSO_UNDER)",
+          "tooltip": "Verifies TORSO_UNDER slot is occupied.",
+          "nextSceneId": "scene_gauntlet_success",
+          "requirements": [
+            {
+              "type": "EQUIPPED_SLOT",
+              "target": "TORSO_UNDER"
+            }
+          ]
+        },
+        {
+          "label": "Probe: EQUIPPED_SLOT (Check specific 'item_linen_shirt' in TORSO_UNDER)",
+          "tooltip": "Verifies item_linen_shirt specifically is equipped in TORSO_UNDER.",
+          "nextSceneId": "scene_gauntlet_success",
+          "requirements": [
+            {
+              "type": "EQUIPPED_SLOT",
+              "target": "TORSO_UNDER",
+              "stringValue": "item_linen_shirt"
+            }
+          ]
+        },
+        {
+          "label": "Back to Main Hub",
+          "nextSceneId": "scene_condition_gauntlet"
+        }
+      ]
+    },
+    {
+      "id": "scene_gauntlet_quests",
+      "speakerName": "Gauntlet Terminal",
+      "bodyText": "[Domain: Quests & Variables]\nSelect a quest stage verification probe:",
+      "choices": [
+        {
+          "label": "Probe: QUEST_STAGE (Check root_delivery == 0)",
+          "tooltip": "Verifies exact quest stage matching.",
+          "nextSceneId": "scene_gauntlet_success",
+          "requirements": [
+            {
+              "type": "QUEST_STAGE",
+              "target": "root_delivery",
+              "requiredValue": 0
+            }
+          ]
+        },
+        {
+          "label": "Probe: VAR_MIN (Check root_delivery >= 0)",
+          "tooltip": "Verifies minimum stage threshold.",
+          "nextSceneId": "scene_gauntlet_success",
+          "requirements": [
+            {
+              "type": "VAR_MIN",
+              "target": "root_delivery",
+              "requiredValue": 0
+            }
+          ]
+        },
+        {
+          "label": "Probe: VAR_MAX (Check root_delivery <= 10)",
+          "tooltip": "Verifies maximum stage threshold.",
+          "nextSceneId": "scene_gauntlet_success",
+          "requirements": [
+            {
+              "type": "VAR_MAX",
+              "target": "root_delivery",
+              "requiredValue": 10
+            }
+          ]
+        },
+        {
+          "label": "Probe: VAR_EQUALS / CHECK_VAR (Check root_delivery == 0)",
+          "tooltip": "Verifies variable equivalence check alias.",
+          "nextSceneId": "scene_gauntlet_success",
+          "requirements": [
+            {
+              "type": "VAR_EQUALS",
+              "target": "root_delivery",
+              "requiredValue": 0
+            }
+          ]
+        },
+        {
+          "label": "Back to Main Hub",
+          "nextSceneId": "scene_condition_gauntlet"
+        }
+      ]
+    },
+    {
+      "id": "scene_gauntlet_time",
+      "speakerName": "Gauntlet Terminal",
+      "bodyText": "[Domain: Time & Calendar]\nSelect a temporal condition verification probe:",
+      "choices": [
+        {
+          "label": "Probe: TIME_PHASE (Check current phase is NIGHT)",
+          "tooltip": "Verifies time phase matches NIGHT.",
+          "nextSceneId": "scene_gauntlet_success",
+          "requirements": [
+            {
+              "type": "TIME_PHASE",
+              "target": "NIGHT"
+            }
+          ]
+        },
+        {
+          "label": "Probe: TIME_PHASE (Check current phase is DAY)",
+          "tooltip": "Verifies time phase matches DAY.",
+          "nextSceneId": "scene_gauntlet_success",
+          "requirements": [
+            {
+              "type": "TIME_PHASE",
+              "target": "DAY"
+            }
+          ]
+        },
+        {
+          "label": "Probe: TIME_HOUR_BETWEEN (Check current hour is 0-24)",
+          "tooltip": "Verifies calendar hour falls within the valid span.",
+          "nextSceneId": "scene_gauntlet_success",
+          "requirements": [
+            {
+              "type": "TIME_HOUR_BETWEEN",
+              "minValue": 0,
+              "maxValue": 24
+            }
+          ]
+        },
+        {
+          "label": "Back to Main Hub",
+          "nextSceneId": "scene_condition_gauntlet"
+        }
+      ]
+    },
+    {
+      "id": "scene_gauntlet_stats",
+      "speakerName": "Gauntlet Terminal",
+      "bodyText": "[Domain: Stats & Attributes]\nSelect a stat threshold verification probe:",
+      "choices": [
+        {
+          "label": "Probe: STAT_MIN (Check physique >= 1.0)",
+          "tooltip": "Verifies player physique meets minimum threshold.",
+          "nextSceneId": "scene_gauntlet_success",
+          "requirements": [
+            {
+              "type": "STAT_MIN",
+              "target": "physique",
+              "floatValue": 1.0
+            }
+          ]
+        },
+        {
+          "label": "Probe: STAT_MAX (Check corruption <= 100.0)",
+          "tooltip": "Verifies corruption stat does not exceed cap.",
+          "nextSceneId": "scene_gauntlet_success",
+          "requirements": [
+            {
+              "type": "STAT_MAX",
+              "target": "corruption",
+              "floatValue": 100.0
+            }
+          ]
+        },
+        {
+          "label": "Probe: STAT_CHECK (Check physique in range [1, 999])",
+          "tooltip": "Verifies bounded stat range evaluation.",
+          "nextSceneId": "scene_gauntlet_success",
+          "requirements": [
+            {
+              "type": "STAT_CHECK",
+              "target": "physique",
+              "minValue": 1,
+              "maxValue": 999
+            }
+          ]
+        },
+        {
+          "label": "Probe: DOMINANCE_BETWEEN (Check dominance in range [-100, 100])",
+          "tooltip": "Verifies dominance score boundary check.",
+          "nextSceneId": "scene_gauntlet_success",
+          "requirements": [
+            {
+              "type": "DOMINANCE_BETWEEN",
+              "minValue": -100,
+              "maxValue": 100
+            }
+          ]
+        },
+        {
+          "label": "Back to Main Hub",
+          "nextSceneId": "scene_condition_gauntlet"
+        }
+      ]
+    },
+    {
+      "id": "scene_gauntlet_anatomy",
+      "speakerName": "Gauntlet Terminal",
+      "bodyText": "[Domain: Anatomy & Biological Tags]\nSelect an anatomical condition probe:",
+      "choices": [
+        {
+          "label": "Probe: HAS_TAG (Check player anatomy has tag 'bipedal')",
+          "tooltip": "Verifies global anatomical body tag presence.",
+          "nextSceneId": "scene_gauntlet_success",
+          "requirements": [
+            {
+              "type": "HAS_TAG",
+              "target": "bipedal"
+            }
+          ]
+        },
+        {
+          "label": "Probe: HAS_MUTATION (Check active mutation 'test_mutation')",
+          "tooltip": "Verifies active mutation registry.",
+          "nextSceneId": "scene_gauntlet_success",
+          "requirements": [
+            {
+              "type": "HAS_MUTATION",
+              "target": "test_mutation"
+            }
+          ]
+        },
+        {
+          "label": "Probe: IS_PREGNANT (Check gestation status)",
+          "tooltip": "Verifies biological gestation pregnancy flag.",
+          "nextSceneId": "scene_gauntlet_success",
+          "requirements": [
+            {
+              "type": "IS_PREGNANT"
+            }
+          ]
+        },
+        {
+          "label": "Probe: GENDER_IS (Check player gender archetype is MALE)",
+          "tooltip": "Verifies gender archetype matches MALE.",
+          "nextSceneId": "scene_gauntlet_success",
+          "requirements": [
+            {
+              "type": "GENDER_IS",
+              "target": "MALE"
+            }
+          ]
+        },
+        {
+          "label": "Probe: RACE_IS / DOMINANT_RACE (Check player dominant race is Human)",
+          "tooltip": "Verifies dominant race calculation.",
+          "nextSceneId": "scene_gauntlet_success",
+          "requirements": [
+            {
+              "type": "RACE_IS",
+              "target": "Human"
+            }
+          ]
+        },
+        {
+          "label": "Probe: TARGET_HAS_TAG (Check active target NPC has tag 'can_be_interrogated')",
+          "tooltip": "Verifies activeTargetNPC anatomical tag.",
+          "nextSceneId": "scene_gauntlet_success",
+          "requirements": [
+            {
+              "type": "TARGET_HAS_TAG",
+              "target": "can_be_interrogated"
+            }
+          ]
+        },
+        {
+          "label": "Back to Main Hub",
+          "nextSceneId": "scene_condition_gauntlet"
+        }
+      ]
+    },
+    {
+      "id": "scene_gauntlet_perks",
+      "speakerName": "Gauntlet Terminal",
+      "bodyText": "[Domain: Perks & Trait Flags]\nSelect a perk condition probe:",
+      "choices": [
+        {
+          "label": "Probe: HAS_PERK (Check player unlocked perk 'iron_constitution')",
+          "tooltip": "Verifies presence of iron_constitution perk.",
+          "nextSceneId": "scene_gauntlet_success",
+          "requirements": [
+            {
+              "type": "HAS_PERK",
+              "target": "iron_constitution"
+            }
+          ]
+        },
+        {
+          "label": "Probe: HAS_PERK_FLAG (Check player has perk flag 'unarmed_expert')",
+          "tooltip": "Verifies perk flag capability registration.",
+          "nextSceneId": "scene_gauntlet_success",
+          "requirements": [
+            {
+              "type": "HAS_PERK_FLAG",
+              "target": "unarmed_expert"
+            }
+          ]
+        },
+        {
+          "label": "Back to Main Hub",
+          "nextSceneId": "scene_condition_gauntlet"
+        }
+      ]
+    },
+    {
+      "id": "scene_gauntlet_logic",
+      "speakerName": "Gauntlet Terminal",
+      "bodyText": "[Domain: Compound Boolean Logic Operators]\nSelect a boolean tree operator probe:",
+      "choices": [
+        {
+          "label": "Probe: LEAF Operator (Direct atomic condition evaluation)",
+          "tooltip": "Verifies leaf condition node evaluation.",
+          "nextSceneId": "scene_gauntlet_success",
+          "requirements": [
+            {
+              "type": "STAT_MIN",
+              "target": "physique",
+              "floatValue": 1.0
+            }
+          ]
+        },
+        {
+          "label": "Probe: AND Operator (Physique >= 1.0 AND Hour 0-24)",
+          "tooltip": "Verifies AND operator: passes only if all child nodes evaluate true.",
+          "nextSceneId": "scene_gauntlet_success",
+          "requirements": [
+            {
+              "op": "AND",
+              "children": [
+                {
+                  "type": "STAT_MIN",
+                  "target": "physique",
+                  "floatValue": 1.0
+                },
+                {
+                  "type": "TIME_HOUR_BETWEEN",
+                  "minValue": 0,
+                  "maxValue": 24
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "label": "Probe: OR Operator (Phase DAY OR Phase NIGHT)",
+          "tooltip": "Verifies OR operator: passes if any child node evaluates true.",
+          "nextSceneId": "scene_gauntlet_success",
+          "requirements": [
+            {
+              "op": "OR",
+              "children": [
+                {
+                  "type": "TIME_PHASE",
+                  "target": "DAY"
+                },
+                {
+                  "type": "TIME_PHASE",
+                  "target": "NIGHT"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "label": "Probe: NOT Operator (NOT Physique >= 9999.0)",
+          "tooltip": "Verifies NOT operator: inverts the evaluation of its child node.",
+          "nextSceneId": "scene_gauntlet_success",
+          "requirements": [
+            {
+              "op": "NOT",
+              "children": [
+                {
+                  "type": "STAT_MIN",
+                  "target": "physique",
+                  "floatValue": 9999.0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "label": "Back to Main Hub",
+          "nextSceneId": "scene_condition_gauntlet"
+        }
+      ]
+    },
+    {
+      "id": "scene_gauntlet_success",
+      "speakerName": "Gauntlet Terminal",
+      "bodyText": ">>> VERIFICATION PASSED <<<\n\nThe queried condition evaluated to TRUE under current game state.",
+      "choices": [
+        {
+          "label": "Return to Gauntlet Hub",
+          "nextSceneId": "scene_condition_gauntlet"
+        }
+      ]
+    },
+    {
+      "id": "scene_teleport_chamber",
+      "speakerName": "Translocation Matrix",
+      "bodyText": "The arcane coordinate translocator hums with energy. Stepping onto the central pad will transport you back to the Test Hub central plaza.",
+      "choices": [
+        {
+          "label": "Activate Teleporter (Warp to Test Hub 1,1)",
+          "tooltip": "Engage the coordinate teleportation sequence.",
+          "nextSceneId": "EXIT",
+          "results": [
+            {
+              "action": "TELEPORT",
+              "target": "test_hub",
+              "x": 1,
+              "y": 1
+            }
+          ]
+        },
+        {
+          "label": "Step Away",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "scene_status_effects_lab",
+      "speakerName": "Status Effects Testing Altar",
+      "bodyText": "=== GENERAL STATUS EFFECTS & LIFE CYCLE LAB ===\n\nStatus effects reflect current states, future biological/magical progressions, and permanent character conditions.\n\nActive Status Effects on you are rendered as badges in your character card HUD with tooltips, durations, and stat influences.\n\nChoose an action to verify:",
+      "choices": [
+        {
+          "label": "Apply Permanent Blessing (+25% Max Health, +10 Base Health)",
+          "tooltip": "Grants permanent status effect 'fx_blessing_vitality'. Remains indefinitely until cleansed.",
+          "nextSceneId": "scene_status_effects_lab",
+          "results": [
+            {
+              "action": "APPLY_STATUS_EFFECT",
+              "target": "player",
+              "stringVal": "fx_blessing_vitality",
+              "secondaryTarget": "Blessing of Vitality",
+              "extraString": "Sacred divine aura fortifies the life force. Increases maximum health by 25% and provides +10 flat vitality.",
+              "statName": "health",
+              "floatAmount": 0.25,
+              "amount": 0,
+              "branches": [
+                "VIT"
+              ]
+            }
+          ]
+        },
+        {
+          "label": "Apply Timed Rested State (8 Hours / 480 mins, +15% Mana)",
+          "tooltip": "Grants time-decaying status effect 'fx_well_rested'. Decays over 480 game minutes.",
+          "nextSceneId": "scene_status_effects_lab",
+          "results": [
+            {
+              "action": "APPLY_STATUS_EFFECT",
+              "target": "player",
+              "stringVal": "fx_well_rested",
+              "secondaryTarget": "Well Rested",
+              "extraString": "Deep slumber by the hearth has rejuvenated your mind. Increases maximum mana by 15%.",
+              "statName": "mana",
+              "floatAmount": 0.15,
+              "amount": 480,
+              "branches": [
+                "RST"
+              ]
+            }
+          ]
+        },
+        {
+          "label": "Apply Permanent Heat & Erotic Sensitivity (+30% Lust Gain)",
+          "tooltip": "Grants status effect 'fx_heat_rut' representing heightened biological arousal state.",
+          "nextSceneId": "scene_status_effects_lab",
+          "results": [
+            {
+              "action": "APPLY_STATUS_EFFECT",
+              "target": "player",
+              "stringVal": "fx_heat_rut",
+              "secondaryTarget": "In Heat",
+              "extraString": "Pheromones surge as an instinctual mating rut takes hold. Increases lust and arousal susceptibility by 30%.",
+              "statName": "lust",
+              "floatAmount": 0.30,
+              "amount": 0,
+              "branches": [
+                "HET"
+              ]
+            }
+          ]
+        },
+        {
+          "label": "Apply Toxic Debuff to NPC Target (2 Hours / 120 mins, -20 Stamina)",
+          "tooltip": "Grants debuff status effect 'fx_toxic_venom' to the active NPC target.",
+          "nextSceneId": "scene_status_effects_lab",
+          "results": [
+            {
+              "action": "APPLY_STATUS_EFFECT",
+              "target": "npc",
+              "stringVal": "fx_toxic_venom",
+              "secondaryTarget": "Toxic Venom",
+              "extraString": "Virulent paralytic venom circulates through the bloodstream, draining 20 stamina.",
+              "statName": "stamina",
+              "floatAmount": -20.0,
+              "amount": 120,
+              "branches": [
+                "TOX"
+              ]
+            }
+          ]
+        },
+        {
+          "label": "Test Condition: Check if Blessing of Vitality is Active",
+          "tooltip": "Unlocked only when 'fx_blessing_vitality' is currently active.",
+          "nextSceneId": "scene_status_verified",
+          "requirements": [
+            {
+              "type": "HAS_STATUS_EFFECT",
+              "target": "fx_blessing_vitality"
+            }
+          ]
+        },
+        {
+          "label": "Cleanse All Status Effects",
+          "tooltip": "Removes all status effects from player and restores baseline state.",
+          "nextSceneId": "scene_status_effects_lab",
+          "results": [
+            {
+              "action": "REMOVE_STATUS_EFFECT",
+              "target": "player",
+              "stringVal": "ALL"
+            }
+          ]
+        },
+        {
+          "label": "Return to Master Testing Console",
+          "tooltip": "Back to the master console.",
+          "nextSceneId": "scene_condition_gauntlet"
+        }
+      ]
+    },
+    {
+      "id": "scene_status_verified",
+      "speakerName": "Status Effects Testing Altar",
+      "bodyText": "[SUCCESS] HAS_STATUS_EFFECT condition check evaluated to TRUE!\n\nThe engine successfully verified that 'Blessing of Vitality' (fx_blessing_vitality) is currently active on your character entity.",
+      "choices": [
+        {
+          "label": "Back to Status Effects Lab",
+          "tooltip": "Return to the status effects testing panel.",
+          "nextSceneId": "scene_status_effects_lab"
+        }
+      ]
+    }
+  ]
+}

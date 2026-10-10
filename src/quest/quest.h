@@ -28,6 +28,7 @@ struct gameEffect {
     std::string secondaryTarget;
     std::string stringVal;
     std::string extraString;
+    std::string statName;
     std::vector<int> weights;
     std::vector<std::string> branches;
 };

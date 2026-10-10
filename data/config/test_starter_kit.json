@@ -1,0 +1,146 @@
+{
+  "version": "1.0",
+  "description": "Validation test kit containing 1 item for every equipment slot in the engine.",
+  "starterItems": [
+    {
+      "id": "test_eq_eyewear",
+      "count": 1
+    },
+    {
+      "id": "test_eq_headwear",
+      "count": 1
+    },
+    {
+      "id": "test_eq_hair_wear",
+      "count": 1
+    },
+    {
+      "id": "test_eq_horns_slot",
+      "count": 1
+    },
+    {
+      "id": "test_eq_weapon_main",
+      "count": 1
+    },
+    {
+      "id": "test_eq_weapon_off",
+      "count": 1
+    },
+    {
+      "id": "test_eq_mouthwear",
+      "count": 1
+    },
+    {
+      "id": "test_eq_torso_over",
+      "count": 1
+    },
+    {
+      "id": "test_eq_neckwear",
+      "count": 1
+    },
+    {
+      "id": "test_eq_wings_slot",
+      "count": 1
+    },
+    {
+      "id": "test_eq_piercing_ear",
+      "count": 1
+    },
+    {
+      "id": "test_eq_piercing_nose",
+      "count": 1
+    },
+    {
+      "id": "test_eq_wrists",
+      "count": 1
+    },
+    {
+      "id": "test_eq_torso_under",
+      "count": 1
+    },
+    {
+      "id": "test_eq_chest_wear",
+      "count": 1
+    },
+    {
+      "id": "test_eq_nipples_wear",
+      "count": 1
+    },
+    {
+      "id": "test_eq_piercing_lip",
+      "count": 1
+    },
+    {
+      "id": "test_eq_piercing_tongue",
+      "count": 1
+    },
+    {
+      "id": "test_eq_hands",
+      "count": 1
+    },
+    {
+      "id": "test_eq_hips_wear",
+      "count": 1
+    },
+    {
+      "id": "test_eq_stomach_wear",
+      "count": 1
+    },
+    {
+      "id": "test_eq_finger_primary",
+      "count": 1
+    },
+    {
+      "id": "test_eq_piercing_nipple",
+      "count": 1
+    },
+    {
+      "id": "test_eq_piercing_navel",
+      "count": 1
+    },
+    {
+      "id": "test_eq_ankles",
+      "count": 1
+    },
+    {
+      "id": "test_eq_legs_outer",
+      "count": 1
+    },
+    {
+      "id": "test_eq_groin_over",
+      "count": 1
+    },
+    {
+      "id": "test_eq_tail_slot",
+      "count": 1
+    },
+    {
+      "id": "test_eq_piercing_cock",
+      "count": 1
+    },
+    {
+      "id": "test_eq_piercing_vagina",
+      "count": 1
+    },
+    {
+      "id": "test_eq_calves",
+      "count": 1
+    },
+    {
+      "id": "test_eq_feet",
+      "count": 1
+    },
+    {
+      "id": "test_eq_ass_wear",
+      "count": 1
+    },
+    {
+      "id": "test_eq_penis_wear",
+      "count": 1
+    },
+    {
+      "id": "test_eq_vagina_wear",
+      "count": 1
+    }
+  ]
+}

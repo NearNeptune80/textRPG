@@ -13,6 +13,48 @@
         "item_canis_root",
         "item_linen_shirt"
       ]
+    },
+    {
+      "id": "shop_valida_archive",
+      "name": "Valida's Testing Archive",
+      "merchantId": "valida",
+      "restockItems": [
+        "test_eq_eyewear",
+        "test_eq_headwear",
+        "test_eq_hair_wear",
+        "test_eq_horns_slot",
+        "test_eq_weapon_main",
+        "test_eq_weapon_off",
+        "test_eq_mouthwear",
+        "test_eq_torso_over",
+        "test_eq_neckwear",
+        "test_eq_wings_slot",
+        "test_eq_piercing_ear",
+        "test_eq_piercing_nose",
+        "test_eq_wrists",
+        "test_eq_torso_under",
+        "test_eq_chest_wear",
+        "test_eq_nipples_wear",
+        "test_eq_piercing_lip",
+        "test_eq_piercing_tongue",
+        "test_eq_hands",
+        "test_eq_hips_wear",
+        "test_eq_stomach_wear",
+        "test_eq_finger_primary",
+        "test_eq_piercing_nipple",
+        "test_eq_piercing_navel",
+        "test_eq_ankles",
+        "test_eq_legs_outer",
+        "test_eq_groin_over",
+        "test_eq_tail_slot",
+        "test_eq_piercing_cock",
+        "test_eq_piercing_vagina",
+        "test_eq_calves",
+        "test_eq_feet",
+        "test_eq_ass_wear",
+        "test_eq_penis_wear",
+        "test_eq_vagina_wear"
+      ]
     }
   ]
 }

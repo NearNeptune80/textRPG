@@ -1396,14 +1396,6 @@ void ActionGridManager::refresh(game* gameContext)
                 gameContext->handleCommand({ CommandType::SELECT_COMBAT_FOCUS, 0, 0, "ITEM" });
             }, true, false, "Select Item Focus: Consume restorative elixirs, potions, and crystals.");
 
-            addBtn(gameContext, "End Turn", [combat, gameContext]() {
-                combat->handleEndTurn(gameContext);
-            }, true, false, "Conclude planning phase and resolve all queued turn actions.");
-
-            addBtn(gameContext, "Clear Queue", [combat, gameContext]() {
-                combat->handleClearQueue(gameContext);
-            }, hasQueuedActions, false, hasQueuedActions ? "Clear all queued actions and refund spent Stamina/Mana." : "No actions currently queued.");
-
             addBtn(gameContext, "Surrender", [gameContext]() {
                 gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "SURRENDER" });
             }, true, false, "Yield to enemy combatants and enter submission.");
@@ -1412,8 +1404,53 @@ void ActionGridManager::refresh(game* gameContext)
                 gameContext->handleCommand({ CommandType::EXECUTE_COMBAT_ACTION, 0, 0, "ESCAPE" });
             }, true, false, "Attempt to flee from combat encounter.");
 
+            padButtonsTo(gameContext, 10);
+            addBtn(gameContext, "End Turn", [combat, gameContext]() {
+                combat->handleEndTurn(gameContext);
+            }, true, false, "Conclude planning phase and resolve all queued turn actions.");
+
+            padButtonsTo(gameContext, 13);
+            addBtn(gameContext, "Clear Queue", [combat, gameContext]() {
+                combat->handleClearQueue(gameContext);
+            }, hasQueuedActions, false, hasQueuedActions ? "Clear all queued actions and refund spent Stamina/Mana." : "No actions currently queued.");
+
+            padButtonsTo(gameContext, 14);
+            addBtn(gameContext, "Reset", [combat, gameContext]() {
+                combat->handleClearQueue(gameContext);
+            }, hasQueuedActions, false, "Reset all queued actions and refund spent Stamina/Mana.");
+
             return;
         }
+
+        auto addCombatSubmenuNav = [&](size_t totalActions) {
+            size_t totalPages = (totalActions == 0) ? 1 : ((totalActions - 1) / 10) + 1;
+            for (size_t pIdx = 0; pIdx < totalPages; ++pIdx)
+            {
+                padButtonsTo(gameContext, (pIdx * 15) + 10);
+                addBtn(gameContext, "End Turn", [combat, gameContext]() {
+                    combat->handleEndTurn(gameContext);
+                }, true, false, "Conclude planning phase and resolve all queued turn actions.");
+
+                padButtonsTo(gameContext, (pIdx * 15) + 13);
+                addBtn(gameContext, "Clear Queue", [combat, gameContext]() {
+                    combat->handleClearQueue(gameContext);
+                }, hasQueuedActions, false, "Clear all queued actions and refund spent stamina/mana.");
+
+                padButtonsTo(gameContext, (pIdx * 15) + 14);
+                addBtn(gameContext, "Back (Reset)", [combat, gameContext]() {
+                    combat->setCombatFocus(CombatFocus::ROOT);
+                    gameContext->refreshActionGrid();
+                }, true, false, "Return to main focus menu (clears and refunds queued actions).");
+            }
+        };
+
+        auto addPagedCombatAction = [&](const std::string& label, std::function<void()> onClick, bool enabled, const std::string& tip, size_t actionIndex) {
+            size_t page = actionIndex / 10;
+            size_t indexOnPage = actionIndex % 10;
+            size_t targetSlot = (page * 15) + indexOnPage;
+            padButtonsTo(gameContext, targetSlot);
+            addBtn(gameContext, label, std::move(onClick), enabled, false, tip);
+        };
 
         if (combat->getCombatFocus() == CombatFocus::WEAPON)
         {
@@ -1428,6 +1465,7 @@ void ActionGridManager::refresh(game* gameContext)
                 skillIds = { "skill_slash", "skill_thrust", "skill_pommel_strike" };
             }
 
+            size_t actionIdx = 0;
             for (const auto& sId : skillIds)
             {
                 const WeaponSkill* ws = WeaponSkillDatabase::getSkill(sId);
@@ -1437,25 +1475,13 @@ void ActionGridManager::refresh(game* gameContext)
                     std::string label = std::format("{} ({:.0f} Sta)", ws->name, ws->staminaCost);
                     std::string tip = std::format("{}\nDamage: {:.0f}%\nType: {}\nCost: {:.0f} Stamina",
                                                   ws->description, ws->damageMult * 100.0f, ws->damageType, ws->staminaCost);
-                    addBtn(gameContext, label, [gameContext, sId]() {
+                    addPagedCombatAction(label, [gameContext, sId]() {
                         gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, sId });
-                    }, canAfford, false, tip);
+                    }, canAfford, tip, actionIdx++);
                 }
             }
 
-            addBtn(gameContext, "Back (Reset)", [combat, gameContext]() {
-                combat->setCombatFocus(CombatFocus::ROOT);
-                gameContext->refreshActionGrid();
-            }, true, false, "Return to main focus menu (clears and refunds queued actions).");
-
-            addBtn(gameContext, "Clear Queue", [combat, gameContext]() {
-                combat->handleClearQueue(gameContext);
-            }, hasQueuedActions, false, "Clear all queued actions and refund stamina.");
-
-            addBtn(gameContext, "End Turn", [combat, gameContext]() {
-                combat->handleEndTurn(gameContext);
-            }, true, false, "Execute turn.");
-
+            addCombatSubmenuNav(actionIdx);
             return;
         }
 
@@ -1465,6 +1491,7 @@ void ActionGridManager::refresh(game* gameContext)
                 "arcane_dart", "fireball", "arcane_shield", "cleanse", "teleport"
             };
 
+            size_t actionIdx = 0;
             for (const auto& sId : spellIds)
             {
                 const auto* sp = SpellDatabase::getSpell(sId);
@@ -1473,25 +1500,13 @@ void ActionGridManager::refresh(game* gameContext)
                     bool canAfford = (curMp >= sp->mpCost && curStamina >= sp->staminaCost);
                     std::string label = std::format("{} ({:.0f} MP)", sp->name, sp->mpCost);
                     std::string tip = std::format("{}\nCost: {:.0f} MP, {:.0f} Stamina", sp->description, sp->mpCost, sp->staminaCost);
-                    addBtn(gameContext, label, [gameContext, sId]() {
+                    addPagedCombatAction(label, [gameContext, sId]() {
                         gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, sId });
-                    }, canAfford, false, tip);
+                    }, canAfford, tip, actionIdx++);
                 }
             }
 
-            addBtn(gameContext, "Back (Reset)", [combat, gameContext]() {
-                combat->setCombatFocus(CombatFocus::ROOT);
-                gameContext->refreshActionGrid();
-            }, true, false, "Return to main focus menu (clears and refunds queued actions).");
-
-            addBtn(gameContext, "Clear Queue", [combat, gameContext]() {
-                combat->handleClearQueue(gameContext);
-            }, hasQueuedActions, false, "Clear all queued actions and refund mana/stamina.");
-
-            addBtn(gameContext, "End Turn", [combat, gameContext]() {
-                combat->handleEndTurn(gameContext);
-            }, true, false, "Execute turn.");
-
+            addCombatSubmenuNav(actionIdx);
             return;
         }
 
@@ -1501,6 +1516,7 @@ void ActionGridManager::refresh(game* gameContext)
                 "action_guard", "action_dodge", "action_parry"
             };
 
+            size_t actionIdx = 0;
             for (const auto& aId : defActionIds)
             {
                 const auto* act = CombatActionDatabase::getAction(aId);
@@ -1509,25 +1525,13 @@ void ActionGridManager::refresh(game* gameContext)
                     bool canAfford = (curStamina >= act->staminaCost);
                     std::string label = std::format("{} ({:.0f} Sta)", act->name, act->staminaCost);
                     std::string tip = std::format("{}\nCost: {:.0f} Stamina", act->description, act->staminaCost);
-                    addBtn(gameContext, label, [gameContext, aId]() {
+                    addPagedCombatAction(label, [gameContext, aId]() {
                         gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, aId });
-                    }, canAfford, false, tip);
+                    }, canAfford, tip, actionIdx++);
                 }
             }
 
-            addBtn(gameContext, "Back (Reset)", [combat, gameContext]() {
-                combat->setCombatFocus(CombatFocus::ROOT);
-                gameContext->refreshActionGrid();
-            }, true, false, "Return to main focus menu (clears and refunds queued actions).");
-
-            addBtn(gameContext, "Clear Queue", [combat, gameContext]() {
-                combat->handleClearQueue(gameContext);
-            }, hasQueuedActions, false, "Clear all queued actions.");
-
-            addBtn(gameContext, "End Turn", [combat, gameContext]() {
-                combat->handleEndTurn(gameContext);
-            }, true, false, "Execute turn.");
-
+            addCombatSubmenuNav(actionIdx);
             return;
         }
 
@@ -1537,6 +1541,7 @@ void ActionGridManager::refresh(game* gameContext)
                 "action_seduce_tease", "action_seduce_flirt", "action_seduce_expose"
             };
 
+            size_t actionIdx = 0;
             for (const auto& aId : seduceActionIds)
             {
                 const auto* act = CombatActionDatabase::getAction(aId);
@@ -1545,30 +1550,19 @@ void ActionGridManager::refresh(game* gameContext)
                     bool canAfford = (curStamina >= act->staminaCost);
                     std::string label = std::format("{} ({:.0f} Sta)", act->name, act->staminaCost);
                     std::string tip = std::format("{}\nCost: {:.0f} Stamina\nLust: +{:.0f}", act->description, act->staminaCost, act->lustDamage);
-                    addBtn(gameContext, label, [gameContext, aId]() {
+                    addPagedCombatAction(label, [gameContext, aId]() {
                         gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, aId });
-                    }, canAfford, false, tip);
+                    }, canAfford, tip, actionIdx++);
                 }
             }
 
-            addBtn(gameContext, "Back (Reset)", [combat, gameContext]() {
-                combat->setCombatFocus(CombatFocus::ROOT);
-                gameContext->refreshActionGrid();
-            }, true, false, "Return to main focus menu (clears and refunds queued actions).");
-
-            addBtn(gameContext, "Clear Queue", [combat, gameContext]() {
-                combat->handleClearQueue(gameContext);
-            }, hasQueuedActions, false, "Clear all queued actions.");
-
-            addBtn(gameContext, "End Turn", [combat, gameContext]() {
-                combat->handleEndTurn(gameContext);
-            }, true, false, "Execute turn.");
-
+            addCombatSubmenuNav(actionIdx);
             return;
         }
 
         if (combat->getCombatFocus() == CombatFocus::COMPANION)
         {
+            size_t actionIdx = 0;
             const auto* act = CombatActionDatabase::getAction("action_companion_attack");
             float staCost = act ? act->staminaCost : 15.0f;
             std::string name = act ? act->name : "Familiar Strike";
@@ -1576,28 +1570,17 @@ void ActionGridManager::refresh(game* gameContext)
             bool canCompAtk = (curStamina >= staCost);
             std::string label = std::format("{} ({:.0f} Sta)", name, staCost);
             std::string tip = std::format("{}\nCost: {:.0f} Stamina", desc, staCost);
-            addBtn(gameContext, label, [gameContext]() {
+            addPagedCombatAction(label, [gameContext]() {
                 gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, "COMPANION_ATTACK" });
-            }, canCompAtk, false, tip);
+            }, canCompAtk, tip, actionIdx++);
 
-            addBtn(gameContext, "Back (Reset)", [combat, gameContext]() {
-                combat->setCombatFocus(CombatFocus::ROOT);
-                gameContext->refreshActionGrid();
-            }, true, false, "Return to main focus menu (clears and refunds queued actions).");
-
-            addBtn(gameContext, "Clear Queue", [combat, gameContext]() {
-                combat->handleClearQueue(gameContext);
-            }, hasQueuedActions, false, "Clear all queued actions.");
-
-            addBtn(gameContext, "End Turn", [combat, gameContext]() {
-                combat->handleEndTurn(gameContext);
-            }, true, false, "Execute turn.");
-
+            addCombatSubmenuNav(actionIdx);
             return;
         }
 
         if (combat->getCombatFocus() == CombatFocus::ITEM)
         {
+            size_t actionIdx = 0;
             const auto* potAct = CombatActionDatabase::getAction("item_potion");
             const auto* manaAct = CombatActionDatabase::getAction("item_mana");
             float potCost = (potAct && potAct->staminaCost > 0.0f) ? potAct->staminaCost : 5.0f;
@@ -1610,30 +1593,18 @@ void ActionGridManager::refresh(game* gameContext)
             bool canPot = (potionCount > 0 && curStamina >= potCost);
             std::string potLabel = std::format("{} ({:.0f} Sta)", potName, potCost);
             std::string potTip = canPot ? std::format("{}\nCost: {:.0f} Stamina", potDesc, potCost) : "No healing potions in inventory or insufficient stamina.";
-            addBtn(gameContext, potLabel, [gameContext]() {
+            addPagedCombatAction(potLabel, [gameContext]() {
                 gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, "ITEM_POTION" });
-            }, canPot, false, potTip);
+            }, canPot, potTip, actionIdx++);
 
             bool canMana = (curStamina >= manaCost);
             std::string manaLabel = std::format("{} ({:.0f} Sta)", manaName, manaCost);
             std::string manaTip = std::format("{}\nCost: {:.0f} Stamina", manaDesc, manaCost);
-            addBtn(gameContext, manaLabel, [gameContext]() {
+            addPagedCombatAction(manaLabel, [gameContext]() {
                 gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, "ITEM_MANA" });
-            }, canMana, false, manaTip);
+            }, canMana, manaTip, actionIdx++);
 
-            addBtn(gameContext, "Back (Reset)", [combat, gameContext]() {
-                combat->setCombatFocus(CombatFocus::ROOT);
-                gameContext->refreshActionGrid();
-            }, true, false, "Return to main focus menu (clears and refunds queued actions).");
-
-            addBtn(gameContext, "Clear Queue", [combat, gameContext]() {
-                combat->handleClearQueue(gameContext);
-            }, hasQueuedActions, false, "Clear all queued actions.");
-
-            addBtn(gameContext, "End Turn", [combat, gameContext]() {
-                combat->handleEndTurn(gameContext);
-            }, true, false, "Execute turn.");
-
+            addCombatSubmenuNav(actionIdx);
             return;
         }
     }

@@ -1,0 +1,203 @@
+{
+  "id": "test_facility",
+  "name": "Validation Research Facility",
+  "entranceDescription": "the Validation Research Facility",
+  "width": 5,
+  "height": 5,
+  "tiles": [
+    [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      3,
+      1,
+      1,
+      0
+    ],
+    [
+      0,
+      1,
+      1,
+      1,
+      0
+    ],
+    [
+      0,
+      1,
+      1,
+      1,
+      0
+    ],
+    [
+      0,
+      0,
+      3,
+      0,
+      0
+    ]
+  ],
+  "dangerLevels": [
+    [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0
+    ]
+  ],
+  "warps": [
+    {
+      "x": 1,
+      "y": 1,
+      "targetMap": "test_hub",
+      "targetX": 5,
+      "targetY": 3,
+      "label": "Exit to Proving Grounds",
+      "entranceDescription": "the Validation Proving Grounds"
+    },
+    {
+      "x": 2,
+      "y": 4,
+      "targetMap": "test_hub",
+      "targetX": 1,
+      "targetY": 1,
+      "label": "Emergency Transit Portal",
+      "entranceDescription": "the Central Proving Grounds Plaza"
+    }
+  ],
+  "triggers": [
+    {
+      "id": "trig_facility_teleport",
+      "mapId": "test_facility",
+      "x": 2,
+      "y": 2,
+      "label": "Step onto Coordinate Translocator",
+      "tooltip": "Activate the arcane relocation grid to teleport to Test Hub (1, 1).",
+      "description": "A glowing circle of runes inlaid into the polished obsidian floor.",
+      "sceneId": "scene_teleport_chamber",
+      "conditions": []
+    },
+    {
+      "id": "trig_facility_transformation",
+      "mapId": "test_facility",
+      "x": 3,
+      "y": 1,
+      "label": "Biomantic Transformation Chamber",
+      "tooltip": "Enter the interactive transformation chamber or apply direct mutations/gestation.",
+      "description": "An alchemical cylinder filled with glowing biomantic nutrient fluids.",
+      "sceneId": "scene_transformation_lab",
+      "conditions": []
+    },
+    {
+      "id": "trig_facility_enchanter",
+      "mapId": "test_facility",
+      "x": 1,
+      "y": 3,
+      "label": "Arcane Infusion Altar",
+      "tooltip": "Open the enchanting altar UI, stage infusions, and craft enchanted gear.",
+      "description": "A raised granite pedestal inscribed with glowing runic conduits.",
+      "sceneId": "scene_infusion_altar",
+      "conditions": []
+    }
+  ],
+  "defaultDescriptions": [
+    "You are inside the Validation Research Facility. Polished stone and brass conduit lines snake across high vaulted ceilings.",
+    "Humming alchemical arrays and arcane measurement instruments monitor engine parameters throughout the secure chamber."
+  ],
+  "tileDescriptions": {
+    "1,1": [
+      "You stand near the heavy exit bulkhead leading back out to the Proving Grounds.",
+      "The airlock threshold is marked with yellow hazard bands and pressure release valves."
+    ],
+    "2,2": [
+      "You stand before the central coordinate translocator pad. Pulsing azure light ripples across the floor glyphs.",
+      "The translocation array hums softly, waiting for destination coordinates."
+    ],
+    "3,1": [
+      "The Biomantic Transformation Chamber hums with cellular realignment energies.",
+      "Sensors and containment glass enclose the transmutation platform."
+    ],
+    "1,3": [
+      "The Arcane Infusion Altar glows with concentrated magical essence.",
+      "Chiseled channels guide enchanting power into staged equipment."
+    ],
+    "3,3": [
+      "The Facility Storage Vault is reinforced with warding sigils, keeping stored goods perfectly safe.",
+      "Secure metallic lockers and chests line the wall."
+    ]
+  },
+  "tileTags": {
+    "2,2": [
+      "bookshelf_corner"
+    ],
+    "3,1": [
+      "bookshelf_corner"
+    ],
+    "1,3": [
+      "hearth"
+    ],
+    "3,3": [
+      "kitchenette"
+    ]
+  },
+  "tagDescriptions": {
+    "bookshelf_corner": [
+      "Cabinets of laboratory research scrolls and calibration sheets.",
+      "Indexed filing cabinets containing system logs."
+    ],
+    "kitchenette": [
+      "A coffee and ration preparation station for laboratory staff.",
+      "Clean ceramic counters and thermal heating plates."
+    ],
+    "hearth": [
+      "An alchemical hearth providing stable thermal regulation.",
+      "Warm ventilation ducts keeping the research floor temperate."
+    ]
+  },
+  "defaultTileTitle": "Research Lab",
+  "tileTitles": {
+    "1,1": "Airlock Vestibule",
+    "2,2": "Translocation Hub",
+    "3,1": "Biomancy Laboratory",
+    "1,3": "Infusion Platform",
+    "3,3": "Secure Storage Vault"
+  },
+  "tagTitles": {
+    "bookshelf_corner": "Archive Station",
+    "kitchenette": "Staff Nook",
+    "hearth": "Thermal Core"
+  }
+}

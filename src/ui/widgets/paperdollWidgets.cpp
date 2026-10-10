@@ -411,41 +411,33 @@ namespace PaperdollWidgets
         float innerPad = 8.0f * uiScale;
         float boxGap = 10.0f * uiScale;
 
-        float gapBetweenSides = 8.0f * uiScale;
-        float halfW = std::floor((availableW - gapBetweenSides) / 2.0f);
-        float side1X = padX + halfW + gapBetweenSides;
-        const int cols = 5;
-        const float slotGap = 4.0f * uiScale;
-        const float innerPadG = 4.0f * uiScale;
-        const float tabW = 28.0f * uiScale;
-        const float tabColGap = 4.0f * uiScale;
+        std::string effectiveDesc = !description.empty() ? description : "A standard item of unknown origin.";
 
-        float gridInnerW = halfW - tabW - tabColGap - (innerPadG * 2.0f);
-        float slotSize = std::floor((gridInnerW - (slotGap * static_cast<float>(cols - 1))) / static_cast<float>(cols));
-        float gridStartX = side1X + innerPadG;
-        float col4Left = gridStartX + (3.0f * (slotSize + slotGap));
-
-        float boxRight = padX + availableW - innerPad;
-        float imageBoxSize = boxRight - col4Left;
-        float boxX = col4Left;
-
-        if (imageBoxSize < 60.0f * uiScale || col4Left <= padX + (120.0f * uiScale))
-        {
-            imageBoxSize = 74.0f * uiScale;
-            boxX = boxRight - imageBoxSize;
-        }
-
-        float textContentW = boxX - (padX + innerPad) - boxGap;
+        // Reserve space for the image box without letting it artificially inflate card height
+        float maxBoxSize = 74.0f * uiScale;
+        float textContentW = availableW - (innerPad * 2.0f) - maxBoxSize - boxGap;
         if (textContentW < 120.0f * uiScale)
         {
             textContentW = availableW - (innerPad * 2.0f);
         }
 
-        std::string effectiveDesc = !description.empty() ? description : "A standard item of unknown origin.";
         float textH = UIWidget::getTextWrappedHeight(effectiveDesc, textContentW, uiScale * 0.74f);
         float leftContentH = (36.0f * uiScale) + textH + (6.0f * uiScale);
-        float cardH = std::max(imageBoxSize + (innerPad * 2.0f), leftContentH + (innerPad * 2.0f));
-        cardH = std::max(cardH, 70.0f * uiScale);
+
+        // Image box is sized to fit within the text content height so it never forces scrolling on its own
+        float imageBoxSize = std::clamp(leftContentH, 44.0f * uiScale, maxBoxSize);
+        if (imageBoxSize > leftContentH)
+        {
+            imageBoxSize = leftContentH;
+        }
+        imageBoxSize = std::max(imageBoxSize, 40.0f * uiScale);
+
+        float cardH = leftContentH + (innerPad * 2.0f);
+        cardH = std::max(cardH, imageBoxSize + (innerPad * 2.0f));
+
+        float boxX = padX + availableW - innerPad - imageBoxSize;
+        float boxY = curY + ((cardH - imageBoxSize) / 2.0f);
+        SDL_FRect imageBoxRect = { boxX, boxY, imageBoxSize, imageBoxSize };
 
         SDL_FRect cardRect = { padX, curY, availableW, cardH };
         UIWidget::drawPanel(renderer, cardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
@@ -458,9 +450,6 @@ namespace PaperdollWidgets
         UIWidget::drawText(renderer, metaLine, iX, iY + (18.0f * uiScale), metaCol, uiScale * 0.74f);
 
         UIWidget::drawTextWrapped(renderer, effectiveDesc, iX, iY + (36.0f * uiScale), textContentW, descCol, uiScale * 0.74f);
-
-        float boxY = curY + ((cardH - imageBoxSize) / 2.0f);
-        SDL_FRect imageBoxRect = { boxX, boxY, imageBoxSize, imageBoxSize };
 
         UIWidget::drawPanel(renderer, imageBoxRect, Theme::colors.bgDark, Theme::colors.borderButton);
 
