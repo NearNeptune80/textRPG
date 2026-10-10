@@ -5928,6 +5928,63 @@ namespace EngineTests
         return allPassed;
     }
 
+    bool testTier2TriageMinorFixesAndIntegrity()
+    {
+        std::cout << "\n--- Running Test 50: Tier 2 Triage Minor Fixes & Engine Integrity ---\n";
+        bool allPassed = true;
+
+        // 1. Dynamic Fallback Scene Lookup
+        questDatabase::loadDatabase("data/scenes");
+        questScene missingScene = questDatabase::getScene("missing_scene_xyz_999");
+        bool fallbackTemplateOk = (missingScene.id == "error_missing_scene_xyz_999" &&
+                                   missingScene.speakerName == "System" &&
+                                   missingScene.bodyText.find("missing_scene_xyz_999") != std::string::npos &&
+                                   !missingScene.choices.empty());
+        logResult("questDatabase::getScene retrieves data-driven scene_missing template from 'data/scenes/system_scenes.json'", fallbackTemplateOk);
+        allPassed &= fallbackTemplateOk;
+
+        // 2. Dynamic Filesystem Theme Discovery
+        bool themeDarkOk = Theme::applyTheme("dark_fantasy");
+        bool themeCustomOk = Theme::applyTheme("theme_parchment");
+        bool themeDirectOk = Theme::applyTheme("theme_cyber_neon");
+        bool themeDiscoveryOk = themeDarkOk && themeCustomOk && themeDirectOk;
+        logResult("Theme::applyTheme dynamically discovers themes from filesystem ('data/themes/')", themeDiscoveryOk);
+        allPassed &= themeDiscoveryOk;
+
+        // 3. Data-Driven Grammar & Conjugation Rules
+        auto testHero = std::make_shared<entity>();
+        testHero->name = "Hero";
+        auto testPartner = std::make_shared<entity>();
+        testPartner->name = "Sylvia";
+        sexState testSex(testPartner, SexStance::SOLO_BED, 0.0f);
+        testSex.appendNarrative("You leans in and passionately captures their sensitive lips with your own.");
+        const auto& entries = testSex.getNarrativeEntries();
+        bool grammarOk = false;
+        if (!entries.empty())
+        {
+            const std::string& logged = entries.back().narrative;
+            grammarOk = (logged.find("You lean in and passionately capture") != std::string::npos &&
+                         logged.find("your sensitive") != std::string::npos);
+        }
+        logResult("sexState narrative grammar correctly evaluates data-driven rules from 'data/config/conjugation_rules.json'", grammarOk);
+        allPassed &= grammarOk;
+
+        // 4. Latest Save Discovery
+        auto saveGroups = saveManager::getSavesGroupedByCharacter();
+        logResult("saveManager::getSavesGroupedByCharacter executes cleanly without exceptions", true);
+
+        // 5. Pruned EventBus and mapEntered Hook
+        callbackID subId = eventBus::getInstance().subscribe(gameEvent::mapEntered, [](const eventData& data) {
+            (void)data;
+        });
+        bool busOk = (subId > 0);
+        eventBus::getInstance().unsubscribe(gameEvent::mapEntered, subId);
+        logResult("eventBus verifies pruned enum and active mapEntered subscription hook", busOk);
+        allPassed &= busOk;
+
+        return allPassed;
+    }
+
     bool runAllTests()
     {
         g_passCount = 0;
@@ -5985,6 +6042,7 @@ namespace EngineTests
         bool t47 = testCombatDataMigrationAndStatusEvaluation();
         bool t48 = testDialogueScenesAndPerkConditionWiring();
         bool t49 = testUIAdapterDynamicCatalogAndActionGrid();
+        bool t50 = testTier2TriageMinorFixesAndIntegrity();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";

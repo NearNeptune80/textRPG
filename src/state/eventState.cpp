@@ -5,7 +5,10 @@
 eventState::eventState() = default;
 eventState::~eventState() = default;
 
-void eventState::initialise(game* gameContext) {}
+void eventState::initialise(game* gameContext)
+{
+	// Lifecycle hook: event data initialized in constructor
+}
 
 void eventState::onEnter(game* gameContext)
 {
@@ -15,9 +18,15 @@ void eventState::onEnter(game* gameContext)
 	}
 }
 
-void eventState::onExit(game* gameContext) {}
+void eventState::onExit(game* gameContext)
+{
+	// Lifecycle hook: no persistent resource teardown required on exit
+}
 
-void eventState::update(game* gameContext, float deltaTime) {}
+void eventState::update(game* gameContext, float deltaTime)
+{
+	// Event-driven: no per-frame tick required
+}
 
 void eventState::handleCommand(game* gameContext, const UICommand& cmd)
 {

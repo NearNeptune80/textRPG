@@ -64,9 +64,15 @@ void phoneAppsState::onEnter(game* gameContext)
     }
 }
 
-void phoneAppsState::onExit(game* gameContext) {}
+void phoneAppsState::onExit(game* gameContext)
+{
+    // Lifecycle hook: no persistent resource teardown required on exit
+}
 
-void phoneAppsState::update(game* gameContext, float deltaTime) {}
+void phoneAppsState::update(game* gameContext, float deltaTime)
+{
+    // Event-driven: no per-frame tick required
+}
 
 void phoneAppsState::handleCommand(game* gameContext, const UICommand& cmd)
 {

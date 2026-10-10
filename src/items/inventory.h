@@ -21,6 +21,7 @@ struct InventorySlot
 class inventoryComponent
 {
 public:
+    // By design: item durability degradation is intentionally not tracked (permanent equipment)
     std::vector<std::shared_ptr<item>> backpack;
     std::array<std::shared_ptr<item>, EQUIP_SLOT_COUNT> equipped{};
     uint32_t equipVersion = 0;

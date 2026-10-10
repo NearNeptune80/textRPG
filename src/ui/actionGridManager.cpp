@@ -368,7 +368,8 @@ void ActionGridManager::refresh(game* gameContext)
         }
         else
         {
-            addBtn(gameContext, "Select Item to Trade", [gameContext]() {}, false, false, "Click any item in your inventory to sell, or in the shop inventory to buy.");
+            // By design: informational disabled button acting as guidance prompt in action grid
+            addBtn(gameContext, "Select Item to Trade", [gameContext]() {}, false, false, "Click any item in your backpack to sell, or in the merchant catalog to buy.");
         }
 
         padButtonsTo(gameContext, 14);

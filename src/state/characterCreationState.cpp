@@ -165,10 +165,12 @@ void characterCreationState::onEnter(game* gameContext)
 
 void characterCreationState::onExit(game* gameContext)
 {
+    // Lifecycle hook: state data cleaned up upon object destruction
 }
 
 void characterCreationState::update(game* gameContext, float deltaTime)
 {
+    // Event-driven: no per-frame tick required
 }
 
 void characterCreationState::handleCommand(game* gameContext, const UICommand& cmd)

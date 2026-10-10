@@ -473,6 +473,7 @@ namespace PaperdollWidgets
         }
         else
         {
+            // By design: clean placeholder visual fallback when item texture asset is absent
             SDL_FRect innerFrame = { boxX + (3.0f * uiScale), boxY + (3.0f * uiScale), imageBoxSize - (6.0f * uiScale), imageBoxSize - (6.0f * uiScale) };
             SDL_SetRenderDrawColor(renderer, Theme::colors.borderButton.r, Theme::colors.borderButton.g, Theme::colors.borderButton.b, 60);
             SDL_RenderRect(renderer, &innerFrame);

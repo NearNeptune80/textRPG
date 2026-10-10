@@ -12,7 +12,10 @@ optionsState::optionsState(OptionsScreenMode mode, std::unique_ptr<iGameState> r
 {
 }
 
-void optionsState::initialise(game* gameContext) {}
+void optionsState::initialise(game* gameContext)
+{
+    // Lifecycle hook: settings refreshed dynamically in onEnter()
+}
 
 void optionsState::onEnter(game* gameContext)
 {
@@ -34,7 +37,10 @@ void optionsState::onExit(game* gameContext)
     }
 }
 
-void optionsState::update(game* gameContext, float deltaTime) {}
+void optionsState::update(game* gameContext, float deltaTime)
+{
+    // Event-driven: no per-frame tick required
+}
 
 void optionsState::goBack(game* gameContext)
 {

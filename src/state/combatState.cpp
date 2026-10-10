@@ -56,7 +56,10 @@ CombatState::CombatState(const std::vector<std::shared_ptr<entity>>& playerParty
     m_engine.initialiseCombat(playerParty, enemyParty);
 }
 
-void CombatState::initialise(game* gameContext) {}
+void CombatState::initialise(game* gameContext)
+{
+    // Lifecycle hook: combat engine initialized in constructor, UI refreshed in onEnter()
+}
 
 void CombatState::onEnter(game* gameContext)
 {

@@ -12,7 +12,10 @@ inventoryState::inventoryState(std::unique_ptr<iGameState> returnState)
 {
 }
 
-void inventoryState::initialise(game* gameContext) {}
+void inventoryState::initialise(game* gameContext)
+{
+    // Lifecycle hook: inventory grid populated in onEnter()
+}
 
 void inventoryState::onEnter(game* gameContext)
 {
@@ -25,9 +28,15 @@ void inventoryState::onEnter(game* gameContext)
     }
 }
 
-void inventoryState::onExit(game* gameContext) {}
+void inventoryState::onExit(game* gameContext)
+{
+    // Lifecycle hook: no persistent resource teardown required on exit
+}
 
-void inventoryState::update(game* gameContext, float deltaTime) {}
+void inventoryState::update(game* gameContext, float deltaTime)
+{
+    // Event-driven: no per-frame tick required
+}
 
 void inventoryState::goBack(game* gameContext)
 {

@@ -58,9 +58,15 @@ void transformationState::onEnter(game* gameContext)
     }
 }
 
-void transformationState::onExit(game* gameContext) {}
+void transformationState::onExit(game* gameContext)
+{
+    // Lifecycle hook: no persistent resource teardown required on exit
+}
 
-void transformationState::update(game* gameContext, float deltaTime) {}
+void transformationState::update(game* gameContext, float deltaTime)
+{
+    // Event-driven: no per-frame tick required
+}
 
 void transformationState::setTab(TransformationTab tab, game* gameContext)
 {

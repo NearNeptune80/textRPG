@@ -28,7 +28,10 @@ encounterResolutionState::encounterResolutionState(const std::vector<std::shared
     }
 }
 
-void encounterResolutionState::initialise(game* gameContext) {}
+void encounterResolutionState::initialise(game* gameContext)
+{
+    // Lifecycle hook: encounter data initialized in constructor
+}
 
 void encounterResolutionState::onEnter(game* gameContext)
 {
@@ -106,7 +109,10 @@ void encounterResolutionState::onExit(game* gameContext)
     }
 }
 
-void encounterResolutionState::update(game* gameContext, float deltaTime) {}
+void encounterResolutionState::update(game* gameContext, float deltaTime)
+{
+    // Event-driven: no per-frame tick required
+}
 
 void encounterResolutionState::handleCommand(game* gameContext, const UICommand& cmd)
 {

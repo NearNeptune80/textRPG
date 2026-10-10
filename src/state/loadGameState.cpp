@@ -13,7 +13,10 @@ loadGameState::loadGameState(SaveMenuMode mode, std::unique_ptr<iGameState> retu
     refreshSaves();
 }
 
-void loadGameState::initialise(game* gameContext) {}
+void loadGameState::initialise(game* gameContext)
+{
+    // Lifecycle hook: save list populated dynamically during onEnter()
+}
 
 void loadGameState::onEnter(game* gameContext)
 {
@@ -82,9 +85,15 @@ const std::vector<CharacterSaveGroup>& loadGameState::getCharacterGroups()
     return m_cachedGroups;
 }
 
-void loadGameState::onExit(game* gameContext) {}
+void loadGameState::onExit(game* gameContext)
+{
+    // Lifecycle hook: no persistent resource teardown required on exit
+}
 
-void loadGameState::update(game* gameContext, float deltaTime) {}
+void loadGameState::update(game* gameContext, float deltaTime)
+{
+    // Event-driven: no per-frame tick required
+}
 
 void loadGameState::goBack(game* gameContext)
 {

@@ -9,11 +9,9 @@
 enum class gameEvent
 {
 	timeAdvanced,
-	entityMutated,
 	combatEnded,
 	questStageChanged,
-	itemUsed,
-	mapEntered
+	mapEntered // Active broadcast hook: published on map transitions for future ambient triggers/quests
 };
 
 struct eventData

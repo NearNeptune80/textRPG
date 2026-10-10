@@ -273,11 +273,6 @@ namespace RadarWidgets
         return (curY - startY);
     }
 
-    float renderWidgetOptionsToolbar(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
-    {
-        return 0.0f;
-    }
-
     float renderWidgetDpadRadar(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& panelRect, float curY, float uiScale)
     {
         if (!gameContext || !gameContext->getPlayer()) return 0.0f;

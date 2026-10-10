@@ -358,6 +358,23 @@ questScene questDatabase::getScene(const std::string& id)
     auto it = registry.find(id);
     if (it != registry.end()) return it->second;
 
+    auto errIt = registry.find("scene_missing");
+    if (errIt != registry.end())
+    {
+        questScene errScene = errIt->second;
+        errScene.id = "error_" + id;
+        size_t pos = errScene.bodyText.find("{}");
+        if (pos != std::string::npos)
+        {
+            errScene.bodyText.replace(pos, 2, id);
+        }
+        else
+        {
+            errScene.bodyText += " (" + id + ")";
+        }
+        return errScene;
+    }
+
     questScene fallback;
     fallback.id = "error";
     fallback.speakerName = "System";

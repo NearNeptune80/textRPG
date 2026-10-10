@@ -1,0 +1,16 @@
+{
+  "scenes": [
+    {
+      "id": "scene_missing",
+      "speakerName": "System",
+      "bodyText": "Notice: Requested scene '{}' could not be located in narrative database.",
+      "choices": [
+        {
+          "label": "Return to Exploration",
+          "tooltip": "Exit back to navigation.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    }
+  ]
+}

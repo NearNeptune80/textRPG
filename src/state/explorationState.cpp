@@ -10,7 +10,10 @@
 #include "state/inventoryState.h"
 #include "state/mainMenuState.h"
 
-void explorationState::initialise(game* gameContext) {}
+void explorationState::initialise(game* gameContext)
+{
+    // Lifecycle hook: state setup performed dynamically in onEnter()
+}
 
 void explorationState::onEnter(game* gameContext)
 {
@@ -25,7 +28,10 @@ void explorationState::onEnter(game* gameContext)
     }
 }
 
-void explorationState::onExit(game* gameContext) {}
+void explorationState::onExit(game* gameContext)
+{
+    // Lifecycle hook: no persistent resource teardown required on exit
+}
 
 void explorationState::update(game* gameContext, float deltaTime)
 {

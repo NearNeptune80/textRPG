@@ -1,5 +1,6 @@
 #include "ui/theme.h"
 
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 
@@ -142,6 +143,19 @@ bool Theme::applyTheme(const std::string& themeNameOrPath)
     if (themeNameOrPath == "theme_parchment" || themeNameOrPath == "parchment" || themeNameOrPath == "Arcane Parchment" || themeNameOrPath == "Parchment")
     {
         return loadFromFile("data/themes/theme_parchment.json");
+    }
+
+    // Dynamic filesystem lookup for custom themes in data/themes/
+    std::string directCandidate = "data/themes/" + themeNameOrPath + ".json";
+    if (std::filesystem::exists(directCandidate))
+    {
+        return loadFromFile(directCandidate);
+    }
+
+    std::string prefixedCandidate = "data/themes/theme_" + themeNameOrPath + ".json";
+    if (std::filesystem::exists(prefixedCandidate))
+    {
+        return loadFromFile(prefixedCandidate);
     }
 
     return loadFromFile("data/themes/theme.json");

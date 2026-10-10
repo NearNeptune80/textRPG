@@ -221,8 +221,6 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
                     curY += CharacterCardWidget::renderWidgetCharacterCard(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
                 else if (wId == "widget_lt_time_bar" || wId == "TIME_CALENDAR_BAR")
                     curY += RadarWidgets::renderWidgetTimeBar(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
-                else if (wId == "widget_lt_options_toolbar" || wId == "OPTIONS_TOOLBAR_5")
-                    curY += RadarWidgets::renderWidgetOptionsToolbar(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
                 else if (wId == "widget_lt_dpad_radar")
                     curY += RadarWidgets::renderWidgetDpadRadar(renderer, gameContext, p.rect, curY, uiScale);
                 else if (wId == "widget_lt_characters_present")

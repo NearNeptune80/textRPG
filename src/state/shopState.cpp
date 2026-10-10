@@ -19,7 +19,10 @@ shopState::shopState(std::shared_ptr<entity> merchant, std::unique_ptr<iGameStat
 {
 }
 
-void shopState::initialise(game* gameContext) {}
+void shopState::initialise(game* gameContext)
+{
+    // Lifecycle hook: shop inventory synchronized in onEnter()
+}
 
 void shopState::onEnter(game* gameContext)
 {
@@ -71,9 +74,15 @@ void shopState::onEnter(game* gameContext)
     }
 }
 
-void shopState::onExit(game* gameContext) {}
+void shopState::onExit(game* gameContext)
+{
+    // Lifecycle hook: no persistent resource teardown required on exit
+}
 
-void shopState::update(game* gameContext, float deltaTime) {}
+void shopState::update(game* gameContext, float deltaTime)
+{
+    // Event-driven: no per-frame tick required
+}
 
 void shopState::goBack(game* gameContext)
 {

@@ -51,6 +51,7 @@ void enchantingState::handleCommand(game* gameContext, const UICommand& cmd)
 
 void enchantingState::update(game* gameContext, float deltaTime)
 {
+    // Event-driven: no per-frame tick required
 }
 
 void enchantingState::onEnter(game* gameContext)
@@ -63,6 +64,7 @@ void enchantingState::onEnter(game* gameContext)
 
 void enchantingState::onExit(game* gameContext)
 {
+    // Lifecycle hook: no persistent resource teardown required on exit
 }
 
 const item* enchantingState::getSelectedBaseItem(const game* gameContext) const

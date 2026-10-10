@@ -32,6 +32,48 @@ namespace
 		return bodySlot::GROIN;
 	}
 
+	struct ConjugationRules
+	{
+		std::vector<std::pair<std::string, std::string>> verbFixes;
+		std::vector<std::pair<std::string, std::string>> pronounFixes;
+	};
+
+	static const ConjugationRules& getConjugationRules()
+	{
+		static ConjugationRules rules = []() {
+			ConjugationRules r;
+			std::ifstream file("data/config/conjugation_rules.json");
+			if (file.is_open())
+			{
+				try
+				{
+					nlohmann::json j;
+					file >> j;
+					if (j.contains("verbFixes"))
+					{
+						for (const auto& item : j["verbFixes"])
+						{
+							r.verbFixes.emplace_back(item.value("from", ""), item.value("to", ""));
+						}
+					}
+					if (j.contains("pronounFixes"))
+					{
+						for (const auto& item : j["pronounFixes"])
+						{
+							r.pronounFixes.emplace_back(item.value("from", ""), item.value("to", ""));
+						}
+					}
+				}
+				catch (const std::exception& e)
+				{
+					std::cerr << "[Grammar] Failed to parse conjugation_rules.json: " << e.what() << "\n";
+				}
+			}
+			return r;
+		}();
+		return rules;
+	}
+
 	static std::string sanitizeNarrativeGrammar(const std::string& input)
 	{
 		std::string text = input;
@@ -47,109 +89,18 @@ namespace
 		replaceAll(text, "You's", "your");
 		replaceAll(text, "you's", "your");
 
-		static const std::pair<std::string, std::string> verbFixes[] = {
-			{ "You leans in and passionately captures", "You lean in and passionately capture" },
-			{ "passionately captures", "passionately capture" },
-			{ "You cups and firmly kneads", "You cup and firmly knead" },
-			{ "You leans back and orders", "You lean back and order" },
-			{ "You leans back and dismisses", "You lean back and dismiss" },
-			{ "You holds up a hand and murmurs", "You hold up a hand and murmur" },
-			{ "You shuts their eyes and endures", "You shut your eyes and endure" },
-			{ "You relaxes all tension and goes limp", "You relax all tension and go limp" },
-			{ "You thrashes and attempts", "You thrash and attempt" },
-			{ "You straddles", "You straddle" },
-			{ "lowers down onto", "lower down onto" },
-			{ "You dips", "You dip" },
-			{ "You delivers", "You deliver" },
-			{ "You showers", "You shower" },
-			{ "You gestures authoritatively", "You gesture authoritatively" },
-			{ "You reaches trembling fingers", "You reach trembling fingers" },
-			{ "You rolls and teases", "You roll and tease" },
-			{ "You rolls", "You roll" },
-			{ "You teases", "You tease" },
-			{ "You takes", "You take" },
-			{ "You continues bobbing", "You continue bobbing" },
-			{ "You continues", "You continue" },
-			{ "You assumes", "You assume" },
-			{ "You leans", "You lean" },
-			{ "You whispers", "You whisper" },
-			{ "You laughs", "You laugh" },
-			{ "You mocks", "You mock" },
-			{ "You whimpers", "You whimper" },
-			{ "You moans", "You moan" },
-			{ "You slides", "You slide" },
-			{ "You grasps", "You grasp" },
-			{ "You strokes", "You stroke" },
-			{ "You pushes", "You push" },
-			{ "You presses", "You press" },
-			{ "You clutches", "You clutch" },
-			{ "You thrusts", "You thrust" },
-			{ "You pulls", "You pull" },
-			{ "You rubs", "You rub" },
-			{ "You licks", "You lick" },
-			{ "You kisses", "You kiss" },
-			{ "You sucks", "You suck" },
-			{ "You arches", "You arch" },
-			{ "You shudders", "You shudder" },
-			{ "You begs", "You beg" },
-			{ "You shifts", "You shift" },
-			{ "You adjusts", "You adjust" },
-			{ "You presents", "You present" },
-			{ "You maneuvers", "You maneuver" },
-			{ "You ceases", "You cease" },
-			{ "You brings", "You bring" },
-			{ "You performs", "You perform" },
-			{ "You drives", "You drive" },
-			{ "You hears", "You hear" },
-			{ "You closes", "You close" },
-			{ "You lets", "You let" },
-			{ "You thrashes", "You thrash" },
-			{ "You breaks", "You break" },
-			{ "You seizes", "You seize" },
-			{ "You ejaculates", "You ejaculate" },
-			{ "You caresses", "You caress" },
-			{ "You probes", "You probe" },
-			{ "You spreads", "You spread" },
-			{ "You fondles", "You fondle" },
-			{ "You grips", "You grip" },
-			{ "You massages", "You massage" },
-			{ "You gazes", "You gaze" },
-			{ "You bites", "You bite" },
-			{ "You nibbles", "You nibble" },
-			{ "You spanks", "You spank" },
-			{ "You slaps", "You slap" },
-			{ "You penetrates", "You penetrate" },
-			{ "You guides", "You guide" },
-			{ "You rides", "You ride" },
-			{ "You grinds", "You grind" },
-			{ "You wraps", "You wrap" },
-			{ "You holds", "You hold" },
-			{ "You enters", "You enter" },
-			{ "You sinks", "You sink" },
-			{ "You urges", "You urge" },
-			{ "You commands", "You command" },
-			{ "You submits", "You submit" },
-			{ "You yields", "You yield" },
-			{ "You pants", "You pant" },
-			{ "You gasps", "You gasp" },
-			{ "You shivers", "You shiver" },
-			{ "You pins", "You pin" },
-			{ "You rests", "You rest" }
-		};
-
-		for (const auto& [from, to] : verbFixes)
+		const auto& rules = getConjugationRules();
+		for (const auto& [from, to] : rules.verbFixes)
 		{
 			replaceAll(text, from, to);
 		}
 
 		if (text.rfind("You ", 0) == 0)
 		{
-			replaceAll(text, " their own ", " your own ");
-			replaceAll(text, " their sensitive ", " your sensitive ");
-			replaceAll(text, " their breasts in their hands", " your breasts in your hands");
-			replaceAll(text, " their shaft,", " your shaft,");
-			replaceAll(text, " their shaft in", " your shaft in");
-			replaceAll(text, " their head between", " your head between");
+			for (const auto& [from, to] : rules.pronounFixes)
+			{
+				replaceAll(text, from, to);
+			}
 		}
 
 		return text;
@@ -517,6 +468,7 @@ void sexState::onExit(game* gameContext)
 
 void sexState::update(game* gameContext, float /*deltaTime*/)
 {
+	// Event-driven turn-based state: no per-frame tick required
 	(void)gameContext;
 }
 

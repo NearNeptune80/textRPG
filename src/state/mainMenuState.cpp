@@ -9,7 +9,10 @@
 #include "state/explorationState.h"
 #include "state/optionsState.h"
 
-void mainMenuState::initialise(game* gameContext) {}
+void mainMenuState::initialise(game* gameContext)
+{
+    // Lifecycle hook: menu grid populated in onEnter()
+}
 
 void mainMenuState::onEnter(game* gameContext)
 {
@@ -19,9 +22,15 @@ void mainMenuState::onEnter(game* gameContext)
     }
 }
 
-void mainMenuState::onExit(game* gameContext) {}
+void mainMenuState::onExit(game* gameContext)
+{
+    // Lifecycle hook: no persistent resource teardown required on exit
+}
 
-void mainMenuState::update(game* gameContext, float deltaTime) {}
+void mainMenuState::update(game* gameContext, float deltaTime)
+{
+    // Event-driven: no per-frame tick required
+}
 
 void mainMenuState::handleCommand(game* gameContext, const UICommand& cmd)
 {
@@ -43,12 +52,21 @@ void mainMenuState::handleCommand(game* gameContext, const UICommand& cmd)
             return;
         }
 
-        std::string charName = "Hero";
-        if (!saveManager::loadFromFile(gameContext, "Hero_QuickSave.json"))
+        bool loaded = false;
+        auto groups = saveManager::getSavesGroupedByCharacter();
+        if (!groups.empty() && !groups.front().saves.empty())
         {
-            if (!saveManager::loadFromFile(gameContext, "QuickSave.json"))
+            loaded = saveManager::loadFromFile(gameContext, groups.front().saves.front().fileName);
+        }
+
+        if (!loaded)
+        {
+            if (!saveManager::loadFromFile(gameContext, "Hero_QuickSave.json"))
             {
-                saveManager::loadFromFile(gameContext, "Hero_Initial.json");
+                if (!saveManager::loadFromFile(gameContext, "QuickSave.json"))
+                {
+                    saveManager::loadFromFile(gameContext, "Hero_Initial.json");
+                }
             }
         }
         gameContext->changeState(std::make_unique<explorationState>());
