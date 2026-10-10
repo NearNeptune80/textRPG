@@ -206,7 +206,7 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
                 else if (wId == "widget_partner_paperdoll")
                     curY += PaperdollWidgets::renderWidgetPaperdoll(renderer, gameContext, p.rect, curY, uiScale, gameContext->getActiveTargetNPC());
                 else if (wId == "widget_item_details_inspector")
-                    curY += PaperdollWidgets::renderWidgetItemInspector(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
+                    curY += PaperdollWidgets::renderWidgetItemInspector(renderer, gameContext, p.rect, curY, uiScale, scrollY);
                 else if (wId == "widget_minimap_radar" || wId == "MINIMAP_RADAR" || wId == "widget_lt_radar_map" || wId == "RADAR_MAP_5X5")
                     curY += RadarWidgets::renderWidgetRadar(renderer, gameContext, p.rect, curY, uiScale);
                 else if (wId == "widget_target_inspector" || wId == "TARGET_INSPECTOR")

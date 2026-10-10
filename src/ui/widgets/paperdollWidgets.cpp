@@ -406,34 +406,64 @@ namespace PaperdollWidgets
 
     static float renderItemDetailCard(SDL_Renderer* renderer, game* gameContext, float padX, float curY, float availableW, float uiScale,
                                        const std::string& title, const std::string& metaLine, const std::string& description,
-                                       const std::string& imagePath, SDL_Color titleCol, SDL_Color metaCol, SDL_Color descCol)
+                                       const std::string& imagePath, SDL_Color titleCol, SDL_Color metaCol, SDL_Color descCol,
+                                       float maxAllowedCardH = 0.0f)
     {
         float innerPad = 8.0f * uiScale;
         float boxGap = 10.0f * uiScale;
 
         std::string effectiveDesc = !description.empty() ? description : "A standard item of unknown origin.";
 
-        // Reserve space for the image box without letting it artificially inflate card height
-        float maxBoxSize = 74.0f * uiScale;
-        float textContentW = availableW - (innerPad * 2.0f) - maxBoxSize - boxGap;
-        if (textContentW < 120.0f * uiScale)
+        // Minimum text width to maintain readable typography
+        float minTextW = std::max(140.0f * uiScale, availableW * 0.40f);
+        float maxBoxW = availableW - (innerPad * 2.0f) - minTextW - boxGap;
+        if (maxBoxW < 40.0f * uiScale)
+        {
+            maxBoxW = std::max(40.0f * uiScale, availableW - (innerPad * 2.0f) - (80.0f * uiScale));
+        }
+
+        // Determine maximum square image box height allowed by the containing panel without causing scrolling
+        float maxBoxHFromPanel = (maxAllowedCardH > (innerPad * 2.0f) + (40.0f * uiScale))
+            ? (maxAllowedCardH - (innerPad * 2.0f))
+            : (165.0f * uiScale);
+
+        // Cap at a clean aesthetic size (~165px at scale 1.0) while keeping square
+        float maxAestheticSize = 165.0f * uiScale;
+        float imageBoxSize = std::max(40.0f * uiScale, std::min({ maxBoxW, maxBoxHFromPanel, maxAestheticSize }));
+
+        // Text width with this square image box
+        float textContentW = availableW - (innerPad * 2.0f) - imageBoxSize - boxGap;
+        if (textContentW < 80.0f * uiScale)
         {
             textContentW = availableW - (innerPad * 2.0f);
         }
 
         float textH = UIWidget::getTextWrappedHeight(effectiveDesc, textContentW, uiScale * 0.74f);
         float leftContentH = (36.0f * uiScale) + textH + (6.0f * uiScale);
+        float minCardHFromText = leftContentH + (innerPad * 2.0f);
 
-        // Image box is sized to fit within the text content height so it never forces scrolling on its own
-        float imageBoxSize = std::clamp(leftContentH, 44.0f * uiScale, maxBoxSize);
-        if (imageBoxSize > leftContentH)
+        // If text alone exceeds maxAllowedCardH, check if shrinking image box allows text to wrap into fewer lines and fit without scrolling
+        if (maxAllowedCardH > 0.0f && minCardHFromText > maxAllowedCardH && imageBoxSize > 44.0f * uiScale)
         {
-            imageBoxSize = leftContentH;
+            for (float tryBox = imageBoxSize - (10.0f * uiScale); tryBox >= 44.0f * uiScale; tryBox -= (10.0f * uiScale))
+            {
+                float tryTextW = availableW - (innerPad * 2.0f) - tryBox - boxGap;
+                float tryTextH = UIWidget::getTextWrappedHeight(effectiveDesc, tryTextW, uiScale * 0.74f);
+                float tryCardH = (36.0f * uiScale) + tryTextH + (6.0f * uiScale) + (innerPad * 2.0f);
+                if (tryCardH <= maxAllowedCardH)
+                {
+                    imageBoxSize = tryBox;
+                    textContentW = tryTextW;
+                    leftContentH = (36.0f * uiScale) + tryTextH + (6.0f * uiScale);
+                    minCardHFromText = tryCardH;
+                    break;
+                }
+            }
         }
-        imageBoxSize = std::max(imageBoxSize, 40.0f * uiScale);
 
-        float cardH = leftContentH + (innerPad * 2.0f);
-        cardH = std::max(cardH, imageBoxSize + (innerPad * 2.0f));
+        // Determine final card height:
+        // As big as possible while keeping the image box square, preserving paddings, and never exceeding maxAllowedCardH unless the text itself requires it.
+        float cardH = std::max(minCardHFromText, imageBoxSize + (innerPad * 2.0f));
 
         float boxX = padX + availableW - innerPad - imageBoxSize;
         float boxY = curY + ((cardH - imageBoxSize) / 2.0f);
@@ -446,27 +476,29 @@ namespace PaperdollWidgets
         float iY = curY + innerPad;
 
         UIWidget::drawText(renderer, title, iX, iY, titleCol, uiScale * 0.85f);
-
         UIWidget::drawText(renderer, metaLine, iX, iY + (18.0f * uiScale), metaCol, uiScale * 0.74f);
-
         UIWidget::drawTextWrapped(renderer, effectiveDesc, iX, iY + (36.0f * uiScale), textContentW, descCol, uiScale * 0.74f);
 
         UIWidget::drawPanel(renderer, imageBoxRect, Theme::colors.bgDark, Theme::colors.borderButton);
 
-        SDL_Texture* itemTexture = UIWidget::getItemTexture(renderer, imagePath);
-
-        if (itemTexture)
+        SDL_Texture* itemTexture = renderer ? UIWidget::getItemTexture(renderer, imagePath) : nullptr;
+        if (renderer)
         {
-            SDL_FRect texRect = { boxX + (2.0f * uiScale), boxY + (2.0f * uiScale), imageBoxSize - (4.0f * uiScale), imageBoxSize - (4.0f * uiScale) };
-            SDL_RenderTexture(renderer, itemTexture, nullptr, &texRect);
+            if (itemTexture)
+            {
+                SDL_FRect texRect = { boxX + (2.0f * uiScale), boxY + (2.0f * uiScale), imageBoxSize - (4.0f * uiScale), imageBoxSize - (4.0f * uiScale) };
+                SDL_RenderTexture(renderer, itemTexture, nullptr, &texRect);
+            }
+            else
+            {
+                // By design: clean placeholder visual fallback when item texture asset is absent
+                SDL_FRect innerFrame = { boxX + (3.0f * uiScale), boxY + (3.0f * uiScale), imageBoxSize - (6.0f * uiScale), imageBoxSize - (6.0f * uiScale) };
+                SDL_SetRenderDrawColor(renderer, Theme::colors.borderButton.r, Theme::colors.borderButton.g, Theme::colors.borderButton.b, 60);
+                SDL_RenderRect(renderer, &innerFrame);
+            }
         }
-        else
+        if (!itemTexture)
         {
-            // By design: clean placeholder visual fallback when item texture asset is absent
-            SDL_FRect innerFrame = { boxX + (3.0f * uiScale), boxY + (3.0f * uiScale), imageBoxSize - (6.0f * uiScale), imageBoxSize - (6.0f * uiScale) };
-            SDL_SetRenderDrawColor(renderer, Theme::colors.borderButton.r, Theme::colors.borderButton.g, Theme::colors.borderButton.b, 60);
-            SDL_RenderRect(renderer, &innerFrame);
-
             std::string noImg = "No Image";
             float noImgW = UIWidget::getTextWidth(noImg, uiScale * 0.72f);
             float noImgH = UIWidget::getLineHeight(uiScale * 0.72f);
@@ -485,13 +517,17 @@ namespace PaperdollWidgets
         return cardH;
     }
 
-    float renderWidgetItemInspector(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
+    float renderWidgetItemInspector(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& panelRect, float curY, float uiScale, float scrollY)
     {
         if (!gameContext || !gameContext->getPlayer()) return 0.0f;
 
         float startY = curY;
-        float padX = curX + (6.0f * uiScale);
-        float availableW = innerW - (12.0f * uiScale);
+        float padX = panelRect.x + (6.0f * uiScale);
+        float availableW = panelRect.w - (12.0f * uiScale);
+
+        float bottomPad = 6.0f * uiScale;
+        float unScrolledCurY = curY + scrollY;
+        float maxUnScrolledY = (panelRect.h > 0.0f) ? (panelRect.y + panelRect.h - bottomPad) : (unScrolledCurY + 600.0f * uiScale);
 
         entity* player = gameContext->getPlayer();
         auto mousePos = gameContext->input.getMousePosition();
@@ -523,9 +559,11 @@ namespace PaperdollWidgets
                 std::string ownerStr = isPlayerTarget ? "Player" : targetEntity->name;
                 std::string statusLine = std::format("Owner: {}  |  Fit: {}  |  Socket: {}  |  Value: {} ¤", ownerStr, dispStr, slotTitle, eq->baseValue);
 
+                float maxAllowedCardH = std::max(40.0f * uiScale, (maxUnScrolledY - (curY + scrollY)) - (6.0f * uiScale));
                 float cardH = renderItemDetailCard(renderer, gameContext, padX, curY, availableW, uiScale,
                                                    eq->name, statusLine, eq->description, eq->imagePath,
-                                                   Theme::colors.textGold, Theme::colors.companion, Theme::colors.textSecondary);
+                                                   Theme::colors.textGold, Theme::colors.companion, Theme::colors.textSecondary,
+                                                   maxAllowedCardH);
 
                 curY += cardH + (6.0f * uiScale);
                 return (curY - startY);
@@ -562,9 +600,11 @@ namespace PaperdollWidgets
                     std::string lineInfo = std::format("Location: {}  |  Socket: {}  |  Value: {} ¤", sideStr, targetSlotStr, slotData.itemPtr->baseValue);
                     std::string titleStr = std::format("{} (x{})", slotData.itemPtr->name, slotData.totalCount);
 
+                    float maxAllowedCardH = std::max(40.0f * uiScale, (maxUnScrolledY - (curY + scrollY)) - (6.0f * uiScale));
                     float cardH = renderItemDetailCard(renderer, gameContext, padX, curY, availableW, uiScale,
                                                        titleStr, lineInfo, slotData.itemPtr->description, slotData.itemPtr->imagePath,
-                                                       Theme::colors.textGold, Theme::colors.currency, Theme::colors.textPrimary);
+                                                       Theme::colors.textGold, Theme::colors.currency, Theme::colors.textPrimary,
+                                                       maxAllowedCardH);
 
                     curY += cardH + (6.0f * uiScale);
                     return (curY - startY);
@@ -578,5 +618,10 @@ namespace PaperdollWidgets
         UIWidget::drawText(renderer, "Click any equipment slot or inventory item above to inspect details and take action via the action grid below.", padX + (8.0f * uiScale), curY + (8.0f * uiScale), Theme::colors.textMuted, uiScale * 0.74f);
         curY += hintH + (4.0f * uiScale);
         return (curY - startY);
+    }
+
+    float renderWidgetItemInspector(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
+    {
+        return renderWidgetItemInspector(renderer, gameContext, { curX, curY, innerW, 600.0f * uiScale }, curY, uiScale);
     }
 }

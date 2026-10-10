@@ -52,6 +52,7 @@
 #include "state/enchantingState.h"
 #include "state/inventoryState.h"
 #include "ui/widgets/sidebarGeometry.h"
+#include "ui/widgets/paperdollWidgets.h"
 #include "items/enchantmentRegistry.h"
 #include "combat/weaponSkillDatabase.h"
 #include "core/actionSlot.h"
@@ -6135,6 +6136,36 @@ namespace EngineTests
         bool cleanseOk = cleansed && (restoredHp == 100.0f);
         logResult("processEffect REMOVE_STATUS_EFFECT cleanses status effect and restores baseline stats", cleanseOk);
         allPassed &= cleanseOk;
+
+        // 4. Test Item Inspector Image Box Sizing & Panel Non-Overflow
+        game inspGame;
+        inspGame.init();
+        inspGame.settings.gameplay.autoSaveOnMapChange = false;
+        inspGame.settings.gameplay.autoSaveOnSceneExit = false;
+        auto inspPlayer = std::make_shared<entity>("insp_player", "Inspector Hero");
+        inspGame.playerEntity = inspPlayer;
+        auto testItem = std::make_shared<item>();
+        testItem->id = "item_test_sword";
+        testItem->name = "Iron Longsword";
+        testItem->description = "A sturdy steel longsword forged by village blacksmiths.";
+        testItem->baseValue = 150;
+        testItem->targetSlot = equipSlot::WEAPON_MAIN;
+        inspPlayer->inventory.equipped[static_cast<size_t>(equipSlot::WEAPON_MAIN)] = testItem;
+        inspGame.selectedEquipmentSlot = equipSlot::WEAPON_MAIN;
+
+        // In standard 720p inventory layout, center pane height is ~604.8f and inventory ends around Y = 380.0f
+        SDL_FRect panelRect = { 200.0f, 0.0f, 870.0f, 604.8f };
+        float inventoryEndY = 380.0f;
+        float inspectorH = PaperdollWidgets::renderWidgetItemInspector(nullptr, &inspGame, panelRect, inventoryEndY, 1.0f, 0.0f);
+
+        // Verify total content height stays strictly within panelRect (no scrollbar enabled)
+        float totalContentH = (inventoryEndY + inspectorH) - panelRect.y;
+        bool fitsPanel = totalContentH <= panelRect.h;
+        // Verify inspector card is generously sized (>= 150px) to maximize the square image box
+        bool isLargeBox = inspectorH >= 150.0f;
+        bool inspectorLayoutOk = fitsPanel && isLargeBox;
+        logResult("Item inspector dynamically maximizes square image box without exceeding panel bounds or triggering scrolling", inspectorLayoutOk);
+        allPassed &= inspectorLayoutOk;
 
         return allPassed;
     }
