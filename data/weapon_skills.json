@@ -9,6 +9,7 @@
       "damageMult": 1.0,
       "baseMagnitude": 25.0,
       "statusEffect": "",
+      "requiredLevel": 1,
       "description": "A swift, disciplined blade slash dealing clean physical damage."
     },
     {
@@ -21,6 +22,7 @@
       "critBonus": 0.25,
       "armorBypass": 0.30,
       "statusEffect": "",
+      "requiredLevel": 1,
       "description": "A pinpoint lunging thrust targeting weak points in enemy armor."
     },
     {
@@ -32,6 +34,7 @@
       "baseMagnitude": 35.0,
       "staggerBonus": 30.0,
       "statusEffect": "",
+      "requiredLevel": 3,
       "description": "A crushing, two-handed overhead chop delivering devastating impact."
     },
     {
@@ -42,6 +45,7 @@
       "damageMult": 0.7,
       "baseMagnitude": 18.0,
       "statusEffect": "stun",
+      "requiredLevel": 1,
       "description": "A sharp strike using the heavy pommel, dazing and stunning the foe."
     },
     {
@@ -52,6 +56,7 @@
       "damageMult": 1.25,
       "baseMagnitude": 20.0,
       "statusEffect": "bleed",
+      "requiredLevel": 2,
       "description": "A rapid succession of lacerating cuts that inflicts bleeding."
     },
     {
@@ -62,6 +67,7 @@
       "damageMult": 1.45,
       "baseMagnitude": 30.0,
       "armorShred": 0.40,
+      "requiredLevel": 3,
       "description": "A brutal blunt impact that fractures bone and shatters heavy armor."
     },
     {
@@ -72,6 +78,7 @@
       "damageMult": 1.2,
       "baseMagnitude": 24.0,
       "isAoe": true,
+      "requiredLevel": 3,
       "description": "A wide horizontal swing cleaving through the enemy ranks."
     },
     {
@@ -82,6 +89,7 @@
       "damageMult": 1.15,
       "baseMagnitude": 26.0,
       "counterGuard": true,
+      "requiredLevel": 1,
       "description": "Deflects incoming melee strikes and instantly delivers a lethal counter-thrust."
     },
     {
@@ -92,7 +100,32 @@
       "damageMult": 0.85,
       "baseMagnitude": 16.0,
       "statusEffect": "stun",
+      "requiredLevel": 2,
       "description": "Slams a reinforced shield into the target's face, staggering their stance."
+    },
+    {
+      "id": "skill_orc_smash",
+      "name": "Orcish Skull-Crusher",
+      "staminaCost": 40,
+      "damageType": "bludgeoning",
+      "damageMult": 2.2,
+      "baseMagnitude": 40.0,
+      "armorBypass": 0.35,
+      "statusEffect": "stun",
+      "requiredRace": "Orc",
+      "requiredLevel": 4,
+      "description": "Channels savage Orcish rage into a ground-shaking warhammer strike that crushes armor and stuns."
+    },
+    {
+      "id": "skill_rend",
+      "name": "Savage Rend",
+      "staminaCost": 25,
+      "damageType": "slashing",
+      "damageMult": 1.4,
+      "baseMagnitude": 28.0,
+      "statusEffect": "bleed",
+      "requiredLevel": 2,
+      "description": "Rips open deep wounds, inflicting lingering bleeding damage over time."
     }
   ]
 }

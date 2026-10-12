@@ -20,5 +20,5 @@ public:
 	static std::string getDefaultTemplateForDanger(int dangerLevel);
 
 private:
-	static std::string selectFlavorText(const std::string& mapId, entity* target);
+	static std::string selectFlavorText(const std::string& mapId, entity* target, float healthPct = 1.0f);
 };

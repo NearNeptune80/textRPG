@@ -28,6 +28,37 @@
         "arcane_attunement",
         "spell_weaver"
       ]
+    },
+    {
+      "id": "tpl_elven_ranger",
+      "name": "Elven Shadow Ranger",
+      "levelMin": 3,
+      "levelMax": 5,
+      "baseStats": {
+        "health": 85.0,
+        "mana": 50.0,
+        "lust": 0.0,
+        "max_lust": 100.0,
+        "physique": 14.0,
+        "agility": 20.0,
+        "arcane": 16.0,
+        "corruption": 5.0
+      },
+      "tags": ["hostile", "elven", "ranged"],
+      "possibleRaces": ["Elf"],
+      "guaranteedItems": [
+        "item_linen_shirt",
+        "item_leather_trousers",
+        "item_iron_dagger"
+      ],
+      "randomItems": [
+        "item_moonbloom",
+        "item_cooling_salve"
+      ],
+      "perks": [
+        "quick_reflexes",
+        "arcane_attunement"
+      ]
     }
   ]
 }

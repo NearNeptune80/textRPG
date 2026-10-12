@@ -1,6 +1,58 @@
 {
   "scenes": [
     {
+      "id": "scene_combat_defeat_robbery",
+      "speakerName": "{speaker}",
+      "bodyText": "Your vision blurs as you crash to the dirt, unable to parry the final blow. {speaker} ({archetype}, {race}) sneers down at you, kneeling to vigorously turn out your pockets and coin purse.\n\n'Thanks for the donation, traveler,' they chuckle, taking {currency}¤ before vanishing into the wilderness.",
+      "contentTags": ["defeat", "robbery"],
+      "choices": [
+        {
+          "label": "Tend to your wounds and get up",
+          "tooltip": "Catch your breath and stand up.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "scene_combat_defeat_left_for_dead",
+      "speakerName": "{speaker}",
+      "bodyText": "A sickening blow sends you reeling. You collapse heavily, blood pooling beneath your armor as your consciousness fades. {speaker} ({archetype}, {race}) glares down at your still form, scoffs, and wipes their blade before walking away, leaving you for dead.\n\nHours pass before the agony in your ribs rouses you back to consciousness. You barely manage to pull yourself upright.",
+      "contentTags": ["defeat", "severe"],
+      "choices": [
+        {
+          "label": "Stagger to your feet",
+          "tooltip": "Bind your injuries and limp back to safety.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "scene_combat_defeat_humiliation",
+      "speakerName": "{speaker}",
+      "bodyText": "With a cruel blow that knocks your weapon spinning into the grass, {speaker} pins you to the ground with a heavy boot pressed against your chest.\n\n'Pathetic. Is this truly the best you can offer?' they jeer, taking {currency}¤ from your pouch and shoving your head into the soil before departing with a mocking laugh.",
+      "contentTags": ["defeat", "humiliation"],
+      "choices": [
+        {
+          "label": "Swallow your pride and rise",
+          "tooltip": "Dust yourself off and recover your composure.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "scene_combat_defeat_mercy",
+      "speakerName": "{speaker}",
+      "bodyText": "You sink to one knee, breathing raggedly and completely disarmed. {speaker} lowers their weapon and observes your exhausted posture.\n\n'You fought with spirit, but today you are bested. Leave this place and do not cross my path again.'\n\nThey spare your life and disappear into the shadows.",
+      "contentTags": ["defeat", "mercy"],
+      "choices": [
+        {
+          "label": "Accept their mercy and retreat",
+          "tooltip": "Catch your breath and nurse your bruised pride.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
       "id": "scene_combat_defeat_erotic",
       "speakerName": "{speaker}",
       "bodyText": "With your strength exhausted, you collapse to the ground. {speaker} ({archetype}, {race}) stands over your helpless body with a hungry, aroused glare. Rather than finishing you off, they claim their erotic prize (and take {currency}¤) before leaving you thoroughly spent.",

@@ -1,0 +1,58 @@
+{
+  "id": "herbalist_lyra",
+  "name": "Herbalist Lyra",
+  "title": "Apothecary Alchemist",
+  "gender": "Female",
+  "race": "Elf",
+  "level": 15,
+  "currency": 1800,
+  "isMerchant": true,
+  "buyMarkup": 1.20,
+  "sellMarkdown": 0.60,
+  "restockItems": [
+    "item_health_potion",
+    "item_mana_potion",
+    "item_antidote_flask",
+    "item_cooling_salve",
+    "item_canis_root",
+    "item_moonbloom",
+    "item_mutagen_draught"
+  ],
+  "description": "An insightful elven herbalist with deep botanical mastery of the Whispering Woods. She crafts remedies, antidotes, and mutagenic draughts.",
+  "dialogueSceneId": "scene_herbalist_lyra",
+  "unlockedPerks": [
+    "botanical_wisdom",
+    "alchemical_potency"
+  ],
+  "baseStats": {
+    "health": 240.0,
+    "max_health": 240.0,
+    "mana": 300.0,
+    "max_mana": 300.0,
+    "physique": 16.0,
+    "agility": 26.0,
+    "toughness": 18.0,
+    "arcane": 36.0,
+    "willpower": 26.0,
+    "corruption": 0.0
+  },
+  "inventory": [
+    { "id": "item_health_potion", "count": 6 },
+    { "id": "item_mana_potion", "count": 6 },
+    { "id": "item_antidote_flask", "count": 4 },
+    { "id": "item_cooling_salve", "count": 4 },
+    { "id": "item_canis_root", "count": 10 },
+    { "id": "item_moonbloom", "count": 5 },
+    { "id": "item_mutagen_draught", "count": 2 }
+  ],
+  "schedules": [
+    {
+      "startHour": 0,
+      "endHour": 24,
+      "mapId": "apothecary_shop",
+      "x": 3,
+      "y": 2,
+      "activity": "brewing restorative draughts"
+    }
+  ]
+}

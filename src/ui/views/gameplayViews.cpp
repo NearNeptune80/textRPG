@@ -1117,7 +1117,14 @@ namespace GameplayViews
                         std::string title = ent.value("title", "Unknown");
                         std::string subtitle = ent.value("subtitle", "");
                         std::string desc = ent.value("description", "");
+                        std::string entryId = ent.value("id", "");
                         bool unlocked = ent.value("unlocked", true);
+                        entity* player = gameContext->getPlayer();
+                        if (player && (player->quests.hasQuest("lore_race_" + entryId) ||
+                                       player->quests.hasQuest("lore_" + entryId)))
+                        {
+                            unlocked = true;
+                        }
 
                         float cardH = 56.0f * uiScale;
                         SDL_FRect cardRect = { padX, curY, innerW, cardH };
@@ -1975,20 +1982,21 @@ namespace GameplayViews
                 std::string category;
                 std::string desc;
                 std::string cost;
+                int minLevel = 1;
             };
             static const std::vector<TechEntry> techCatalog = {
-                { "Basic Strike", "Physical", "Standard physical attack dealing weapon damage.", "0 MP" },
-                { "Heavy Slam", "Physical", "Heavy overhead strike dealing massive stagger and physical blunt force.", "0 MP" },
-                { "Flurry", "Physical", "Swift flurry of strikes exploiting openings in enemy guard.", "5 Stamina" },
-                { "Shield Bash", "Physical", "Bludgeoning shield strike stunning target for 1 turn.", "10 Stamina" },
-                { "Arcane Dart", "Spells", "Swift concentrated mana projectile dealing piercing magic damage.", "10 MP" },
-                { "Fireball", "Spells", "Explosive conflagration bursting foes for heavy fire damage.", "25 MP" },
-                { "Arcane Shield", "Spells", "Conjured luminous barrier absorbing incoming attacks.", "20 MP" },
-                { "Cleanse", "Spells", "Curative restoration purifying status ailments and recovering HP.", "15 MP" },
-                { "Defensive Guard", "Tactical", "Raise defensive posture mitigating 50% incoming damage.", "0 MP" },
-                { "Evade", "Tactical", "Nimble evasive footwork greatly increasing dodge chance.", "0 MP" },
-                { "Taunt", "Tactical", "Provocative gesture lowering enemy defense while boosting tension.", "0 MP" },
-                { "Seduce", "Tactical", "Alluring advance distracting target and inflating enemy Lust.", "10 Lust" }
+                { "Basic Strike", "Physical", "Standard physical attack dealing weapon damage.", "0 MP", 1 },
+                { "Heavy Slam", "Physical", "Heavy overhead strike dealing massive stagger and physical blunt force.", "0 MP", 3 },
+                { "Flurry", "Physical", "Swift flurry of strikes exploiting openings in enemy guard.", "5 Stamina", 2 },
+                { "Shield Bash", "Physical", "Bludgeoning shield strike stunning target for 1 turn.", "10 Stamina", 2 },
+                { "Arcane Dart", "Spells", "Swift concentrated mana projectile dealing piercing magic damage.", "10 MP", 1 },
+                { "Fireball", "Spells", "Explosive conflagration bursting foes for heavy fire damage.", "25 MP", 3 },
+                { "Arcane Shield", "Spells", "Conjured luminous barrier absorbing incoming attacks.", "20 MP", 2 },
+                { "Cleanse", "Spells", "Curative restoration purifying status ailments and recovering HP.", "15 MP", 2 },
+                { "Defensive Guard", "Tactical", "Raise defensive posture mitigating 50% incoming damage.", "0 MP", 1 },
+                { "Evade", "Tactical", "Nimble evasive footwork greatly increasing dodge chance.", "0 MP", 1 },
+                { "Taunt", "Tactical", "Provocative gesture lowering enemy defense while boosting tension.", "0 MP", 1 },
+                { "Seduce", "Tactical", "Alluring advance distracting target and inflating enemy Lust.", "10 Lust", 1 }
             };
 
             for (const auto& tech : techCatalog)
@@ -2008,19 +2016,36 @@ namespace GameplayViews
                 UIWidget::drawText(renderer, tagStr, padX + (16.0f * uiScale) + tnW, curY + (9.0f * uiScale), Theme::colors.textAccent, uiScale * 0.72f);
                 float tgW = UIWidget::getTextWidth(tagStr, uiScale * 0.72f);
 
-                UIWidget::drawText(renderer, "— " + tech.desc, padX + (22.0f * uiScale) + tnW + tgW, curY + (9.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.74f);
+                int pLvl = p ? p->stats.level : 1;
+                bool isLevelMet = (pLvl >= tech.minLevel);
+                std::string fullDesc = "— " + tech.desc;
+                if (!isLevelMet) fullDesc += std::format(" [Locked: Requires Lvl {}]", tech.minLevel);
+                UIWidget::drawText(renderer, fullDesc, padX + (22.0f * uiScale) + tnW + tgW, curY + (9.0f * uiScale), isLevelMet ? Theme::colors.textSecondary : Theme::colors.textDisabled, uiScale * 0.74f);
 
                 SDL_FRect assignBtnRect = { padX + innerW - (115.0f * uiScale), curY + (4.0f * uiScale), 105.0f * uiScale, 26.0f * uiScale };
                 bool isEquippedInCurSlot = (p && p->preparedCombatSlots[selectedSlot] == tech.name);
+                bool canAssign = !isEquippedInCurSlot && isLevelMet;
                 bool asgHov = (mousePos.x >= assignBtnRect.x && mousePos.x <= assignBtnRect.x + assignBtnRect.w &&
                                mousePos.y >= assignBtnRect.y && mousePos.y <= assignBtnRect.y + assignBtnRect.h);
-                if (asgHov && clicked && p && !isEquippedInCurSlot)
+                if (asgHov && clicked && p && canAssign)
                 {
                     gameContext->handleCommand({ CommandType::ASSIGN_COMBAT_SLOT, selectedSlot, 0, tech.name });
                     gameContext->input.consumeMouseClick();
                 }
-                std::string asgLabel = isEquippedInCurSlot ? std::format("[ In Slot {} ]", selectedSlot + 1) : std::format("Assign to #{}", selectedSlot + 1);
-                UIWidget::drawButton(renderer, assignBtnRect, asgLabel, asgHov, !isEquippedInCurSlot, isEquippedInCurSlot, uiScale * 0.70f);
+                std::string asgLabel;
+                if (isEquippedInCurSlot)
+                {
+                    asgLabel = std::format("[ In Slot {} ]", selectedSlot + 1);
+                }
+                else if (!isLevelMet)
+                {
+                    asgLabel = std::format("[ Lvl {} ]", tech.minLevel);
+                }
+                else
+                {
+                    asgLabel = std::format("Assign to #{}", selectedSlot + 1);
+                }
+                UIWidget::drawButton(renderer, assignBtnRect, asgLabel, asgHov, canAssign, isEquippedInCurSlot, uiScale * 0.70f);
 
                 curY += tCardH + (5.0f * uiScale);
             }

@@ -1,6 +1,7 @@
 #include "entities/entity.h"
 
 #include <algorithm>
+#include <cctype>
 #include <iostream>
 
 #include "entities/perkDatabase.h"
@@ -308,6 +309,7 @@ json entity::toJson() const
         dispJson[equipSlotToString(slot)] = displacementModeToString(mode);
     }
     j["activeDisplacements"] = dispJson;
+    j["revealedBodySlots"] = std::vector<std::string>(revealedBodySlots.begin(), revealedBodySlots.end());
     j["quests"] = quests.toJson();
 
     return j;
@@ -354,6 +356,15 @@ void entity::fromJson(const json& j)
     {
         unlockedPerks = j["unlockedPerks"].get<std::vector<std::string>>();
         recalculatePerkModifiers();
+    }
+
+    if (j.contains("revealedBodySlots") && j["revealedBodySlots"].is_array())
+    {
+        revealedBodySlots.clear();
+        for (const auto& item : j["revealedBodySlots"])
+        {
+            revealedBodySlots.insert(item.get<std::string>());
+        }
     }
 
     if (j.contains("gestation"))
@@ -839,4 +850,237 @@ bool entity::canTransform() const
     }
 
     return false;
+}
+
+bool entity::isSlotRevealed(bodySlot slot) const
+{
+    if (inventory.isSlotExposed(slot))
+    {
+        const_cast<entity*>(this)->revealSlot(slot);
+        return true;
+    }
+    return revealedBodySlots.contains(bodySlotToString(slot));
+}
+
+void entity::revealSlot(bodySlot slot)
+{
+    revealedBodySlots.insert(bodySlotToString(slot));
+}
+
+void entity::revealAllSlots()
+{
+    for (size_t i = 0; i < BODY_SLOT_COUNT; ++i)
+    {
+        revealedBodySlots.insert(bodySlotToString(static_cast<bodySlot>(i)));
+    }
+}
+
+GenderArchetype entity::getPerceivedGender(const entity* observer) const
+{
+    if (observer == this || isSlotRevealed(bodySlot::GROIN))
+    {
+        return genderArchetype;
+    }
+
+    int femininePoints = 0;
+    int masculinePoints = 0;
+
+    // 1. Breast / Bust silhouette under clothing
+    if (const bodyPart* breasts = anatomy.getPart(bodySlot::BREASTS))
+    {
+        if (breasts->cupSize >= 3) femininePoints += 4;
+        else if (breasts->cupSize >= 1) femininePoints += 2;
+        else masculinePoints += 2;
+    }
+    else
+    {
+        masculinePoints += 2;
+    }
+
+    // 2. Groin silhouette / bulge under clothing
+    if (const bodyPart* groin = anatomy.getPart(bodySlot::GROIN))
+    {
+        if (groin->length >= 14.0f) masculinePoints += 3;
+        else if (groin->length >= 8.0f) masculinePoints += 1;
+        else if (groin->orifice.exists) femininePoints += 1;
+    }
+
+    // 3. Hair length & style
+    if (const bodyPart* hair = anatomy.getPart(bodySlot::HAIR))
+    {
+        std::string style = hair->style;
+        for (char& c : style) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+
+        if (style.find("long") != std::string::npos ||
+            style.find("braid") != std::string::npos ||
+            style.find("ponytail") != std::string::npos ||
+            style.find("pigtail") != std::string::npos ||
+            style.find("twin") != std::string::npos ||
+            style.find("bob") != std::string::npos ||
+            style.find("curls") != std::string::npos)
+        {
+            femininePoints += 2;
+        }
+        else if (style.find("short") != std::string::npos ||
+                 style.find("buzz") != std::string::npos ||
+                 style.find("crew") != std::string::npos ||
+                 style.find("bald") != std::string::npos ||
+                 style.find("crop") != std::string::npos ||
+                 style.find("fade") != std::string::npos)
+        {
+            masculinePoints += 2;
+        }
+    }
+
+    // 4. Height & Build
+    if (anatomy.heightMeters >= 1.83f) masculinePoints += 1;
+    else if (anatomy.heightMeters <= 1.62f) femininePoints += 1;
+
+    std::string bSize = anatomy.bodySize;
+    for (char& c : bSize) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    std::string mTone = anatomy.muscleTone;
+    for (char& c : mTone) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+
+    if (bSize.find("petite") != std::string::npos ||
+        bSize.find("slender") != std::string::npos ||
+        bSize.find("curvy") != std::string::npos ||
+        bSize.find("hourglass") != std::string::npos ||
+        mTone.find("soft") != std::string::npos ||
+        mTone.find("delicate") != std::string::npos)
+    {
+        femininePoints += 2;
+    }
+    else if (bSize.find("broad") != std::string::npos ||
+             bSize.find("heavy") != std::string::npos ||
+             bSize.find("towering") != std::string::npos ||
+             mTone.find("muscular") != std::string::npos ||
+             mTone.find("rugged") != std::string::npos ||
+             mTone.find("ripped") != std::string::npos ||
+             mTone.find("bulk") != std::string::npos)
+    {
+        masculinePoints += 2;
+    }
+
+    // 5. Facial hair and cosmetics
+    auto itHair = cosmetics.find("facial_hair");
+    if (itHair != cosmetics.end() && !itHair->second.empty() && itHair->second != "None")
+    {
+        masculinePoints += 4;
+    }
+    auto itBeard = cosmetics.find("beard");
+    if (itBeard != cosmetics.end() && !itBeard->second.empty() && itBeard->second != "None")
+    {
+        masculinePoints += 4;
+    }
+    auto itMakeup = cosmetics.find("makeup");
+    if (itMakeup != cosmetics.end() && !itMakeup->second.empty() && itMakeup->second != "None")
+    {
+        femininePoints += 2;
+    }
+
+    // 6. Personality Traits & Tags
+    for (const auto& trait : personalityTraits)
+    {
+        std::string t = trait;
+        for (char& c : t) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+        if (t == "feminine" || t == "woman" || t == "female" || t == "maiden" || t == "seductress" || t == "lady")
+        {
+            femininePoints += 3;
+        }
+        else if (t == "masculine" || t == "man" || t == "male" || t == "warrior" || t == "brute" || t == "lord")
+        {
+            masculinePoints += 3;
+        }
+    }
+
+    // 7. Visual presentation from anatomy
+    BodyPresentation pres = anatomy.getVisualPresentation();
+    if (pres == BodyPresentation::FEMININE) femininePoints += 2;
+    else if (pres == BodyPresentation::MASCULINE) masculinePoints += 2;
+
+    if (femininePoints > masculinePoints)
+    {
+        return GenderArchetype::FEMALE;
+    }
+    else if (masculinePoints > femininePoints)
+    {
+        return GenderArchetype::MALE;
+    }
+    else
+    {
+        return GenderArchetype::ANDROMORPH;
+    }
+}
+
+void entity::ensureSexualityStatusEffect()
+{
+    std::string expectedId;
+    std::string expectedName;
+    std::string expectedIcon;
+    std::string expectedDesc;
+
+    switch (orientation)
+    {
+        case SexualOrientation::HETEROSEXUAL:
+            expectedId = "status_sexuality_hetero";
+            expectedName = "Heterosexual";
+            expectedIcon = "HET";
+            expectedDesc = "Attracted exclusively to individuals of the opposite gender presentation. In social and erotic encounters, seduction from opposite-gender partners carries natural appeal.";
+            break;
+        case SexualOrientation::HOMOSEXUAL:
+            expectedId = "status_sexuality_homo";
+            expectedName = "Homosexual";
+            expectedIcon = "HOM";
+            expectedDesc = "Attracted exclusively to individuals of the same gender presentation. In social and erotic encounters, seduction from same-gender partners carries natural appeal.";
+            break;
+        case SexualOrientation::BISEXUAL:
+            expectedId = "status_sexuality_bi";
+            expectedName = "Bisexual";
+            expectedIcon = "BI";
+            expectedDesc = "Attracted to individuals of both masculine and feminine gender presentations. Open to romantic and sexual advances across all presentations.";
+            break;
+        case SexualOrientation::ASEXUAL:
+            expectedId = "status_sexuality_ace";
+            expectedName = "Asexual";
+            expectedIcon = "ACE";
+            expectedDesc = "Experiences no inherent sexual attraction towards others. Naturally resistant or indifferent to seductive advances and lust-based manipulation.";
+            break;
+    }
+
+    bool found = false;
+    for (auto it = statusEffects.begin(); it != statusEffects.end(); )
+    {
+        if (it->id == "status_sexuality_hetero" ||
+            it->id == "status_sexuality_homo" ||
+            it->id == "status_sexuality_bi" ||
+            it->id == "status_sexuality_ace")
+        {
+            if (it->id == expectedId)
+            {
+                found = true;
+                ++it;
+            }
+            else
+            {
+                it = statusEffects.erase(it);
+            }
+        }
+        else
+        {
+            ++it;
+        }
+    }
+
+    if (!found)
+    {
+        StatusEffect eff;
+        eff.id = expectedId;
+        eff.name = expectedName;
+        eff.iconId = expectedIcon;
+        eff.description = expectedDesc;
+        eff.durationTurns = -1;
+        eff.durationMinutes = -1;
+        eff.isDebuff = false;
+        statusEffects.push_back(eff);
+    }
 }

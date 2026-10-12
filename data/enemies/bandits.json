@@ -6,7 +6,7 @@
       "levelMin": 1,
       "levelMax": 3,
       "baseStats": {
-        "health": 50.0,
+        "health": 60.0,
         "mana": 30.0,
         "lust": 0.0,
         "max_lust": 100.0,
@@ -22,7 +22,8 @@
         "item_leather_boots"
       ],
       "randomItems": [
-        "item_canis_root"
+        "item_canis_root",
+        "item_iron_dagger"
       ],
       "perks": [
         "brawny_strike",
@@ -53,6 +54,68 @@
         "item_canis_root"
       ],
       "perks": [
+        "quick_reflexes"
+      ]
+    },
+    {
+      "id": "tpl_bandit_scout",
+      "name": "Ash-Blade Scout",
+      "levelMin": 2,
+      "levelMax": 4,
+      "baseStats": {
+        "health": 70.0,
+        "mana": 35.0,
+        "lust": 0.0,
+        "max_lust": 100.0,
+        "physique": 16.0,
+        "agility": 18.0,
+        "arcane": 8.0,
+        "corruption": 10.0
+      },
+      "tags": ["hostile"],
+      "possibleRaces": ["Human"],
+      "guaranteedItems": [
+        "item_linen_shirt",
+        "item_leather_trousers",
+        "item_iron_dagger"
+      ],
+      "randomItems": [
+        "item_canis_root",
+        "item_bandages"
+      ],
+      "perks": [
+        "quick_reflexes"
+      ]
+    },
+    {
+      "id": "tpl_bandit_kaelen",
+      "name": "Kaelen the Ash-Blade",
+      "levelMin": 5,
+      "levelMax": 7,
+      "baseStats": {
+        "health": 180.0,
+        "mana": 60.0,
+        "lust": 0.0,
+        "max_lust": 100.0,
+        "physique": 24.0,
+        "agility": 22.0,
+        "arcane": 12.0,
+        "toughness": 20.0,
+        "corruption": 15.0
+      },
+      "tags": ["hostile", "can_be_interrogated"],
+      "possibleRaces": ["Human"],
+      "guaranteedItems": [
+        "item_steel_longsword",
+        "item_leather_trousers",
+        "item_steel_boots"
+      ],
+      "randomItems": [
+        "item_iron_ring",
+        "item_health_potion"
+      ],
+      "perks": [
+        "brawny_strike",
         "iron_constitution"
       ]
     }

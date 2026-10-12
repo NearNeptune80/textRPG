@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include <nlohmann/json.hpp>
@@ -67,6 +68,13 @@ public:
     bool hasTrait(const std::string& traitName) const;
     void addTrait(const std::string& traitName);
     void removeTrait(const std::string& traitName);
+
+    std::unordered_set<std::string> revealedBodySlots;
+    bool isSlotRevealed(bodySlot slot) const;
+    void revealSlot(bodySlot slot);
+    void revealAllSlots();
+    GenderArchetype getPerceivedGender(const entity* observer = nullptr) const;
+    void ensureSexualityStatusEffect();
 
     entity(std::string entityId = "", std::string entityName = "");
 

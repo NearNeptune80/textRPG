@@ -1,0 +1,44 @@
+{
+  "id": "commander_robert",
+  "name": "Commander Robert",
+  "title": "Outpost Commander",
+  "gender": "Male",
+  "race": "Human",
+  "level": 18,
+  "currency": 2500,
+  "isMerchant": false,
+  "description": "The battle-tested commander of the Valley's Edge border garrison. Pragmatic and disciplined, he coordinates local defenses against wilderness incursions.",
+  "dialogueSceneId": "scene_commander_robert",
+  "unlockedPerks": [
+    "tactical_command",
+    "iron_will"
+  ],
+  "baseStats": {
+    "health": 350.0,
+    "max_health": 350.0,
+    "mana": 120.0,
+    "max_mana": 120.0,
+    "physique": 32.0,
+    "agility": 20.0,
+    "toughness": 34.0,
+    "arcane": 16.0,
+    "willpower": 28.0,
+    "corruption": 0.0
+  },
+  "inventory": [
+    { "id": "item_steel_longsword", "count": 1 },
+    { "id": "item_steel_shield", "count": 1 },
+    { "id": "item_steel_chestplate", "count": 1 },
+    { "id": "item_steel_boots", "count": 1 }
+  ],
+  "schedules": [
+    {
+      "startHour": 0,
+      "endHour": 24,
+      "mapId": "outpost_barracks",
+      "x": 3,
+      "y": 2,
+      "activity": "directing garrison operations"
+    }
+  ]
+}

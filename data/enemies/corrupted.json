@@ -1,0 +1,127 @@
+{
+  "templates": [
+    {
+      "id": "tpl_orc_marauder",
+      "name": "Blood-Gorged Orc Marauder",
+      "levelMin": 3,
+      "levelMax": 5,
+      "baseStats": {
+        "health": 120.0,
+        "mana": 20.0,
+        "lust": 0.0,
+        "max_lust": 100.0,
+        "physique": 22.0,
+        "agility": 12.0,
+        "toughness": 18.0,
+        "arcane": 5.0,
+        "corruption": 30.0
+      },
+      "tags": ["hostile", "orc", "brute"],
+      "possibleRaces": ["Orc"],
+      "guaranteedItems": [
+        "item_heavy_warhammer",
+        "item_chainmail_hauberk",
+        "item_steel_boots"
+      ],
+      "randomItems": [
+        "item_iron_ore",
+        "item_bandages"
+      ],
+      "perks": [
+        "brawny_strike",
+        "iron_constitution"
+      ]
+    },
+    {
+      "id": "tpl_corrupted_fiend",
+      "name": "Corrupted Nether Fiend",
+      "levelMin": 4,
+      "levelMax": 6,
+      "baseStats": {
+        "health": 110.0,
+        "mana": 80.0,
+        "lust": 15.0,
+        "max_lust": 100.0,
+        "physique": 16.0,
+        "agility": 18.0,
+        "toughness": 14.0,
+        "arcane": 22.0,
+        "corruption": 65.0
+      },
+      "tags": ["hostile", "demon", "corrupted"],
+      "possibleRaces": ["Demon"],
+      "guaranteedItems": [
+        "item_linen_shirt"
+      ],
+      "randomItems": [
+        "item_mutagen_draught",
+        "item_antidote_flask"
+      ],
+      "perks": [
+        "arcane_attunement",
+        "spell_weaver"
+      ]
+    },
+    {
+      "id": "tpl_corrupted_scout",
+      "name": "Corrupted Scout",
+      "levelMin": 2,
+      "levelMax": 4,
+      "baseStats": {
+        "health": 65.0,
+        "mana": 30.0,
+        "lust": 0.0,
+        "max_lust": 100.0,
+        "physique": 14.0,
+        "agility": 16.0,
+        "arcane": 10.0,
+        "corruption": 40.0
+      },
+      "tags": ["hostile", "corrupted"],
+      "possibleRaces": ["Human"],
+      "guaranteedItems": [
+        "item_iron_dagger",
+        "item_leather_trousers"
+      ],
+      "randomItems": [
+        "item_canis_root"
+      ],
+      "perks": [
+        "quick_reflexes"
+      ]
+    },
+    {
+      "id": "tpl_corrupted_vanguard",
+      "name": "Corrupted Vanguard General",
+      "levelMin": 6,
+      "levelMax": 8,
+      "baseStats": {
+        "health": 250.0,
+        "mana": 90.0,
+        "lust": 0.0,
+        "max_lust": 100.0,
+        "physique": 26.0,
+        "agility": 16.0,
+        "toughness": 22.0,
+        "arcane": 20.0,
+        "corruption": 70.0
+      },
+      "tags": ["hostile", "boss", "demon", "can_be_interrogated"],
+      "possibleRaces": ["Demon"],
+      "guaranteedItems": [
+        "item_steel_chestplate",
+        "item_heavy_warhammer",
+        "item_dark_heart_core"
+      ],
+      "randomItems": [
+        "item_elixir_empowerment",
+        "item_rusted_keystone"
+      ],
+      "perks": [
+        "brawny_strike",
+        "iron_constitution",
+        "arcane_attunement"
+      ]
+    }
+  ]
+}

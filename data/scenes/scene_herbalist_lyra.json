@@ -1,0 +1,76 @@
+{
+  "scenes": [
+    {
+      "id": "scene_herbalist_lyra",
+      "speakerName": "Herbalist Lyra",
+      "bodyText": "Lyra gently stirs a simmering pot of lavender-scented infusion. The apothecary air smells richly of crushed sage, pine resin, and sweet dried petals.\n\n'Welcome, traveler. Whether you need an antidote for venom, a cooling balm for burns, or rare botanical catalysts, you have found the right hearth.'",
+      "choices": [
+        {
+          "label": "Inquire about apothecary supply needs",
+          "tooltip": "Ask Herbalist Lyra what medicinal ingredients she needs for her remedies.",
+          "requirements": [
+            {
+              "type": "QUEST_STAGE",
+              "target": "quest_herbalist_tonic",
+              "requiredValue": 0
+            }
+          ],
+          "hiddenUnlessMet": true,
+          "nextSceneId": "scene_lyra_quest_dialogue"
+        },
+        {
+          "label": "Deliver collected herbs (Moonbloom & Canis Root)",
+          "tooltip": "Hand over the harvested botanical herbs to complete the apothecary order.",
+          "requirements": [
+            {
+              "type": "QUEST_STAGE",
+              "target": "quest_herbalist_tonic",
+              "requiredValue": 1
+            }
+          ],
+          "hiddenUnlessMet": true,
+          "nextSceneId": "scene_lyra_quest_dialogue"
+        },
+        {
+          "label": "Ask about herbal remedies and status treatments",
+          "tooltip": "Learn how her concoctions cleanse afflictions like poison and burning.",
+          "nextSceneId": "scene_lyra_remedies_intel"
+        },
+        {
+          "label": "Ask about the Whispering Woods",
+          "tooltip": "Inquire about the surrounding woodland ecology.",
+          "nextSceneId": "scene_lyra_woods_intel"
+        },
+        {
+          "label": "Farewell, Lyra.",
+          "tooltip": "Step away from the apothecary counter.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "scene_lyra_remedies_intel",
+      "speakerName": "Herbalist Lyra",
+      "bodyText": "'Always be mindful of your bodily condition in combat,' Lyra instructs patiently. 'Viper bites and fiendish stings cause lingering poison that drains health turn after turn—drink an Antidote immediately. Demonfire causes severe burns requiring Cooling Salves, while deep lacerations require clean Bandages to staunch blood loss.'",
+      "choices": [
+        {
+          "label": "Good advice. Thank you.",
+          "tooltip": "Return to main conversation.",
+          "nextSceneId": "scene_herbalist_lyra"
+        }
+      ]
+    },
+    {
+      "id": "scene_lyra_woods_intel",
+      "speakerName": "Herbalist Lyra",
+      "bodyText": "'The Whispering Woods hold ancient elven memory roots,' she sighs softly. 'Under full moonlight, Moonbloom flowers open with silver luminescence. But wolves and darker shadows hunt there now. Tread softly when you harvest.'",
+      "choices": [
+        {
+          "label": "Understood.",
+          "tooltip": "Return to main conversation.",
+          "nextSceneId": "scene_herbalist_lyra"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,102 @@
+{
+  "scenes": [
+    {
+      "id": "scene_commander_robert",
+      "speakerName": "Commander Robert",
+      "bodyText": "Commander Robert looks up from a parchment ledger of garrison rosters. His sharp gray eyes look you over with measured respect.\n\n'At ease, soldier. What do you have to report, or are you seeking new orders?'",
+      "choices": [
+        {
+          "label": "Report for duty (Arrival Briefing)",
+          "tooltip": "Report your arrival to Commander Robert to receive your border assignment.",
+          "requirements": [
+            {
+              "type": "QUEST_STAGE",
+              "target": "quest_welcome",
+              "requiredValue": 0
+            }
+          ],
+          "hiddenUnlessMet": true,
+          "nextSceneId": "scene_robert_welcome_intro"
+        },
+        {
+          "label": "Inquire about Kaelen Bounty",
+          "tooltip": "Ask Commander Robert about the active bounty on outlaw chieftain Kaelen.",
+          "requirements": [
+            {
+              "type": "QUEST_STAGE",
+              "target": "quest_bounty_ashlands",
+              "requiredValue": 0
+            }
+          ],
+          "hiddenUnlessMet": true,
+          "nextSceneId": "scene_bounty_kaelen_dialogue"
+        },
+        {
+          "label": "Claim Kaelen Bounty (300¤)",
+          "tooltip": "Confirm that Kaelen has been neutralized and collect your reward.",
+          "requirements": [
+            {
+              "type": "QUEST_STAGE",
+              "target": "quest_bounty_ashlands",
+              "requiredValue": 2
+            }
+          ],
+          "hiddenUnlessMet": true,
+          "nextSceneId": "scene_bounty_kaelen_dialogue"
+        },
+        {
+          "label": "Report Sunken Ruins Cleansed",
+          "tooltip": "Report victory over the abyssal horror in the depths of the Sunken Ruins.",
+          "requirements": [
+            {
+              "type": "QUEST_STAGE",
+              "target": "quest_main_shadows",
+              "requiredValue": 4
+            }
+          ],
+          "hiddenUnlessMet": true,
+          "nextSceneId": "scene_robert_main_debrief"
+        },
+        {
+          "label": "Ask about garrison duties",
+          "tooltip": "Inquire about life and duties along the border garrison.",
+          "nextSceneId": "scene_robert_duties"
+        },
+        {
+          "label": "Ask about the Sunken Ruins",
+          "tooltip": "Inquire about history and dangers of the subterranean ruins.",
+          "nextSceneId": "scene_robert_ruins_intel"
+        },
+        {
+          "label": "Farewell, Commander.",
+          "tooltip": "Salute and take your leave.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "scene_robert_duties",
+      "speakerName": "Commander Robert",
+      "bodyText": "'Valley's Edge stands as the frontier wall between peaceful heartlands and the untamed wilds,' Robert remarks, hands clasped behind his back. 'Our duty is simple: hold the line, keep the trade routes open, and ensure nothing foul creeps out of the deep ravines.'",
+      "choices": [
+        {
+          "label": "Understood.",
+          "tooltip": "Return to main conversation.",
+          "nextSceneId": "scene_commander_robert"
+        }
+      ]
+    },
+    {
+      "id": "scene_robert_ruins_intel",
+      "speakerName": "Commander Robert",
+      "bodyText": "'The Sunken Ruins date back to an era before the valley was charted. Legend says an ancient cult bound abyssal entities beneath its flagstones. Whatever slumbered down there has begun to wake. Do not enter without proper steel and restoratives.'",
+      "choices": [
+        {
+          "label": "I will keep that in mind.",
+          "tooltip": "Return to main conversation.",
+          "nextSceneId": "scene_commander_robert"
+        }
+      ]
+    }
+  ]
+}

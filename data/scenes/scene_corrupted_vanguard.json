@@ -1,0 +1,38 @@
+{
+  "scenes": [
+    {
+      "id": "scene_corrupted_vanguard",
+      "speakerName": "Corrupted Vanguard General",
+      "bodyText": "A towering demonic warlord clad in blackened plate armor turns to face you. Two curved obsidian horns curl back from his brow, and crimson sparks dance across the head of his massive warhammer.\n\n'Mortal insect. You dare trespass upon the sacred seat of our awakening? Your marrow shall feed the altar!'",
+      "choices": [
+        {
+          "label": "Draw your weapon and fight!",
+          "tooltip": "Engage the Vanguard General in combat.",
+          "nextSceneId": "ENCOUNTER_FIGHT"
+        },
+        {
+          "label": "Demand answers",
+          "tooltip": "Attempt to interrogate the demonic commander before battle.",
+          "nextSceneId": "scene_vanguard_dialogue"
+        },
+        {
+          "label": "Retreat to the upper chambers",
+          "tooltip": "Back away cautiously from the demonic presence.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "scene_vanguard_dialogue",
+      "speakerName": "Corrupted Vanguard General",
+      "bodyText": "The general lets out a hollow, rumbling laugh that shakes the dust from the stone vaulting.\n\n'Answers? The Dark Heart already pulses with the souls of the fallen. When the altar drinks enough blood, the ancient masters shall reclaim this entire valley. Now perish!'",
+      "choices": [
+        {
+          "label": "Fight for Valley's Edge!",
+          "tooltip": "Engage the Vanguard General in combat.",
+          "nextSceneId": "ENCOUNTER_FIGHT"
+        }
+      ]
+    }
+  ]
+}

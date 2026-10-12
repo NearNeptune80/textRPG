@@ -15,6 +15,14 @@
     { "id": "item_leather_skirt", "count": 1 },
     { "id": "item_ancient_tome", "count": 1 },
     { "id": "item_infused_predator", "count": 1 },
-    { "id": "item_infused_primal", "count": 1 }
+    { "id": "item_infused_primal", "count": 1 },
+    { "id": "item_iron_dagger", "count": 1 },
+    { "id": "item_linen_shirt", "count": 1 },
+    { "id": "item_leather_trousers", "count": 1 },
+    { "id": "item_health_potion", "count": 2 },
+    { "id": "item_mana_potion", "count": 2 },
+    { "id": "item_antidote_flask", "count": 1 },
+    { "id": "item_cooling_salve", "count": 1 },
+    { "id": "item_bandages", "count": 1 }
   ]
 }

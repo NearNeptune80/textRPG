@@ -2,7 +2,12 @@
   "version": "1.0",
   "defaultTemplate": "tpl_alley_bandit",
   "dangerLevelTemplates": {
+    "0": "tpl_cutpurse",
     "1": "tpl_alley_bandit",
-    "2": "tpl_rogue_mage"
+    "2": "tpl_feral_wolf",
+    "3": "tpl_elven_ranger",
+    "4": "tpl_orc_marauder",
+    "5": "tpl_corrupted_fiend",
+    "6": "tpl_corrupted_vanguard"
   }
 }

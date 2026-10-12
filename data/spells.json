@@ -8,6 +8,7 @@
       "mpCost": 10,
       "staminaCost": 10.0,
       "damage": 25.0,
+      "requiredLevel": 1,
       "description": "Fires a sharp dart of concentrated arcane power at the target, dealing direct damage.",
       "unlocked": true
     },
@@ -18,6 +19,7 @@
       "mpCost": 25,
       "staminaCost": 15.0,
       "damage": 55.0,
+      "requiredLevel": 3,
       "description": "Hurls an explosive sphere of demonic flame that incinerates foes.",
       "unlocked": false
     },
@@ -28,8 +30,9 @@
       "mpCost": 15,
       "staminaCost": 10.0,
       "defense": 35.0,
+      "requiredLevel": 2,
       "description": "Conjures a shimmering protective barrier that absorbs incoming physical and magical attacks.",
-      "unlocked": true
+      "unlocked": false
     },
     {
       "id": "cleanse",
@@ -38,8 +41,9 @@
       "mpCost": 20,
       "staminaCost": 10.0,
       "heal": 40.0,
+      "requiredLevel": 2,
       "description": "Channels pure energy to purge negative debuffs and restore physical health.",
-      "unlocked": true
+      "unlocked": false
     },
     {
       "id": "teleport",
@@ -48,6 +52,7 @@
       "mpCost": 30,
       "staminaCost": 10.0,
       "agilityBonus": 15.0,
+      "requiredLevel": 5,
       "description": "Instantly teleports the caster a short distance across the battlefield or room.",
       "unlocked": false
     },
@@ -60,8 +65,9 @@
       "isSummon": true,
       "summonType": "air",
       "companionId": "companion_sylph",
+      "requiredLevel": 4,
       "description": "Weaves atmospheric currents into a sentient Sylph wind-elemental companion.",
-      "unlocked": true
+      "unlocked": false
     },
     {
       "id": "summon_flame",
@@ -72,7 +78,34 @@
       "isSummon": true,
       "summonType": "fire",
       "companionId": "companion_ignis",
+      "requiredLevel": 5,
       "description": "Ignites raw volcanic energy into an Ignis flame-elemental companion.",
+      "unlocked": false
+    },
+    {
+      "id": "sylph_grace",
+      "name": "Sylph's Grace",
+      "school": "Air",
+      "mpCost": 18,
+      "staminaCost": 5.0,
+      "heal": 35.0,
+      "agilityBonus": 10.0,
+      "requiredRace": "Elf",
+      "requiredLevel": 2,
+      "description": "Channels ancient Elven wind magic to soothe wounds and grant light-footed swiftness.",
+      "unlocked": false
+    },
+    {
+      "id": "infernal_blast",
+      "name": "Infernal Blast",
+      "school": "Fire",
+      "mpCost": 30,
+      "staminaCost": 15.0,
+      "damage": 60.0,
+      "statusEffect": "burning",
+      "requiredRace": "Demon",
+      "requiredLevel": 3,
+      "description": "Unleashes Demonic hellfire that scorches the foe and inflicts searing burns.",
       "unlocked": false
     }
   ]

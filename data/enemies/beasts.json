@@ -1,0 +1,56 @@
+{
+  "templates": [
+    {
+      "id": "tpl_feral_wolf",
+      "name": "Feral Timber Wolf",
+      "levelMin": 1,
+      "levelMax": 3,
+      "baseStats": {
+        "health": 55.0,
+        "mana": 10.0,
+        "lust": 0.0,
+        "max_lust": 100.0,
+        "physique": 15.0,
+        "agility": 18.0,
+        "toughness": 12.0,
+        "arcane": 4.0,
+        "corruption": 0.0
+      },
+      "tags": ["hostile", "beast"],
+      "possibleRaces": ["Canine"],
+      "guaranteedItems": [],
+      "randomItems": [
+        "item_canis_root"
+      ],
+      "perks": [
+        "quick_reflexes"
+      ]
+    },
+    {
+      "id": "tpl_shadow_panther",
+      "name": "Shadow Panther",
+      "levelMin": 3,
+      "levelMax": 5,
+      "baseStats": {
+        "health": 85.0,
+        "mana": 20.0,
+        "lust": 0.0,
+        "max_lust": 100.0,
+        "physique": 18.0,
+        "agility": 24.0,
+        "toughness": 14.0,
+        "arcane": 8.0,
+        "corruption": 5.0
+      },
+      "tags": ["hostile", "beast"],
+      "possibleRaces": ["Feline"],
+      "guaranteedItems": [],
+      "randomItems": [
+        "item_moonbloom"
+      ],
+      "perks": [
+        "quick_reflexes"
+      ]
+    }
+  ]
+}

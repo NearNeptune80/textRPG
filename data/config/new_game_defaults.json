@@ -2,25 +2,15 @@
   "version": "1.0",
   "starterQuests": [
     {
-      "id": "root_delivery",
+      "id": "quest_welcome",
       "stage": 0,
       "tracked": true
-    },
-    {
-      "id": "cottage_investigation",
-      "stage": 0,
-      "tracked": false
-    },
-    {
-      "id": "patrol_duty",
-      "stage": 0,
-      "tracked": false
     }
   ],
   "spawn": {
-    "map": "test_hub",
-    "x": 1,
-    "y": 1
+    "map": "overworld",
+    "x": 2,
+    "y": 3
   },
   "calendar": {
     "day": 1,
@@ -30,7 +20,7 @@
   "initialLogs": [
     {
       "tag": "[ZONE]",
-      "text": "Entered Validation Proving Grounds",
+      "text": "Arrived at Valley's Edge Outpost",
       "color": [
         180,
         200,
@@ -39,8 +29,8 @@
       ]
     },
     {
-      "tag": "[TEST]",
-      "text": "100% Schema-Coverage Test Environment Initialized",
+      "tag": "[STORY]",
+      "text": "Your journey begins at the border outpost. Report to Commander Robert at the Barracks.",
       "color": [
         220,
         180,
@@ -49,8 +39,8 @@
       ]
     },
     {
-      "tag": "[INFO]",
-      "text": "All test systems active (Combat, Intimacy, Biomancy, Altar, Gauntlet)",
+      "tag": "[HINT]",
+      "text": "Visit the notice board or local merchants to prepare for wilderness exploration.",
       "color": [
         160,
         200,

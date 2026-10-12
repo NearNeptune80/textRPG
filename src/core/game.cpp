@@ -978,6 +978,32 @@ void game::handleUseItemAction(int backpackIndex)
         }
     }
 
+    if (targetItem->id.find("antidote") != std::string::npos)
+    {
+        Player->removeStatusEffect("poison");
+        addLogEntry("[REMEDY]", "You cleansed the poison affliction from your bloodstream.", { 160, 220, 160, 255 });
+    }
+    if (targetItem->id.find("cooling_salve") != std::string::npos)
+    {
+        Player->removeStatusEffect("burning");
+        addLogEntry("[REMEDY]", "The cooling salve soothes and puts out all burning flames.", { 160, 220, 240, 255 });
+    }
+    if (targetItem->id.find("bandages") != std::string::npos)
+    {
+        Player->removeStatusEffect("bleeding");
+        addLogEntry("[REMEDY]", "You tightly bound your wounds, stopping the bleeding.", { 220, 200, 160, 255 });
+    }
+    if (targetItem->id.find("empowerment") != std::string::npos)
+    {
+        StatusEffect fx;
+        fx.id = "empowered";
+        fx.name = "Empowered";
+        fx.description = "Surging alchemical power enhances physical might.";
+        fx.durationMinutes = 60;
+        Player->addStatusEffect(fx);
+        addLogEntry("[BOON]", "Surging energy courses through your muscles! You are empowered.", { 240, 180, 80, 255 });
+    }
+
     if (targetItem->isStackable && targetItem->count > 1)
     {
         targetItem->count--;
@@ -1791,8 +1817,8 @@ void game::processChoice(const dialogueChoice& choice)
             {
                 tileData.ambushState.isDefeated = true;
                 tileData.ambushState.restockMinutesRemaining = 1440;
+                tileData.persistentNPC = nullptr;
             }
-            tileData.persistentNPC = nullptr;
         }
         activeTargetNPC = nullptr;
         activeTargetMode = TargetMode::NONE;
@@ -2168,6 +2194,109 @@ void game::loadScene(const std::string& sceneId, bool bypassWarning)
         currentScene.choices[i].tooltip = textParser::interpolate(currentScene.choices[i].tooltip, Player, activeTargetNPC.get());
     }
 
+    refreshActionGrid();
+}
+
+void game::openNPCTalkMenu(std::shared_ptr<entity> npc)
+{
+    if (!npc) return;
+    activeTargetNPC = npc;
+    activeTargetMode = TargetMode::DIALOGUE;
+
+    auto namedChar = NamedCharacterManager::getCharacter(npc->id);
+    std::string sceneToLoad = "";
+    if (namedChar)
+    {
+        if (!namedChar->activeSceneId.empty()) sceneToLoad = namedChar->activeSceneId;
+        else if (!namedChar->defaultSceneId.empty()) sceneToLoad = namedChar->defaultSceneId;
+    }
+    if (sceneToLoad.empty() && !npc->defaultSceneId.empty())
+    {
+        sceneToLoad = npc->defaultSceneId;
+    }
+
+    auto npcTriggers = questDatabase::getTriggersForNPC(npc->id);
+    std::vector<MapTrigger> activeNpcTriggers;
+    for (const auto& trig : npcTriggers)
+    {
+        if (checkConditions(trig.conditions))
+        {
+            activeNpcTriggers.push_back(trig);
+        }
+    }
+
+    // 1. If an active quest scene override is set on this character, fire immediately!
+    if (namedChar && !namedChar->activeSceneId.empty())
+    {
+        loadScene(namedChar->activeSceneId);
+        return;
+    }
+
+    // 2. If an authored dialogue scene exists, load it and merge active NPC triggers into its choices
+    if (!sceneToLoad.empty() && questDatabase::exists(sceneToLoad))
+    {
+        loadScene(sceneToLoad);
+        for (const auto& trig : activeNpcTriggers)
+        {
+            bool alreadyInChoices = false;
+            for (const auto& ch : currentScene.choices)
+            {
+                if (ch.label == trig.label || ch.nextSceneId == trig.sceneId)
+                {
+                    alreadyInChoices = true;
+                    break;
+                }
+            }
+            if (!alreadyInChoices && !trig.sceneId.empty())
+            {
+                dialogueChoice ch;
+                ch.label = trig.label;
+                ch.tooltip = trig.tooltip;
+                ch.nextSceneId = trig.sceneId;
+                currentScene.choices.push_back(ch);
+            }
+        }
+        refreshActionGrid();
+        return;
+    }
+
+    // 3. If no authored scene, but exactly 1 active trigger, fire it immediately
+    if (activeNpcTriggers.size() == 1)
+    {
+        loadScene(activeNpcTriggers[0].sceneId);
+        return;
+    }
+
+    // 4. Multiple triggers or default greeting: synthesize a clean self-contained Talk Menu
+    currentScene.id = "talk_menu_" + npc->id;
+    currentScene.speakerName = npc->name;
+    currentScene.contentTags.clear();
+    currentScene.choices.clear();
+
+    if (!activeNpcTriggers.empty())
+    {
+        currentScene.bodyText = std::format("{} looks at you attentively. 'What is on your mind?'", npc->name);
+        for (const auto& trig : activeNpcTriggers)
+        {
+            dialogueChoice ch;
+            ch.label = trig.label;
+            ch.tooltip = trig.tooltip;
+            ch.nextSceneId = trig.sceneId;
+            currentScene.choices.push_back(ch);
+        }
+    }
+    else
+    {
+        currentScene.bodyText = std::format("{} nods in greeting. 'Good day. What can I do for you?'", npc->name);
+    }
+
+    dialogueChoice leaveCh;
+    leaveCh.label = "Goodbye (Leave)";
+    leaveCh.tooltip = "Conclude the conversation and return to the area.";
+    leaveCh.nextSceneId = "EXIT";
+    currentScene.choices.push_back(leaveCh);
+
+    changeState(std::make_unique<eventState>());
     refreshActionGrid();
 }
 

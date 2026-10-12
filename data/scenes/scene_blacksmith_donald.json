@@ -1,0 +1,50 @@
+{
+  "scenes": [
+    {
+      "id": "scene_blacksmith_donald",
+      "speakerName": "Blacksmith Donald",
+      "bodyText": "Donald brings his heavy hammer down on an anvil with a thunderous clang, sending a cascade of bright orange sparks into the air. He wipes sweat from his brow with a forearm the size of a tree branch and grunts approvingly.\n\n'Grom! Look at that edge. Come to buy real iron, traveler, or just admiring the forge?'",
+      "choices": [
+        {
+          "label": "Ask about weapon and armor craft",
+          "tooltip": "Inquire about his metallurgy methods.",
+          "nextSceneId": "scene_donald_craft_intel"
+        },
+        {
+          "label": "Ask about Orcish combat traditions",
+          "tooltip": "Learn about the brutal martial techniques of the Iron Ridge.",
+          "nextSceneId": "scene_donald_orc_intel"
+        },
+        {
+          "label": "Farewell, Donald.",
+          "tooltip": "Step back from the heat of the forge.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "scene_donald_craft_intel",
+      "speakerName": "Blacksmith Donald",
+      "bodyText": "'Flimsy leather might stop a scratch, but when an orc swings a warhammer or a beast claws at your ribs, you want heavy chainmail or folded steel plate,' Donald chuckles, tapping his anvil. 'My steel is quenched in mountain spring water. It does not chip, and it does not bend.'",
+      "choices": [
+        {
+          "label": "Impressive workmanship.",
+          "tooltip": "Return to main conversation.",
+          "nextSceneId": "scene_blacksmith_donald"
+        }
+      ]
+    },
+    {
+      "id": "scene_donald_orc_intel",
+      "speakerName": "Blacksmith Donald",
+      "bodyText": "'We of the Iron Ridge fight with our whole weight behind every blow,' Donald bellows with pride. 'A true orc warrior channels rage into impact. One solid strike with a two-handed hammer fractures skull bones and shatters enemy shields before they can even raise their guard!'",
+      "choices": [
+        {
+          "label": "A terrifying thought.",
+          "tooltip": "Return to main conversation.",
+          "nextSceneId": "scene_blacksmith_donald"
+        }
+      ]
+    }
+  ]
+}

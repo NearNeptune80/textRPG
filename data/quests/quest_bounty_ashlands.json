@@ -1,0 +1,83 @@
+{
+  "id": "quest_bounty_ashlands",
+  "name": "Bounty: The Ash-Blade Chieftain",
+  "category": "Side Quest",
+  "giver": "Commander Robert",
+  "location": "Ashlands",
+  "rewards": "300¤ and Garrison Commendation",
+  "description": "Hunt down and neutralize Kaelen the Ash-Blade, the dangerous outlaw leader ambushing supply trains across the rocky Ashlands.",
+  "triggers": [],
+  "stages": {
+    "0": "Inquire about the bandit threat with Commander Robert.",
+    "1": "Track down Kaelen the Ash-Blade in the rocky passes of the Ashlands.",
+    "2": "Defeat Kaelen and recover proof of his neutralization.",
+    "3": "Claim your 300¤ bounty reward from Commander Robert."
+  },
+  "scenes": [
+    {
+      "id": "scene_bounty_kaelen_dialogue",
+      "speakerName": "Commander Robert",
+      "bodyText": "Robert leans forward over his desk, lowering his voice.\n\n'Kaelen is an arrogant cutthroat, but he is quick with a blade. If you track him to the Ashlands and put an end to his raids, the garrison treasury will pay 300¤ bounty on the spot.'",
+      "choices": [
+        {
+          "label": "Report Kaelen defeated (Claim 300¤ Bounty)",
+          "tooltip": "Confirm that Kaelen has been neutralized and collect your reward.",
+          "requirements": [
+            {
+              "type": "QUEST_STAGE",
+              "target": "quest_bounty_ashlands",
+              "requiredValue": 2
+            }
+          ],
+          "results": [
+            {
+              "action": "SET_QUEST",
+              "target": "quest_bounty_ashlands",
+              "amount": 3
+            },
+            {
+              "action": "ADD_STAT",
+              "target": "currency",
+              "amount": 300
+            }
+          ],
+          "nextSceneId": "scene_bounty_kaelen_reward"
+        },
+        {
+          "label": "I will track Kaelen down in the Ashlands.",
+          "tooltip": "Accept the contract to hunt Kaelen.",
+          "requirements": [],
+          "results": [
+            {
+              "action": "SET_QUEST",
+              "target": "quest_bounty_ashlands",
+              "amount": 1
+            }
+          ],
+          "nextSceneId": "EXIT"
+        },
+        {
+          "label": "Not right now.",
+          "tooltip": "Decline the hunt for now.",
+          "requirements": [],
+          "results": [],
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "scene_bounty_kaelen_reward",
+      "speakerName": "Commander Robert",
+      "bodyText": "'Splendid work, soldier. With Kaelen neutralized, the trade routes through the rocky passes are safe again. Here is your 300¤ bounty. You have done the garrison a tremendous service.'",
+      "choices": [
+        {
+          "label": "Thank you, Commander.",
+          "tooltip": "Pocket your reward and return to duty.",
+          "requirements": [],
+          "results": [],
+          "nextSceneId": "EXIT"
+        }
+      ]
+    }
+  ]
+}

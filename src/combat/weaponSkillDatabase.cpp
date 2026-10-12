@@ -60,6 +60,9 @@ bool WeaponSkillDatabase::loadFromFile(const std::string& filePath)
                 ws.statusEffect = skillJson.value("statusEffect", "");
                 ws.description = skillJson.value("description", "");
                 ws.baseMagnitude = skillJson.value("baseMagnitude", 25.0f);
+                ws.requiredRace = skillJson.value("requiredRace", "");
+                ws.requiredLevel = skillJson.value("requiredLevel", 1);
+                ws.unlocked = skillJson.value("unlocked", true);
 
                 if (!ws.id.empty())
                 {

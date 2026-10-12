@@ -6,8 +6,61 @@
       "bodyText": "You fasten the enchanted servitude binding securely onto {target.name}. A burst of coercive arcane light flares across the runes woven into the garment, sinking deep into their skin, aura, and mind.\n\nTheir resistance rapidly crumbles as their willpower is enveloped by the binding enchant. Looking up at you with wide, compliant eyes, their breathing slows.\n\n'{player.name}... I am yours. I submit to your authority completely.'\n\n{target.name} has been successfully enslaved and bound to your service.",
       "choices": [
         {
-          "label": "Continue",
+          "label": "Acknowledge their submission",
           "tooltip": "Acknowledge the subjugation and return to the overworld.",
+          "nextSceneId": "EXIT"
+        },
+        {
+          "label": "Remind them of their place",
+          "tooltip": "Establish strict authority over your new captive.",
+          "nextSceneId": "scene_enslavement_authority"
+        }
+      ]
+    },
+    {
+      "id": "scene_enslavement_authority",
+      "speakerName": "ENSLAVEMENT BINDING",
+      "bodyText": "You firmly tilt {target.name}'s chin upward, meeting their glassy, docile gaze. The binding pulses with a warm amber hum, reinforcing their total obedience to your every instruction.\n\n'Understood, Master {player.name}. Your will is my purpose.'",
+      "choices": [
+        {
+          "label": "Continue",
+          "tooltip": "Return to the overworld.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "scene_enslavement_collar",
+      "speakerName": "ENSLAVEMENT COLLAR",
+      "bodyText": "You snap the heavy runic collar around {target.name}'s throat. The arcane runes immediately flare with indigo flame, constricting just enough to remind them of their subjugation.\n\n{target.name} gasps, trembling as waves of submission wash through their nervous system. They sink to their knees, bowing their head low.\n\n'The collar... binds my thoughts to yours. I am your obedient servant.'",
+      "choices": [
+        {
+          "label": "Continue",
+          "tooltip": "Return to the overworld.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "scene_enslavement_harness",
+      "speakerName": "LEATHER RESTRAINT HARNESS",
+      "bodyText": "You buckle the enchanted leather harness across {target.name}'s chest and shoulders, locking the gilded buckles in place. The enchanted leather tingles against their bare skin, subtly directing their posture into that of an obedient thrall.\n\n{target.name} shivers with a mixture of helplessness and surrender, looking up at you with wide, compliant eyes.",
+      "choices": [
+        {
+          "label": "Continue",
+          "tooltip": "Return to the overworld.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "scene_enslavement_arcane_brand",
+      "speakerName": "ARCANE SUBJUGATION SEAL",
+      "bodyText": "You place your hand over {target.name}'s chest and channel a coercive arcane seal directly into their magical core. A shimmering glowing sigil forms beneath their collarbone, sealing away their defiance.\n\nTheir posture softens instantly, all hostility melting into quiet deference.\n\n'My essence belongs to you now, {player.name}. I live to obey.'",
+      "choices": [
+        {
+          "label": "Continue",
+          "tooltip": "Return to the overworld.",
           "nextSceneId": "EXIT"
         }
       ]

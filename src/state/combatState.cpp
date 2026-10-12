@@ -25,16 +25,17 @@ static bool isSexuallyCompatible(const entity* npc, const entity* player)
     if (!npc || !player) return false;
     if (npc->orientation == SexualOrientation::ASEXUAL) return false;
 
-    GenderArchetype playerArch = player->anatomy.getGenderArchetype();
+    // NPC evaluates target based on perceived gender if target's groin has not been revealed to the NPC
+    GenderArchetype targetArch = player->getPerceivedGender(npc);
     BodyPresentation playerPres = player->anatomy.getVisualPresentation();
 
     if (npc->orientation == SexualOrientation::BISEXUAL)
     {
-        return playerArch != GenderArchetype::ASEXUAL_NULL;
+        return targetArch != GenderArchetype::ASEXUAL_NULL;
     }
 
-    bool playerIsFeminine = (playerArch == GenderArchetype::FEMALE || playerArch == GenderArchetype::GYNOMORPH || playerPres == BodyPresentation::FEMININE);
-    bool playerIsMasculine = (playerArch == GenderArchetype::MALE || playerArch == GenderArchetype::ANDROMORPH || playerPres == BodyPresentation::MASCULINE);
+    bool playerIsFeminine = (targetArch == GenderArchetype::FEMALE || targetArch == GenderArchetype::GYNOMORPH || playerPres == BodyPresentation::FEMININE);
+    bool playerIsMasculine = (targetArch == GenderArchetype::MALE || targetArch == GenderArchetype::ANDROMORPH || playerPres == BodyPresentation::MASCULINE);
 
     if (npc->genderArchetype == GenderArchetype::MALE || npc->genderArchetype == GenderArchetype::ANDROMORPH)
     {
@@ -321,7 +322,21 @@ void CombatState::handleCommand(game* gameContext, const UICommand& cmd)
         }
         else if (const auto* sp = SpellDatabase::getSpell(cmd.stringPayload))
         {
+            if (!sp->requiredRace.empty() && player)
+            {
+                std::string pRace = player->anatomy.getDominantRace();
+                if (pRace.find(sp->requiredRace) == std::string::npos) return;
+            }
             act = sp->toCombatAction();
+        }
+        else if (const auto* ws = WeaponSkillDatabase::getSkill(cmd.stringPayload))
+        {
+            if (!ws->requiredRace.empty() && player)
+            {
+                std::string pRace = player->anatomy.getDominantRace();
+                if (pRace.find(ws->requiredRace) == std::string::npos) return;
+            }
+            act = ws->toCombatAction();
         }
 
         if (m_engine.queuePlayerAction(0, act, target))
@@ -444,7 +459,12 @@ void CombatState::resolveDefeat(game* gameContext)
 
         eventBus::getInstance().publishEvent({ gameEvent::combatEnded, data.numericValue, "DEFEAT_ROBBERY", nullptr });
 
-        questScene defeatScene = questDatabase::getScene("scene_combat_defeat");
+        std::vector<std::string> availableDefeat;
+        for (const auto& dId : { "scene_combat_defeat_robbery", "scene_combat_defeat_left_for_dead", "scene_combat_defeat_humiliation", "scene_combat_defeat" }) {
+            if (questDatabase::exists(dId)) availableDefeat.push_back(dId);
+        }
+        std::string chosenSceneId = !availableDefeat.empty() ? availableDefeat[rand() % availableDefeat.size()] : "scene_combat_defeat";
+        questScene defeatScene = questDatabase::getScene(chosenSceneId);
         defeatScene.speakerName = defeatingNPC ? defeatingNPC->name : "System";
 
         auto replaceAll = [](std::string& str, const std::string& from, const std::string& to) {

@@ -36,6 +36,7 @@
 #include "entities/perkDatabase.h"
 #include "combat/combatEngine.h"
 #include "combat/combatActionDatabase.h"
+#include "combat/weaponSkillDatabase.h"
 #include "combat/spellDatabase.h"
 #include "state/combatState.h"
 #include "state/encounterResolutionState.h"
@@ -43,6 +44,7 @@
 #include "state/editorConfig.h"
 #include "map/encounterResolver.h"
 #include "ui/layoutEngine.h"
+#include "ui/widgets/characterCardWidget.h"
 #include "core/contentFilterManager.h"
 #include "ui/widgets/entityListWidgets.h"
 #include "items/enchantmentAspects.h"
@@ -6170,6 +6172,315 @@ namespace EngineTests
         return allPassed;
     }
 
+    bool testPlaythroughRefinementsAndAnatomyTooltips()
+    {
+        std::cout << "\n--- Running Test 52: Playthrough Dialogue Consolidation, Demographic Integrity, Self-Action Fix & Tooltips ---\n";
+        bool allPassed = true;
+
+        // 1. Demographic archetype tags and race consistency
+        npcGenerator::loadTemplates("data/enemies");
+        auto bandit = npcGenerator::generateFromTemplate("tpl_alley_bandit");
+        bool banditArchetypeOk = (bandit != nullptr && bandit->genderArchetype == GenderArchetype::MALE);
+        bool banditGenitalsOk = (bandit != nullptr && bandit->anatomy.hasPart(bodySlot::GROIN) &&
+                                 bandit->anatomy.getPart(bodySlot::GROIN)->name == "Penis");
+        bool banditRaceOk = (bandit != nullptr && bandit->anatomy.getPart(bodySlot::TORSO)->race == bandit->anatomy.getPart(bodySlot::HEAD)->race);
+        bool demoOk = banditArchetypeOk && banditGenitalsOk && banditRaceOk;
+        logResult("Procedural demographic generator respects template gender tags ('masculine' -> MALE) and keeps racial consistency across body parts", demoOk);
+        allPassed &= demoOk;
+
+        // 2. Sex state self-action accessibility
+        sexState testSex;
+        auto pEnt = std::make_shared<entity>("p_test", "Player");
+        auto partEnt = std::make_shared<entity>("n_test", "Bandit");
+        // Partner is fully dressed
+        auto shirt = std::make_shared<item>(); shirt->id = "t_shirt"; shirt->targetSlot = equipSlot::TORSO_OVER; shirt->isEquippable = true;
+        auto pants = std::make_shared<item>(); pants->id = "t_pants"; pants->targetSlot = equipSlot::LEGS_OUTER; pants->isEquippable = true;
+        partEnt->inventory.equipped[static_cast<size_t>(equipSlot::TORSO_OVER)] = shirt;
+        partEnt->inventory.equipped[static_cast<size_t>(equipSlot::LEGS_OUTER)] = pants;
+        // Player is undressed (or groin exposed)
+        SexParticipant pPart;
+        pPart.character = pEnt;
+        pPart.rawCharacter = pEnt.get();
+        pPart.isPlayer = true;
+        pPart.side = 0;
+
+        SexParticipant nPart;
+        nPart.character = partEnt;
+        nPart.rawCharacter = partEnt.get();
+        nPart.isPlayer = false;
+        nPart.side = 1;
+
+        SexAction selfAction;
+        selfAction.id = "self_clit_rub";
+        selfAction.name = "Rub Clitoris";
+        selfAction.category = "Self";
+        selfAction.targetSlot = bodySlot::GROIN;
+        selfAction.requiresExposedGenitals = true;
+        std::string inaccReason;
+        bool selfAccessible = testSex.isActionAccessible(selfAction, pPart, nPart, &inaccReason);
+        logResult("Sex state self-actions evaluate actor clothing/genitals rather than partner's clothed state", selfAccessible && inaccReason.empty());
+        allPassed &= (selfAccessible && inaccReason.empty());
+
+        // 3. Quest trigger consolidation, NPC dialogue integration & Talk Menu
+        questDatabase::loadDatabase("data/quests");
+        NamedCharacterManager::loadFromDirectory("data/characters");
+        auto triggersAtRobert = questDatabase::getTriggersForLocation("outpost_barracks", 3, 2);
+        bool triggersPruned = triggersAtRobert.empty();
+        auto robertScene = questDatabase::getScene("scene_commander_robert");
+        bool hasWelcomeChoice = false;
+        bool hasBountyChoice = false;
+        for (const auto& ch : robertScene.choices)
+        {
+            if (ch.label.find("Arrival Briefing") != std::string::npos && ch.hiddenUnlessMet) hasWelcomeChoice = true;
+            if (ch.label.find("Kaelen Bounty") != std::string::npos && ch.hiddenUnlessMet) hasBountyChoice = true;
+        }
+
+        game testGame;
+        testGame.loadMap("outpost_barracks", 3, 2);
+        testGame.gameTime.hour = 12;
+        NamedCharacterManager::updateAllLocations(&testGame);
+        testGame.changeState(std::make_unique<explorationState>());
+        testGame.syncTileTarget(true);
+        testGame.refreshActionGrid();
+        bool hasTalkBtn = false;
+        int questTriggerBtnCount = 0;
+        for (const auto& slot : testGame.getActiveActionSlots())
+        {
+            if (slot.label.find("Talk to Commander Robert") != std::string::npos) hasTalkBtn = true;
+            if (slot.label.find("Arrival Briefing") != std::string::npos || slot.label.find("Kaelen Bounty") != std::string::npos)
+            {
+                questTriggerBtnCount++;
+            }
+        }
+        bool tileGridClean = hasTalkBtn && (questTriggerBtnCount == 0);
+        auto robertNc = NamedCharacterManager::getCharacter("commander_robert");
+        if (robertNc && robertNc->characterEntity)
+        {
+            testGame.openNPCTalkMenu(robertNc->characterEntity);
+        }
+        bool inRobertDialogue = (testGame.currentScene.id == "scene_commander_robert" || testGame.currentScene.speakerName.find("Robert") != std::string::npos);
+        bool dialogConsolidatedOk = triggersPruned && hasWelcomeChoice && hasBountyChoice && tileGridClean && inRobertDialogue;
+        logResult("Overworld action grid consolidates NPC interaction into self-contained Talk Menu without tile trigger clutter", dialogConsolidatedOk);
+        allPassed &= dialogConsolidatedOk;
+
+        // 4. Initials avatar box body part overview tooltip with seen-adaptive visibility
+        if (bandit)
+        {
+            // Clothed bandit on first encounter
+            bandit->inventory.equipped[static_cast<size_t>(equipSlot::LEGS_OUTER)] = pants;
+            bandit->revealedBodySlots.clear();
+
+            TooltipData ttClothed = CharacterCardWidget::createAnatomyTooltip(bandit.get(), pEnt.get());
+            bool groinCoveredFirst = false;
+            bool hornsMissingMuted = false;
+            bool faceVisible = false;
+            for (const auto& row : ttClothed.stats)
+            {
+                if (row.key == "Groin" && (row.value.find("Bulge") != std::string::npos || row.value.find("Contour") != std::string::npos) && row.isMuted) groinCoveredFirst = true;
+                if (row.key == "Horns" && row.value == "None" && row.isMuted) hornsMissingMuted = true;
+                if (row.key == "Face" && !row.isMuted) faceVisible = true;
+            }
+
+            // Expose bandit's groin (e.g. during intimacy / stripping)
+            bandit->inventory.equipped[static_cast<size_t>(equipSlot::LEGS_OUTER)] = nullptr;
+            TooltipData ttExposed = CharacterCardWidget::createAnatomyTooltip(bandit.get(), pEnt.get());
+            bool groinSeenWhenExposed = false;
+            for (const auto& row : ttExposed.stats)
+            {
+                if (row.key == "Groin" && row.value.find("Penis") != std::string::npos && !row.isMuted)
+                {
+                    groinSeenWhenExposed = true;
+                }
+            }
+
+            // Reclothe bandit - groin details remain remembered!
+            bandit->inventory.equipped[static_cast<size_t>(equipSlot::LEGS_OUTER)] = pants;
+            TooltipData ttReclothed = CharacterCardWidget::createAnatomyTooltip(bandit.get(), pEnt.get());
+            bool groinRememberedWhenClothed = false;
+            for (const auto& row : ttReclothed.stats)
+            {
+                if (row.key == "Groin" && row.value.find("Penis") != std::string::npos && !row.isMuted)
+                {
+                    groinRememberedWhenClothed = true;
+                }
+            }
+
+            // Player inspecting own anatomy: full details, height, build, womb
+            TooltipData ttPlayer = CharacterCardWidget::createAnatomyTooltip(pEnt.get(), pEnt.get());
+            bool playerHasHeight = false;
+            bool playerHasBuild = false;
+            bool playerHasWomb = false;
+            for (const auto& row : ttPlayer.stats)
+            {
+                if (row.key == "Height" && !row.isMuted) playerHasHeight = true;
+                if (row.key == "Build" && !row.isMuted) playerHasBuild = true;
+                if (row.key == "Womb") playerHasWomb = true;
+            }
+
+            bool anatomyAdaptiveOk = groinCoveredFirst && hornsMissingMuted && faceVisible &&
+                                     groinSeenWhenExposed && groinRememberedWhenClothed &&
+                                     playerHasHeight && playerHasBuild && playerHasWomb;
+            logResult("Initials box hover tooltip adapts to player observation (obscures covered, remembers seen, mutes missing 'None', details player)", anatomyAdaptiveOk);
+            allPassed &= anatomyAdaptiveOk;
+        }
+
+        // 5. Basic combat moves starting filter
+        WeaponSkillDatabase::loadFromFile("data/weapon_skills.json");
+        SpellDatabase::loadFromFile("data/spells.json");
+        const auto* slash = WeaponSkillDatabase::getSkill("skill_slash");
+        const auto* cleave = WeaponSkillDatabase::getSkill("skill_heavy_cleave");
+        const auto* dart = SpellDatabase::getSpell("arcane_dart");
+        const auto* fireball = SpellDatabase::getSpell("fireball");
+        bool basicMovesLevelOk = (slash && slash->requiredLevel == 1) &&
+                                 (cleave && cleave->requiredLevel == 3) &&
+                                 (dart && dart->requiredLevel == 1 && dart->unlocked) &&
+                                 (fireball && fireball->requiredLevel == 3 && !fireball->unlocked);
+        logResult("Combat moves starting filter gates advanced techniques and spells behind character level requirements", basicMovesLevelOk);
+        allPassed &= basicMovesLevelOk;
+
+        return allPassed;
+    }
+
+    bool testPerceivedGenderAndPermanentSexualityStatus()
+    {
+        std::cout << "\n--- [TEST SUITE 53: Perceived Gender, Best Guess Anatomy & Sexuality Status] ---\n";
+        bool allPassed = true;
+
+        auto player = std::make_shared<entity>("player", "Hero");
+        player->stats.level = 5;
+
+        // 1. Clothed Gynomorph perception vs true anatomy
+        entity gyno("gyno_npc", "Elena");
+        gyno.stats.level = 3;
+        gyno.genderArchetype = GenderArchetype::GYNOMORPH;
+        gyno.orientation = SexualOrientation::BISEXUAL;
+        gyno.ensureSexualityStatusEffect();
+
+        bodyPart breasts;
+        breasts.id = "breasts";
+        breasts.name = "Breasts";
+        breasts.race = "Human";
+        breasts.cupSize = 3; // C-Cup
+        gyno.anatomy.setPart(bodySlot::BREASTS, breasts);
+
+        bodyPart hair;
+        hair.id = "hair";
+        hair.name = "Hair";
+        hair.race = "Human";
+        hair.style = "Long Braided";
+        gyno.anatomy.setPart(bodySlot::HAIR, hair);
+
+        bodyPart groin;
+        groin.id = "groin";
+        groin.name = "Cock";
+        groin.race = "Human";
+        groin.length = 15.0f;
+        groin.diameter = 3.5f;
+        gyno.anatomy.setPart(bodySlot::GROIN, groin);
+
+        gyno.personalityTraits.push_back("feminine");
+        auto pants = std::make_shared<item>();
+        pants->id = "test_pants";
+        pants->name = "Trousers";
+        pants->targetSlot = equipSlot::LEGS_OUTER;
+        pants->isEquippable = true;
+        gyno.inventory.equipped[static_cast<size_t>(equipSlot::LEGS_OUTER)] = pants;
+
+        auto shirt = std::make_shared<item>();
+        shirt->id = "test_shirt";
+        shirt->name = "Tunic";
+        shirt->targetSlot = equipSlot::TORSO_OVER;
+        shirt->isEquippable = true;
+        gyno.inventory.equipped[static_cast<size_t>(equipSlot::TORSO_OVER)] = shirt;
+
+        // When clothed, observer perceives Elena as FEMALE
+        GenderArchetype perceivedBefore = gyno.getPerceivedGender(player.get());
+        bool perceivedAsFemale = (perceivedBefore == GenderArchetype::FEMALE);
+        logResult("Clothed gynomorph with C-cup bust and long hair is perceived as Female prior to groin revelation", perceivedAsFemale);
+        allPassed &= perceivedAsFemale;
+
+        // Tooltip before revelation shows "(Appears Female)" and best-guess contours
+        TooltipData ttClothed = CharacterCardWidget::createAnatomyTooltip(&gyno, player.get());
+        bool appearsInSubtitle = (ttClothed.subtitle.find("(Appears Female)") != std::string::npos);
+        bool estBreastsMuted = false;
+        bool estGroinBulgeMuted = false;
+        for (const auto& row : ttClothed.stats)
+        {
+            if (row.key == "Breasts" && row.value == "Est. ~C-Cup (Clothed)" && row.isMuted) estBreastsMuted = true;
+            if (row.key == "Groin" && row.value == "Noticeable Bulge (Estimated)" && row.isMuted) estGroinBulgeMuted = true;
+        }
+        bool bestGuessTooltipOk = appearsInSubtitle && estBreastsMuted && estGroinBulgeMuted;
+        logResult("Anatomy tooltip displays (Appears Female) subtitle and greyed best-guess bust/groin contours for clothed target", bestGuessTooltipOk);
+        allPassed &= bestGuessTooltipOk;
+
+        // Reveal groin: true Gynomorph archetype and exact dimensions confirmed
+        gyno.revealSlot(bodySlot::GROIN);
+        GenderArchetype perceivedAfter = gyno.getPerceivedGender(player.get());
+        bool trueArchetypeConfirmed = (perceivedAfter == GenderArchetype::GYNOMORPH);
+        TooltipData ttRevealed = CharacterCardWidget::createAnatomyTooltip(&gyno, player.get());
+        bool trueInSubtitle = (ttRevealed.subtitle.find("(Gynomorph)") != std::string::npos);
+        bool exactGroinConfirmed = false;
+        for (const auto& row : ttRevealed.stats)
+        {
+            if (row.key == "Groin" && row.value.find("15cm") != std::string::npos && !row.isMuted) exactGroinConfirmed = true;
+        }
+        bool revealConfirmedOk = trueArchetypeConfirmed && trueInSubtitle && exactGroinConfirmed;
+        logResult("Witnessing groin reveals true Gynomorph archetype and unmuted exact anatomical measurements", revealConfirmedOk);
+        allPassed &= revealConfirmedOk;
+
+        // 2. Symmetrical Seduction & Attraction Perception
+        entity maleNPC("male_guard", "Guard");
+        maleNPC.genderArchetype = GenderArchetype::MALE;
+        maleNPC.orientation = SexualOrientation::HETEROSEXUAL;
+        maleNPC.ensureSexualityStatusEffect();
+
+        // Player presenting feminine (clothed gyno)
+        player->genderArchetype = GenderArchetype::GYNOMORPH;
+        player->anatomy.setPart(bodySlot::BREASTS, breasts);
+        player->anatomy.setPart(bodySlot::HAIR, hair);
+        player->anatomy.setPart(bodySlot::GROIN, groin);
+        player->inventory.equipped[static_cast<size_t>(equipSlot::LEGS_OUTER)] = pants;
+        player->revealedBodySlots.clear();
+
+        // Male NPC perceives player as feminine, so heterosexual attraction succeeds
+        GenderArchetype playerPerceivedByGuard = player->getPerceivedGender(&maleNPC);
+        bool guardAttractedToFemininePresentation = (playerPerceivedByGuard == GenderArchetype::FEMALE);
+        logResult("Heterosexual male NPC perceives clothed target as female based on visual cues for attraction compatibility", guardAttractedToFemininePresentation);
+        allPassed &= guardAttractedToFemininePresentation;
+
+        // 3. Permanent Sexuality Status Effect on all characters
+        entity testSubject("subject", "Subject");
+        testSubject.orientation = SexualOrientation::HETEROSEXUAL;
+        testSubject.ensureSexualityStatusEffect();
+        bool hasHetero = (testSubject.hasStatusEffect("status_sexuality_hetero") && testSubject.statusEffects[0].iconId == "HET");
+
+        testSubject.orientation = SexualOrientation::HOMOSEXUAL;
+        testSubject.ensureSexualityStatusEffect();
+        bool hasHomo = (testSubject.hasStatusEffect("status_sexuality_homo") && !testSubject.hasStatusEffect("status_sexuality_hetero") && testSubject.statusEffects[0].iconId == "HOM");
+
+        testSubject.orientation = SexualOrientation::BISEXUAL;
+        testSubject.ensureSexualityStatusEffect();
+        bool hasBi = (testSubject.hasStatusEffect("status_sexuality_bi") && testSubject.statusEffects[0].iconId == "BI");
+
+        testSubject.orientation = SexualOrientation::ASEXUAL;
+        testSubject.ensureSexualityStatusEffect();
+        bool hasAce = (testSubject.hasStatusEffect("status_sexuality_ace") && testSubject.statusEffects[0].iconId == "ACE");
+
+        // Permanence test: time and turns do not decay permanent sexuality status
+        testSubject.updateStatusEffectsOnTime(10000);
+        testSubject.updateStatusEffectsOnTurn();
+        bool isPermanent = testSubject.hasStatusEffect("status_sexuality_ace") &&
+                           (testSubject.statusEffects[0].durationMinutes == -1) &&
+                           (testSubject.statusEffects[0].durationTurns == -1) &&
+                           !testSubject.statusEffects[0].description.empty();
+
+        bool sexualityStatusOk = hasHetero && hasHomo && hasBi && hasAce && isPermanent;
+        logResult("Permanent sexuality status effects (HET, HOM, BI, ACE) persist indefinitely across time/turns with rich tooltips", sexualityStatusOk);
+        allPassed &= sexualityStatusOk;
+
+        return allPassed;
+    }
+
     bool runAllTests()
     {
         g_passCount = 0;
@@ -6229,6 +6540,8 @@ namespace EngineTests
         bool t49 = testUIAdapterDynamicCatalogAndActionGrid();
         bool t50 = testTier2TriageMinorFixesAndIntegrity();
         bool t51 = testCombatNavigationAndGeneralStatusEffects();
+        bool t52 = testPlaythroughRefinementsAndAnatomyTooltips();
+        bool t53 = testPerceivedGenderAndPermanentSexualityStatus();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";

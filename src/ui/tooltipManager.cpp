@@ -84,7 +84,7 @@ void TooltipManager::render(SDL_Renderer* renderer, float uiScale, float windowW
     if (tt.title.empty() && tt.description.empty()) return;
 
     float innerPad = 8.0f * uiScale;
-    float maxCardW = 320.0f * uiScale;
+    float maxCardW = 380.0f * uiScale;
     float minCardW = 180.0f * uiScale;
 
     float titleFontScale = uiScale * 0.78f;
@@ -101,6 +101,11 @@ void TooltipManager::render(SDL_Renderer* renderer, float uiScale, float windowW
     if (!tt.description.empty())
     {
         idealW = std::max(idealW, 250.0f * uiScale);
+    }
+    for (const auto& row : tt.stats)
+    {
+        float pairW = UIWidget::getTextWidth(row.key, subFontScale) + UIWidget::getTextWidth(row.value, subFontScale) + (innerPad * 2.0f) + (24.0f * uiScale);
+        idealW = std::max(idealW, pairW);
     }
     float cardW = std::min(maxCardW, idealW);
     float contentW = cardW - (innerPad * 2.0f);
@@ -250,11 +255,13 @@ void TooltipManager::render(SDL_Renderer* renderer, float uiScale, float windowW
         curY += textH + (4.0f * uiScale);
     }
 
-    for (const auto& [statKey, statVal] : tt.stats)
+    for (const auto& row : tt.stats)
     {
-        UIWidget::drawText(renderer, statKey, curX, curY, Theme::colors.textSecondary, subFontScale);
-        float vW = UIWidget::getTextWidth(statVal, subFontScale);
-        UIWidget::drawText(renderer, statVal, curX + contentW - vW, curY, Theme::colors.textGold, subFontScale);
+        SDL_Color keyCol = row.isMuted ? SDL_Color{ 130, 135, 145, 255 } : Theme::colors.textSecondary;
+        SDL_Color valCol = row.isMuted ? SDL_Color{ 145, 150, 160, 255 } : (row.hasCustomColor ? row.color : Theme::colors.textGold);
+        UIWidget::drawText(renderer, row.key, curX, curY, keyCol, subFontScale);
+        float vW = UIWidget::getTextWidth(row.value, subFontScale);
+        UIWidget::drawText(renderer, row.value, curX + contentW - vW, curY, valCol, subFontScale);
         curY += (15.0f * uiScale);
     }
 }

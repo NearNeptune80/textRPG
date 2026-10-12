@@ -157,7 +157,49 @@ void npcGenerator::applyDemographicConfiguration(entity* npc, const GameSettings
     float rollFurry = dice::roll01();
 
     npc->orientation = demo.rollSexuality(rollSex);
-    npc->genderArchetype = demo.rollGenderArchetype(rollArch);
+
+    bool hasMasculineTag = false;
+    bool hasFeminineTag = false;
+    bool hasGynomorphTag = false;
+    bool hasAndromorphTag = false;
+    bool hasHermaphroditeTag = false;
+
+    for (const auto& tag : npc->personalityTraits)
+    {
+        std::string lowerTag = tag;
+        std::transform(lowerTag.begin(), lowerTag.end(), lowerTag.begin(), ::tolower);
+        if (lowerTag == "masculine" || lowerTag == "male") hasMasculineTag = true;
+        else if (lowerTag == "feminine" || lowerTag == "female") hasFeminineTag = true;
+        else if (lowerTag == "gynomorph") hasGynomorphTag = true;
+        else if (lowerTag == "andromorph") hasAndromorphTag = true;
+        else if (lowerTag == "hermaphrodite") hasHermaphroditeTag = true;
+    }
+
+    if (hasMasculineTag)
+    {
+        npc->genderArchetype = GenderArchetype::MALE;
+    }
+    else if (hasFeminineTag)
+    {
+        npc->genderArchetype = GenderArchetype::FEMALE;
+    }
+    else if (hasGynomorphTag)
+    {
+        npc->genderArchetype = GenderArchetype::GYNOMORPH;
+    }
+    else if (hasAndromorphTag)
+    {
+        npc->genderArchetype = GenderArchetype::ANDROMORPH;
+    }
+    else if (hasHermaphroditeTag)
+    {
+        npc->genderArchetype = GenderArchetype::HERMAPHRODITE;
+    }
+    else
+    {
+        npc->genderArchetype = demo.rollGenderArchetype(rollArch);
+    }
+
     npc->age = demo.rollAge(rollAge);
 
     std::string furryStage = demo.rollFurryStage(rollFurry);
@@ -168,17 +210,23 @@ void npcGenerator::applyDemographicConfiguration(entity* npc, const GameSettings
     CoveringType mainCovering = (furryStage == "Anthro" || furryStage == "Feral")
                                 ? CoveringType::FUR : CoveringType::SKIN;
 
-    bodyPart torso; torso.id = "part_torso_" + race; torso.name = "Torso"; torso.race = race; torso.primaryColor = "Fair"; torso.covering = mainCovering;
-    bodyPart head; head.id = "part_head_" + race; head.name = "Face"; head.race = race; head.primaryColor = "Fair"; head.covering = mainCovering;
-    bodyPart legs; legs.id = "part_legs_" + race; legs.name = "Legs"; legs.race = race; legs.count = 2; legs.covering = mainCovering;
-    bodyPart feet; feet.id = "part_feet_" + race; feet.name = "Feet"; feet.race = race; feet.count = 2; feet.covering = mainCovering;
-    bodyPart arms; arms.id = "part_arms_" + race; arms.name = "Arms"; arms.race = race; arms.count = 2; arms.covering = mainCovering;
-    bodyPart hair; hair.id = "part_hair_" + race; hair.name = "Hair"; hair.race = race; hair.primaryColor = "Brown"; hair.covering = CoveringType::HAIR_COVERING;
-    bodyPart eyes; eyes.id = "part_eyes_" + race; eyes.name = "Eyes"; eyes.race = race; eyes.primaryColor = "Blue"; eyes.covering = CoveringType::IRIS;
+    std::string skinColor = "Fair";
+    if (race == "Orc") skinColor = "Olive";
+    else if (race == "Elf") skinColor = "Pale";
+    else if (race == "Demon") skinColor = "Ashen";
+    else if (race == "Beastkin") skinColor = "Tan";
 
-    bodyPart breasts; breasts.id = "part_breasts_" + race; breasts.name = "Breasts"; breasts.race = race; breasts.covering = mainCovering;
-    bodyPart groin; groin.id = "part_groin_" + race; groin.name = "Groin"; groin.race = race; groin.covering = mainCovering;
-    bodyPart ass; ass.id = "part_ass_" + race; ass.name = "Ass"; ass.race = race; ass.covering = mainCovering;
+    bodyPart torso; torso.id = "part_torso_" + race; torso.name = "Torso"; torso.race = race; torso.primaryColor = skinColor; torso.covering = mainCovering;
+    bodyPart head; head.id = "part_head_" + race; head.name = "Face"; head.race = race; head.primaryColor = skinColor; head.covering = mainCovering;
+    bodyPart legs; legs.id = "part_legs_" + race; legs.name = "Legs"; legs.race = race; legs.primaryColor = skinColor; legs.count = 2; legs.covering = mainCovering;
+    bodyPart feet; feet.id = "part_feet_" + race; feet.name = "Feet"; feet.race = race; feet.primaryColor = skinColor; feet.count = 2; feet.covering = mainCovering;
+    bodyPart arms; arms.id = "part_arms_" + race; arms.name = "Arms"; arms.race = race; arms.primaryColor = skinColor; arms.count = 2; arms.covering = mainCovering;
+    bodyPart hair; hair.id = "part_hair_" + race; hair.name = "Hair"; hair.race = race; hair.primaryColor = (race == "Elf" ? "Silver" : (race == "Orc" ? "Black" : "Brown")); hair.covering = CoveringType::HAIR_COVERING;
+    bodyPart eyes; eyes.id = "part_eyes_" + race; eyes.name = "Eyes"; eyes.race = race; eyes.primaryColor = (race == "Elf" ? "Golden" : (race == "Demon" ? "Crimson" : "Blue")); eyes.covering = CoveringType::IRIS;
+
+    bodyPart breasts; breasts.id = "part_breasts_" + race; breasts.name = "Breasts"; breasts.race = race; breasts.primaryColor = skinColor; breasts.covering = mainCovering;
+    bodyPart groin; groin.id = "part_groin_" + race; groin.name = "Groin"; groin.race = race; groin.primaryColor = skinColor; groin.covering = mainCovering;
+    bodyPart ass; ass.id = "part_ass_" + race; ass.name = "Ass"; ass.race = race; ass.primaryColor = skinColor; ass.covering = mainCovering;
     const auto& baselines = AnatomyBaselinesData::get().data;
     if (baselines.contains("defaultOrifices") && baselines["defaultOrifices"].contains("ass"))
     {
@@ -366,6 +414,7 @@ std::shared_ptr<entity> npcGenerator::generateFromTemplate(const std::string& te
     bodyPart torso; torso.id = "part_torso_" + race; torso.name = "Torso"; torso.race = race;
     npc->anatomy.setPart(bodySlot::TORSO, torso);
 
+    npc->personalityTraits = tpl.tags;
     applyDemographicConfiguration(npc.get(), settings);
 
     std::vector<std::string> bodyTags = npc->anatomy.getAllTags();
@@ -407,6 +456,7 @@ std::shared_ptr<entity> npcGenerator::generateFromTemplate(const std::string& te
         }
     }
 
+    npc->ensureSexualityStatusEffect();
     return npc;
 }
 

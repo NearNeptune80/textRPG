@@ -1,0 +1,90 @@
+{
+  "version": "1.0",
+  "templates": {
+    "overview_feminine": [
+      "{name} is a {archetype} {race}, standing approximately {height} meters tall with a graceful, feminine figure.",
+      "With an elegant and feminine silhouette, {name} is a {archetype} {race} measuring roughly {height}m in height.",
+      "{name} carries a poised, feminine posture as a {archetype} {race}, standing around {height} meters tall."
+    ],
+    "overview_masculine": [
+      "{name} is a {archetype} {race}, standing approximately {height} meters tall with a solid, masculine figure.",
+      "Broad-shouldered and distinctly masculine, {name} stands roughly {height}m tall as a {archetype} {race}.",
+      "{name} carries a rugged, masculine presence as a {archetype} {race}, standing approximately {height} meters tall."
+    ],
+    "hair_and_eyes": [
+      "{name} possesses {color} {style} hair and striking {eyeColor} eyes.",
+      "Framed by {color} {style} hair, {name}'s eyes gleam with a vivid {eyeColor} hue.",
+      "{name}'s {color} {style} locks complement captivating {eyeColor} eyes."
+    ],
+    "hair_only": [
+      "{name} possesses {color} {style} hair.",
+      "{name}'s head is crowned with flowing {color} {style} hair.",
+      "Tresses of {color} {style} hair cascade neatly across {name}'s brow."
+    ],
+    "eyes_only": [
+      "{name} possesses striking {eyeColor} eyes.",
+      "Captivating {eyeColor} eyes gaze steadily outward from {name}'s face.",
+      "{name}'s visage is marked by attentive {eyeColor} eyes."
+    ],
+    "ears": [
+      "{name} has {color} {race} ears atop their head.",
+      "A pair of {color} {race} ears rest alertly atop their head.",
+      "Perched atop their crown are distinct {color} {race} ears."
+    ],
+    "horns": [
+      "A pair of {color} {race} horns curve outward from their brow.",
+      "Sharp, elegant {color} {race} horns emerge from their brow.",
+      "From their brow rises an imposing pair of {color} {race} horns."
+    ],
+    "torso": [
+      "Their torso is covered in smooth {color} {covering}.",
+      "A well-toned torso displays smooth {color} {covering}.",
+      "Their chest and abdomen are wrapped in supple {color} {covering}."
+    ],
+    "breasts": [
+      "{name} has soft, noticeable {cup}-cup breasts",
+      "A pair of supple, shapely {cup}-cup breasts rests against {name}'s chest",
+      "Prominently adorning {name}'s upper torso are full {cup}-cup breasts"
+    ],
+    "breasts_lactating": [
+      ", visibly engorged with milk ({fluid}/{maxFluid} ml)",
+      ", swollen and tender with dripping milk ({fluid}/{maxFluid} ml)",
+      ", heavily laden with nourishing milk ({fluid}/{maxFluid} ml)"
+    ],
+    "flat_chest": [
+      "{name} has a smooth, flat chest.",
+      "{name}'s chest is flat and leanly contoured.",
+      "A firm, unadorned flat chest defines {name}'s torso."
+    ],
+    "penis": [
+      "Between their legs rests a {length}cm long, {diameter}cm thick penis, holding {fluid}/{maxFluid}ml of seed.",
+      "A {length}cm long shaft with a thickness of {diameter}cm sits nestled between their thighs ({fluid}/{maxFluid}ml of seed).",
+      "Their groin bears a potent {length}cm long, {diameter}cm thick penis, holding {fluid}/{maxFluid}ml of seed."
+    ],
+    "vagina": [
+      "They possess a lush, {wetness} vagina inviting penetration.",
+      "Between their thighs rests a warm, {wetness} vagina glistening with natural moisture.",
+      "Their groin reveals an alluring, {wetness} vagina primed for intimate touch."
+    ],
+    "ass": [
+      "Their rear features a well-formed ass with {color} skin.",
+      "A rounded, attractively shaped rear is draped in smooth {color} skin.",
+      "Behind them, a shapely backside shows healthy {color} skin."
+    ],
+    "tail": [
+      "Behind them sways a graceful {color} {race} tail.",
+      "A lively {color} {race} tail swishes rhythmically behind them.",
+      "An expressive {color} {race} tail extends gracefully from their lower spine."
+    ],
+    "wings": [
+      "From their back extends a pair of impressive {color} {race} wings.",
+      "A majestic pair of {color} {race} wings spans outward from their shoulder blades.",
+      "Resting against their back is a pair of {color} {race} wings."
+    ],
+    "tentacles": [
+      "Several writhing {color} tentacles extend from their lower body.",
+      "A cluster of sinuous {color} tentacles writhes subtly around their hips.",
+      "Smooth, serpentine {color} tentacles coil patiently beneath them."
+    ]
+  }
+}

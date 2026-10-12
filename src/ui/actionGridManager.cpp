@@ -673,9 +673,10 @@ void ActionGridManager::refresh(game* gameContext)
 
                 std::string inaccReason;
                 bool accessible = true;
-                if (playerP && targetP)
+                const SexParticipant* effectiveTarget = (actions[i].category == "Self" || actions[i].isSolo) ? playerP : targetP;
+                if (playerP && effectiveTarget)
                 {
-                    accessible = sex->isActionAccessible(actions[i], *playerP, *targetP, &inaccReason);
+                    accessible = sex->isActionAccessible(actions[i], *playerP, *effectiveTarget, &inaccReason);
                 }
 
                 std::string fullDesc = desc.empty() ? effects : std::format("{}\n({})", desc, effects);
@@ -1462,22 +1463,29 @@ void ActionGridManager::refresh(game* gameContext)
             }
             else
             {
-                skillIds = { "skill_slash", "skill_thrust", "skill_pommel_strike" };
+                skillIds = { "skill_slash", "skill_thrust" };
             }
 
             size_t actionIdx = 0;
+            std::string pRace = p ? p->anatomy.getDominantRace() : "Human";
+            int pLevel = p ? p->stats.level : 1;
             for (const auto& sId : skillIds)
             {
                 const WeaponSkill* ws = WeaponSkillDatabase::getSkill(sId);
                 if (ws)
                 {
+                    bool levelMatch = (pLevel >= ws->requiredLevel);
+                    bool raceMatch = ws->requiredRace.empty() || (pRace.find(ws->requiredRace) != std::string::npos);
                     bool canAfford = (curStamina >= ws->staminaCost);
+                    bool canUse = canAfford && raceMatch && levelMatch;
                     std::string label = std::format("{} ({:.0f} Sta)", ws->name, ws->staminaCost);
                     std::string tip = std::format("{}\nDamage: {:.0f}%\nType: {}\nCost: {:.0f} Stamina",
                                                   ws->description, ws->damageMult * 100.0f, ws->damageType, ws->staminaCost);
+                    if (!raceMatch) tip += "\n[Requires " + ws->requiredRace + " lineage]";
+                    if (!levelMatch) tip += std::format("\n[Locked: Requires Level {}]", ws->requiredLevel);
                     addPagedCombatAction(label, [gameContext, sId]() {
                         gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, sId });
-                    }, canAfford, tip, actionIdx++);
+                    }, canUse, tip, actionIdx++);
                 }
             }
 
@@ -1492,17 +1500,24 @@ void ActionGridManager::refresh(game* gameContext)
             };
 
             size_t actionIdx = 0;
+            std::string pRace = p ? p->anatomy.getDominantRace() : "Human";
+            int pLevel = p ? p->stats.level : 1;
             for (const auto& sId : spellIds)
             {
                 const auto* sp = SpellDatabase::getSpell(sId);
                 if (sp)
                 {
+                    bool levelMatch = (sp->unlocked || pLevel >= sp->requiredLevel);
+                    bool raceMatch = sp->requiredRace.empty() || (pRace.find(sp->requiredRace) != std::string::npos);
                     bool canAfford = (curMp >= sp->mpCost && curStamina >= sp->staminaCost);
+                    bool canUse = canAfford && raceMatch && levelMatch;
                     std::string label = std::format("{} ({:.0f} MP)", sp->name, sp->mpCost);
                     std::string tip = std::format("{}\nCost: {:.0f} MP, {:.0f} Stamina", sp->description, sp->mpCost, sp->staminaCost);
+                    if (!raceMatch) tip += "\n[Requires " + sp->requiredRace + " lineage]";
+                    if (!levelMatch) tip += std::format("\n[Locked: Requires Level {} to cast]", sp->requiredLevel);
                     addPagedCombatAction(label, [gameContext, sId]() {
                         gameContext->handleCommand({ CommandType::QUEUE_COMBAT_ACTION, 0, 0, sId });
-                    }, canAfford, tip, actionIdx++);
+                    }, canUse, tip, actionIdx++);
                 }
             }
 
@@ -1716,25 +1731,11 @@ void ActionGridManager::refresh(game* gameContext)
 
                     if (!isEnemy)
                     {
+                        addBtn(gameContext, std::format("Talk to {}", targetNPC->name), [gameContext, targetNPC]() {
+                            gameContext->openNPCTalkMenu(targetNPC);
+                        }, true, false, "Initiate dialogue conversation with " + targetNPC->name + ".");
+
                         auto namedChar = NamedCharacterManager::getCharacter(targetNPC->id);
-                        std::string sceneToLoad = "";
-                        if (namedChar)
-                        {
-                            if (!namedChar->activeSceneId.empty()) sceneToLoad = namedChar->activeSceneId;
-                            else if (!namedChar->defaultSceneId.empty()) sceneToLoad = namedChar->defaultSceneId;
-                        }
-                        if (sceneToLoad.empty() && !targetNPC->defaultSceneId.empty())
-                        {
-                            sceneToLoad = targetNPC->defaultSceneId;
-                        }
-
-                        if (!sceneToLoad.empty())
-                        {
-                            addBtn(gameContext, std::format("Talk to {}", targetNPC->name), [gameContext, sceneToLoad]() {
-                                gameContext->loadScene(sceneToLoad);
-                            }, true, false, "Initiate dialogue conversation with " + targetNPC->name + ".");
-                        }
-
                         bool isMerchant = (namedChar && namedChar->isMerchant) ||
                                           targetNPC->name.find("Merchant") != std::string::npos ||
                                           targetNPC->name.find("Shop") != std::string::npos;
@@ -1771,21 +1772,6 @@ void ActionGridManager::refresh(game* gameContext)
                         addBtn(gameContext, trig.label, [gameContext, scene = trig.sceneId]() {
                             gameContext->loadScene(scene);
                         }, true, false, trig.tooltip.empty() ? ("Trigger " + trig.label) : trig.tooltip);
-                    }
-                }
-
-                if (targetNPC)
-                {
-                    auto npcTriggers = questDatabase::getTriggersForNPC(targetNPC->id);
-                    for (const auto& trig : npcTriggers)
-                    {
-                        if (gameContext->checkConditions(trig.conditions) && !addedTriggerIds.contains(trig.id))
-                        {
-                            addedTriggerIds.insert(trig.id);
-                            addBtn(gameContext, trig.label, [gameContext, scene = trig.sceneId]() {
-                                gameContext->loadScene(scene);
-                            }, true, false, trig.tooltip.empty() ? ("Trigger " + trig.label) : trig.tooltip);
-                        }
                     }
                 }
 

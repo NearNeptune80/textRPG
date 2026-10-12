@@ -1,0 +1,58 @@
+{
+  "scenes": [
+    {
+      "id": "scene_corrupted_glade",
+      "speakerName": "CORRUPTED GLADE",
+      "bodyText": "The air in this secluded clearing is heavy with the acrid scent of brimstone and decay. Twisted, blackened briars choke the undergrowth, coiling around a half-sunken stone chest bearing ancient runic carvings.",
+      "choices": [
+        {
+          "label": "Inspect the stone chest",
+          "tooltip": "Pry open the stone lid to search for relics.",
+          "nextSceneId": "scene_glade_chest_open"
+        },
+        {
+          "label": "Leave the glade",
+          "tooltip": "Back away from the necrotic grove.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "scene_glade_chest_open",
+      "speakerName": "STONE CHEST",
+      "bodyText": "With a harsh scraping sound, you push aside the mossy slab. Resting within on a bed of dry ashes is an intricately carved, heavy iron key—the Rusted Keystone!\n\nThis relic matches the ancient mechanism sealing the subterranean entrance to the Sunken Ruins.",
+      "choices": [
+        {
+          "label": "Take the Rusted Keystone",
+          "tooltip": "Add the dungeon keystone to your inventory.",
+          "requirements": [],
+          "results": [
+            {
+              "action": "GIVE_ITEM",
+              "target": "item_rusted_keystone",
+              "amount": 1
+            },
+            {
+              "action": "SET_QUEST",
+              "target": "quest_main_shadows",
+              "amount": 2
+            }
+          ],
+          "nextSceneId": "scene_glade_keystone_taken"
+        }
+      ]
+    },
+    {
+      "id": "scene_glade_keystone_taken",
+      "speakerName": "CORRUPTED GLADE",
+      "bodyText": "As you secure the heavy keystone in your pack, the oppressive pressure lingering over the clearing faintly diminishes. You are now prepared to unlock the inner sanctum of the Sunken Ruins.",
+      "choices": [
+        {
+          "label": "Continue",
+          "tooltip": "Return to exploration.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    }
+  ]
+}

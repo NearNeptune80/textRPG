@@ -20,6 +20,8 @@ struct SpellDefinition
     bool isSummon = false;
     std::string summonType;
     std::string companionId;
+    std::string requiredRace;
+    int requiredLevel = 1;
 
     CombatAction toCombatAction() const;
 };

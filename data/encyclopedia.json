@@ -3,8 +3,43 @@
   "categories": [
     {
       "id": "species",
-      "name": "Species & Morphs",
+      "name": "Species & Lineages",
       "entries": [
+        {
+          "id": "human",
+          "title": "Human",
+          "subtitle": "Adaptable Settlers",
+          "description": "Resourceful and versatile, humans form the backbone of the border garrisons and merchant guilds. Possessing balanced physical and arcane aptitudes, they adapt quickly to harsh frontier environments.",
+          "unlocked": true
+        },
+        {
+          "id": "elf",
+          "title": "Elf",
+          "subtitle": "Children of the Sylph Groves",
+          "description": "Elves possess acute sensory acuity, innate affinity for wind and nature magics, and remarkable physical grace. They value ancient harmony, botanical wisdom, and precision archery.",
+          "unlocked": false
+        },
+        {
+          "id": "orc",
+          "title": "Orc",
+          "subtitle": "Warriors of the Iron Ridge",
+          "description": "Formidable and unyielding, orcs are celebrated for their dense muscular structure, endurance, and deep metallurgical traditions. Their culture reveres martial valor and impeccable craftsmanship.",
+          "unlocked": false
+        },
+        {
+          "id": "demon",
+          "title": "Demon",
+          "subtitle": "Beings of Nether Arcana",
+          "description": "Entities infused with potent Nether energies, sporting horns, resilient leathery or scaled flesh, and immense destructive magical output. They are intensely passionate and driven by power.",
+          "unlocked": false
+        },
+        {
+          "id": "beastkin",
+          "title": "Beastkin",
+          "subtitle": "Feral Lineages",
+          "description": "Beings bearing animalistic ears, agile tails, and heightened predatory instincts. Highly attuned to wilderness survival, they excel as scouts, hunters, and agile skirmishers.",
+          "unlocked": false
+        },
         {
           "id": "cat_morph",
           "title": "Cat-morph",
@@ -18,13 +53,26 @@
           "subtitle": "Demonic Hybrid",
           "description": "Individuals infused with arcane demonic energy. They exhibit horns, pointed ears, and heightened affinity for arcane magic and emotional resonance.",
           "unlocked": true
+        }
+      ]
+    },
+    {
+      "id": "factions",
+      "name": "Factions & Groups",
+      "entries": [
+        {
+          "id": "outpost_garrison",
+          "title": "Valley's Edge Garrison",
+          "subtitle": "Frontier Peacekeepers",
+          "description": "Commanded by veteran officer Robert, the garrison defends the border valleys against rogue beasts, bandit raiders, and incursions creeping out of the Sunken Ruins.",
+          "unlocked": true
         },
         {
-          "id": "human",
-          "title": "Human",
-          "subtitle": "Mundane Inhabitants",
-          "description": "The baseline species hailing from Earth, possessing no natural arcane aura without exposure to demonic essence or artifacts.",
-          "unlocked": true
+          "id": "ash_blades",
+          "title": "The Ash-Blade Bandits",
+          "subtitle": "Outlaw Syndicate",
+          "description": "A cutthroat syndicate led by Kaelen operating along the rocky passes of the Ashlands, ambushing trade caravans and harvesting forbidden relics from forgotten tombs.",
+          "unlocked": false
         }
       ]
     },
@@ -45,6 +93,20 @@
           "subtitle": "Earth Device",
           "description": "A personal touchscreen device that has been adapted to recharge via the user's natural arcane aura, storing maps, contacts, and journal entries.",
           "unlocked": true
+        },
+        {
+          "id": "rusted_keystone",
+          "title": "Rusted Keystone",
+          "subtitle": "Dungeon Relic",
+          "description": "An ancient ward-key engraved with runic ciphering, forged in the First Era to seal the lower chambers of the Sunken Ruins.",
+          "unlocked": true
+        },
+        {
+          "id": "dark_heart_core",
+          "title": "Dark Heart Core",
+          "subtitle": "Abyssal Artifact",
+          "description": "A throbbing crystalline core extracted from corrupted fiends. It radiates malevolent heat and can either be purified or harnessed for dark transmutation.",
+          "unlocked": true
         }
       ]
     },
@@ -52,6 +114,20 @@
       "id": "places",
       "name": "Locations",
       "entries": [
+        {
+          "id": "valleys_edge_outpost",
+          "title": "Valley's Edge Outpost",
+          "subtitle": "Frontier Stronghold",
+          "description": "The fortified garrison protecting the lower trade valleys against corrupted incursions from the Sunken Ruins.",
+          "unlocked": true
+        },
+        {
+          "id": "sunken_ruins",
+          "title": "Sunken Ruins",
+          "subtitle": "Subterranean Complex",
+          "description": "A submerged subterranean fortress from a forgotten dynasty, now overrun by shadowy remnants and abyssal fiends.",
+          "unlocked": false
+        },
         {
           "id": "sanctuary_manor_f1",
           "title": "Sanctuary Manor F1",

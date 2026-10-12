@@ -88,6 +88,8 @@ bool SpellDatabase::loadFromFile(const std::string& filePath)
                 sp.isSummon = sJson.value("isSummon", false);
                 sp.summonType = sJson.value("summonType", "");
                 sp.companionId = sJson.value("companionId", "");
+                sp.requiredRace = sJson.value("requiredRace", "");
+                sp.requiredLevel = sJson.value("requiredLevel", 1);
 
                 if (!sp.id.empty())
                 {

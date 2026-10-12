@@ -1,0 +1,58 @@
+{
+  "id": "blacksmith_donald",
+  "name": "Blacksmith Donald",
+  "title": "Master Armorer",
+  "gender": "Male",
+  "race": "Orc",
+  "level": 16,
+  "currency": 2200,
+  "isMerchant": true,
+  "buyMarkup": 1.25,
+  "sellMarkdown": 0.55,
+  "restockItems": [
+    "item_iron_dagger",
+    "item_steel_longsword",
+    "item_heavy_warhammer",
+    "item_steel_shield",
+    "item_chainmail_hauberk",
+    "item_iron_ring",
+    "item_iron_ore"
+  ],
+  "description": "A burly orcish blacksmith whose hammer work is revered along the border. He trades in martial blades, tempered shields, and reinforced armor.",
+  "dialogueSceneId": "scene_blacksmith_donald",
+  "unlockedPerks": [
+    "master_smith",
+    "crushing_might"
+  ],
+  "baseStats": {
+    "health": 380.0,
+    "max_health": 380.0,
+    "mana": 80.0,
+    "max_mana": 80.0,
+    "physique": 38.0,
+    "agility": 16.0,
+    "toughness": 36.0,
+    "arcane": 12.0,
+    "willpower": 24.0,
+    "corruption": 0.0
+  },
+  "inventory": [
+    { "id": "item_iron_dagger", "count": 2 },
+    { "id": "item_steel_longsword", "count": 2 },
+    { "id": "item_heavy_warhammer", "count": 1 },
+    { "id": "item_steel_shield", "count": 2 },
+    { "id": "item_chainmail_hauberk", "count": 1 },
+    { "id": "item_iron_ring", "count": 3 },
+    { "id": "item_iron_ore", "count": 10 }
+  ],
+  "schedules": [
+    {
+      "startHour": 0,
+      "endHour": 24,
+      "mapId": "blacksmith_shop",
+      "x": 3,
+      "y": 2,
+      "activity": "hammering steel at the forge"
+    }
+  ]
+}

@@ -7,11 +7,11 @@
   "tiles": [
     [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
     [ 0, 1, 1, 1, 1, 0, 0, 1, 3, 0 ],
-    [ 0, 1, 0, 0, 1, 0, 0, 1, 0, 0 ],
+    [ 0, 1, 3, 1, 3, 0, 0, 1, 0, 0 ],
     [ 0, 1, 1, 1, 1, 1, 1, 1, 0, 0 ],
-    [ 0, 0, 0, 1, 0, 0, 1, 0, 0, 0 ],
+    [ 0, 1, 3, 1, 0, 0, 1, 0, 0, 0 ],
     [ 0, 1, 1, 1, 0, 0, 1, 1, 1, 0 ],
-    [ 0, 1, 0, 0, 0, 0, 0, 0, 1, 0 ],
+    [ 0, 1, 0, 0, 0, 0, 0, 3, 1, 0 ],
     [ 0, 1, 1, 1, 1, 1, 1, 1, 1, 0 ],
     [ 0, 0, 0, 0, 1, 0, 0, 0, 0, 0 ],
     [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
@@ -23,8 +23,8 @@
     [ 0, 1, 0, 0, 0, 0, 0, 0, 0, 0 ],
     [ 0, 0, 0, 0, 0, 0, 1, 0, 0, 0 ],
     [ 0, 2, 2, 1, 0, 0, 1, 2, 2, 0 ],
-    [ 0, 2, 0, 0, 0, 0, 0, 0, 2, 0 ],
-    [ 0, 1, 1, 1, 0, 0, 0, 1, 1, 0 ],
+    [ 0, 2, 0, 0, 0, 0, 0, 3, 2, 0 ],
+    [ 0, 1, 1, 1, 0, 0, 0, 2, 2, 0 ],
     [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ],
     [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
   ],
@@ -37,13 +37,52 @@
       "targetY": 3,
       "label": "Entrance to Cozy Cottage",
       "entranceDescription": "the Cozy Cottage"
+    },
+    {
+      "x": 2,
+      "y": 2,
+      "targetMap": "outpost_barracks",
+      "targetX": 3,
+      "targetY": 4,
+      "label": "Entrance to Outpost Barracks",
+      "entranceDescription": "the Outpost Barracks"
+    },
+    {
+      "x": 4,
+      "y": 2,
+      "targetMap": "apothecary_shop",
+      "targetX": 3,
+      "targetY": 4,
+      "label": "Entrance to Herbalist Cottage",
+      "entranceDescription": "the Herbalist Cottage"
+    },
+    {
+      "x": 2,
+      "y": 4,
+      "targetMap": "blacksmith_shop",
+      "targetX": 3,
+      "targetY": 4,
+      "label": "Entrance to Blacksmith Forge",
+      "entranceDescription": "the Blacksmith Forge"
+    },
+    {
+      "x": 7,
+      "y": 6,
+      "targetMap": "sunken_ruins",
+      "targetX": 4,
+      "targetY": 5,
+      "label": "Descent into Sunken Ruins",
+      "entranceDescription": "the Sunken Ruins"
     }
   ],
   "tileEncounters": {
     "1,2": { "pool": ["tpl_alley_bandit", "tpl_cutpurse"], "ambushChance": 60 },
-    "1,5": { "pool": ["tpl_rogue_mage"], "ambushChance": 65 },
-    "2,5": { "pool": ["tpl_alley_bandit", "tpl_cutpurse"], "ambushChance": 55 },
-    "3,5": { "pool": ["tpl_alley_bandit", "tpl_cutpurse"], "ambushChance": 50 }
+    "1,5": { "pool": ["tpl_bandit_scout", "tpl_cutpurse"], "ambushChance": 50 },
+    "2,5": { "pool": ["tpl_feral_wolf"], "ambushChance": 55 },
+    "3,5": { "pool": ["tpl_bandit_scout", "tpl_orc_marauder"], "ambushChance": 50 },
+    "7,5": { "pool": ["tpl_shadow_panther", "tpl_elven_ranger"], "ambushChance": 60 },
+    "8,5": { "pool": ["tpl_corrupted_fiend", "tpl_rogue_mage"], "ambushChance": 65 },
+    "7,7": { "pool": ["tpl_orc_marauder", "tpl_corrupted_fiend"], "ambushChance": 60 }
   },
   "triggers": [
     {
@@ -54,11 +93,31 @@
       "label": "Talk to Stranger",
       "tooltip": "Approach the cloaked figure standing near the gateway.",
       "description": "A mysterious cloaked stranger stands quietly near the stone archway, watching the road with an observant gaze.",
-      "sceneId": "quest_intro_01",
+      "sceneId": "quest_intro_01"
+    },
+    {
+      "id": "trig_outpost_noticeboard",
+      "mapId": "overworld",
+      "x": 2,
+      "y": 3,
+      "label": "Inspect Outpost Notice Board",
+      "tooltip": "Read official postings, local bounties, and advisories from the commander.",
+      "description": "A heavy wooden board nailed with parchment notices regarding bandit bounties and wilderness hazards.",
+      "sceneId": "scene_notice_board"
+    },
+    {
+      "id": "trig_corrupted_glade",
+      "mapId": "overworld",
+      "x": 7,
+      "y": 5,
+      "label": "Investigate Corrupted Glade",
+      "tooltip": "Inspect the blackened earth and withering trees in this secluded clearing.",
+      "description": "Vegetation here is twisted by dark necrotic magic. A stone chest half-buried in twisted roots catches your eye.",
+      "sceneId": "scene_corrupted_glade",
       "conditions": [
         {
           "type": "QUEST_STAGE",
-          "target": "root_delivery",
+          "target": "quest_main_shadows",
           "requiredValue": 0
         }
       ]
@@ -76,6 +135,18 @@
     "8,1": [
       "You arrive before the entrance to a charming, ivy-draped residence known as the Cozy Cottage. A warm glow emanates from behind its curtained front windows.",
       "Standing on the front steps of the Cozy Cottage, a polished wooden door with brass fittings invites you to enter."
+    ],
+    "2,3": [
+      "You stand in the Outpost Central Square. A weathered wooden notice board stands near the crossroad connecting the barracks, forge, and apothecary.",
+      "The busy square is paved with worn stones, serving as the primary hub for traveling adventurers and outpost sentries."
+    ],
+    "7,5": [
+      "The forest grows dark and quiet here. Twisted, blackened branches block out the sun, and the soil is stained with dark arcane residue.",
+      "A chilling aura emanates from a corrupted clearing deeper in the woods. Roots coil abnormally around an ancient stone chest."
+    ],
+    "7,6": [
+      "You stand before the gaping descent of the Sunken Ruins. Crumbling carved pillars frame a flight of stone stairs sinking into the earth.",
+      "Cold air carrying the faint scent of ozone and ancient stone drifts up from the dark stairs leading beneath the valley."
     ]
   },
   "tileTags": {
@@ -86,12 +157,16 @@
     "1,2": [ "avenue", "residential" ],
     "4,2": [ "alleyway" ],
     "1,3": [ "market_quarter" ],
-    "2,3": [ "market_quarter" ],
+    "2,3": [ "market_quarter", "central_square" ],
     "3,3": [ "market_quarter" ],
     "4,3": [ "central_square" ],
     "5,3": [ "central_square" ],
     "6,3": [ "residential" ],
-    "7,3": [ "residential" ]
+    "7,3": [ "residential" ],
+    "7,5": [ "forest" ],
+    "8,5": [ "forest" ],
+    "7,6": [ "ruins" ],
+    "7,7": [ "ruins" ]
   },
   "tagDescriptions": {
     "cobblestone": [
@@ -121,6 +196,12 @@
     "market_quarter": [
       "Canopies and stalls of local merchants line the road, their wares neatly arranged for browsing customers.",
       "A lively section of the street frequented by vendors and travelers trading daily provisions."
+    ],
+    "forest": [
+      "Dense, shadowed woodlands thick with mossy trunks, undergrowth, and wild creatures."
+    ],
+    "ruins": [
+      "Weathered masonry and collapsed stone archways dating back to an ancient arcane civilization."
     ]
   },
   "defaultTileTitle": "Town Thoroughfare",
@@ -130,7 +211,9 @@
     "4,2": "Narrow Alleyway",
     "1,5": "Shadowed Alleyway",
     "2,5": "Shadowed Alleyway",
-    "3,5": "Shadowed Alleyway"
+    "3,5": "Shadowed Alleyway",
+    "7,5": "Corrupted Glade",
+    "7,6": "Ruins Descent"
   },
   "tagTitles": {
     "high_street": "High Street",
@@ -141,6 +224,8 @@
     "market_quarter": "Market Quarter",
     "cobblestone": "Cobblestone Thoroughfare",
     "walkway": "Paved Walkway",
-    "avenue": "Town Avenue"
+    "avenue": "Town Avenue",
+    "forest": "Whispering Woods",
+    "ruins": "Sunken Ruins Descent"
   }
 }

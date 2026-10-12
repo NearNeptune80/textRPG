@@ -19,6 +19,242 @@
 
 namespace CharacterCardWidget
 {
+    TooltipData createAnatomyTooltip(const entity* ent, const entity* observer)
+    {
+        TooltipData data;
+        if (!ent) return data;
+
+        data.title = ent->name.empty() ? "Character" : ent->name;
+        std::string race = ent->anatomy.getRacialTitle().empty() ? "Human" : ent->anatomy.getRacialTitle();
+        bool isSelf = (observer != nullptr && ent == observer) || (ent->id == "player" || ent->id == "hero");
+
+        if (isSelf || ent->isSlotRevealed(bodySlot::GROIN))
+        {
+            std::string archStr = genderArchetypeToString(ent->genderArchetype);
+            data.subtitle = std::format("Level {} • {} ({})", ent->stats.level, race, archStr);
+        }
+        else
+        {
+            GenderArchetype perceived = ent->getPerceivedGender(observer);
+            std::string archStr = genderArchetypeToString(perceived);
+            data.subtitle = std::format("Level {} • {} (Appears {})", ent->stats.level, race, archStr);
+        }
+        data.description = "Physical Anatomy & Body Overview";
+
+        // 1. Core Physical Attributes (Important info not shown in main card!)
+        if (isSelf || ent->isSlotRevealed(bodySlot::TORSO) || ent->isSlotRevealed(bodySlot::HEAD))
+        {
+            data.stats.emplace_back("Height", std::format("{:.2f}m", ent->anatomy.heightMeters), false);
+            std::string buildStr = (ent->anatomy.bodySize.empty() ? "Average" : ent->anatomy.bodySize) +
+                                   ", " +
+                                   (ent->anatomy.muscleTone.empty() ? "Toned" : ent->anatomy.muscleTone);
+            data.stats.emplace_back("Build", buildStr, false);
+        }
+        else
+        {
+            std::string estHeight;
+            if (ent->anatomy.heightMeters >= 1.95f) estHeight = "Towering (~2.0m)";
+            else if (ent->anatomy.heightMeters >= 1.83f) estHeight = "Tall (~1.85m)";
+            else if (ent->anatomy.heightMeters >= 1.70f) estHeight = "Average (~1.75m)";
+            else if (ent->anatomy.heightMeters >= 1.55f) estHeight = "Petite (~1.60m)";
+            else estHeight = "Short (~1.50m)";
+            data.stats.emplace_back("Height", estHeight + " (Estimated)", true);
+
+            std::string estBuild = (ent->anatomy.bodySize.empty() ? "Average" : ent->anatomy.bodySize) +
+                                   " Silhouette (Clothed)";
+            data.stats.emplace_back("Build", estBuild, true);
+        }
+
+        struct SlotMeta {
+            bodySlot slot;
+            std::string label;
+        };
+        static const std::vector<SlotMeta> slotsToCheck = {
+            { bodySlot::HEAD, "Face" },
+            { bodySlot::HAIR, "Hair" },
+            { bodySlot::EYES, "Eyes" },
+            { bodySlot::EARS, "Ears" },
+            { bodySlot::TORSO, "Torso" },
+            { bodySlot::BREASTS, "Breasts" },
+            { bodySlot::GROIN, "Groin" },
+            { bodySlot::ASS, "Rear" },
+            { bodySlot::ARMS, "Arms" },
+            { bodySlot::LEGS, "Legs" },
+            { bodySlot::FEET, "Feet" },
+            { bodySlot::HORNS, "Horns" },
+            { bodySlot::WINGS, "Wings" },
+            { bodySlot::TAIL, "Tail" }
+        };
+
+        for (const auto& sm : slotsToCheck)
+        {
+            bool hasPart = ent->anatomy.hasPart(sm.slot);
+            bool exposedNow = ent->inventory.isSlotExposed(sm.slot);
+            if (exposedNow && !isSelf)
+            {
+                const_cast<entity*>(ent)->revealSlot(sm.slot);
+            }
+            bool known = isSelf || exposedNow || ent->revealedBodySlots.contains(bodySlotToString(sm.slot));
+
+            // If not known (covered by clothing and never seen previously)
+            // Use the "best guess" observation mechanic based on visible silhouette
+            if (!known)
+            {
+                std::string bestGuess = "Concealed (Clothed)";
+                if (sm.slot == bodySlot::BREASTS)
+                {
+                    const bodyPart* b = ent->anatomy.getPart(bodySlot::BREASTS);
+                    int cup = b ? b->cupSize : 0;
+                    if (cup == 0) bestGuess = "Appears Flat (Clothed)";
+                    else if (cup == 1) bestGuess = "Est. Small / A-Cup (Clothed)";
+                    else if (cup == 2) bestGuess = "Est. ~B-Cup (Clothed)";
+                    else if (cup == 3) bestGuess = "Est. ~C-Cup (Clothed)";
+                    else if (cup == 4) bestGuess = "Est. ~D-Cup (Clothed)";
+                    else if (cup == 5) bestGuess = "Est. ~DD-Cup (Clothed)";
+                    else bestGuess = "Est. Voluptuous / Heavy (Clothed)";
+                }
+                else if (sm.slot == bodySlot::GROIN)
+                {
+                    const bodyPart* g = ent->anatomy.getPart(bodySlot::GROIN);
+                    if (g && g->length >= 20.0f) bestGuess = "Prominent Bulge (Est. Very Large)";
+                    else if (g && g->length >= 14.0f) bestGuess = "Noticeable Bulge (Estimated)";
+                    else if (g && g->length >= 8.0f) bestGuess = "Slight Bulge (Estimated)";
+                    else if (g && g->orifice.exists) bestGuess = "Flat / Smooth Contour (Clothed)";
+                    else bestGuess = "Concealed Contour (Clothed)";
+                }
+                else if (sm.slot == bodySlot::TORSO)
+                {
+                    bestGuess = "Attire: " + (ent->anatomy.bodySize.empty() ? "Average" : ent->anatomy.bodySize) + " Frame";
+                }
+                else if (sm.slot == bodySlot::ASS)
+                {
+                    const bodyPart* a = ent->anatomy.getPart(bodySlot::ASS);
+                    bestGuess = "Clothed Contour (" + (a && !a->style.empty() ? a->style : "Average") + ")";
+                }
+                else if (sm.slot == bodySlot::ARMS || sm.slot == bodySlot::LEGS)
+                {
+                    bestGuess = "Covered (Est. " + (ent->anatomy.muscleTone.empty() ? "Toned" : ent->anatomy.muscleTone) + ")";
+                }
+                else if (sm.slot == bodySlot::HAIR)
+                {
+                    const bodyPart* h = ent->anatomy.getPart(bodySlot::HAIR);
+                    bestGuess = h ? (h->style.empty() ? "Concealed under headwear" : h->style + " (Concealed)") : "None";
+                }
+                else if (sm.slot == bodySlot::HORNS || sm.slot == bodySlot::WINGS || sm.slot == bodySlot::TAIL)
+                {
+                    bestGuess = hasPart ? "Concealed under attire" : "None";
+                }
+                else if (sm.slot == bodySlot::FEET)
+                {
+                    bestGuess = "Covered by Footwear";
+                }
+                else if (sm.slot == bodySlot::HEAD || sm.slot == bodySlot::EYES || sm.slot == bodySlot::EARS)
+                {
+                    bestGuess = "Obscured / Veiled";
+                }
+
+                data.stats.emplace_back(sm.label, bestGuess, true);
+                continue;
+            }
+
+            // If known, but character doesn't have this body part
+            if (!hasPart)
+            {
+                data.stats.emplace_back(sm.label, "None", true);
+                continue;
+            }
+
+            // The part is known and present!
+            const bodyPart* p = ent->anatomy.getPart(sm.slot);
+            if (!p)
+            {
+                data.stats.emplace_back(sm.label, "None", true);
+                continue;
+            }
+
+            std::string color = p->primaryColor.empty() ? "Natural" : p->primaryColor;
+            std::string pRace = p->race.empty() ? race : p->race;
+            std::string detail;
+
+            if (sm.slot == bodySlot::HAIR)
+            {
+                detail = p->style.empty() ? "Medium" : p->style;
+            }
+            else if (sm.slot == bodySlot::BREASTS)
+            {
+                detail = std::format("{}-Cup", bodyPart::getCupSizeName(p->cupSize));
+                if (p->isLactating)
+                {
+                    detail += ", Lactating";
+                    if (isSelf && p->currentFluidMl > 0.0f)
+                    {
+                        detail += std::format(" ({:.0f}ml)", p->currentFluidMl);
+                    }
+                }
+            }
+            else if (sm.slot == bodySlot::GROIN)
+            {
+                if (p->length > 0.0f)
+                {
+                    detail = std::format("{:.0f}cm {}", p->length, p->name);
+                    if (isSelf && p->diameter > 0.0f)
+                    {
+                        detail += std::format(" ({:.1f}cm dia)", p->diameter);
+                    }
+                }
+                else if (p->orifice.exists)
+                {
+                    detail = std::format("{}, Wetness: {}/5", p->name.empty() ? "Vagina" : p->name, p->orifice.wetnessLevel);
+                }
+                else
+                {
+                    detail = p->name.empty() ? "Genitals" : p->name;
+                }
+            }
+            else if (sm.slot == bodySlot::TORSO)
+            {
+                detail = ent->anatomy.bodySize.empty() ? "Average" : ent->anatomy.bodySize;
+            }
+            else if (sm.slot == bodySlot::ASS)
+            {
+                detail = p->style.empty() ? "Average" : p->style;
+            }
+            else if (sm.slot == bodySlot::ARMS || sm.slot == bodySlot::LEGS)
+            {
+                detail = ent->anatomy.muscleTone.empty() ? "Toned" : ent->anatomy.muscleTone;
+            }
+            else if (sm.slot == bodySlot::HORNS || sm.slot == bodySlot::WINGS || sm.slot == bodySlot::TAIL)
+            {
+                detail = p->length > 0.0f ? std::format("{:.0f}cm", p->length) : "Present";
+            }
+
+            std::string summary = color + ", " + pRace;
+            if (!detail.empty())
+            {
+                summary += ", " + detail;
+            }
+
+            data.stats.emplace_back(sm.label, summary, false);
+        }
+
+        // Pregnancy / Womb info (important info not in main card!)
+        if (isSelf || ent->isSlotRevealed(bodySlot::GROIN))
+        {
+            if (ent->gestation.isPregnant)
+            {
+                int daysProgressed = std::max(1, ent->gestation.totalGestationDays - ent->gestation.gestationDaysRemaining);
+                std::string pregStr = std::format("Day {} ({})", daysProgressed, ent->gestation.fatherRace);
+                data.stats.emplace_back("Womb", pregStr, false);
+            }
+            else if (isSelf)
+            {
+                data.stats.emplace_back("Womb", "Empty", true);
+            }
+        }
+
+        return data;
+    }
+
     void renderStatusEffectsGrid(SDL_Renderer* renderer, const std::vector<StatusEffect>& effects, float s2ContentX, float s2Y, float s2ContentW, float chipSize, float chipGap, int chipsPerRow, float uiScale, const TooltipPoint& mousePos)
     {
         if (effects.empty()) return;
@@ -36,7 +272,8 @@ namespace CharacterCardWidget
                           mousePos.y >= chipRect.y && mousePos.y <= chipRect.y + chipRect.h);
 
             const auto& eff = effects[i];
-            SDL_Color bdCol = isHov ? Theme::colors.borderSelected : (eff.isDebuff ? Theme::colors.health : Theme::colors.companion);
+            bool isSexuality = eff.id.rfind("status_sexuality_", 0) == 0;
+            SDL_Color bdCol = isHov ? Theme::colors.borderSelected : (isSexuality ? Theme::colors.lust : (eff.isDebuff ? Theme::colors.health : Theme::colors.companion));
 
             UIWidget::drawPanel(renderer, chipRect, Theme::colors.bgDark, bdCol);
 
@@ -116,7 +353,8 @@ namespace CharacterCardWidget
                 timeStr = "Permanent";
             }
 
-            std::string sub = std::format("{} • {}", eff.isDebuff ? "Debuff" : "Buff", timeStr);
+            std::string typeLabel = eff.isDebuff ? "Debuff" : (eff.durationMinutes < 0 && eff.durationTurns < 0 ? (isSexuality ? "Sexuality / Orientation" : "Innate Trait") : "Buff");
+            std::string sub = std::format("{} • {}", typeLabel, timeStr);
             TooltipManager::setHoverTooltip(chipRect, mousePos, eff.name, eff.description, sub);
         }
     }
@@ -124,6 +362,7 @@ namespace CharacterCardWidget
     static float renderSingleCompanionCard(SDL_Renderer* renderer, game* gameContext, entity* companion, float padX, float curY, float availableW, float uiScale, const TooltipPoint& mousePos)
     {
         if (!companion) return 0.0f;
+        companion->ensureSexualityStatusEffect();
 
         float startY = curY;
         float headerH = 17.0f * uiScale;
@@ -152,6 +391,8 @@ namespace CharacterCardWidget
         std::string lvlStr = std::format("Lvl {} • {}", companion->stats.level, companion->anatomy.getRacialTitle());
         UIWidget::drawText(renderer, lvlStr, cX + avatarSize + (4.0f * uiScale), curY + (2.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.66f);
 
+        entity* playerEnt = gameContext ? gameContext->getPlayer() : nullptr;
+        TooltipManager::setHoverTooltip(avatarRect, mousePos, createAnatomyTooltip(companion, playerEnt));
         TooltipManager::setHoverTooltip(cardRect, mousePos, companion->name,
                                         "Active party companion fighting alongside you.",
                                         std::format("Level {} • {}", companion->stats.level, companion->anatomy.getRacialTitle()));
@@ -241,6 +482,7 @@ namespace CharacterCardWidget
     {
         entity* player = gameContext ? gameContext->getPlayer() : nullptr;
         if (!player) return 0.0f;
+        player->ensureSexualityStatusEffect();
 
         float startY = curY;
         float padX = curX + (5.0f * uiScale);
@@ -302,9 +544,7 @@ namespace CharacterCardWidget
         float initW = UIWidget::getTextWidth(initials, uiScale * 0.78f);
         UIWidget::drawText(renderer, initials, avatarRect.x + ((avatarSize - initW) / 2.0f), avatarRect.y + (5.0f * uiScale), Theme::colors.textGold, uiScale * 0.78f);
 
-        TooltipManager::setHoverTooltip(avatarRect, mousePos, player->name,
-                                        "Player protagonist exploring the realm.",
-                                        std::format("Level {} • {}", player->stats.level, player->anatomy.getRacialTitle()));
+        TooltipManager::setHoverTooltip(avatarRect, mousePos, createAnatomyTooltip(player, player));
 
         std::string dispName = player->name.empty() ? "Hero" : player->name;
         UIWidget::drawText(renderer, dispName, s1ContentX + avatarSize + (6.0f * uiScale), s1Y + (1.0f * uiScale), Theme::colors.textGold, uiScale * 0.84f);

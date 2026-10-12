@@ -1,0 +1,76 @@
+{
+  "id": "apothecary_shop",
+  "name": "Herbalist Cottage",
+  "entranceDescription": "the Herbalist Cottage",
+  "width": 7,
+  "height": 6,
+  "tiles": [
+    [ 0, 0, 0, 0, 0, 0, 0 ],
+    [ 0, 1, 1, 1, 1, 1, 0 ],
+    [ 0, 1, 1, 1, 1, 1, 0 ],
+    [ 0, 1, 1, 1, 1, 1, 0 ],
+    [ 0, 1, 1, 3, 1, 1, 0 ],
+    [ 0, 0, 0, 0, 0, 0, 0 ]
+  ],
+  "dangerLevels": [
+    [ 0, 0, 0, 0, 0, 0, 0 ],
+    [ 0, 0, 0, 0, 0, 0, 0 ],
+    [ 0, 0, 0, 0, 0, 0, 0 ],
+    [ 0, 0, 0, 0, 0, 0, 0 ],
+    [ 0, 0, 0, 0, 0, 0, 0 ],
+    [ 0, 0, 0, 0, 0, 0, 0 ]
+  ],
+  "warps": [
+    {
+      "x": 3,
+      "y": 4,
+      "targetMap": "overworld",
+      "targetX": 4,
+      "targetY": 2,
+      "label": "Exit to Outpost Green",
+      "entranceDescription": "the Outpost Green"
+    }
+  ],
+  "defaultDescriptions": [
+    "You step into the Herbalist Cottage. The fragrant aroma of dried herbs, crushed mint, and simmering alchemical tinctures greets your senses.",
+    "Shelves of glass vials, clay jars of medicinal salves, and bundles of wild foliage suspended from ceiling beams give this cozy shop a vibrant, rustic charm."
+  ],
+  "tileDescriptions": {
+    "3,4": [
+      "You stand near the wooden threshold of the cottage. An overhead brass bell chimes faintly as you move.",
+      "The front mat is woven from coarse thistle stalks to keep the muddy soil of the woods outside."
+    ],
+    "3,2": [
+      "You stand before the main alchemical serving counter, where Herbalist Lyra carefully measures powders and brews tonics.",
+      "A glowing brass alembic bubbles rhythmically, distilling luminescent dew into delicate crystal bottles."
+    ]
+  },
+  "tileTags": {
+    "1,2": [ "herb_drying_racks" ],
+    "5,2": [ "potion_shelves" ],
+    "3,2": [ "alchemy_workbench" ]
+  },
+  "tagDescriptions": {
+    "herb_drying_racks": [
+      "Overhead wooden frames loaded with drying bunches of canis roots, sage, and pale blossoms slowly losing moisture."
+    ],
+    "potion_shelves": [
+      "Carefully labeled bottles of health draughts, mana distillates, venom neutralizers, and aromatic mutagens."
+    ],
+    "alchemy_workbench": [
+      "A smooth slate workbench equipped with copper scales, marble pestles, and glowing glassware used for delicate extractions."
+    ]
+  },
+  "triggers": [
+    {
+      "id": "trig_herbalist_lyra",
+      "mapId": "apothecary_shop",
+      "x": 3,
+      "y": 2,
+      "label": "Speak with Herbalist Lyra",
+      "tooltip": "Browse remedies, purchase supplies, or ask about herbal gathering tasks.",
+      "description": "Herbalist Lyra sets aside a sprig of fresh blossom, greeting you with a gentle, inquisitive smile.",
+      "sceneId": "scene_herbalist_lyra"
+    }
+  ]
+}

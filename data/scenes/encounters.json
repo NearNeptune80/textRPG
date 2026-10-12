@@ -52,11 +52,49 @@
           "hidden_unless_met": true
         }
       ]
+    },
+    {
+      "id": "scene_interrogate_npc",
+      "speakerName": "{target.name}",
+      "bodyText": "You press your blade firmly against {target.name}'s collar. Breathless and battered, their eyes widen in surrender as they spill whatever information they know.\n\n'Spare me! The main force gathers beneath the Sunken Ruins... their general holds the dark keystone and guards the sacrificial altar! That is all I know, I swear it!'",
+      "choices": [
+        {
+          "label": "Release them",
+          "tooltip": "Let the defeated captive flee.",
+          "nextSceneId": "EXIT"
+        },
+        {
+          "label": "Finish them off",
+          "tooltip": "Permanently remove the hostile enemy.",
+          "nextSceneId": "ENCOUNTER_PERMANENT_REMOVE"
+        }
+      ]
     }
   ],
   "flavor_texts": {
-    "forest": "You overwhelm {}, sending them stumbling backward into the dense undergrowth. They yield, unable to continue fighting.",
-    "house": "You corner {} inside the wooden room. Disarmed and panting, they drop their weapon in submission.",
+    "forest_dominant": "With effortless grace amidst the trees and dense undergrowth, you completely overpower {}, leaving them pinned against the moss without a scratch on yourself.",
+    "forest_standard": "You overwhelm {}, sending them stumbling backward into the dense undergrowth. They yield, panting and unable to continue fighting.",
+    "forest_desperate": "Bleeding heavily, you barely parry {}'s final strike before lunging in desperation amidst the dense undergrowth. Both of you collapse into the briars, but your blade is at their throat.",
+    "forest": "You overpower {} amidst the ancient trees. They yield and throw down their arms.",
+    "ruins_dominant": "Echoing off ancient flagstones, your strikes shatter {}'s stance with devastating ease. They drop to their knees in the sunken hall, thoroughly subjugated.",
+    "ruins_standard": "Driving {} back through the damp stone corridors, you knock their guard aside. They collapse against a moss-covered pillar, beaten.",
+    "ruins_desperate": "Gasping for breath with blood running cold across cracked masonry, you summon your last ounce of strength to disarm {}. They fall backward, yielding in terror.",
+    "ruins": "You defeat {} within the shadowy corridors of the ancient ruins.",
+    "outpost_dominant": "With disciplined garrison technique, you disarm {} in seconds flat. They sprawl across the gravel, thoroughly outmatched.",
+    "outpost_standard": "Trading sharp blows across the garrison perimeter, you drive {} into retreat until they lower their weapon in submission.",
+    "outpost_desperate": "Nursing grievous injuries, you counter {}'s furious onslaught with a desperate strike. They crumple at the outpost gates, gasping for surrender.",
+    "outpost": "You defeat {} along the fortified outpost perimeter.",
+    "ashlands_dominant": "Kicking up clouds of volcanic dust, you dance around {}'s clumsy strikes and floor them with a single punishing blow.",
+    "ashlands_standard": "Under the scorching haze of the rocky crags, you wear down {}'s stamina until they collapse in exhaustion onto the jagged rocks.",
+    "ashlands_desperate": "Battered and scorched, you barely survive {}'s vicious assault, turning the tide with a frantic blow that leaves them broken on the ash.",
+    "ashlands": "You defeat {} amidst the rugged, wind-swept ash crags.",
+    "house_dominant": "You effortlessly corner {} against the wooden furniture, taking their weapon before they can land a single hit.",
+    "house_standard": "You corner {} inside the wooden room. Disarmed and panting, they drop their weapon in submission.",
+    "house_desperate": "After a brutal and bloody struggle that wrecks the furnishings, you pin {} to the floorboards with the last of your energy.",
+    "house": "You corner {} inside the room. They yield and surrender.",
+    "default_dominant": "You dominate {}, emerging completely unscratched. They tremble at your mercy.",
+    "default_standard": "You stand victorious over {}. They are defeated and at your mercy.",
+    "default_desperate": "Bloodied and exhausted, you barely overcome {} in a grueling battle of endurance. They yield at last.",
     "default": "You stand victorious over {}. They are defeated and at your mercy."
   },
   "dialogue_templates": {

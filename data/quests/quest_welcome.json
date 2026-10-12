@@ -1,0 +1,99 @@
+{
+  "id": "quest_welcome",
+  "name": "Arrival at Valley's Edge",
+  "category": "Main Quest",
+  "giver": "Commander Robert",
+  "location": "Outpost Barracks",
+  "rewards": "100¤, Outpost Seal, and garrison briefing",
+  "description": "Report to Commander Robert at the Outpost Barracks to introduce yourself and receive your border assignment.",
+  "triggers": [],
+  "stages": {
+    "0": "Report to Commander Robert at the Outpost Barracks.",
+    "1": "Listen to the garrison briefing regarding the Sunken Ruins threat.",
+    "2": "Reporting complete! Main expedition unlocked."
+  },
+  "scenes": [
+    {
+      "id": "scene_robert_welcome_intro",
+      "speakerName": "Commander Robert",
+      "bodyText": "Commander Robert looks up from a sprawling tactical map laid across his sturdy oak table. His steely gaze sizes you up with veteran scrutiny.\n\n'Welcome to Valley's Edge Outpost, recruit. We've been expecting reinforcements. The border has grown increasingly unstable over the last few weeks.'",
+      "choices": [
+        {
+          "label": "I am ready for duty, Commander.",
+          "tooltip": "Attentively accept your initial briefing and assignment.",
+          "requirements": [],
+          "results": [
+            {
+              "action": "SET_QUEST",
+              "target": "quest_welcome",
+              "amount": 1
+            }
+          ],
+          "nextSceneId": "scene_robert_welcome_briefing"
+        },
+        {
+          "label": "What kind of troubles are you facing here?",
+          "tooltip": "Inquire about the dangers facing Valley's Edge.",
+          "requirements": [],
+          "results": [],
+          "nextSceneId": "scene_robert_welcome_lore"
+        }
+      ]
+    },
+    {
+      "id": "scene_robert_welcome_lore",
+      "speakerName": "Commander Robert",
+      "bodyText": "'The Sunken Ruins to the south have stirred,' Robert explains gravely. 'Corrupted beasts are spilling into the Whispering Woods, and an outlaw named Kaelen has rallied the Ash-Blade bandits to raid supply wagons.'",
+      "choices": [
+        {
+          "label": "Understood. Tell me what needs to be done.",
+          "tooltip": "Proceed to the main mission briefing.",
+          "requirements": [],
+          "results": [
+            {
+              "action": "SET_QUEST",
+              "target": "quest_welcome",
+              "amount": 1
+            }
+          ],
+          "nextSceneId": "scene_robert_welcome_briefing"
+        }
+      ]
+    },
+    {
+      "id": "scene_robert_welcome_briefing",
+      "speakerName": "Commander Robert",
+      "bodyText": "'First, visit the settlement vendors. Herbalist Lyra brews healing tonics at the apothecary, and Donald keeps our garrison armed at the forge. Once you are geared, take this Outpost Seal. I need you to lead the expedition into the Sunken Ruins to purge whatever corruption festers within.'",
+      "choices": [
+        {
+          "label": "Accept Assignment (100¤ & Outpost Seal)",
+          "tooltip": "Receive 100¤ and your garrison seal to begin the main quest campaign.",
+          "requirements": [],
+          "results": [
+            {
+              "action": "SET_QUEST",
+              "target": "quest_welcome",
+              "amount": 2
+            },
+            {
+              "action": "SET_QUEST",
+              "target": "quest_main_shadows",
+              "amount": 0
+            },
+            {
+              "action": "ADD_STAT",
+              "target": "currency",
+              "amount": 100
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "item_outpost_seal",
+              "amount": 1
+            }
+          ],
+          "nextSceneId": "EXIT"
+        }
+      ]
+    }
+  ]
+}

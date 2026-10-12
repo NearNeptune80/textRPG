@@ -1,0 +1,168 @@
+{
+  "id": "quest_main_shadows",
+  "name": "Shadows of the Sunken Ruins",
+  "category": "Main Quest",
+  "giver": "Commander Robert",
+  "location": "Sunken Ruins",
+  "rewards": "500¤, Grove Cleanser Perk, and Garrison Commendation",
+  "description": "Investigate the abyssal disturbance emanating from the Sunken Ruins, recover the ancient keystone, defeat the Vanguard General, and cleanse the subterranean altar.",
+  "triggers": [
+    {
+      "id": "trig_ruins_altar_choice",
+      "mapId": "sunken_ruins",
+      "x": 4,
+      "y": 2,
+      "label": "Inspect Corrupted Altar",
+      "tooltip": "Approach the pulsing abyssal altar at the heart of the sunken sanctum.",
+      "sceneId": "scene_ruins_altar_choice",
+      "conditions": [
+        {
+          "type": "QUEST_STAGE",
+          "target": "quest_main_shadows",
+          "minValue": 1,
+          "maxValue": 3
+        }
+      ]
+    }
+  ],
+  "stages": {
+    "0": "Prepare supplies and consult with Herbalist Lyra and Blacksmith Donald.",
+    "1": "Acquire the Rusted Keystone to access the inner chambers of the Sunken Ruins.",
+    "2": "Confront the Corrupted Vanguard General guarding the inner sanctum.",
+    "3": "Make your choice at the subterranean Corrupted Altar.",
+    "4": "Return to the Outpost Barracks and debrief Commander Robert.",
+    "5": "Sunken Ruins cleansed! Valley's Edge is secure."
+  },
+  "scenes": [
+    {
+      "id": "scene_ruins_altar_choice",
+      "speakerName": "PULSING ABYSSAL ALTAR",
+      "bodyText": "A monolithic altar carved from obsidian stone hums with malignant, pitch-black energy. Veins of dark mana pulse violently across the floor tiles, pooling around an empty socket that demands the Dark Heart Core.",
+      "choices": [
+        {
+          "label": "Purify the Altar with Sylph Light",
+          "tooltip": "Channel cleansing essence to shatter the corruption once and for all (Requires Dark Heart Core).",
+          "requirements": [
+            {
+              "type": "HAS_ITEM",
+              "target": "item_dark_heart_core",
+              "requiredValue": 1
+            }
+          ],
+          "results": [
+            {
+              "action": "REMOVE_ITEM",
+              "target": "item_dark_heart_core",
+              "amount": 1
+            },
+            {
+              "action": "SET_QUEST",
+              "target": "quest_main_shadows",
+              "amount": 4
+            },
+            {
+              "action": "ADD_PERK",
+              "target": "perk_grove_cleanser",
+              "amount": 1
+            }
+          ],
+          "nextSceneId": "scene_ruins_altar_purified"
+        },
+        {
+          "label": "Harness the Nether Power",
+          "tooltip": "Embrace the dark essence, absorbing its raw arcane potential into your soul (Increases Corruption).",
+          "requirements": [
+            {
+              "type": "HAS_ITEM",
+              "target": "item_dark_heart_core",
+              "requiredValue": 1
+            }
+          ],
+          "results": [
+            {
+              "action": "REMOVE_ITEM",
+              "target": "item_dark_heart_core",
+              "amount": 1
+            },
+            {
+              "action": "SET_QUEST",
+              "target": "quest_main_shadows",
+              "amount": 4
+            },
+            {
+              "action": "ADD_STAT",
+              "target": "corruption",
+              "amount": 15
+            },
+            {
+              "action": "ADD_STAT",
+              "target": "arcane",
+              "amount": 5
+            }
+          ],
+          "nextSceneId": "scene_ruins_altar_harnessed"
+        },
+        {
+          "label": "Step back for now",
+          "tooltip": "Leave the altar untouched until you are ready.",
+          "requirements": [],
+          "results": [],
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "scene_ruins_altar_purified",
+      "speakerName": "PULSING ABYSSAL ALTAR",
+      "bodyText": "You hold high the Dark Heart Core and channel pure radiant mana into its crystalline nucleus. With a deafening chime, a blinding wave of luminous silver fire washes over the sanctum!\n\nThe oppressive shadows disintegrate into mist, leaving behind tranquil silence and a revitalizing breeze. You have cleansed the ancient grove!\n\n(Unlocked Perk: Grove Cleanser)",
+      "choices": [
+        {
+          "label": "Return to Commander Robert",
+          "tooltip": "Head back to the Outpost Barracks to report your triumph.",
+          "requirements": [],
+          "results": [],
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "scene_ruins_altar_harnessed",
+      "speakerName": "PULSING ABYSSAL ALTAR",
+      "bodyText": "You press the Dark Heart Core against the altar and open your aura to the torrent. Waves of dark ecstasy and abyssal energy surge through your veins, empowering your magical reserves while leaving a lingering mark of corruption in your eyes.\n\n(+15 Corruption, +5 Arcane Power)",
+      "choices": [
+        {
+          "label": "Return to Commander Robert",
+          "tooltip": "Head back to the Outpost Barracks to report your triumph.",
+          "requirements": [],
+          "results": [],
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "scene_robert_main_debrief",
+      "speakerName": "Commander Robert",
+      "bodyText": "Commander Robert stands up with a broad, relieved grin as you step into the barracks.\n\n'The garrison scouts reported the shift in atmospheric pressure—the oppressive miasma lingering over the south has completely broken! Magnificent work, soldier. You have saved Valley's Edge from a catastrophe.'",
+      "choices": [
+        {
+          "label": "Accept Commendation & Bounty (500¤)",
+          "tooltip": "Receive your 500¤ garrison reward and complete the main campaign.",
+          "requirements": [],
+          "results": [
+            {
+              "action": "SET_QUEST",
+              "target": "quest_main_shadows",
+              "amount": 5
+            },
+            {
+              "action": "ADD_STAT",
+              "target": "currency",
+              "amount": 500
+            }
+          ],
+          "nextSceneId": "EXIT"
+        }
+      ]
+    }
+  ]
+}

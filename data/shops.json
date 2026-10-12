@@ -15,6 +15,34 @@
       ]
     },
     {
+      "id": "shop_apothecary",
+      "name": "Herbalist Lyra's Apothecary",
+      "merchantId": "herbalist_lyra",
+      "restockItems": [
+        "item_health_potion",
+        "item_mana_potion",
+        "item_antidote_flask",
+        "item_cooling_salve",
+        "item_canis_root",
+        "item_moonbloom",
+        "item_mutagen_draught"
+      ]
+    },
+    {
+      "id": "shop_blacksmith",
+      "name": "Donald's Weapon & Armor Forge",
+      "merchantId": "blacksmith_donald",
+      "restockItems": [
+        "item_iron_dagger",
+        "item_steel_longsword",
+        "item_heavy_warhammer",
+        "item_steel_shield",
+        "item_chainmail_hauberk",
+        "item_iron_ring",
+        "item_iron_ore"
+      ]
+    },
+    {
       "id": "shop_valida_archive",
       "name": "Valida's Testing Archive",
       "merchantId": "valida",

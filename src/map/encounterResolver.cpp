@@ -79,6 +79,22 @@ questScene encounterResolver::buildEncounterScene(game* g, std::shared_ptr<entit
     questScene scene;
     if (!npc) return scene;
 
+    if (g && g->getPlayer())
+    {
+        std::string race = npc->anatomy.getDominantRace();
+        if (!race.empty())
+        {
+            std::string raceLower = race;
+            for (char& c : raceLower) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+            std::string flag = "lore_race_" + raceLower;
+            if (!g->getPlayer()->quests.hasQuest(flag))
+            {
+                g->getPlayer()->quests.setQuestStage(flag, 1);
+                g->addLogEntry("[LORE]", std::format("New Encyclopedia entry unlocked: {}!", race), { 220, 180, 80, 255 });
+            }
+        }
+    }
+
     if (questDatabase::exists("scene_procedural_encounter"))
     {
         scene = questDatabase::getScene("scene_procedural_encounter");
@@ -109,8 +125,11 @@ questScene encounterResolver::buildEncounterScene(game* g, std::shared_ptr<entit
 
     scene.speakerName = npc->name;
     std::string archetypeName = genderArchetypeToString(npc->genderArchetype);
+    char firstChar = !npc->name.empty() ? std::tolower(static_cast<unsigned char>(npc->name[0])) : ' ';
+    bool startsWithVowel = (firstChar == 'a' || firstChar == 'e' || firstChar == 'i' || firstChar == 'o' || firstChar == 'u');
+    std::string article = startsWithVowel ? "An" : "A";
     std::string bodyTemplate = scene.bodyText.empty() ?
-        "A {target.name} ({target.archetype}, Level {target.level}) steps out from the shadows and blocks your path with clear intent!" : scene.bodyText;
+        (article + " {target.name} ({target.archetype}, Level {target.level}) steps out from the shadows and blocks your path with clear intent!") : scene.bodyText;
 
     std::string formatted = bodyTemplate;
     auto replaceAll = [](std::string& str, const std::string& from, const std::string& to) {
@@ -128,23 +147,53 @@ questScene encounterResolver::buildEncounterScene(game* g, std::shared_ptr<entit
     return scene;
 }
 
-std::string encounterResolver::selectFlavorText(const std::string& mapId, entity* target)
+std::string encounterResolver::selectFlavorText(const std::string& mapId, entity* target, float healthPct)
 {
     static const auto flavors = loadFlavorTexts();
     std::string npcName = (target != nullptr) ? target->name : "your opponent";
 
-    std::string key = "default";
-    if (mapId.find("forest") != std::string::npos || mapId.find("woods") != std::string::npos)
+    std::string biome = "default";
+    if (mapId.find("forest") != std::string::npos || mapId.find("woods") != std::string::npos || mapId.find("grove") != std::string::npos)
     {
-        key = "forest";
+        biome = "forest";
     }
-    else if (mapId.find("house") != std::string::npos || mapId.find("cottage") != std::string::npos)
+    else if (mapId.find("ruins") != std::string::npos || mapId.find("crypt") != std::string::npos || mapId.find("dungeon") != std::string::npos)
     {
-        key = "house";
+        biome = "ruins";
+    }
+    else if (mapId.find("outpost") != std::string::npos || mapId.find("barracks") != std::string::npos || mapId.find("fort") != std::string::npos)
+    {
+        biome = "outpost";
+    }
+    else if (mapId.find("cave") != std::string::npos || mapId.find("cavern") != std::string::npos)
+    {
+        biome = "cave";
+    }
+    else if (mapId.find("house") != std::string::npos || mapId.find("cottage") != std::string::npos || mapId.find("shop") != std::string::npos)
+    {
+        biome = "house";
     }
 
+    std::string healthTier = "standard";
+    if (healthPct >= 0.75f) healthTier = "dominant";
+    else if (healthPct <= 0.30f) healthTier = "desperate";
+
+    std::string key = biome + "_" + healthTier;
     auto it = flavors.find(key);
-    std::string templateStr = (it != flavors.end()) ? it->second : flavors.at("default");
+    if (it == flavors.end())
+    {
+        it = flavors.find(biome);
+    }
+    if (it == flavors.end())
+    {
+        it = flavors.find("default_" + healthTier);
+    }
+    if (it == flavors.end())
+    {
+        it = flavors.find("default");
+    }
+
+    std::string templateStr = (it != flavors.end()) ? it->second : "You stand victorious over {}. They are defeated and at your mercy.";
     try
     {
         return std::vformat(templateStr, std::make_format_args(npcName));
@@ -181,8 +230,14 @@ questScene encounterResolver::buildVictoryScene(game* g, entity* targetNPC, cons
         scene.choices.push_back(lootChoice);
     }
 
+    float healthPct = 1.0f;
+    if (g && g->getPlayer() && g->getPlayer()->getStat("max_health") > 0.0f)
+    {
+        healthPct = g->getPlayer()->getStat("health") / g->getPlayer()->getStat("max_health");
+    }
+
     scene.speakerName = (targetNPC != nullptr) ? targetNPC->name : "Defeated Enemy";
-    scene.bodyText = selectFlavorText(mapId, targetNPC);
+    scene.bodyText = selectFlavorText(mapId, targetNPC, healthPct);
 
     if (targetNPC != nullptr && targetNPC->anatomy.hasGlobalTag("can_be_interrogated"))
     {

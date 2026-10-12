@@ -16,13 +16,30 @@ struct TooltipPoint
     operator SDL_FPoint() const { return { x, y }; }
 };
 
+struct TooltipStatRow
+{
+    std::string key;
+    std::string value;
+    bool isMuted{ false };
+    bool hasCustomColor{ false };
+    SDL_Color color{ 218, 165, 32, 255 };
+
+    TooltipStatRow() = default;
+    TooltipStatRow(std::string k, std::string v, bool muted = false)
+        : key(std::move(k)), value(std::move(v)), isMuted(muted) {}
+    TooltipStatRow(std::pair<std::string, std::string> p)
+        : key(std::move(p.first)), value(std::move(p.second)), isMuted(false) {}
+    TooltipStatRow(std::string k, std::string v, SDL_Color col)
+        : key(std::move(k)), value(std::move(v)), isMuted(false), hasCustomColor(true), color(col) {}
+};
+
 struct TooltipData
 {
     std::string title;
     std::string subtitle;       // e.g. "[Torso Under] • Value: 120 ¤"
     std::string description;    // Multi-line wrapped text
     std::string hotkey;         // e.g. "[ 1 ]", "[ I ]", "[ ESC ]"
-    std::vector<std::pair<std::string, std::string>> stats; // Key-value pairs
+    std::vector<TooltipStatRow> stats; // Key-value pairs with mute and color support
     SDL_Color titleColor = { 218, 165, 32, 255 }; // textGold
     SDL_Color subtitleColor = { 100, 180, 240, 255 }; // companion / accent
     TooltipPoint customAnchor = { 0.0f, 0.0f };

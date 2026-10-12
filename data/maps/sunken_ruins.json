@@ -1,0 +1,85 @@
+{
+  "id": "sunken_ruins",
+  "name": "Sunken Ruins",
+  "entranceDescription": "the Sunken Ruins",
+  "width": 8,
+  "height": 7,
+  "tiles": [
+    [ 0, 0, 0, 0, 0, 0, 0, 0 ],
+    [ 0, 1, 1, 1, 1, 1, 1, 0 ],
+    [ 0, 1, 0, 1, 1, 0, 1, 0 ],
+    [ 0, 1, 1, 1, 1, 1, 1, 0 ],
+    [ 0, 1, 0, 0, 0, 0, 1, 0 ],
+    [ 0, 1, 1, 1, 3, 1, 1, 0 ],
+    [ 0, 0, 0, 0, 0, 0, 0, 0 ]
+  ],
+  "dangerLevels": [
+    [ 0, 0, 0, 0, 0, 0, 0, 0 ],
+    [ 0, 3, 3, 4, 4, 3, 3, 0 ],
+    [ 0, 2, 0, 3, 3, 0, 2, 0 ],
+    [ 0, 2, 2, 3, 3, 2, 2, 0 ],
+    [ 0, 1, 0, 0, 0, 0, 1, 0 ],
+    [ 0, 1, 1, 1, 0, 1, 1, 0 ],
+    [ 0, 0, 0, 0, 0, 0, 0, 0 ]
+  ],
+  "warps": [
+    {
+      "x": 4,
+      "y": 5,
+      "targetMap": "overworld",
+      "targetX": 7,
+      "targetY": 6,
+      "label": "Ascend to Valley Surface",
+      "entranceDescription": "the Valley Surface"
+    }
+  ],
+  "defaultDescriptions": [
+    "You are deep within the Sunken Ruins. The damp subterranean air carries the faint hum of ancient, corrupted arcane energy. Crumbling stone arches and cracked flagstones lie half-buried in dark moss.",
+    "Bioluminescent fungi cast an eerie purple glow against the damp carved masonry. Distant groans of corrupted sentinels echo down the winding corridors."
+  ],
+  "tileDescriptions": {
+    "4,5": [
+      "You stand at the foot of a cracked stone staircase leading back up toward the surface light of the Whispering Woods.",
+      "Cool surface air filters down through the shattered ceiling vault above the entrance stairs."
+    ],
+    "4,1": [
+      "You stand before the central sanctum altar. A pulsating Dark Heart Core is anchored atop an obsidian dais, surrounded by arcane runes.",
+      "The air here crackles with intense, suffocating dark essence. An elite Corrupted Vanguard stands guard over the chamber."
+    ]
+  },
+  "tileTags": {
+    "4,5": [ "ruins_entrance" ],
+    "2,3": [ "ancient_corridor" ],
+    "5,3": [ "ancient_corridor" ],
+    "4,1": [ "cracked_altar" ]
+  },
+  "tagDescriptions": {
+    "ruins_entrance": [
+      "Stairway of weathered granite leading upwards toward safety."
+    ],
+    "ancient_corridor": [
+      "A long, vaulted stone hallway littered with shattered statuary and arcane residue."
+    ],
+    "cracked_altar": [
+      "A blasphemous altar of blackened stone where an unholy core feeds corruptive tendrils into the surrounding earth."
+    ]
+  },
+  "tileEncounters": {
+    "2,3": { "pool": ["tpl_corrupted_scout", "tpl_rogue_mage"], "ambushChance": 60 },
+    "5,3": { "pool": ["tpl_corrupted_fiend"], "ambushChance": 70 },
+    "3,1": { "pool": ["tpl_corrupted_fiend"], "ambushChance": 75 },
+    "5,1": { "pool": ["tpl_corrupted_fiend"], "ambushChance": 75 }
+  },
+  "triggers": [
+    {
+      "id": "trig_corrupted_vanguard",
+      "mapId": "sunken_ruins",
+      "x": 4,
+      "y": 1,
+      "label": "Confront Corrupted Vanguard",
+      "tooltip": "Approach the sanctum altar to challenge the guardian of the Dark Heart Core.",
+      "description": "A hulking, armor-clad vanguard wreathed in demonic shadow turns to face you, raising a massive jagged blade.",
+      "sceneId": "scene_corrupted_vanguard"
+    }
+  ]
+}

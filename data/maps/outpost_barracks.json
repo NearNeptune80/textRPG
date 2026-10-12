@@ -1,0 +1,76 @@
+{
+  "id": "outpost_barracks",
+  "name": "Outpost Barracks",
+  "entranceDescription": "the Outpost Barracks",
+  "width": 7,
+  "height": 6,
+  "tiles": [
+    [ 0, 0, 0, 0, 0, 0, 0 ],
+    [ 0, 1, 1, 1, 1, 1, 0 ],
+    [ 0, 1, 1, 1, 1, 1, 0 ],
+    [ 0, 1, 1, 1, 1, 1, 0 ],
+    [ 0, 1, 1, 3, 1, 1, 0 ],
+    [ 0, 0, 0, 0, 0, 0, 0 ]
+  ],
+  "dangerLevels": [
+    [ 0, 0, 0, 0, 0, 0, 0 ],
+    [ 0, 0, 0, 0, 0, 0, 0 ],
+    [ 0, 0, 0, 0, 0, 0, 0 ],
+    [ 0, 0, 0, 0, 0, 0, 0 ],
+    [ 0, 0, 0, 0, 0, 0, 0 ],
+    [ 0, 0, 0, 0, 0, 0, 0 ]
+  ],
+  "warps": [
+    {
+      "x": 3,
+      "y": 4,
+      "targetMap": "overworld",
+      "targetX": 2,
+      "targetY": 2,
+      "label": "Exit to Outpost Square",
+      "entranceDescription": "the Outpost Square"
+    }
+  ],
+  "defaultDescriptions": [
+    "You are inside the Outpost Barracks. Sturdy stone walls are decorated with company banners and polished shields. Guards move in disciplined formation through the halls.",
+    "A smell of weapon oil and woodsmoke fills the air. Bunk racks line the rear wall while a broad strategy table occupies the center of the command chamber."
+  ],
+  "tileDescriptions": {
+    "3,4": [
+      "You stand near the heavy iron-reinforced doors of the barracks, looking out into the square.",
+      "The entrance threshold is guarded by polished brass braziers casting warm light over the flagstones."
+    ],
+    "3,2": [
+      "You stand before the commander's heavy oak desk, covered in regional parchment maps, casualty reports, and dispatch seals.",
+      "Commander Robert presides here over military administration, reviewing scout logs with a focused, battle-hardened gaze."
+    ]
+  },
+  "tileTags": {
+    "1,2": [ "weapon_rack" ],
+    "5,2": [ "war_map" ],
+    "3,2": [ "command_desk" ]
+  },
+  "tagDescriptions": {
+    "weapon_rack": [
+      "Sturdy iron racks holding sharpened spears, standard-issue swords, and polished kite shields ready for immediate deployment."
+    ],
+    "war_map": [
+      "A massive canvas map pinned to the timber partition, marking known bandit movements, safe roads, and expanding dark anomaly zones."
+    ],
+    "command_desk": [
+      "The polished desk where official patrol assignments and bounty claims are reviewed and authorized."
+    ]
+  },
+  "triggers": [
+    {
+      "id": "trig_commander_robert",
+      "mapId": "outpost_barracks",
+      "x": 3,
+      "y": 2,
+      "label": "Speak with Commander Robert",
+      "tooltip": "Report to the commander regarding outpost duties and commissions.",
+      "description": "Commander Robert looks up from his ledgers, evaluating you with a measured and disciplined nod.",
+      "sceneId": "scene_commander_robert"
+    }
+  ]
+}

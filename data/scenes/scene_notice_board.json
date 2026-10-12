@@ -1,0 +1,67 @@
+{
+  "scenes": [
+    {
+      "id": "scene_notice_board",
+      "speakerName": "GARRISON NOTICE BOARD",
+      "bodyText": "A sturdy timber board displays weathered parchment notices pinned by rusted iron nails.\n\nSeveral official bounties, warnings, and commercial requests catch your attention.",
+      "choices": [
+        {
+          "label": "Read Bounty: Kaelen the Ash-Blade",
+          "tooltip": "Inspect the bandit chieftain bounty notice.",
+          "nextSceneId": "scene_notice_bounty_kaelen"
+        },
+        {
+          "label": "Read Advisory: Sunken Ruins Incursions",
+          "tooltip": "Inspect the commander's official military advisory.",
+          "nextSceneId": "scene_notice_ruins_advisory"
+        },
+        {
+          "label": "Read Request: Apothecary Botanical Supply",
+          "tooltip": "Inspect Lyra's herbalist request notice.",
+          "nextSceneId": "scene_notice_apothecary_request"
+        },
+        {
+          "label": "Step away",
+          "tooltip": "Leave the notice board.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "scene_notice_bounty_kaelen",
+      "speakerName": "BOUNTY POSTING",
+      "bodyText": "'WANTED: Kaelen the Ash-Blade. Notorious bandit leader terrorizing trade convoys in the Ashlands. Reward: 300¤ upon confirmed defeat. Inquire with Commander Robert at the Outpost Barracks.'",
+      "choices": [
+        {
+          "label": "Back to notices",
+          "tooltip": "Return to the board.",
+          "nextSceneId": "scene_notice_board"
+        }
+      ]
+    },
+    {
+      "id": "scene_notice_ruins_advisory",
+      "speakerName": "MILITARY ADVISORY",
+      "bodyText": "'BY ORDER OF COMMANDER ROBERT: The subterranean chambers of the Sunken Ruins to the south have exhibited hostile demonic surges. All travelers are forbidden from descending without full combat preparations.'",
+      "choices": [
+        {
+          "label": "Back to notices",
+          "tooltip": "Return to the board.",
+          "nextSceneId": "scene_notice_board"
+        }
+      ]
+    },
+    {
+      "id": "scene_notice_apothecary_request",
+      "speakerName": "APOTHECARY REQUEST",
+      "bodyText": "'HERBAL REAGENTS NEEDED: Apothecary Lyra seeks Moonblooms and Canis Roots from the Whispering Woods to brew restorative draughts for the garrison hospital. Fair compensation paid.'",
+      "choices": [
+        {
+          "label": "Back to notices",
+          "tooltip": "Return to the board.",
+          "nextSceneId": "scene_notice_board"
+        }
+      ]
+    }
+  ]
+}

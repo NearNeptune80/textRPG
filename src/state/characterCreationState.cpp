@@ -628,6 +628,7 @@ void characterCreationState::applyToEntity(entity* player)
 
     player->genderArchetype = (gender == "Female") ? GenderArchetype::FEMALE : GenderArchetype::MALE;
     player->orientation = (orientation == "Androphilic") ? SexualOrientation::HOMOSEXUAL : ((orientation == "Gynephilic") ? SexualOrientation::HETEROSEXUAL : SexualOrientation::BISEXUAL);
+    player->ensureSexualityStatusEffect();
 
     player->stats.setBaseStat("appeared_age", static_cast<float>(birthAge));
     player->birthDay = birthDay;

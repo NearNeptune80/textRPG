@@ -1,0 +1,108 @@
+{
+  "id": "quest_herbalist_tonic",
+  "name": "The Herbalist's Salve",
+  "category": "Side Quest",
+  "giver": "Herbalist Lyra",
+  "location": "Apothecary Shop",
+  "rewards": "150¤, 2 Antidotes, 2 Cooling Salves",
+  "description": "Herbalist Lyra needs 2 Moonblooms and 2 Canis Roots to brew vital restorative salves and antidotes for wounded garrison troops.",
+  "triggers": [],
+  "stages": {
+    "0": "Speak with Herbalist Lyra to learn what herbs she requires.",
+    "1": "Collect 2 Moonblooms and 2 Canis Roots from the Whispering Woods.",
+    "2": "Deliver the herbs to Herbalist Lyra at the Apothecary.",
+    "3": "Quest completed! Lyra rewarded you with restorative remedies."
+  },
+  "scenes": [
+    {
+      "id": "scene_lyra_quest_dialogue",
+      "speakerName": "Herbalist Lyra",
+      "bodyText": "Herbalist Lyra looks up from a bubbling glass alembic, a warm smile gracing her refined elven face.\n\n'Blessings of the grove upon you. Are you here to assist with our botanical stocks? The wounded soldiers need curative salves, but my reserves of Moonbloom and Canis Root are running dangerously low.'",
+      "choices": [
+        {
+          "label": "Deliver 2 Moonblooms and 2 Canis Roots",
+          "tooltip": "Hand over the harvested botanical ingredients.",
+          "requirements": [
+            {
+              "type": "HAS_ITEM",
+              "target": "item_moonbloom",
+              "requiredValue": 2
+            },
+            {
+              "type": "HAS_ITEM",
+              "target": "item_canis_root",
+              "requiredValue": 2
+            }
+          ],
+          "results": [
+            {
+              "action": "REMOVE_ITEM",
+              "target": "item_moonbloom",
+              "amount": 2
+            },
+            {
+              "action": "REMOVE_ITEM",
+              "target": "item_canis_root",
+              "amount": 2
+            },
+            {
+              "action": "SET_QUEST",
+              "target": "quest_herbalist_tonic",
+              "amount": 3
+            },
+            {
+              "action": "ADD_STAT",
+              "target": "currency",
+              "amount": 150
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "item_antidote_flask",
+              "amount": 2
+            },
+            {
+              "action": "GIVE_ITEM",
+              "target": "item_cooling_salve",
+              "amount": 2
+            }
+          ],
+          "nextSceneId": "scene_lyra_quest_complete"
+        },
+        {
+          "label": "I will search the Whispering Woods for the herbs.",
+          "tooltip": "Agree to gather the required botanicals.",
+          "requirements": [],
+          "results": [
+            {
+              "action": "SET_QUEST",
+              "target": "quest_herbalist_tonic",
+              "amount": 1
+            }
+          ],
+          "nextSceneId": "EXIT"
+        },
+        {
+          "label": "Farewell, Lyra.",
+          "tooltip": "Leave the apothecary counter.",
+          "requirements": [],
+          "results": [],
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "scene_lyra_quest_complete",
+      "speakerName": "Herbalist Lyra",
+      "bodyText": "'Splendid! These specimens are fresh and rich in natural potency,' Lyra beams gratefully. 'Take these prepared antidotes and burn-cooling salves. May the sylphs watch over your journey.'",
+      "choices": [
+        {
+          "label": "Thank you, Lyra.",
+          "tooltip": "Accept your rewards and bid farewell.",
+          "requirements": [],
+          "results": [],
+          "nextSceneId": "EXIT"
+        }
+      ]
+    }
+  ]
+}

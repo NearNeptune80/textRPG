@@ -465,6 +465,92 @@
       "category": "CONSUMABLE"
     },
     {
+      "id": "item_mana_potion",
+      "name": "Mana Potion",
+      "description": "A glowing azure potion humming with concentrated arcane energy. Restores 40 mana upon consumption.",
+      "tooltip": "Consumable elixir. Restores 40 MP.",
+      "baseValue": 40,
+      "isConsumable": true,
+      "isEquippable": false,
+      "isStackable": true,
+      "count": 1,
+      "targetSlot": "NONE",
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "mana",
+          "flatValue": 40.0,
+          "percentValue": 0.0
+        }
+      ],
+      "supportedDisplacements": {},
+      "category": "CONSUMABLE"
+    },
+    {
+      "id": "item_travelers_boots",
+      "name": "Traveler's Boots",
+      "description": "Sturdy leather walking boots made to withstand rough terrain.",
+      "tooltip": "Comfortable footwear (+2 Agility).",
+      "baseValue": 60,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "FEET",
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "agility",
+          "flatValue": 2.0,
+          "percentValue": 0.0
+        }
+      ],
+      "supportedDisplacements": {},
+      "category": "CLOTHING"
+    },
+    {
+      "id": "item_leather_collar",
+      "name": "Leather Collar",
+      "description": "A supple leather neckband fitted with a polished brass buckle.",
+      "tooltip": "Neckwear collar.",
+      "baseValue": 45,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "NECKWEAR",
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [],
+      "supportedDisplacements": {},
+      "category": "CLOTHING"
+    },
+    {
+      "id": "item_arcane_crystal",
+      "name": "Arcane Crystal",
+      "description": "A raw crystalline geode pulsing with dormant magical resonance.",
+      "tooltip": "Magical curiosity (+3 Arcane).",
+      "baseValue": 120,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "WEAPON_OFF",
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "statModifiers": [
+        {
+          "statName": "arcane",
+          "flatValue": 3.0,
+          "percentValue": 0.0
+        }
+      ],
+      "supportedDisplacements": {},
+      "category": "WEAPON"
+    },
+    {
       "id": "item_dagger_iron",
       "name": "Iron Dagger",
       "description": "A sharp, reliable utility dagger forged from folded iron with a leather-wrapped hilt.",
@@ -1940,6 +2026,259 @@
           "GROIN"
         ]
       }
+    },
+    {
+      "id": "item_iron_dagger",
+      "name": "Iron Dagger",
+      "description": "A keen, balanced iron dagger with a leather-wrapped grip. Light and agile for rapid thrusts and critical strikes.",
+      "baseValue": 25,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "WEAPON_MAIN",
+      "validSlots": ["WEAPON_MAIN", "WEAPON_OFF"],
+      "weaponSkills": ["skill_thrust", "skill_slash"],
+      "statModifiers": [
+        { "statName": "agility", "flatValue": 2.0, "percentValue": 0.0 }
+      ],
+      "category": "WEAPON"
+    },
+    {
+      "id": "item_steel_longsword",
+      "name": "Steel Longsword",
+      "description": "A finely forged double-edged steel longsword with full crossguard. Delivers disciplined, sweeping slashes in martial combat.",
+      "baseValue": 80,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "WEAPON_MAIN",
+      "validSlots": ["WEAPON_MAIN", "WEAPON_OFF"],
+      "weaponSkills": ["skill_slash", "skill_thrust", "skill_pommel_strike"],
+      "statModifiers": [
+        { "statName": "physique", "flatValue": 4.0, "percentValue": 0.0 }
+      ],
+      "category": "WEAPON"
+    },
+    {
+      "id": "item_heavy_warhammer",
+      "name": "Heavy Warhammer",
+      "description": "A massive steel maul forged by Donald. Its weighty head is designed to crush armor and stagger heavy foes.",
+      "baseValue": 120,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "WEAPON_MAIN",
+      "validSlots": ["WEAPON_MAIN"],
+      "weaponSkills": ["skill_heavy_cleave", "skill_pommel_strike"],
+      "statModifiers": [
+        { "statName": "physique", "flatValue": 6.0, "percentValue": 0.0 }
+      ],
+      "category": "WEAPON"
+    },
+    {
+      "id": "item_steel_shield",
+      "name": "Steel Heater Shield",
+      "description": "A reinforced steel kite shield bearing the garrison chevron. Absorbs incoming physical and projectile attacks.",
+      "baseValue": 65,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "WEAPON_OFF",
+      "validSlots": ["WEAPON_OFF"],
+      "statModifiers": [
+        { "statName": "toughness", "flatValue": 5.0, "percentValue": 0.0 }
+      ],
+      "category": "WEAPON"
+    },
+    {
+      "id": "item_steel_chestplate",
+      "name": "Steel Chestplate",
+      "description": "Form-fitted polished steel cuirass over padded leather. Provides superior defense against slashing and piercing strikes.",
+      "baseValue": 150,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "TORSO_OVER",
+      "validSlots": ["TORSO_OVER"],
+      "statModifiers": [
+        { "statName": "toughness", "flatValue": 8.0, "percentValue": 0.0 }
+      ],
+      "category": "CLOTHING"
+    },
+    {
+      "id": "item_chainmail_hauberk",
+      "name": "Chainmail Hauberk",
+      "description": "Interlocking steel rings forming a protective shirt that extends past the hips.",
+      "baseValue": 100,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "TORSO_OVER",
+      "validSlots": ["TORSO_OVER", "TORSO_UNDER"],
+      "statModifiers": [
+        { "statName": "toughness", "flatValue": 5.0, "percentValue": 0.0 }
+      ],
+      "category": "CLOTHING"
+    },
+    {
+      "id": "item_steel_boots",
+      "name": "Steel Greaves & Sabatons",
+      "description": "Heavy plated steel greaves protecting the shins and feet.",
+      "baseValue": 60,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "FEET",
+      "validSlots": ["FEET"],
+      "statModifiers": [
+        { "statName": "toughness", "flatValue": 3.0, "percentValue": 0.0 }
+      ],
+      "category": "CLOTHING"
+    },
+    {
+      "id": "item_iron_ring",
+      "name": "Engraved Iron Ring",
+      "description": "A sturdy band of iron engraved with subtle defensive runes.",
+      "baseValue": 40,
+      "isConsumable": false,
+      "isEquippable": true,
+      "isStackable": false,
+      "count": 1,
+      "targetSlot": "FINGER_PRIMARY",
+      "validSlots": ["FINGER_PRIMARY", "FINGER_SECONDARY"],
+      "statModifiers": [
+        { "statName": "willpower", "flatValue": 2.0, "percentValue": 0.0 }
+      ],
+      "category": "ACCESSORY"
+    },
+    {
+      "id": "item_antidote_flask",
+      "name": "Antidote Flask",
+      "description": "A pungent herbal infusion distilled from wild mint and crushed roots. Instantly neutralizes venom and cleanses poison status.",
+      "baseValue": 30,
+      "isConsumable": true,
+      "isEquippable": false,
+      "isStackable": true,
+      "count": 1,
+      "statModifiers": [
+        { "statName": "health", "flatValue": 15.0, "percentValue": 0.0 }
+      ],
+      "category": "CONSUMABLE"
+    },
+    {
+      "id": "item_cooling_salve",
+      "name": "Cooling Salve",
+      "description": "A soothing alabaster balm of crushed frost-leaves. Extinguishes burns and cleanses burning status while soothing blistered skin.",
+      "baseValue": 35,
+      "isConsumable": true,
+      "isEquippable": false,
+      "isStackable": true,
+      "count": 1,
+      "statModifiers": [
+        { "statName": "health", "flatValue": 20.0, "percentValue": 0.0 }
+      ],
+      "category": "CONSUMABLE"
+    },
+    {
+      "id": "item_bandages",
+      "name": "Clean Linen Bandages",
+      "description": "Sterilized cloth strips used to dress lacerations. Stanches open wounds and cleanses bleeding status.",
+      "baseValue": 15,
+      "isConsumable": true,
+      "isEquippable": false,
+      "isStackable": true,
+      "count": 1,
+      "statModifiers": [
+        { "statName": "health", "flatValue": 10.0, "percentValue": 0.0 }
+      ],
+      "category": "CONSUMABLE"
+    },
+    {
+      "id": "item_elixir_empowerment",
+      "name": "Elixir of Empowerment",
+      "description": "A shimmering golden draught that supercharges muscles, applying the empowered status effect (+25% damage boost).",
+      "baseValue": 90,
+      "isConsumable": true,
+      "isEquippable": false,
+      "isStackable": true,
+      "count": 1,
+      "category": "CONSUMABLE"
+    },
+    {
+      "id": "item_mutagen_draught",
+      "name": "Primal Mutagen Draught",
+      "description": "An alchemical vial swirling with unstable biological essence. Accelerates body adaptability and stirs latent racial genetics.",
+      "baseValue": 150,
+      "isConsumable": true,
+      "isEquippable": false,
+      "isStackable": true,
+      "count": 1,
+      "category": "CONSUMABLE"
+    },
+    {
+      "id": "item_moonbloom",
+      "name": "Moonbloom Petals",
+      "description": "Luminescent petals harvested from nocturnal forest blossoms. Prized by alchemists for restorative and purifying recipes.",
+      "baseValue": 25,
+      "isConsumable": false,
+      "isEquippable": false,
+      "isStackable": true,
+      "count": 1,
+      "category": "MATERIAL"
+    },
+    {
+      "id": "item_iron_ore",
+      "name": "Raw Iron Ore",
+      "description": "Dense, unrefined iron ore extracted from regional crags, ready for the smelting furnace.",
+      "baseValue": 10,
+      "isConsumable": false,
+      "isEquippable": false,
+      "isStackable": true,
+      "count": 1,
+      "category": "MATERIAL"
+    },
+    {
+      "id": "item_rusted_keystone",
+      "name": "Rusted Keystone",
+      "description": "An ancient, heavy iron key inscribed with concentric ward circles. Fits the sealed archway leading into the Sunken Ruins.",
+      "baseValue": 0,
+      "isConsumable": false,
+      "isEquippable": false,
+      "isStackable": false,
+      "isKeyItem": true,
+      "count": 1,
+      "category": "KEY_ITEM"
+    },
+    {
+      "id": "item_dark_heart_core",
+      "name": "Dark Heart Core",
+      "description": "The pulsating, necrotic nucleus recovered from the Sunken Ruins altar. A font of concentrated dark energy that can be cleansed, analyzed, or consumed.",
+      "baseValue": 500,
+      "isConsumable": false,
+      "isEquippable": false,
+      "isStackable": false,
+      "isKeyItem": true,
+      "count": 1,
+      "category": "KEY_ITEM"
+    },
+    {
+      "id": "item_outpost_seal",
+      "name": "Outpost Commission Seal",
+      "description": "An official stamped bronze medallion issued by Commander Robert certifying your standing as a registered Valley adventurer.",
+      "baseValue": 0,
+      "isConsumable": false,
+      "isEquippable": false,
+      "isStackable": false,
+      "isKeyItem": true,
+      "count": 1,
+      "category": "KEY_ITEM"
     }
   ]
 }

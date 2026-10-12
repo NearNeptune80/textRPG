@@ -223,14 +223,32 @@ bool NamedCharacterManager::loadFromDirectory(const std::string& dirPath)
             ent->genderArchetype = stringToGenderArchetype(genderStr);
         }
 
-        std::string raceStr = cJson.value("race", "");
-        if (!raceStr.empty())
+        if (cJson.contains("orientation"))
         {
-            bodyPart torso;
-            torso.id = "part_torso_" + raceStr;
-            torso.name = "Torso";
-            torso.race = raceStr;
-            ent->anatomy.setPart(bodySlot::TORSO, torso);
+            ent->orientation = stringToSexualOrientation(cJson["orientation"].get<std::string>());
+        }
+
+        std::string raceStr = cJson.value("race", "");
+        if (cJson.contains("anatomy") && cJson["anatomy"].is_object())
+        {
+            nlohmann::json wrap;
+            wrap["anatomy"] = cJson["anatomy"];
+            ent->fromJson(wrap);
+        }
+        else if (!raceStr.empty())
+        {
+            for (size_t s = 0; s < BODY_SLOT_COUNT; ++s)
+            {
+                bodySlot bs = static_cast<bodySlot>(s);
+                if (bs == bodySlot::HORNS || bs == bodySlot::WINGS || bs == bodySlot::TAIL || bs == bodySlot::TENTACLES)
+                    continue;
+                bodyPart p;
+                p.id = "part_" + getSlotName(bs) + "_" + raceStr;
+                p.name = getSlotName(bs);
+                p.race = raceStr;
+                p.primaryColor = (raceStr == "Orc") ? "Green" : ((raceStr == "Elf") ? "Pale" : "Fair");
+                ent->anatomy.setPart(bs, p);
+            }
         }
 
         if (cJson.contains("unlockedPerks") && cJson["unlockedPerks"].is_array())
@@ -248,6 +266,7 @@ bool NamedCharacterManager::loadFromDirectory(const std::string& dirPath)
             }
         }
 
+        ent->ensureSexualityStatusEffect();
         nc->characterEntity = ent;
 
         if (cJson.contains("schedules") && cJson["schedules"].is_array())

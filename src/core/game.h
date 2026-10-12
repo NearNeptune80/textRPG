@@ -105,7 +105,10 @@ public:
     void handleCommand(const UICommand& cmd);
 
     const questScene& getCurrentScene() const { return currentScene; }
-    entity* getPlayer() const { return playerEntity.get(); }
+    entity* getPlayer() const {
+        if (playerEntity) playerEntity->ensureSexualityStatusEffect();
+        return playerEntity.get();
+    }
     std::shared_ptr<entity> getPlayerShared() const { return playerEntity; }
     entity* getActiveTargetNPC() const { return activeTargetNPC.get(); }
     std::shared_ptr<entity> getActiveTargetNPCShared() const { return activeTargetNPC; }
@@ -152,6 +155,7 @@ public:
     bool checkSingleCondition(const gameCondition &cond) const;
 
     void loadScene(const std::string& sceneId, bool bypassWarning = false);
+    void openNPCTalkMenu(std::shared_ptr<entity> npc);
     void processChoice(const dialogueChoice& choice);
     void processEffect(const gameEffect &eff);
     bool checkConditions(const std::vector<conditionNode> &conditions);

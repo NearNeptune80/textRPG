@@ -1,0 +1,76 @@
+{
+  "id": "blacksmith_shop",
+  "name": "Blacksmith Forge",
+  "entranceDescription": "the Blacksmith Forge",
+  "width": 7,
+  "height": 6,
+  "tiles": [
+    [ 0, 0, 0, 0, 0, 0, 0 ],
+    [ 0, 1, 1, 1, 1, 1, 0 ],
+    [ 0, 1, 1, 1, 1, 1, 0 ],
+    [ 0, 1, 1, 1, 1, 1, 0 ],
+    [ 0, 1, 1, 3, 1, 1, 0 ],
+    [ 0, 0, 0, 0, 0, 0, 0 ]
+  ],
+  "dangerLevels": [
+    [ 0, 0, 0, 0, 0, 0, 0 ],
+    [ 0, 0, 0, 0, 0, 0, 0 ],
+    [ 0, 0, 0, 0, 0, 0, 0 ],
+    [ 0, 0, 0, 0, 0, 0, 0 ],
+    [ 0, 0, 0, 0, 0, 0, 0 ],
+    [ 0, 0, 0, 0, 0, 0, 0 ]
+  ],
+  "warps": [
+    {
+      "x": 3,
+      "y": 4,
+      "targetMap": "overworld",
+      "targetX": 2,
+      "targetY": 4,
+      "label": "Exit to Outpost Street",
+      "entranceDescription": "the Outpost Street"
+    }
+  ],
+  "defaultDescriptions": [
+    "A wave of intense heat and the rhythmic clanging of heavy steel on iron fills the Blacksmith Forge.",
+    "Sparks shower from the central hearth as glowing ingots are hammered into shape. Armor stands display reinforced chainmail, iron plate, and polished edge weapons."
+  ],
+  "tileDescriptions": {
+    "3,4": [
+      "You stand near the wide open doorway of the smithy, cooling breeze cutting through the forge heat.",
+      "A stone quench trough sits near the threshold beside stacks of seasoned firewood and charcoal."
+    ],
+    "3,2": [
+      "You stand before the massive anvil where Blacksmith Donald wields a massive forging hammer with effortless orcish power.",
+      "Donald inspects a freshly tempered blade, sparks bouncing off his thick leather apron."
+    ]
+  },
+  "tileTags": {
+    "1,2": [ "armor_displays" ],
+    "5,2": [ "blazing_forge" ],
+    "3,2": [ "heavy_anvil" ]
+  },
+  "tagDescriptions": {
+    "armor_displays": [
+      "Heavy timber mannequins suited with riveted chain vests, studded armguards, and reinforced greaves."
+    ],
+    "blazing_forge": [
+      "A massive brick furnace fed by bellow-pumped air, radiating white-hot coals capable of melting iron and forging alloys."
+    ],
+    "heavy_anvil": [
+      "A massive block of hardened steel anchored in an ancient stump, bearing decades of hammer marks."
+    ]
+  },
+  "triggers": [
+    {
+      "id": "trig_blacksmith_donald",
+      "mapId": "blacksmith_shop",
+      "x": 3,
+      "y": 2,
+      "label": "Speak with Blacksmith Donald",
+      "tooltip": "Browse martial armaments, repair gear, or inquire about metalwork.",
+      "description": "Blacksmith Donald sets his heavy hammer down on the anvil and crosses his massive arms with a deep, rumbling grunt of greeting.",
+      "sceneId": "scene_blacksmith_donald"
+    }
+  ]
+}

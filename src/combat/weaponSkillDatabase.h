@@ -21,6 +21,9 @@ struct WeaponSkill
     std::string statusEffect = "";
     std::string description;
     float baseMagnitude = 25.0f;
+    std::string requiredRace;
+    int requiredLevel = 1;
+    bool unlocked = true;
 
     CombatAction toCombatAction(const std::string& weaponElement = "physical") const;
 };

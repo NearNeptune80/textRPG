@@ -976,14 +976,15 @@ void sexState::handleUndressAll(game* gameContext, bool targetIsPlayer)
 
 bool sexState::isActionAccessible(const SexAction& action, const SexParticipant& actor, const SexParticipant& target, std::string* outInaccessibleReason) const
 {
+	const SexParticipant& actualTarget = (action.category == "Self" || action.isSolo) ? actor : target;
 	entity* actorEnt = actor.getEntity();
-	entity* targetEnt = target.getEntity();
+	entity* targetEnt = actualTarget.getEntity();
 
 	if (action.id == "partner_strip" || action.id == "generic_cmd_strip")
 	{
 		if (targetEnt && targetEnt->inventory.isFullyExposed())
 		{
-			if (outInaccessibleReason) *outInaccessibleReason = std::format("{} is already unclothed.", target.getName());
+			if (outInaccessibleReason) *outInaccessibleReason = std::format("{} is already unclothed.", actualTarget.getName());
 			return false;
 		}
 		return true;
@@ -1025,7 +1026,7 @@ bool sexState::isActionAccessible(const SexAction& action, const SexParticipant&
 		{
 			if (outInaccessibleReason)
 			{
-				*outInaccessibleReason = target.isPlayer ? "Your groin is covered by clothing." : std::format("{}'s groin is covered by clothing.", target.getName());
+				*outInaccessibleReason = actualTarget.isPlayer ? "Your groin is covered by clothing." : std::format("{}'s groin is covered by clothing.", actualTarget.getName());
 			}
 			return false;
 		}
@@ -1039,7 +1040,7 @@ bool sexState::isActionAccessible(const SexAction& action, const SexParticipant&
 		{
 			if (outInaccessibleReason)
 			{
-				*outInaccessibleReason = target.isPlayer ? "Your rear is covered by clothing." : std::format("{}'s rear is covered by clothing.", target.getName());
+				*outInaccessibleReason = actualTarget.isPlayer ? "Your rear is covered by clothing." : std::format("{}'s rear is covered by clothing.", actualTarget.getName());
 			}
 			return false;
 		}
@@ -1053,7 +1054,7 @@ bool sexState::isActionAccessible(const SexAction& action, const SexParticipant&
 		{
 			if (outInaccessibleReason)
 			{
-				*outInaccessibleReason = target.isPlayer ? "Your chest is covered by clothing." : std::format("{}'s chest is covered by clothing.", target.getName());
+				*outInaccessibleReason = actualTarget.isPlayer ? "Your chest is covered by clothing." : std::format("{}'s chest is covered by clothing.", actualTarget.getName());
 			}
 			return false;
 		}
@@ -1095,7 +1096,7 @@ bool sexState::isActionAccessible(const SexAction& action, const SexParticipant&
 	}
 	if (action.targetSlot == bodySlot::MOUTH && targetEnt && !targetEnt->inventory.isSlotExposed(bodySlot::MOUTH))
 	{
-		if (outInaccessibleReason) *outInaccessibleReason = target.isPlayer ? "Your mouth is obstructed." : std::format("{}'s mouth is obstructed.", target.getName());
+		if (outInaccessibleReason) *outInaccessibleReason = actualTarget.isPlayer ? "Your mouth is obstructed." : std::format("{}'s mouth is obstructed.", actualTarget.getName());
 		return false;
 	}
 
@@ -1583,12 +1584,13 @@ bool sexState::executeAction(game* gameContext, const SexAction& action)
 	}
 
 	SexParticipant* targetP = isSolo() ? playerP : getTargetParticipant();
-	if (!targetP) return false;
+	SexParticipant* effectiveTarget = (action.category == "Self" || action.isSolo || isSolo()) ? playerP : targetP;
+	if (!effectiveTarget) return false;
 
-	entity* targetEnt = targetP->getEntity();
+	entity* targetEnt = effectiveTarget->getEntity();
 
 	std::string inaccReason;
-	if (!isActionAccessible(action, *playerP, *targetP, &inaccReason))
+	if (!isActionAccessible(action, *playerP, *effectiveTarget, &inaccReason))
 	{
 		appendNarrativeEntry(std::format("Cannot perform {}: {}", action.name, inaccReason), "Scene", "Inaccessible", true, true);
 		return false;
@@ -1596,7 +1598,7 @@ bool sexState::executeAction(game* gameContext, const SexAction& action)
 
 	if (action.id == "partner_strip" || action.id == "generic_cmd_strip")
 	{
-		undressEntity(targetEnt);
+		undressEntity(targetP ? targetP->getEntity() : targetEnt);
 	}
 	else if (action.id == "self_strip" || action.id == "sub_strip_offer")
 	{
@@ -1605,7 +1607,7 @@ bool sexState::executeAction(game* gameContext, const SexAction& action)
 	else if (action.id == "generic_undress_mutual")
 	{
 		undressEntity(playerEnt);
-		undressEntity(targetEnt);
+		if (targetP) undressEntity(targetP->getEntity());
 	}
 
 	applyClothingDisplacementsForAction(action, playerEnt, targetEnt);

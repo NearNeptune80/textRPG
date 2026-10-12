@@ -123,6 +123,7 @@ namespace EntityListWidgets
 
         entity* npc = selectedShared.get();
         if (!npc) return 0.0f;
+        npc->ensureSexualityStatusEffect();
 
         float startY = curY;
         float padX = curX + (5.0f * uiScale);
@@ -190,9 +191,7 @@ namespace EntityListWidgets
         UIWidget::drawText(renderer, initials, avatarRect.x + ((avatarSize - initW) / 2.0f), avatarRect.y + (5.0f * uiScale), headerCol, uiScale * 0.78f);
 
         std::string raceStr = npc->anatomy.getRacialTitle().empty() ? "Demon" : npc->anatomy.getRacialTitle();
-        TooltipManager::setHoverTooltip(avatarRect, mousePos, npc->name,
-                                        "Character engaged in active interaction or combat.",
-                                        std::format("Level {} • {}", npc->stats.level, raceStr));
+        TooltipManager::setHoverTooltip(avatarRect, mousePos, CharacterCardWidget::createAnatomyTooltip(npc, gameContext ? gameContext->getPlayer() : nullptr));
 
         UIWidget::drawText(renderer, npc->name, s1ContentX + avatarSize + (6.0f * uiScale), s1Y + (1.0f * uiScale), Theme::colors.textGold, uiScale * 0.84f);
         std::string lvlStr = std::format("Lvl {} • {}", npc->stats.level, raceStr);

@@ -666,6 +666,70 @@
         "expert_appraisal",
         "trade_monopoly"
       ]
+    },
+    {
+      "id": "perk_elven_grace",
+      "name": "Sylph Heritage",
+      "category": "Physical",
+      "tier": 1,
+      "cost": 2,
+      "parents": [],
+      "description": "Innate Elven grace enhances nimbleness (+10 Agility, +5% Dodge).",
+      "statModifiers": {
+        "agility": 10.0
+      },
+      "flags": [
+        "elven_grace"
+      ]
+    },
+    {
+      "id": "perk_orcish_might",
+      "name": "Iron Ridge Resilience",
+      "category": "Physical",
+      "tier": 1,
+      "cost": 2,
+      "parents": [],
+      "description": "Unyielding Orcish endurance (+15 Max Health, +8 Physique).",
+      "statModifiers": {
+        "max_health": 15.0,
+        "physique": 8.0
+      },
+      "flags": [
+        "orcish_might"
+      ]
+    },
+    {
+      "id": "perk_demonic_vitality",
+      "name": "Nether Flame Attunement",
+      "category": "Demonic",
+      "tier": 1,
+      "cost": 2,
+      "parents": [],
+      "description": "Demonic heritage feeds on magical dissipation (+20 Max Mana, +10 Arcane Power).",
+      "statModifiers": {
+        "max_mana": 20.0,
+        "arcane_power": 10.0
+      },
+      "flags": [
+        "demonic_vitality"
+      ]
+    },
+    {
+      "id": "perk_grove_cleanser",
+      "name": "Grove Cleanser",
+      "category": "Combo",
+      "tier": 2,
+      "cost": 3,
+      "parents": [],
+      "description": "Bestowed for purging the corrupting heart in the Sunken Ruins (+25 Max Health, +25 Max Mana).",
+      "statModifiers": {
+        "max_health": 25.0,
+        "max_mana": 25.0
+      },
+      "flags": [
+        "grove_cleanser",
+        "warding_mastery"
+      ]
     }
   ]
 }
