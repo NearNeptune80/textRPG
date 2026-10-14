@@ -36,25 +36,50 @@
     },
     {
       "id": "cleanse",
-      "name": "Cleanse",
+      "name": "Purifying Cleanse",
       "school": "Restoration",
       "mpCost": 20,
       "staminaCost": 10.0,
       "heal": 40.0,
       "requiredLevel": 2,
       "description": "Channels pure energy to purge negative debuffs and restore physical health.",
-      "unlocked": false
+      "unlocked": true,
+      "canCastInOverworld": true,
+      "overworldEffect": {
+        "type": "HEAL_AND_PURGE",
+        "magnitude": 40.0
+      }
     },
     {
       "id": "teleport",
-      "name": "Blink",
+      "name": "Waypoint Recall",
       "school": "Translocation",
       "mpCost": 30,
       "staminaCost": 10.0,
       "agilityBonus": 15.0,
       "requiredLevel": 5,
-      "description": "Instantly teleports the caster a short distance across the battlefield or room.",
-      "unlocked": false
+      "description": "Warps player back to the active town hub.",
+      "unlocked": true,
+      "canCastInOverworld": true,
+      "overworldEffect": {
+        "type": "TELEPORT_WAYPOINT",
+        "target": "overworld"
+      }
+    },
+    {
+      "id": "illuminate",
+      "name": "Radiant Illumination",
+      "school": "Divination",
+      "mpCost": 15,
+      "staminaCost": 5.0,
+      "requiredLevel": 1,
+      "description": "Dispels darkness penalty and expands vision for 60 minutes.",
+      "unlocked": true,
+      "canCastInOverworld": true,
+      "overworldEffect": {
+        "type": "ILLUMINATE",
+        "durationMinutes": 60
+      }
     },
     {
       "id": "summon_sylph",

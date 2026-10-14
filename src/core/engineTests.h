@@ -44,5 +44,8 @@ namespace EngineTests
     bool testCustomizableTileUpgradeTreesAndSafeStorage();
     bool testBinaryOffspringAndNurserySystem();
     bool testComposableNPCTemplatesFluidBottlingAndClientRooms();
+    bool testUniversalAffectionAndCorruptionMeters();
+    bool testWeatherAndItemFluidSoiling();
+    bool testOverworldSpellCasting();
 }
 

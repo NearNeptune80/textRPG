@@ -146,7 +146,7 @@ namespace EntityListWidgets
         float statusSectionH = (numEffectRows == 0) ? 0.0f : ((numEffectRows * chipSize) + ((numEffectRows - 1) * chipGap) + (6.0f * uiScale));
 
         float sub1H = 58.0f * uiScale;
-        float vitalsTopH = 80.0f * uiScale;;
+        float vitalsTopH = 108.0f * uiScale;
         float sub2H = vitalsTopH + statusSectionH + (4.0f * uiScale);
         float headerH = 20.0f * uiScale;
         float outerH = headerH + (3.0f * uiScale) + sub1H + (5.0f * uiScale) + sub2H + (5.0f * uiScale);
@@ -333,6 +333,27 @@ namespace EntityListWidgets
         TooltipManager::setHoverTooltip({ s2ContentX, s2Y, s2ContentW, barH }, mousePos, "Lust & Arousal",
                                         "Susceptibility to flirtation, seduction, and erotic submission. Reaching 100% forces surrender.",
                                         std::format("{:.0f}% Lust / Arousal", (curLust / maxLust) * 100.0f));
+        s2Y += barH + barGap;
+
+        float aff = npc->affection;
+        float affBarVal = std::clamp(aff + 100.0f, 0.0f, 200.0f);
+        UIWidget::drawText(renderer, "Affect.", s2ContentX, s2Y, Theme::colors.affection, uiScale * 0.65f);
+        UIWidget::drawProgressBar(renderer, { s2ContentX + labelW, s2Y, progressW, barH }, affBarVal, 200.0f, Theme::colors.affection, Theme::colors.bgHeader, "", uiScale);
+        std::string affStr = std::format("{:+.0f}", aff);
+        UIWidget::drawText(renderer, affStr, s2ContentX + labelW + progressW + (4.0f * uiScale), s2Y, Theme::colors.textPrimary, uiScale * 0.62f);
+        TooltipManager::setHoverTooltip({ s2ContentX, s2Y, s2ContentW, barH }, mousePos, "Affection Meter",
+                                        "NPC disposition towards the protagonist (-100 Hostile to +100 Devoted).",
+                                        std::format("{:+.0f} Affection", aff));
+        s2Y += barH + barGap;
+
+        float corr = npc->corruption;
+        UIWidget::drawText(renderer, "Corrupt.", s2ContentX, s2Y, Theme::colors.corruption, uiScale * 0.65f);
+        UIWidget::drawProgressBar(renderer, { s2ContentX + labelW, s2Y, progressW, barH }, corr, 100.0f, Theme::colors.corruption, Theme::colors.bgHeader, "", uiScale);
+        std::string corrStr = std::format("{:.0f}%", corr);
+        UIWidget::drawText(renderer, corrStr, s2ContentX + labelW + progressW + (4.0f * uiScale), s2Y, Theme::colors.textPrimary, uiScale * 0.62f);
+        TooltipManager::setHoverTooltip({ s2ContentX, s2Y, s2ContentW, barH }, mousePos, "Corruption Meter",
+                                        "Spiritual depravity and degradation (0% Pure to 100% Depraved).",
+                                        std::format("{:.0f}% Corruption", corr));
         s2Y += barH + (6.0f * uiScale);
 
         if (!effects.empty())

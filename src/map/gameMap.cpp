@@ -408,16 +408,19 @@ void gameMap::updateDiscovery(int playerX, int playerY, int visionRadius)
         grid[playerY][playerX].discovery = STATE_REVEALED;
     }
 
-    static const int cardinals[4][2] = { {0, -1}, {0, 1}, {-1, 0}, {1, 0} };
-    for (const auto& [dx, dy] : cardinals)
+    if (visionRadius > 1)
     {
-        int tx = playerX + dx;
-        int ty = playerY + dy;
-        if (tx >= 0 && tx < width && ty >= 0 && ty < height)
+        static const int cardinals[4][2] = { {0, -1}, {0, 1}, {-1, 0}, {1, 0} };
+        for (const auto& [dx, dy] : cardinals)
         {
-            if (grid[ty][tx].type != TILE_VOID && !grid[ty][tx].visited)
+            int tx = playerX + dx;
+            int ty = playerY + dy;
+            if (tx >= 0 && tx < width && ty >= 0 && ty < height)
             {
-                grid[ty][tx].discovery = STATE_PARTIAL;
+                if (grid[ty][tx].type != TILE_VOID && !grid[ty][tx].visited)
+                {
+                    grid[ty][tx].discovery = STATE_PARTIAL;
+                }
             }
         }
     }

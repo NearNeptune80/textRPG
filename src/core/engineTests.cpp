@@ -66,6 +66,7 @@
 #include "state/nurseryState.h"
 #include "entities/composableTemplateManager.h"
 #include "items/fluidHarvesting.h"
+#include "core/weatherManager.h"
 #include "state/sexState.h"
 
 namespace EngineTests
@@ -6859,6 +6860,253 @@ namespace EngineTests
         return allPassed;
     }
 
+    bool testUniversalAffectionAndCorruptionMeters()
+    {
+        std::cout << "\n--- Test Suite 58: Universal Affection & Corruption Meters ---\n";
+        bool allPassed = true;
+
+        // 1. Affection clamps strictly between -100.0 and +100.0
+        entity ent;
+        ent.affection = 0.0f;
+        ent.modifyAffection(150.0f);
+        bool clampUpper = (ent.affection == 100.0f);
+        ent.modifyAffection(-250.0f);
+        bool clampLower = (ent.affection == -100.0f);
+        ent.modifyAffection(40.0f);
+        bool clampMid = (ent.affection == -60.0f);
+        bool affClamped = clampUpper && clampLower && clampMid;
+        logResult("Affection clamps strictly between -100.0 and +100.0", affClamped);
+        allPassed &= affClamped;
+
+        // 2. Corruption clamps strictly between 0.0 and 100.0
+        ent.corruption = 0.0f;
+        ent.modifyCorruption(150.0f);
+        bool corrUpper = (ent.corruption == 100.0f);
+        ent.modifyCorruption(-40.0f);
+        bool corrMid = (ent.corruption == 60.0f);
+        ent.modifyCorruption(-100.0f);
+        bool corrLower = (ent.corruption == 0.0f);
+        bool corrClamped = corrUpper && corrMid && corrLower;
+        logResult("Corruption clamps strictly between 0.0 and 100.0", corrClamped);
+        allPassed &= corrClamped;
+
+        // 3. Both stats persist accurately through JSON serialization and load cycles
+        ent.affection = 35.5f;
+        ent.corruption = 72.0f;
+        nlohmann::json j = ent.toJson();
+        entity entLoaded;
+        entLoaded.fromJson(j);
+        bool jsonPersist = (std::abs(entLoaded.affection - 35.5f) < 0.01f && std::abs(entLoaded.corruption - 72.0f) < 0.01f);
+        logResult("Both stats persist accurately through JSON serialization and load cycles", jsonPersist);
+        allPassed &= jsonPersist;
+
+        // 4. Condition evaluation unlocks dialogue branches when MIN_AFFECTION threshold is met
+        game testGame;
+        testGame.init();
+        auto hero = std::make_shared<entity>("hero", "Hero");
+        testGame.playerEntity = hero;
+        testGame.Player = hero.get();
+
+        auto targetNpc = std::make_shared<entity>();
+        targetNpc->id = "test_npc";
+        targetNpc->name = "Test NPC";
+        targetNpc->affection = 40.0f;
+        targetNpc->corruption = 65.0f;
+        testGame.activeTargetNPC = targetNpc;
+
+        gameCondition condAffPass;
+        condAffPass.type = "MIN_AFFECTION";
+        condAffPass.floatValue = 30.0f;
+        bool affPassed = testGame.checkSingleCondition(condAffPass);
+
+        gameCondition condAffFail;
+        condAffFail.type = "MIN_AFFECTION";
+        condAffFail.floatValue = 50.0f;
+        bool affFailed = !testGame.checkSingleCondition(condAffFail);
+
+        gameCondition condCorrPass;
+        condCorrPass.type = "MIN_CORRUPTION";
+        condCorrPass.floatValue = 50.0f;
+        bool corrPassed = testGame.checkSingleCondition(condCorrPass);
+
+        bool condEvalOk = affPassed && affFailed && corrPassed;
+        logResult("Condition evaluation unlocks dialogue branches when MIN_AFFECTION threshold is met", condEvalOk);
+        allPassed &= condEvalOk;
+
+        return allPassed;
+    }
+
+    bool testWeatherAndItemFluidSoiling()
+    {
+        std::cout << "\n--- Test Suite 59: Weather & Item Fluid Soiling ---\n";
+        bool allPassed = true;
+
+        // 1. Ejaculating onto a clothed chest stains CHEST_WEAR, recording cum volume and marking isDirty = true
+        game testGame;
+        testGame.init();
+        auto hero = std::make_shared<entity>("hero", "Hero");
+        hero->stats.setBaseStat("charm", 10.0f);
+        testGame.playerEntity = hero;
+        testGame.Player = hero.get();
+
+        auto chestItem = std::make_shared<item>();
+        chestItem->id = "apparel_tunic";
+        chestItem->name = "Cloth Tunic";
+        chestItem->targetSlot = equipSlot::CHEST_WEAR;
+        chestItem->isEquippable = true;
+        chestItem->soiling.clean();
+        hero->inventory.equipped[static_cast<size_t>(equipSlot::CHEST_WEAR)] = chestItem;
+        hero->invalidateStatCache();
+
+        float baseCharmClean = hero->getStat("charm");
+
+        auto partner = std::make_shared<entity>("partner_demon", "Demon Partner");
+        bodyPart groin;
+        groin.currentFluidMl = 40.0f;
+        groin.maxFluidMl = 100.0f;
+        partner->anatomy.setPart(bodySlot::GROIN, groin);
+        testGame.activeTargetNPC = partner;
+
+        sexState sex(partner);
+        sex.processOrgasm(&testGame, partner.get(), hero.get(), bodySlot::BREASTS);
+
+        bool chestStained = (chestItem->soiling.isDirty && chestItem->soiling.cumStainMl > 0.0f);
+        float baseCharmSoiled = hero->getStat("charm");
+        bool charmPenaltyApplied = (std::abs((baseCharmClean - baseCharmSoiled) - 2.0f) < 0.01f);
+
+        bool ejaculationStainOk = chestStained && charmPenaltyApplied;
+        logResult("Ejaculating onto a clothed chest stains CHEST_WEAR, recording cum volume and marking isDirty = true", ejaculationStainOk);
+        allPassed &= ejaculationStainOk;
+
+        // 2. Washing at a water tile cleanses all stains and resets isDirty
+        testGame.washGarments();
+        bool washedClean = (!chestItem->soiling.isDirty && chestItem->soiling.cumStainMl == 0.0f);
+        float charmRestored = hero->getStat("charm");
+        bool charmRestoredOk = (charmRestored == baseCharmClean);
+        bool washingOk = washedClean && charmRestoredOk;
+        logResult("Washing at a water tile cleanses all stains and resets isDirty", washingOk);
+        allPassed &= washingOk;
+
+        // 3. Weather transitions update on map change based on region tables
+        weatherManager::loadConfig("data/config/weather.json");
+        weatherManager::onMapChange("house_01");
+        bool indoorOk = (!weatherManager::isOutdoor() && weatherManager::getCurrentWeather() == WeatherType::CLEAR);
+        weatherManager::onMapChange("overworld");
+        bool outdoorOk = weatherManager::isOutdoor();
+        bool weatherTransitionOk = indoorOk && outdoorOk;
+        logResult("Weather transitions update on map change based on region tables", weatherTransitionOk);
+        allPassed &= weatherTransitionOk;
+
+        // 4. Radar discovery radius drops to 1 tile during FOG
+        weatherManager::setWeather(WeatherType::CLEAR);
+        int clearRadius = weatherManager::getRadarDiscoveryRadius();
+        weatherManager::setWeather(WeatherType::FOG);
+        int fogRadius = weatherManager::getRadarDiscoveryRadius();
+
+        gameMap testMap;
+        testMap.loadFromFile("data/maps/overworld.json");
+        testMap.updateDiscovery(2, 3, weatherManager::getRadarDiscoveryRadius());
+        Tile playerTile = testMap.getTile(2, 3);
+        Tile adjacentTile = testMap.getTile(3, 3);
+
+        bool fogDiscoveryRadiusOk = (clearRadius == 3 && fogRadius == 1 &&
+                                     playerTile.discovery == STATE_REVEALED &&
+                                     adjacentTile.discovery == STATE_HIDDEN);
+        logResult("Radar discovery radius drops to 1 tile during FOG", fogDiscoveryRadiusOk);
+        allPassed &= fogDiscoveryRadiusOk;
+
+        return allPassed;
+    }
+
+    bool testOverworldSpellCasting()
+    {
+        std::cout << "\n--- Test Suite 60: Overworld Spell Casting ---\n";
+        bool allPassed = true;
+
+        SpellDatabase::loadFromFile("data/spells.json");
+
+        game testGame;
+        testGame.init();
+        auto hero = std::make_shared<entity>("spell_tester", "SpellTester");
+        hero->stats.setBaseStat("mana", 100.0f);
+        hero->stats.setBaseStat("max_mana", 100.0f);
+        hero->stats.setBaseStat("health", 40.0f);
+        hero->stats.setBaseStat("max_health", 100.0f);
+        hero->stats.level = 10;
+        testGame.playerEntity = hero;
+        testGame.Player = hero.get();
+
+        testGame.loadMap("overworld", 1, 1);
+        testGame.changeState(std::make_unique<explorationState>());
+        testGame.refreshActionGrid();
+
+        // 1. Spells with "canCastInOverworld": false are omitted from the exploration action grid
+        const auto& slots = testGame.getActiveActionSlots();
+        bool cleanseFound = false;
+        bool fireballFound = false;
+        bool dartFound = false;
+
+        for (const auto& slot : slots)
+        {
+            if (slot.label.find("Purifying Cleanse") != std::string::npos || slot.label.find("Cleanse") != std::string::npos)
+            {
+                cleanseFound = true;
+            }
+            if (slot.label.find("Fireball") != std::string::npos)
+            {
+                fireballFound = true;
+            }
+            if (slot.label.find("Arcane Dart") != std::string::npos)
+            {
+                dartFound = true;
+            }
+        }
+
+        bool spellOmissionOk = cleanseFound && !fireballFound && !dartFound;
+        logResult("Spells with \"canCastInOverworld\": false are omitted from the exploration action grid", spellOmissionOk);
+        allPassed &= spellOmissionOk;
+
+        // 2. Casting cleanse in the overworld deducts 20 MP and restores 40 HP without entering combat
+        float preMp = hero->getStat("mana");
+        float preHp = hero->getStat("health");
+        testGame.castOverworldSpell("cleanse");
+        float postMp = hero->getStat("mana");
+        float postHp = hero->getStat("health");
+
+        bool notInCombat = (dynamic_cast<CombatState*>(testGame.getActiveState()) == nullptr);
+        bool mpDeducted = (std::abs(preMp - postMp - 20.0f) < 0.1f);
+        bool hpRestored = (std::abs(postHp - preHp - 40.0f) < 0.1f);
+
+        bool overworldCastOk = notInCombat && mpDeducted && hpRestored;
+        logResult("Casting cleanse in the overworld deducts 20 MP and restores 40 HP without entering combat", overworldCastOk);
+        allPassed &= overworldCastOk;
+
+        // 3. Insufficient MP disables overworld spell buttons with clear tooltips
+        hero->stats.setBaseStat("mana", 5.0f);
+        testGame.refreshActionGrid();
+
+        bool cleanseDisabled = false;
+        bool tooltipExplainsMp = false;
+
+        for (const auto& slot : testGame.getActiveActionSlots())
+        {
+            if (slot.label.find("Purifying Cleanse") != std::string::npos || slot.label.find("Cleanse") != std::string::npos)
+            {
+                cleanseDisabled = !slot.isEnabled;
+                if (slot.description.find("Insufficient MP") != std::string::npos)
+                {
+                    tooltipExplainsMp = true;
+                }
+            }
+        }
+
+        bool insufficientMpGatingOk = cleanseDisabled && tooltipExplainsMp;
+        logResult("Insufficient MP disables overworld spell buttons with clear tooltips", insufficientMpGatingOk);
+        allPassed &= insufficientMpGatingOk;
+
+        return allPassed;
+    }
+
     bool runAllTests()
     {
         g_passCount = 0;
@@ -6924,6 +7172,9 @@ namespace EngineTests
         bool t55 = testCustomizableTileUpgradeTreesAndSafeStorage();
         bool t56 = testBinaryOffspringAndNurserySystem();
         bool t57 = testComposableNPCTemplatesFluidBottlingAndClientRooms();
+        bool t58 = testUniversalAffectionAndCorruptionMeters();
+        bool t59 = testWeatherAndItemFluidSoiling();
+        bool t60 = testOverworldSpellCasting();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";

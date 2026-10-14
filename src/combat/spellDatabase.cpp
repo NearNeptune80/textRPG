@@ -91,6 +91,16 @@ bool SpellDatabase::loadFromFile(const std::string& filePath)
                 sp.requiredRace = sJson.value("requiredRace", "");
                 sp.requiredLevel = sJson.value("requiredLevel", 1);
 
+                sp.canCastInOverworld = sJson.value("canCastInOverworld", false);
+                if (sJson.contains("overworldEffect") && sJson["overworldEffect"].is_object())
+                {
+                    const auto& oeJson = sJson["overworldEffect"];
+                    sp.overworldEffect.type = oeJson.value("type", "");
+                    sp.overworldEffect.magnitude = oeJson.value("magnitude", 0.0f);
+                    sp.overworldEffect.durationMinutes = oeJson.value("durationMinutes", 0);
+                    sp.overworldEffect.target = oeJson.value("target", "");
+                }
+
                 if (!sp.id.empty())
                 {
                     s_spells[sp.id] = sp;

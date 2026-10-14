@@ -35,6 +35,12 @@ public:
     bool isServant = false;
     servantComponent servant;
 
+    float affection = 0.0f;
+    float corruption = 0.0f;
+
+    void modifyAffection(float delta);
+    void modifyCorruption(float delta);
+
     std::unordered_map<std::string, int> essences;
     std::vector<StatusEffect> statusEffects;
 

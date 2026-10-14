@@ -127,6 +127,15 @@ namespace StatusWidgets
             float hp = npc->getStat("health");
             UIWidget::drawProgressBar(renderer, { padX, curY, innerW - (20.0f * uiScale), 16.0f * uiScale }, hp, 100.0f, Theme::colors.enemy, Theme::colors.bgDark, std::format("HP: {:.0f}", hp), uiScale);
             curY += (20.0f * uiScale);
+
+            float aff = npc->affection;
+            float affBarVal = std::clamp(aff + 100.0f, 0.0f, 200.0f);
+            UIWidget::drawProgressBar(renderer, { padX, curY, innerW - (20.0f * uiScale), 14.0f * uiScale }, affBarVal, 200.0f, Theme::colors.affection, Theme::colors.bgDark, std::format("Affection: {:+.0f}", aff), uiScale);
+            curY += (18.0f * uiScale);
+
+            float corr = npc->corruption;
+            UIWidget::drawProgressBar(renderer, { padX, curY, innerW - (20.0f * uiScale), 14.0f * uiScale }, corr, 100.0f, Theme::colors.corruption, Theme::colors.bgDark, std::format("Corruption: {:.0f}%", corr), uiScale);
+            curY += (18.0f * uiScale);
         }
         else
         {

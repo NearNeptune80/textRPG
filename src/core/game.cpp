@@ -20,6 +20,8 @@
 #include "items/enchantmentAspects.h"
 #include "items/infusionTier.h"
 #include "items/merchantValuation.h"
+#include "combat/spellDatabase.h"
+#include "core/weatherManager.h"
 #include "map/encounterResolver.h"
 #include "quest/questDatabase.h"
 #include "save/saveManager.h"
@@ -190,6 +192,8 @@ void game::init()
     }
 
     fluidHarvesting::loadConfigFromFile("data/config/fluid_harvesting.json");
+    weatherManager::loadConfig("data/config/weather.json");
+    SpellDatabase::loadFromFile("data/spells.json");
 
     playerEntity = nullptr;
     Player = nullptr;
@@ -556,7 +560,8 @@ bool game::loadMap(const std::string& mapId, int startX, int startY)
 
     NamedCharacterManager::syncMapCharacters(map);
 
-    map->updateDiscovery(gridX, gridY, 3);
+    weatherManager::onMapChange(mapId);
+    map->updateDiscovery(gridX, gridY, weatherManager::getRadarDiscoveryRadius());
     activeTargetNPC = nullptr;
     activeTargetMode = TargetMode::NONE;
     refreshActionGrid();
@@ -589,7 +594,15 @@ void game::movePlayer(int nextX, int nextY)
     gridY = nextY;
 
     gameTime.advanceTime(2);
-    map->updateDiscovery(gridX, gridY, 3);
+    map->updateDiscovery(gridX, gridY, weatherManager::getRadarDiscoveryRadius());
+    if (weatherManager::isOutdoor())
+    {
+        float drain = weatherManager::getMovementStaminaDrain();
+        if (drain > 0.0f && Player)
+        {
+            Player->stats.modifyBaseStat("stamina", -drain);
+        }
+    }
 
 
     TileRuntimeData& tileData = map->getRuntimeData(gridX, gridY);
@@ -1528,6 +1541,74 @@ bool game::checkSingleCondition(const gameCondition& cond) const
         std::string fxId = !cond.target.empty() ? cond.target : cond.stringValue;
         return activeTargetNPC && activeTargetNPC->hasStatusEffect(fxId);
     }
+    else if (cond.type == "MIN_AFFECTION" || cond.type == "min_affection")
+    {
+        float reqVal = cond.floatValue != 0.0f ? cond.floatValue : (cond.minValue != 0 ? static_cast<float>(cond.minValue) : static_cast<float>(cond.requiredValue));
+        const entity* targetEnt = activeTargetNPC.get();
+        if (cond.target == "player") targetEnt = Player;
+        else if (!cond.target.empty() && cond.target != "target" && cond.target != "npc")
+        {
+            if (activeTargetNPC && activeTargetNPC->id == cond.target) targetEnt = activeTargetNPC.get();
+            else if (map)
+            {
+                auto tileNpc = map->getRuntimeData(gridX, gridY).persistentNPC;
+                if (tileNpc && tileNpc->id == cond.target) targetEnt = tileNpc.get();
+            }
+        }
+        if (!targetEnt) targetEnt = Player;
+        return targetEnt && targetEnt->affection >= reqVal;
+    }
+    else if (cond.type == "MAX_AFFECTION" || cond.type == "max_affection")
+    {
+        float reqVal = cond.floatValue != 0.0f ? cond.floatValue : (cond.maxValue != 0 ? static_cast<float>(cond.maxValue) : static_cast<float>(cond.requiredValue));
+        const entity* targetEnt = activeTargetNPC.get();
+        if (cond.target == "player") targetEnt = Player;
+        else if (!cond.target.empty() && cond.target != "target" && cond.target != "npc")
+        {
+            if (activeTargetNPC && activeTargetNPC->id == cond.target) targetEnt = activeTargetNPC.get();
+            else if (map)
+            {
+                auto tileNpc = map->getRuntimeData(gridX, gridY).persistentNPC;
+                if (tileNpc && tileNpc->id == cond.target) targetEnt = tileNpc.get();
+            }
+        }
+        if (!targetEnt) targetEnt = Player;
+        return targetEnt && targetEnt->affection <= reqVal;
+    }
+    else if (cond.type == "MIN_CORRUPTION" || cond.type == "min_corruption")
+    {
+        float reqVal = cond.floatValue != 0.0f ? cond.floatValue : (cond.minValue != 0 ? static_cast<float>(cond.minValue) : static_cast<float>(cond.requiredValue));
+        const entity* targetEnt = activeTargetNPC.get();
+        if (cond.target == "player") targetEnt = Player;
+        else if (!cond.target.empty() && cond.target != "target" && cond.target != "npc")
+        {
+            if (activeTargetNPC && activeTargetNPC->id == cond.target) targetEnt = activeTargetNPC.get();
+            else if (map)
+            {
+                auto tileNpc = map->getRuntimeData(gridX, gridY).persistentNPC;
+                if (tileNpc && tileNpc->id == cond.target) targetEnt = tileNpc.get();
+            }
+        }
+        if (!targetEnt) targetEnt = Player;
+        return targetEnt && targetEnt->corruption >= reqVal;
+    }
+    else if (cond.type == "MAX_CORRUPTION" || cond.type == "max_corruption")
+    {
+        float reqVal = cond.floatValue != 0.0f ? cond.floatValue : (cond.maxValue != 0 ? static_cast<float>(cond.maxValue) : static_cast<float>(cond.requiredValue));
+        const entity* targetEnt = activeTargetNPC.get();
+        if (cond.target == "player") targetEnt = Player;
+        else if (!cond.target.empty() && cond.target != "target" && cond.target != "npc")
+        {
+            if (activeTargetNPC && activeTargetNPC->id == cond.target) targetEnt = activeTargetNPC.get();
+            else if (map)
+            {
+                auto tileNpc = map->getRuntimeData(gridX, gridY).persistentNPC;
+                if (tileNpc && tileNpc->id == cond.target) targetEnt = tileNpc.get();
+            }
+        }
+        if (!targetEnt) targetEnt = Player;
+        return targetEnt && targetEnt->corruption <= reqVal;
+    }
 
     return true;
 }
@@ -1951,10 +2032,57 @@ void game::processEffect(const gameEffect& eff)
             Player->stats.modifyBaseStat("currency", amount);
         }
     }
+    else if (eff.action == "MODIFY_AFFECTION" || eff.action == "ADD_AFFECTION")
+    {
+        float delta = eff.floatAmount != 0.0f ? eff.floatAmount : static_cast<float>(eff.amount);
+        entity* targetEnt = activeTargetNPC.get();
+        if (eff.target == "player") targetEnt = Player;
+        else if (!eff.target.empty() && eff.target != "target" && eff.target != "npc")
+        {
+            if (activeTargetNPC && activeTargetNPC->id == eff.target) targetEnt = activeTargetNPC.get();
+            else if (map)
+            {
+                auto tileNpc = map->getRuntimeData(gridX, gridY).persistentNPC;
+                if (tileNpc && tileNpc->id == eff.target) targetEnt = tileNpc.get();
+            }
+        }
+        if (!targetEnt) targetEnt = activeTargetNPC ? activeTargetNPC.get() : Player;
+        if (targetEnt) targetEnt->modifyAffection(delta);
+    }
+    else if (eff.action == "MODIFY_CORRUPTION" || eff.action == "ADD_CORRUPTION")
+    {
+        float delta = eff.floatAmount != 0.0f ? eff.floatAmount : static_cast<float>(eff.amount);
+        entity* targetEnt = activeTargetNPC.get();
+        if (eff.target == "player") targetEnt = Player;
+        else if (!eff.target.empty() && eff.target != "target" && eff.target != "npc")
+        {
+            if (activeTargetNPC && activeTargetNPC->id == eff.target) targetEnt = activeTargetNPC.get();
+            else if (map)
+            {
+                auto tileNpc = map->getRuntimeData(gridX, gridY).persistentNPC;
+                if (tileNpc && tileNpc->id == eff.target) targetEnt = tileNpc.get();
+            }
+        }
+        if (!targetEnt) targetEnt = activeTargetNPC ? activeTargetNPC.get() : Player;
+        if (targetEnt) targetEnt->modifyCorruption(delta);
+    }
     else if (eff.action == "MODIFY_STAT" || eff.action == "ADD_STAT")
     {
         float delta = eff.floatAmount != 0.0f ? eff.floatAmount : static_cast<float>(eff.amount);
-        Player->stats.modifyBaseStat(eff.target, delta);
+        if (eff.target == "affection")
+        {
+            entity* targetEnt = activeTargetNPC ? activeTargetNPC.get() : Player;
+            if (targetEnt) targetEnt->modifyAffection(delta);
+        }
+        else if (eff.target == "corruption")
+        {
+            entity* targetEnt = activeTargetNPC ? activeTargetNPC.get() : Player;
+            if (targetEnt) targetEnt->modifyCorruption(delta);
+        }
+        else
+        {
+            Player->stats.modifyBaseStat(eff.target, delta);
+        }
     }
     else if (eff.action == "TRANSFORM_PART" || eff.action == "TRANSFORM")
     {
@@ -2748,4 +2876,85 @@ void game::triggerNextPendingTransformationInterrupt()
     std::string nextTrigger = pendingTransformationScenes.front();
     pendingTransformationScenes.erase(pendingTransformationScenes.begin());
     triggerTransformationInterrupt(nextTrigger);
+}
+
+void game::castOverworldSpell(const std::string& spellId)
+{
+    if (!Player) return;
+    const auto* sp = SpellDatabase::getSpell(spellId);
+    if (!sp || !sp->canCastInOverworld)
+    {
+        addLogEntry("[MAGIC]", "That spell cannot be cast in the overworld.", { 255, 100, 100, 255 });
+        return;
+    }
+
+    float curMp = Player->getStat("mana");
+    if (curMp < sp->mpCost)
+    {
+        addLogEntry("[MAGIC]", std::format("Not enough mana to cast {} (Requires {:.0f} MP, have {:.0f}).", sp->name, sp->mpCost, curMp), { 255, 100, 100, 255 });
+        return;
+    }
+
+    Player->stats.modifyBaseStat("mana", -sp->mpCost);
+
+    const auto& eff = sp->overworldEffect;
+    if (eff.type == "HEAL_AND_PURGE")
+    {
+        float healAmount = eff.magnitude > 0.0f ? eff.magnitude : (sp->heal > 0.0f ? sp->heal : 40.0f);
+        float curHp = Player->getStat("health");
+        float maxHp = Player->getStat("max_health");
+        if (maxHp <= 0.0f) maxHp = 100.0f;
+        float actualHeal = std::min(healAmount, maxHp - curHp);
+        Player->stats.modifyBaseStat("health", actualHeal);
+
+        auto it = std::remove_if(Player->statusEffects.begin(), Player->statusEffects.end(), [](const StatusEffect& s) {
+            return s.isDebuff;
+        });
+        Player->statusEffects.erase(it, Player->statusEffects.end());
+
+        washGarments();
+        addLogEntry("[MAGIC]", std::format("You cast {}! Restored {:.0f} HP and purged all debuffs and stains.", sp->name, healAmount), { 120, 240, 150, 255 });
+    }
+    else if (eff.type == "TELEPORT_WAYPOINT")
+    {
+        std::string targetMap = !eff.target.empty() ? eff.target : "overworld";
+        addLogEntry("[MAGIC]", std::format("You cast {} and vanish in a flash of light!", sp->name), { 180, 150, 255, 255 });
+        loadMap(targetMap, 5, 5);
+    }
+    else if (eff.type == "ILLUMINATE")
+    {
+        int dur = eff.durationMinutes > 0 ? eff.durationMinutes : 60;
+        StatusEffect fx;
+        fx.id = "illuminated";
+        fx.name = "Radiant Light";
+        fx.durationMinutes = dur;
+        fx.isDebuff = false;
+        Player->statusEffects.push_back(fx);
+        addLogEntry("[MAGIC]", std::format("You cast {}! A sphere of radiant illumination dispels the gloom.", sp->name), { 255, 230, 140, 255 });
+    }
+    else
+    {
+        if (sp->heal > 0.0f)
+        {
+            Player->stats.modifyBaseStat("health", sp->heal);
+            addLogEntry("[MAGIC]", std::format("You cast {}! Restored {:.0f} HP.", sp->name, sp->heal), { 120, 240, 150, 255 });
+        }
+    }
+    refreshActionGrid();
+}
+
+void game::washGarments()
+{
+    if (!Player) return;
+    for (auto& eq : Player->inventory.equipped)
+    {
+        if (eq) eq->soiling.clean();
+    }
+    for (auto& b : Player->inventory.backpack)
+    {
+        if (b) b->soiling.clean();
+    }
+    Player->invalidateStatCache();
+    addLogEntry("[CLEANSE]", "You wash your garments, thoroughly removing all fluids and stains.", { 100, 200, 255, 255 });
+    refreshActionGrid();
 }

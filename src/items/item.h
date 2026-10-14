@@ -54,6 +54,47 @@ inline std::string itemCategoryToString(ItemCategory cat)
     }
 }
 
+#include <nlohmann/json.hpp>
+
+struct ItemFluidSoiling
+{
+    bool isDirty = false;
+    float cumStainMl = 0.0f;
+    float milkStainMl = 0.0f;
+    float girlcumStainMl = 0.0f;
+
+    bool hasStains() const
+    {
+        return isDirty || (cumStainMl > 0.0f) || (milkStainMl > 0.0f) || (girlcumStainMl > 0.0f);
+    }
+
+    void clean()
+    {
+        isDirty = false;
+        cumStainMl = 0.0f;
+        milkStainMl = 0.0f;
+        girlcumStainMl = 0.0f;
+    }
+
+    nlohmann::json toJson() const
+    {
+        nlohmann::json j;
+        j["isDirty"] = isDirty;
+        j["cumStainMl"] = cumStainMl;
+        j["milkStainMl"] = milkStainMl;
+        j["girlcumStainMl"] = girlcumStainMl;
+        return j;
+    }
+
+    void fromJson(const nlohmann::json& j)
+    {
+        isDirty = j.value("isDirty", false);
+        cumStainMl = j.value("cumStainMl", 0.0f);
+        milkStainMl = j.value("milkStainMl", 0.0f);
+        girlcumStainMl = j.value("girlcumStainMl", 0.0f);
+    }
+};
+
 struct item
 {
     std::string id;
@@ -62,6 +103,8 @@ struct item
     std::string briefDescription = "";
     std::string tooltip = "";
     std::string imagePath = "";
+
+    ItemFluidSoiling soiling;
 
     int baseValue = 0;
 

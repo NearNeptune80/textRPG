@@ -2308,6 +2308,45 @@ void sexState::processOrgasm(game* gameContext, entity* orgasmingEntity, entity*
 			}
 			appendNarrativeEntry(ejNarr, isPlayerOrg ? "You" : oName, "Ejaculation", isPlayerOrg, true);
 		}
+
+		if (receivingEntity)
+		{
+			equipSlot targetEquip = equipSlot::NONE;
+			if (receivingSlot == bodySlot::BREASTS || receivingSlot == bodySlot::TORSO)
+			{
+				if (receivingEntity->inventory.isEquipped(equipSlot::CHEST_WEAR)) targetEquip = equipSlot::CHEST_WEAR;
+				else if (receivingEntity->inventory.isEquipped(equipSlot::TORSO_OVER)) targetEquip = equipSlot::TORSO_OVER;
+				else if (receivingEntity->inventory.isEquipped(equipSlot::TORSO_UNDER)) targetEquip = equipSlot::TORSO_UNDER;
+			}
+			else if (receivingSlot == bodySlot::GROIN)
+			{
+				if (receivingEntity->inventory.isEquipped(equipSlot::GROIN_OVER)) targetEquip = equipSlot::GROIN_OVER;
+				else if (receivingEntity->inventory.isEquipped(equipSlot::LEGS_OUTER)) targetEquip = equipSlot::LEGS_OUTER;
+				else if (receivingEntity->inventory.isEquipped(equipSlot::PENIS_WEAR)) targetEquip = equipSlot::PENIS_WEAR;
+				else if (receivingEntity->inventory.isEquipped(equipSlot::VAGINA_WEAR)) targetEquip = equipSlot::VAGINA_WEAR;
+			}
+			else if (receivingSlot == bodySlot::ASS)
+			{
+				if (receivingEntity->inventory.isEquipped(equipSlot::ASS_WEAR)) targetEquip = equipSlot::ASS_WEAR;
+				else if (receivingEntity->inventory.isEquipped(equipSlot::GROIN_OVER)) targetEquip = equipSlot::GROIN_OVER;
+			}
+			else if (receivingSlot == bodySlot::STOMACH)
+			{
+				if (receivingEntity->inventory.isEquipped(equipSlot::STOMACH_WEAR)) targetEquip = equipSlot::STOMACH_WEAR;
+				else if (receivingEntity->inventory.isEquipped(equipSlot::TORSO_OVER)) targetEquip = equipSlot::TORSO_OVER;
+			}
+
+			if (targetEquip != equipSlot::NONE)
+			{
+				auto eqItem = receivingEntity->inventory.getEquippedItem(targetEquip);
+				if (eqItem)
+				{
+					eqItem->soiling.cumStainMl += cumAmount;
+					eqItem->soiling.isDirty = true;
+					receivingEntity->invalidateStatCache();
+				}
+			}
+		}
 	}
 
 	bodyPart* breasts = orgasmingEntity->anatomy.getPart(bodySlot::BREASTS);
@@ -2317,6 +2356,59 @@ void sexState::processOrgasm(game* gameContext, entity* orgasmingEntity, entity*
 		breasts->currentFluidMl = std::max(0.0f, breasts->currentFluidMl - milkAmount);
 		std::string milkStr = unitFormatter::formatFluid(milkAmount, unitPref);
 		appendNarrativeEntry(formatTemplate(narrCfg.lactation, { isPlayerOrg ? "Your" : (oName + "'s"), milkStr }), isPlayerOrg ? "You" : oName, "Lactation", isPlayerOrg, true);
+
+		equipSlot breastEquip = equipSlot::NONE;
+		if (orgasmingEntity->inventory.isEquipped(equipSlot::CHEST_WEAR)) breastEquip = equipSlot::CHEST_WEAR;
+		else if (orgasmingEntity->inventory.isEquipped(equipSlot::TORSO_UNDER)) breastEquip = equipSlot::TORSO_UNDER;
+		else if (orgasmingEntity->inventory.isEquipped(equipSlot::TORSO_OVER)) breastEquip = equipSlot::TORSO_OVER;
+
+		if (breastEquip != equipSlot::NONE)
+		{
+			auto eqItem = orgasmingEntity->inventory.getEquippedItem(breastEquip);
+			if (eqItem)
+			{
+				eqItem->soiling.milkStainMl += milkAmount;
+				eqItem->soiling.isDirty = true;
+				orgasmingEntity->invalidateStatCache();
+			}
+		}
+	}
+
+	if (orgasmingEntity->anatomy.hasVagina())
+	{
+		equipSlot groinEquip = equipSlot::NONE;
+		if (orgasmingEntity->inventory.isEquipped(equipSlot::GROIN_OVER)) groinEquip = equipSlot::GROIN_OVER;
+		else if (orgasmingEntity->inventory.isEquipped(equipSlot::VAGINA_WEAR)) groinEquip = equipSlot::VAGINA_WEAR;
+		else if (orgasmingEntity->inventory.isEquipped(equipSlot::LEGS_OUTER)) groinEquip = equipSlot::LEGS_OUTER;
+
+		if (groinEquip != equipSlot::NONE)
+		{
+			auto eqItem = orgasmingEntity->inventory.getEquippedItem(groinEquip);
+			if (eqItem)
+			{
+				eqItem->soiling.girlcumStainMl += 10.0f * fluidMult;
+				eqItem->soiling.isDirty = true;
+				orgasmingEntity->invalidateStatCache();
+			}
+		}
+	}
+
+	if (receivingEntity && orgasmingEntity != receivingEntity)
+	{
+		if (receivingEntity != (gameContext ? gameContext->getPlayer() : nullptr))
+		{
+			receivingEntity->modifyAffection(3.0f);
+			receivingEntity->modifyCorruption(1.5f);
+		}
+		if (orgasmingEntity != (gameContext ? gameContext->getPlayer() : nullptr))
+		{
+			orgasmingEntity->modifyAffection(3.0f);
+			orgasmingEntity->modifyCorruption(1.5f);
+		}
+		if (gameContext && gameContext->getPlayer())
+		{
+			gameContext->getPlayer()->modifyCorruption(1.0f);
+		}
 	}
 
 	for (auto& p : m_participants)
@@ -2392,6 +2484,12 @@ void sexState::handleCommand(game* gameContext, const UICommand& cmd)
 	}
 	else if (cmd.type == CommandType::END_SEX_SCENE || cmd.type == CommandType::CLOSE_MENU)
 	{
+		if (gameContext && gameContext->getActiveTargetNPC())
+		{
+			gameContext->getActiveTargetNPC()->modifyAffection(5.0f);
+			gameContext->getActiveTargetNPC()->modifyCorruption(2.0f);
+		}
+
 		if (m_isClientSession)
 		{
 			float payout = (m_clientBudgetMin + m_clientBudgetMax) * 0.5f;

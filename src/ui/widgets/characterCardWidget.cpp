@@ -65,6 +65,22 @@ namespace CharacterCardWidget
             data.stats.emplace_back("Build", estBuild, true);
         }
 
+        if (!isSelf)
+        {
+            std::string affStatus = "Neutral";
+            if (ent->affection >= 50.0f) affStatus = "Devoted";
+            else if (ent->affection >= 20.0f) affStatus = "Friendly";
+            else if (ent->affection <= -50.0f) affStatus = "Nemesis";
+            else if (ent->affection <= -20.0f) affStatus = "Hostile";
+            data.stats.emplace_back("Affection", std::format("{:+.0f} [{}]", ent->affection, affStatus), false);
+        }
+
+        std::string corrStatus = "Pure";
+        if (ent->corruption >= 75.0f) corrStatus = "Depraved";
+        else if (ent->corruption >= 50.0f) corrStatus = "Corrupted";
+        else if (ent->corruption >= 25.0f) corrStatus = "Tainted";
+        data.stats.emplace_back("Corruption", std::format("{:.0f}% [{}]", ent->corruption, corrStatus), false);
+
         struct SlotMeta {
             bodySlot slot;
             std::string label;
@@ -366,7 +382,7 @@ namespace CharacterCardWidget
 
         float startY = curY;
         float headerH = 17.0f * uiScale;
-        float cardH = 77.0f * uiScale;
+        float cardH = 95.0f * uiScale;
 
         SDL_FRect cardRect = { padX, curY, availableW, cardH };
         UIWidget::drawPanel(renderer, cardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
@@ -474,6 +490,29 @@ namespace CharacterCardWidget
                                         std::format("{}'s Lust", companion->name),
                                         "Companion sexual desire and susceptibility to lust-based seduction.",
                                         std::format("{:.0f}% Lust", (curLust / maxLust) * 100.0f));
+        curY += barH + barGap;
+
+        float aff = companion->affection;
+        float affBarVal = std::clamp(aff + 100.0f, 0.0f, 200.0f);
+        UIWidget::drawText(renderer, "Affect.", cX, curY, Theme::colors.affection, uiScale * 0.60f);
+        UIWidget::drawProgressBar(renderer, { cX + labelW, curY, progressW, barH }, affBarVal, 200.0f, Theme::colors.affection, Theme::colors.bgHeader, "", uiScale);
+        std::string affStr = std::format("{:+.0f}", aff);
+        UIWidget::drawText(renderer, affStr, cX + labelW + progressW + (4.0f * uiScale), curY, Theme::colors.textPrimary, uiScale * 0.58f);
+        TooltipManager::setHoverTooltip({ cX, curY, cW, barH }, mousePos,
+                                        std::format("{}'s Affection", companion->name),
+                                        "Companion bond and loyalty towards the protagonist (-100 to +100).",
+                                        std::format("{:+.0f} Affection", aff));
+        curY += barH + barGap;
+
+        float corr = companion->corruption;
+        UIWidget::drawText(renderer, "Corrupt.", cX, curY, Theme::colors.corruption, uiScale * 0.60f);
+        UIWidget::drawProgressBar(renderer, { cX + labelW, curY, progressW, barH }, corr, 100.0f, Theme::colors.corruption, Theme::colors.bgHeader, "", uiScale);
+        std::string corrStr = std::format("{:.0f}%", corr);
+        UIWidget::drawText(renderer, corrStr, cX + labelW + progressW + (4.0f * uiScale), curY, Theme::colors.textPrimary, uiScale * 0.58f);
+        TooltipManager::setHoverTooltip({ cX, curY, cW, barH }, mousePos,
+                                        std::format("{}'s Corruption", companion->name),
+                                        "Spiritual depravity and degradation (0% to 100%).",
+                                        std::format("{:.0f}% Corruption", corr));
 
         return cardH + (5.0f * uiScale);
     }

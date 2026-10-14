@@ -1,0 +1,110 @@
+{
+  "weatherTypes": [
+    "CLEAR",
+    "CLOUDY",
+    "RAIN",
+    "STORM",
+    "FOG",
+    "SNOW",
+    "HEATWAVE"
+  ],
+  "effects": {
+    "CLEAR": {
+      "staminaDrain": 0.0,
+      "radarRadius": 3
+    },
+    "CLOUDY": {
+      "staminaDrain": 0.0,
+      "radarRadius": 3
+    },
+    "RAIN": {
+      "staminaDrain": 1.0,
+      "radarRadius": 3
+    },
+    "STORM": {
+      "staminaDrain": 1.0,
+      "radarRadius": 3
+    },
+    "FOG": {
+      "staminaDrain": 0.0,
+      "radarRadius": 1
+    },
+    "SNOW": {
+      "staminaDrain": 1.0,
+      "radarRadius": 2
+    },
+    "HEATWAVE": {
+      "staminaDrain": 1.0,
+      "radarRadius": 3
+    }
+  },
+  "regions": {
+    "default": {
+      "isOutdoor": true,
+      "weights": {
+        "CLEAR": 40,
+        "CLOUDY": 30,
+        "RAIN": 15,
+        "STORM": 5,
+        "FOG": 10
+      }
+    },
+    "overworld": {
+      "isOutdoor": true,
+      "weights": {
+        "CLEAR": 40,
+        "CLOUDY": 30,
+        "RAIN": 15,
+        "STORM": 5,
+        "FOG": 10
+      }
+    },
+    "test_hub": {
+      "isOutdoor": true,
+      "weights": {
+        "CLEAR": 50,
+        "CLOUDY": 20,
+        "RAIN": 10,
+        "STORM": 5,
+        "FOG": 15
+      }
+    },
+    "house_01": {
+      "isOutdoor": false,
+      "weights": {
+        "CLEAR": 100
+      }
+    },
+    "apothecary_shop": {
+      "isOutdoor": false,
+      "weights": {
+        "CLEAR": 100
+      }
+    },
+    "blacksmith_shop": {
+      "isOutdoor": false,
+      "weights": {
+        "CLEAR": 100
+      }
+    },
+    "outpost_barracks": {
+      "isOutdoor": false,
+      "weights": {
+        "CLEAR": 100
+      }
+    },
+    "sunken_ruins": {
+      "isOutdoor": false,
+      "weights": {
+        "CLEAR": 100
+      }
+    },
+    "test_facility": {
+      "isOutdoor": false,
+      "weights": {
+        "CLEAR": 100
+      }
+    }
+  }
+}
+

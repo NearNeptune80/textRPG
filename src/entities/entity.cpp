@@ -126,6 +126,15 @@ float entity::getStat(const std::string& statName) const
         m_statsDirty = false;
     }
 
+    if (statName == "affection")
+    {
+        return affection;
+    }
+    if (statName == "corruption")
+    {
+        return corruption;
+    }
+
     float val = stats.getEffectiveStat(statName, statusEffects);
 
     float flatEquipment = 0.0f;
@@ -140,6 +149,17 @@ float entity::getStat(const std::string& statName) const
             {
                 flatEquipment += mod.flatValue;
                 percentEquipment += mod.percentValue;
+            }
+        }
+    }
+
+    if (statName == "charm" || statName == "charisma")
+    {
+        for (const auto& eqItem : inventory.equipped)
+        {
+            if (eqItem && eqItem->soiling.isDirty)
+            {
+                flatEquipment -= 2.0f;
             }
         }
     }
@@ -176,6 +196,8 @@ json entity::toJson() const
     j["name"] = name;
     j["orientation"] = sexualOrientationToString(orientation);
     j["genderArchetype"] = genderArchetypeToString(genderArchetype);
+    j["affection"] = affection;
+    j["corruption"] = corruption;
     j["merchantAffinity"] = merchantAffinity;
     j["lastRestockDay"] = lastRestockDay;
     j["baseMerchantGold"] = baseMerchantGold;
@@ -291,7 +313,21 @@ json entity::toJson() const
     json backpackJson = json::array();
     for (const auto& itemPtr : inventory.backpack)
     {
-        if (itemPtr) backpackJson.push_back(itemPtr->id);
+        if (itemPtr)
+        {
+            if (itemPtr->soiling.hasStains())
+            {
+                json itemObj;
+                itemObj["id"] = itemPtr->id;
+                itemObj["count"] = itemPtr->count;
+                itemObj["soiling"] = itemPtr->soiling.toJson();
+                backpackJson.push_back(itemObj);
+            }
+            else
+            {
+                backpackJson.push_back(itemPtr->id);
+            }
+        }
     }
     j["backpack"] = backpackJson;
 
@@ -300,7 +336,17 @@ json entity::toJson() const
     {
         if (inventory.equipped[i])
         {
-            equippedJson[equipSlotToString(static_cast<equipSlot>(i))] = inventory.equipped[i]->id;
+            if (inventory.equipped[i]->soiling.hasStains())
+            {
+                json itemObj;
+                itemObj["id"] = inventory.equipped[i]->id;
+                itemObj["soiling"] = inventory.equipped[i]->soiling.toJson();
+                equippedJson[equipSlotToString(static_cast<equipSlot>(i))] = itemObj;
+            }
+            else
+            {
+                equippedJson[equipSlotToString(static_cast<equipSlot>(i))] = inventory.equipped[i]->id;
+            }
         }
     }
     j["equipped"] = equippedJson;
@@ -324,6 +370,9 @@ void entity::fromJson(const json& j)
 
     if (j.contains("orientation")) orientation = stringToSexualOrientation(j["orientation"].get<std::string>());
     if (j.contains("genderArchetype")) genderArchetype = stringToGenderArchetype(j["genderArchetype"].get<std::string>());
+
+    affection = std::clamp(j.value("affection", 0.0f), -100.0f, 100.0f);
+    corruption = std::clamp(j.value("corruption", 0.0f), 0.0f, 100.0f);
 
     merchantAffinity = j.value("merchantAffinity", 1.0f);
     lastRestockDay = j.value("lastRestockDay", -1);
@@ -493,6 +542,7 @@ void entity::fromJson(const json& j)
         {
             std::string itemId;
             int count = 1;
+            json soilingJson;
             if (itemEntry.is_string())
             {
                 itemId = itemEntry.get<std::string>();
@@ -501,6 +551,10 @@ void entity::fromJson(const json& j)
             {
                 itemId = itemEntry.value("id", "");
                 count = itemEntry.value("count", 1);
+                if (itemEntry.contains("soiling"))
+                {
+                    soilingJson = itemEntry["soiling"];
+                }
             }
             if (!itemId.empty())
             {
@@ -508,6 +562,10 @@ void entity::fromJson(const json& j)
                 if (itemPtr)
                 {
                     itemPtr->count = count;
+                    if (!soilingJson.is_null())
+                    {
+                        itemPtr->soiling.fromJson(soilingJson);
+                    }
                     inventory.addItem(itemPtr);
                 }
             }
@@ -517,14 +575,39 @@ void entity::fromJson(const json& j)
     inventory.equipped.fill(nullptr);
     if (j.contains("equipped"))
     {
-        for (auto& [slotStr, itemId] : j["equipped"].items())
+        for (auto& [slotStr, itemVal] : j["equipped"].items())
         {
             equipSlot slot = stringToEquipSlot(slotStr);
             size_t slotIdx = static_cast<size_t>(slot);
             if (slot != equipSlot::NONE && slotIdx < EQUIP_SLOT_COUNT)
             {
-                auto itemPtr = itemDatabase::getItem(itemId.get<std::string>());
-                if (itemPtr) inventory.equipped[slotIdx] = itemPtr;
+                std::string itemId;
+                json soilingJson;
+                if (itemVal.is_string())
+                {
+                    itemId = itemVal.get<std::string>();
+                }
+                else if (itemVal.is_object())
+                {
+                    itemId = itemVal.value("id", "");
+                    if (itemVal.contains("soiling"))
+                    {
+                        soilingJson = itemVal["soiling"];
+                    }
+                }
+
+                if (!itemId.empty())
+                {
+                    auto itemPtr = itemDatabase::getItem(itemId);
+                    if (itemPtr)
+                    {
+                        if (!soilingJson.is_null())
+                        {
+                            itemPtr->soiling.fromJson(soilingJson);
+                        }
+                        inventory.equipped[slotIdx] = itemPtr;
+                    }
+                }
             }
         }
     }
@@ -1093,4 +1176,16 @@ void entity::ensureSexualityStatusEffect()
         eff.isDebuff = false;
         statusEffects.push_back(eff);
     }
+}
+
+void entity::modifyAffection(float delta)
+{
+    affection = std::clamp(affection + delta, -100.0f, 100.0f);
+    invalidateStatCache();
+}
+
+void entity::modifyCorruption(float delta)
+{
+    corruption = std::clamp(corruption + delta, 0.0f, 100.0f);
+    invalidateStatCache();
 }

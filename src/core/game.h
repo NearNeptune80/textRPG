@@ -180,6 +180,9 @@ public:
     InventorySlotInfo getInventorySlotItem(int side, int absoluteIndex);
     std::string formatEquipSlotName(equipSlot slot);
 
+    void castOverworldSpell(const std::string& spellId);
+    void washGarments();
+
     const std::vector<EventLogEntry>& getEventLog() const { return eventLog; }
     void addLogEntry(const std::string& tag, const std::string& text, LogColor color = { 220, 220, 220, 255 });
     void clearEventLog() { eventLog.clear(); }

@@ -1837,6 +1837,67 @@ void ActionGridManager::refresh(game* gameContext)
                     }, true, false, "Solicit a visiting commercial client for an intimate service session.");
                 }
 
+                bool isWashStation = (tileData.customization.stationType == "wash" ||
+                                      tileData.customization.stationType == "water" ||
+                                      tileData.customization.stationType == "bath" ||
+                                      tileData.customization.stationType == "well" ||
+                                      std::find(tileData.customization.roomTags.begin(), tileData.customization.roomTags.end(), "water") != tileData.customization.roomTags.end() ||
+                                      std::find(tileData.customization.roomTags.begin(), tileData.customization.roomTags.end(), "bath") != tileData.customization.roomTags.end() ||
+                                      std::find(tileData.customization.roomTags.begin(), tileData.customization.roomTags.end(), "wash") != tileData.customization.roomTags.end() ||
+                                      gameContext->map->hasTileTag(gameContext->gridX, gameContext->gridY, "water") ||
+                                      gameContext->map->hasTileTag(gameContext->gridX, gameContext->gridY, "wash") ||
+                                      gameContext->map->hasTileTag(gameContext->gridX, gameContext->gridY, "bath") ||
+                                      gameContext->map->hasTileTag(gameContext->gridX, gameContext->gridY, "well") ||
+                                      gameContext->map->hasTileTag(gameContext->gridX, gameContext->gridY, "lake") ||
+                                      gameContext->map->hasTileTag(gameContext->gridX, gameContext->gridY, "river") ||
+                                      gameContext->map->hasTileTag(gameContext->gridX, gameContext->gridY, "fountain"));
+
+                if (isWashStation)
+                {
+                    addBtn(gameContext, "Wash Garments", [gameContext]() {
+                        gameContext->washGarments();
+                    }, true, false, "Wash and scrub all equipped and carried garments, removing dirt, cum, and fluid stains.");
+                }
+
+                // Overworld Utility Spells
+                auto allSpells = SpellDatabase::getAllSpells();
+                std::vector<SpellDefinition> castableSpells;
+                for (const auto& [sId, spDef] : allSpells)
+                {
+                    if (spDef.canCastInOverworld)
+                    {
+                        castableSpells.push_back(spDef);
+                    }
+                }
+                std::sort(castableSpells.begin(), castableSpells.end(), [](const SpellDefinition& a, const SpellDefinition& b) {
+                    if (a.requiredLevel != b.requiredLevel) return a.requiredLevel < b.requiredLevel;
+                    return a.id < b.id;
+                });
+
+                float curPlayerMp = gameContext->getPlayer() ? gameContext->getPlayer()->getStat("mana") : 0.0f;
+                int playerLvl = gameContext->getPlayer() ? gameContext->getPlayer()->stats.level : 1;
+
+                for (const auto& sp : castableSpells)
+                {
+                    if (!sp.unlocked && playerLvl < sp.requiredLevel) continue;
+
+                    bool canAfford = (curPlayerMp >= sp.mpCost);
+                    std::string label = std::format("Cast {}", sp.name);
+                    std::string tt;
+                    if (!canAfford)
+                    {
+                        tt = std::format("{}\n[Insufficient MP: Requires {:.0f} MP, have {:.0f}]", sp.description, sp.mpCost, curPlayerMp);
+                    }
+                    else
+                    {
+                        tt = std::format("{}\nCost: {:.0f} MP. {}", sp.description, sp.mpCost, sp.overworldEffect.type);
+                    }
+
+                    addBtn(gameContext, label, [gameContext, spellId = sp.id]() {
+                        gameContext->castOverworldSpell(spellId);
+                    }, canAfford, false, tt);
+                }
+
                 if (tileData.customization.isCustomizable)
                 {
                     if (tileData.customization.currentRoomId.empty())

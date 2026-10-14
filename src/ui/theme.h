@@ -44,6 +44,7 @@ struct ThemeColors
     SDL_Color lust{ 230, 50, 150, 255 };
     SDL_Color physique{ 255, 50, 120, 255 };
     SDL_Color arcane{ 180, 110, 255, 255 };
+    SDL_Color affection{ 245, 110, 165, 255 };
     SDL_Color corruption{ 100, 200, 255, 255 };
     SDL_Color currency{ 255, 215, 0, 255 };
     SDL_Color gems{ 255, 100, 220, 255 };

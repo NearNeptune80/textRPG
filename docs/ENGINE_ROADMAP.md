@@ -33,15 +33,15 @@
 │         │ (VERIFIED - Suite 57)             │ • Service tile -> "Get Client" -> Payout │
 ├─────────┼───────────────────────────────────┼──────────────────────────────────────────┤
 │ 3A      │ Universal Affection & Corruption  │ • entity::affection (-100 to 100)        │
-│         │                                   │ • entity::corruption (0 to 100)          │
+│ [DONE]  │ (VERIFIED - Suite 58)             │ • entity::corruption (0 to 100)          │
 │         │                                   │ • NO trust stat; on ALL NPCs             │
 ├─────────┼───────────────────────────────────┼──────────────────────────────────────────┤
 │ 3B      │ Weather & Item Fluid Soiling      │ • NO fabric translucency                 │
-│         │                                   │ • Item soiling tracks fluids & penalties │
+│ [DONE]  │ (VERIFIED - Suite 59)             │ • Item soiling tracks fluids & penalties │
 │         │                                   │ • Regional weather from weather.json     │
 ├─────────┼───────────────────────────────────┼──────────────────────────────────────────┤
 │ 3C      │ Overworld Spell Casting           │ • spells.json "canCastInOverworld": true │
-│         │                                   │ • Exploration Action Grid spell trigger  │
+│ [DONE]  │ (VERIFIED - Suite 60)             │ • Exploration Action Grid spell trigger  │
 └─────────┴───────────────────────────────────┴──────────────────────────────────────────┘
 ```
 
@@ -636,7 +636,7 @@ Procedural generation is refactored from rigid monolithic enemy JSONs into three
 
 ---
 
-## Phase 3A: Universal Affection & Corruption Meters
+## Phase 3A: Universal Affection & Corruption Meters [COMPLETED - Suite 58]
 
 ### 1. Architectural Decisions
 * **Universal Presence**: Every entity (Player, Companions, Named NPCs, Procedural Foes, Commercial Clients) tracks:
@@ -683,7 +683,7 @@ public:
 
 ---
 
-## Phase 3B: Weather & Item Fluid Soiling
+## Phase 3B: Weather & Item Fluid Soiling [COMPLETED - Suite 59]
 
 ### 1. Architectural Invariant: Fluid Soiling vs Translucency
 * **Locked Decision**: **NO fabric translucency**.
@@ -742,7 +742,7 @@ struct item
 
 ---
 
-## Phase 3C: Overworld Spell Casting
+## Phase 3C: Overworld Spell Casting [COMPLETED - Suite 60]
 
 ### 1. Specification & Data Extension
 Spells in `data/spells.json` declare whether they can be cast outside of combat:
@@ -785,13 +785,13 @@ Spells in `data/spells.json` declare whether they can be cast outside of combat:
 ├─────────┬──────────────────────────────────────────┬───────────────────┤
 │ PHASE   │ VERIFICATION TARGET                      │ STATUS            │
 ├─────────┼──────────────────────────────────────────┼───────────────────┤
-│ 1A      │ 24h Servant Timetable & Stamina Loop     │ Ready for C++ Dev │
-│ 1B      │ Customizable Tile Trees & Safe Ground    │ Ready for C++ Dev │
-│ 2A      │ Binary Offspring & Nursery Engine        │ Ready for C++ Dev │
-│ 2B      │ Composable NPCs, Milking & 1-Tile Rooms  │ Ready for C++ Dev │
-│ 3A      │ Universal Affection & Corruption Meters  │ Ready for C++ Dev │
-│ 3B      │ Weather & Item Fluid Soiling             │ Ready for C++ Dev │
-│ 3C      │ Overworld Utility Spell Casting          │ Ready for C++ Dev │
+│ 1A      │ 24h Servant Timetable & Stamina Loop     │ [COMPLETED]       │
+│ 1B      │ Customizable Tile Trees & Safe Ground    │ [COMPLETED]       │
+│ 2A      │ Binary Offspring & Nursery Engine        │ [COMPLETED]       │
+│ 2B      │ Composable NPCs, Milking & 1-Tile Rooms  │ [COMPLETED]       │
+│ 3A      │ Universal Affection & Corruption Meters  │ [COMPLETED]       │
+│ 3B      │ Weather & Item Fluid Soiling             │ [COMPLETED]       │
+│ 3C      │ Overworld Utility Spell Casting          │ [COMPLETED]       │
 └─────────┴──────────────────────────────────────────┴───────────────────┘
 ```
 

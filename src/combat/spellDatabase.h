@@ -4,6 +4,14 @@
 #include <unordered_map>
 #include "combat/combatAction.h"
 
+struct OverworldSpellEffect
+{
+    std::string type = "";
+    float magnitude = 0.0f;
+    int durationMinutes = 0;
+    std::string target = "";
+};
+
 struct SpellDefinition
 {
     std::string id;
@@ -22,6 +30,9 @@ struct SpellDefinition
     std::string companionId;
     std::string requiredRace;
     int requiredLevel = 1;
+
+    bool canCastInOverworld = false;
+    OverworldSpellEffect overworldEffect;
 
     CombatAction toCombatAction() const;
 };
