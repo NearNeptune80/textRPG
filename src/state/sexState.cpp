@@ -2392,6 +2392,24 @@ void sexState::handleCommand(game* gameContext, const UICommand& cmd)
 	}
 	else if (cmd.type == CommandType::END_SEX_SCENE || cmd.type == CommandType::CLOSE_MENU)
 	{
+		if (m_isClientSession)
+		{
+			float payout = (m_clientBudgetMin + m_clientBudgetMax) * 0.5f;
+			if (gameContext->getActiveTargetNPC())
+			{
+				float npcCur = gameContext->getActiveTargetNPC()->getStat("currency");
+				if (npcCur > 0.0f)
+				{
+					payout = std::clamp(npcCur, m_clientBudgetMin, m_clientBudgetMax);
+				}
+			}
+			if (gameContext->getPlayer() && payout > 0.0f)
+			{
+				gameContext->getPlayer()->stats.modifyBaseStat("currency", payout);
+			}
+			m_isClientSession = false;
+		}
+
 		if (!gameContext->sceneStack.empty())
 		{
 			gameContext->popScene();

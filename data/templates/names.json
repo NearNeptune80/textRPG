@@ -1,0 +1,55 @@
+{
+  "firstNamesMale": [
+    "Marcus",
+    "Garrick",
+    "Julian",
+    "Rowan",
+    "Roland",
+    "Alden",
+    "Theron",
+    "Vance",
+    "Derrick",
+    "Felix",
+    "Cedric",
+    "Darius"
+  ],
+  "firstNamesFemale": [
+    "Lyra",
+    "Selena",
+    "Evelyn",
+    "Aria",
+    "Chloe",
+    "Fiona",
+    "Cassandra",
+    "Mira",
+    "Isolde",
+    "Kallista",
+    "Vesper",
+    "Nadia"
+  ],
+  "firstNamesNeutral": [
+    "Robin",
+    "Morgan",
+    "Alex",
+    "Jordan",
+    "Taylor",
+    "Rowan",
+    "Casey",
+    "Rory"
+  ],
+  "surnames": [
+    "Vance",
+    "Blackwood",
+    "Thorne",
+    "Sterling",
+    "Holloway",
+    "Silver",
+    "Mercer",
+    "Ashford",
+    "Valerius",
+    "Hawthorne",
+    "Winter",
+    "Gale"
+  ]
+}
+

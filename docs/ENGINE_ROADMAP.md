@@ -25,12 +25,12 @@
 │         │                                   │ • Full demolition / teardown to empty    │
 ├─────────┼───────────────────────────────────┼──────────────────────────────────────────┤
 │ 2A      │ Binary Offspring & Nursery        │ • Binary aging: Child -> Adult NPC       │
-│         │                                   │ • Interactive birth scene at 100% gest.  │
+│ [DONE]  │ (VERIFIED - Suite 56)             │ • Interactive birth scene at 100% gest.  │
 │         │                                   │ • Persistent OffspringManager            │
 ├─────────┼───────────────────────────────────┼──────────────────────────────────────────┤
 │ 2B      │ Composable Generation, Milking    │ • 3 JSON pools: Body, Outfit, Profession │
-│         │ & 1-Tile Client Rooms             │ • Internal anatomy fluid -> Item bottling│
-│         │                                   │ • Service tile -> "Get Client" -> Payout │
+│ [DONE]  │ & 1-Tile Client Rooms             │ • Internal anatomy fluid -> Item bottling│
+│         │ (VERIFIED - Suite 57)             │ • Service tile -> "Get Client" -> Payout │
 ├─────────┼───────────────────────────────────┼──────────────────────────────────────────┤
 │ 3A      │ Universal Affection & Corruption  │ • entity::affection (-100 to 100)        │
 │         │                                   │ • entity::corruption (0 to 100)          │
@@ -396,7 +396,7 @@ Function: demolishTileRoom(int x, int y, game* g)
 
 ---
 
-## Phase 2A: Binary Offspring & Nursery System
+## Phase 2A: Binary Offspring & Nursery System [COMPLETED - Suite 56]
 
 ### 1. Architectural Invariant: Simplified Binary Aging
 * **Locked Decision**: Exactly **two growth stages**:
@@ -479,7 +479,7 @@ When an offspring record achieves `stage == OffspringGrowthStage::ADULT_NPC`, th
 
 ---
 
-## Phase 2B: Composable NPC Templates, Fluid Bottling & 1-Tile Client Rooms
+## Phase 2B: Composable NPC Templates, Fluid Bottling & 1-Tile Client Rooms [COMPLETED - Suite 57]
 
 ### 1. Composable Procedural NPC Generation (3 Mix-and-Match Pools)
 Procedural generation is refactored from rigid monolithic enemy JSONs into three independent, modular pools:

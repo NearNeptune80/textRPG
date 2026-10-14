@@ -190,6 +190,16 @@ void anatomyComponent::transferFluidToOrifice(bodySlot slot, const std::string& 
     orf->storedFluids[fluidType] += actualTransfer;
 }
 
+float anatomyComponent::drainFluid(bodySlot slot, float amount)
+{
+    bodyPart* part = getPart(slot);
+    if (!part || part->currentFluidMl <= 0.0f || amount <= 0.0f) return 0.0f;
+
+    float actualDrained = std::min(part->currentFluidMl, amount);
+    part->currentFluidMl -= actualDrained;
+    return actualDrained;
+}
+
 void anatomyComponent::stretchOrifice(bodySlot slot, float diameter)
 {
     OrificeData* orf = getOrifice(slot);

@@ -301,6 +301,16 @@ public:
 	void setConsensual(bool consensual) { m_isConsensual = consensual; }
 	bool isConsensual() const { return m_isConsensual; }
 
+	void setClientSession(bool isClient, float budgetMin = 50.0f, float budgetMax = 150.0f)
+	{
+		m_isClientSession = isClient;
+		m_clientBudgetMin = budgetMin;
+		m_clientBudgetMax = budgetMax;
+	}
+	bool isClientSession() const { return m_isClientSession; }
+	float getClientBudgetMin() const { return m_clientBudgetMin; }
+	float getClientBudgetMax() const { return m_clientBudgetMax; }
+
 	const std::vector<OngoingSexAction>& getOngoingActions() const { return m_ongoingActions; }
 	bool hasOngoingAction(size_t participantIdx) const;
 	const OngoingSexAction* getOngoingActionForParticipant(size_t participantIdx) const;
@@ -320,6 +330,9 @@ private:
 	size_t m_selectedTargetIndex = 0;
 	SexStance m_stance = SexStance::SOLO_BED;
 	bool m_isConsensual = true;
+	bool m_isClientSession = false;
+	float m_clientBudgetMin = 0.0f;
+	float m_clientBudgetMax = 0.0f;
 	bool m_hasNewNarrative = false;
 	int m_turnCount = 1;
 

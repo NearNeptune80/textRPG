@@ -2279,6 +2279,51 @@
       "isKeyItem": true,
       "count": 1,
       "category": "KEY_ITEM"
+    },
+    {
+      "id": "item_milk_bottle",
+      "name": "Bottle of Fresh Milk",
+      "description": "A glass bottle filled with rich, freshly harvested milk. Nutritious and refreshing.",
+      "baseValue": 15,
+      "isConsumable": true,
+      "isEquippable": false,
+      "isStackable": true,
+      "count": 1,
+      "targetSlot": "NONE",
+      "validSlots": [],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "category": "CONSUMABLE"
+    },
+    {
+      "id": "item_cum_flask",
+      "name": "Flask of Semen",
+      "description": "A sealed glass flask containing potent seminal fluid. Useful for alchemical infusions and esoteric rituals.",
+      "baseValue": 25,
+      "isConsumable": true,
+      "isEquippable": false,
+      "isStackable": true,
+      "count": 1,
+      "targetSlot": "NONE",
+      "validSlots": [],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "category": "CONSUMABLE"
+    },
+    {
+      "id": "item_girlcum_vial",
+      "name": "Vial of Female Nectar",
+      "description": "A delicate crystal vial filled with sweet, concentrated feminine fluids. Highly valued in high-end aphrodisiac craft.",
+      "baseValue": 20,
+      "isConsumable": true,
+      "isEquippable": false,
+      "isStackable": true,
+      "count": 1,
+      "targetSlot": "NONE",
+      "validSlots": [],
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "category": "CONSUMABLE"
     }
   ]
 }

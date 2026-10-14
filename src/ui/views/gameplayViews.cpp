@@ -15,6 +15,8 @@
 #include "state/transformationState.h"
 #include "state/enchantingState.h"
 #include "state/servantState.h"
+#include "state/nurseryState.h"
+#include "entities/offspringManager.h"
 #include "core/servantManager.h"
 #include "items/enchantmentAspects.h"
 #include "items/infusionTier.h"
@@ -4178,4 +4180,82 @@ namespace GameplayViews
 
         return (curY - startY);
     }
+
+    float renderNurseryView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)
+    {
+        float startY = curY;
+        auto* nState = dynamic_cast<nurseryState*>(gameContext->getActiveState());
+        if (!nState) return 0.0f;
+
+        // Header Card
+        float cardW = rect.w - (24.0f * uiScale);
+        SDL_FRect headCard = { rect.x + (12.0f * uiScale), curY, cardW, 44.0f * uiScale };
+        UIWidget::drawPanel(renderer, headCard, Theme::colors.bgPanel, Theme::colors.borderNormal);
+        UIWidget::drawText(renderer, "Offspring Nursery", headCard.x + (12.0f * uiScale), headCard.y + (12.0f * uiScale), Theme::colors.textGold, uiScale * 1.1f);
+
+        curY += headCard.h + (10.0f * uiScale);
+
+        const auto& records = offspringManager::getAllOffspring();
+        if (records.empty())
+        {
+            UIWidget::drawText(renderer, "The estate nursery is currently peaceful and empty. No developing offspring reside here.", rect.x + (16.0f * uiScale), curY + (16.0f * uiScale), Theme::colors.textSecondary, uiScale);
+            return (curY + (40.0f * uiScale) - startY);
+        }
+
+        const auto mousePos = gameContext->input.getMousePosition();
+        bool clicked = gameContext->input.isLeftMouseJustClicked();
+
+        for (const auto& rec : records)
+        {
+            float itemH = 68.0f * uiScale;
+            SDL_FRect itemRect = { rect.x + (12.0f * uiScale), curY, cardW, itemH };
+
+            bool isSelected = (rec.id == nState->selectedOffspringId);
+            bool isHov = (mousePos.x >= itemRect.x && mousePos.x <= itemRect.x + itemRect.w &&
+                          mousePos.y >= itemRect.y && mousePos.y <= itemRect.y + itemRect.h);
+
+            SDL_Color fillCol = isSelected ? Theme::colors.bgSlotSelected : Theme::colors.bgPanel;
+            SDL_Color bdCol = isSelected ? Theme::colors.borderSelected : (isHov ? Theme::colors.borderButton : Theme::colors.borderNormal);
+
+            UIWidget::drawPanel(renderer, itemRect, fillCol, bdCol);
+
+            // Offspring Name & Status
+            std::string stageBadge = rec.isAdult() ? "[ ADULT NPC - READY FOR PROMOTION ]" : "[ CHILD ]";
+            SDL_Color stageCol = rec.isAdult() ? SDL_Color{ 100, 240, 140, 255 } : Theme::colors.textSecondary;
+
+            UIWidget::drawText(renderer, rec.name, itemRect.x + (12.0f * uiScale), itemRect.y + (10.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.95f);
+
+            float sbW = UIWidget::getTextWidth(stageBadge, uiScale * 0.75f);
+            UIWidget::drawText(renderer, stageBadge, itemRect.x + itemRect.w - sbW - (12.0f * uiScale), itemRect.y + (12.0f * uiScale), stageCol, uiScale * 0.75f);
+
+            // Subtitle: Age and threshold
+            std::string ageStr = std::format("Age: {} days (Adulthood at: {} days) | Heritage: {}", 
+                                             rec.daysAlive, offspringManager::ADULTHOOD_DAYS_THRESHOLD, rec.rolledRace);
+            UIWidget::drawText(renderer, ageStr, itemRect.x + (12.0f * uiScale), itemRect.y + (30.0f * uiScale), Theme::colors.textGold, uiScale * 0.75f);
+
+            // Lineage
+            std::string lineStr = std::format("Mother: {} ({}) | Father: {} ({})", 
+                                              rec.motherId.empty() ? "Player" : rec.motherId, rec.motherRace,
+                                              rec.fatherName.empty() ? "Unknown" : rec.fatherName, rec.fatherRace);
+            UIWidget::drawText(renderer, lineStr, itemRect.x + (12.0f * uiScale), itemRect.y + (48.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.70f);
+
+            if (isHov && clicked)
+            {
+                nState->selectedOffspringId = rec.id;
+                gameContext->refreshActionGrid();
+                gameContext->input.consumeMouseClick();
+            }
+
+            curY += itemH + (8.0f * uiScale);
+        }
+
+        if (!nState->statusMessage.empty())
+        {
+            UIWidget::drawText(renderer, nState->statusMessage, rect.x + (16.0f * uiScale), curY + (6.0f * uiScale), Theme::colors.textGold, uiScale * 0.85f);
+            curY += 24.0f * uiScale;
+        }
+
+        return (curY - startY);
+    }
 }
+

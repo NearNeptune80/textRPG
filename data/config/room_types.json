@@ -11,7 +11,7 @@
       "isStorageSafe": true,
       "stationType": "",
       "tags": ["residential", "shelter"],
-      "availableUpgrades": ["room_living_quarters_t2", "room_milking_parlor_t1", "room_service_suite_t1"]
+      "availableUpgrades": ["room_living_quarters_t2", "room_milking_parlor_t1", "room_service_suite_t1", "room_nursery_t1"]
     },
     {
       "id": "room_workshop_t1",
@@ -107,6 +107,18 @@
       "isStorageSafe": true,
       "stationType": "service_room",
       "tags": ["facility", "commercial", "luxury"],
+      "availableUpgrades": []
+    },
+    {
+      "id": "room_nursery_t1",
+      "name": "Offspring Nursery",
+      "tier": 2,
+      "category": "Facility",
+      "description": "Cradles and play mats dedicated to sheltering developing offspring.",
+      "costGold": 450.0,
+      "isStorageSafe": true,
+      "stationType": "nursery",
+      "tags": ["facility", "nursery"],
       "availableUpgrades": []
     }
   ]

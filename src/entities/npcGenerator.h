@@ -33,6 +33,9 @@ public:
 	static std::shared_ptr<entity> generateFromTemplate(const std::string& templateId, const GameSettings* settings = nullptr);
 	static std::shared_ptr<entity> generateRandomNPC(const GameSettings* settings = nullptr);
 
+	static std::shared_ptr<entity> compose(const std::string& bodyTemplateId, const std::string& outfitTemplateId, const std::string& professionId, const std::string& customName = "");
+	static std::shared_ptr<entity> composeRandomClient(const std::string& professionId = "");
+
 private:
 	static std::unordered_map<std::string, NPCTemplate> registry;
 	static void applyDemographicConfiguration(entity* npc, const GameSettings* settings);

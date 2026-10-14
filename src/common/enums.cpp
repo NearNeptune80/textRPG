@@ -184,11 +184,11 @@ std::string genderArchetypeToString(GenderArchetype ga)
 
 GenderArchetype stringToGenderArchetype(std::string_view str)
 {
-    if (str == "Male")          return GenderArchetype::MALE;
-    if (str == "Hermaphrodite") return GenderArchetype::HERMAPHRODITE;
-    if (str == "Gynomorph")     return GenderArchetype::GYNOMORPH;
-    if (str == "Andromorph")    return GenderArchetype::ANDROMORPH;
-    if (str == "Asexual/Null")  return GenderArchetype::ASEXUAL_NULL;
+    if (str == "Male" || str == "MALE" || str == "male")                   return GenderArchetype::MALE;
+    if (str == "Hermaphrodite" || str == "HERMAPHRODITE" || str == "hermaphrodite") return GenderArchetype::HERMAPHRODITE;
+    if (str == "Gynomorph" || str == "GYNOMORPH" || str == "gynomorph")             return GenderArchetype::GYNOMORPH;
+    if (str == "Andromorph" || str == "ANDROMORPH" || str == "andromorph")          return GenderArchetype::ANDROMORPH;
+    if (str == "Asexual/Null" || str == "ASEXUAL_NULL" || str == "asexual_null")   return GenderArchetype::ASEXUAL_NULL;
     return GenderArchetype::FEMALE;
 }
 

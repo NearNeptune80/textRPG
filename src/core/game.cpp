@@ -9,6 +9,7 @@
 #include "core/contentFilterManager.h"
 #include "core/eventBus.h"
 #include "core/servantManager.h"
+#include "entities/offspringManager.h"
 #include "core/textParser.h"
 #include "entities/namedCharacter.h"
 #include "entities/npcGenerator.h"
@@ -209,6 +210,13 @@ void game::init()
             servantManager::tickHourlyServants(this, this->gameTime.hour);
         }
 
+        this->accumulatedDayMinutes += mins;
+        while (this->accumulatedDayMinutes >= 1440)
+        {
+            this->accumulatedDayMinutes -= 1440;
+            offspringManager::advanceDayAll();
+        }
+
         NamedCharacterManager::updateAllLocations(this);
 
         if (this->Player)
@@ -330,10 +338,13 @@ void game::init()
                 if (readyToGiveBirth || this->Player->gestation.gestationDaysRemaining <= 0)
                 {
                     auto offspring = this->Player->gestation.giveBirth(this->Player->id);
+                    for (const auto& info : offspring)
+                    {
+                        offspringManager::registerBirth(info, "", this->gameTime.day, this->gameTime.month, this->gameTime.year);
+                    }
                     if (!offspring.empty())
                     {
-                        std::cout << "[Biological Pipeline] " << this->Player->name
-                                  << " has given birth to " << offspring.size() << " offspring!\n";
+                        this->loadScene("scene_birth_delivery");
                     }
                 }
             }
@@ -356,10 +367,9 @@ void game::init()
                 if (readyToGiveBirth || comp->gestation.gestationDaysRemaining <= 0)
                 {
                     auto offspring = comp->gestation.giveBirth(comp->id);
-                    if (!offspring.empty())
+                    for (const auto& info : offspring)
                     {
-                        std::cout << "[Biological Pipeline] Companion " << comp->name
-                                  << " has given birth to " << offspring.size() << " offspring!\n";
+                        offspringManager::registerBirth(info, "", this->gameTime.day, this->gameTime.month, this->gameTime.year);
                     }
                 }
             }
@@ -377,10 +387,9 @@ void game::init()
                 if (readyToGiveBirth || this->activeTargetNPC->gestation.gestationDaysRemaining <= 0)
                 {
                     auto offspring = this->activeTargetNPC->gestation.giveBirth(this->activeTargetNPC->id);
-                    if (!offspring.empty())
+                    for (const auto& info : offspring)
                     {
-                        std::cout << "[Biological Pipeline] " << this->activeTargetNPC->name
-                                  << " has given birth to " << offspring.size() << " offspring!\n";
+                        offspringManager::registerBirth(info, "", this->gameTime.day, this->gameTime.month, this->gameTime.year);
                     }
                 }
             }
@@ -406,10 +415,9 @@ void game::init()
                             if (readyToGiveBirth || npc->gestation.gestationDaysRemaining <= 0)
                             {
                                 auto offspring = npc->gestation.giveBirth(npc->id);
-                                if (!offspring.empty())
+                                for (const auto& info : offspring)
                                 {
-                                    std::cout << "[Biological Pipeline] " << npc->name
-                                              << " has given birth to " << offspring.size() << " offspring!\n";
+                                    offspringManager::registerBirth(info, "", this->gameTime.day, this->gameTime.month, this->gameTime.year);
                                 }
                             }
                         }

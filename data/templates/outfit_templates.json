@@ -1,0 +1,47 @@
+{
+  "outfits": [
+    {
+      "id": "outfit_merchant_traveler",
+      "name": "Merchant Traveling Attire",
+      "tags": ["civilian", "merchant", "travel"],
+      "items": [
+        { "slot": "TORSO_OVER", "itemId": "item_linen_shirt" },
+        { "slot": "LEGS_OUTER", "itemId": "item_leather_trousers" },
+        { "slot": "FEET", "itemId": "item_travelers_boots" }
+      ]
+    },
+    {
+      "id": "outfit_formal_patron",
+      "name": "Formal Noble Attire",
+      "tags": ["formal", "noble", "civilian"],
+      "items": [
+        { "slot": "TORSO_OVER", "itemId": "item_formal_suit" },
+        { "slot": "LEGS_OUTER", "itemId": "item_leather_trousers" },
+        { "slot": "FEET", "itemId": "item_dress_shoes" }
+      ]
+    },
+    {
+      "id": "outfit_evening_gown",
+      "name": "Silk Evening Ensemble",
+      "tags": ["formal", "noble", "luxury"],
+      "items": [
+        { "slot": "CHEST_WEAR", "itemId": "item_silk_bra" },
+        { "slot": "GROIN_OVER", "itemId": "item_silk_panties" },
+        { "slot": "TORSO_OVER", "itemId": "item_evening_dress" },
+        { "slot": "FEET", "itemId": "item_high_heels" }
+      ]
+    },
+    {
+      "id": "outfit_warrior_guard",
+      "name": "Frontier Guard Gear",
+      "tags": ["warrior", "guard", "combat"],
+      "items": [
+        { "slot": "WEAPON_MAIN", "itemId": "item_iron_sword" },
+        { "slot": "TORSO_OVER", "itemId": "item_linen_shirt" },
+        { "slot": "LEGS_OUTER", "itemId": "item_leather_trousers" },
+        { "slot": "FEET", "itemId": "item_travelers_boots" }
+      ]
+    }
+  ]
+}
+

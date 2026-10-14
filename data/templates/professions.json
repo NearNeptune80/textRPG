@@ -1,0 +1,59 @@
+{
+  "professions": [
+    {
+      "id": "prof_wealthy_patron",
+      "title": "Wealthy Patron",
+      "goldBudgetMin": 80.0,
+      "goldBudgetMax": 250.0,
+      "allowedBodyTags": ["civilian", "human", "canine", "feline", "elf", "bovine"],
+      "allowedOutfitTags": ["formal", "merchant", "noble"],
+      "fetishDesires": {
+        "domination": 3,
+        "lactation": 4,
+        "oral": 3
+      },
+      "combatManeuvers": []
+    },
+    {
+      "id": "prof_traveling_merchant",
+      "title": "Traveling Merchant",
+      "goldBudgetMin": 50.0,
+      "goldBudgetMax": 150.0,
+      "allowedBodyTags": ["civilian", "human", "canine", "feline"],
+      "allowedOutfitTags": ["merchant", "travel", "civilian"],
+      "fetishDesires": {
+        "sensual": 3,
+        "anal": 2
+      },
+      "combatManeuvers": []
+    },
+    {
+      "id": "prof_noble_connoisseur",
+      "title": "Noble Connoisseur",
+      "goldBudgetMin": 150.0,
+      "goldBudgetMax": 400.0,
+      "allowedBodyTags": ["noble", "elf", "human", "civilian"],
+      "allowedOutfitTags": ["formal", "noble", "luxury"],
+      "fetishDesires": {
+        "submission": 4,
+        "bondage": 3,
+        "oral": 4
+      },
+      "combatManeuvers": []
+    },
+    {
+      "id": "prof_bounty_hunter",
+      "title": "Bounty Hunter",
+      "goldBudgetMin": 60.0,
+      "goldBudgetMax": 180.0,
+      "allowedBodyTags": ["warrior", "canine", "human"],
+      "allowedOutfitTags": ["warrior", "guard", "combat"],
+      "fetishDesires": {
+        "domination": 4,
+        "rough": 3
+      },
+      "combatManeuvers": ["strike_heavy"]
+    }
+  ]
+}
+

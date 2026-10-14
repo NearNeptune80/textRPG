@@ -8,6 +8,7 @@
 
 #include "common/randomEngine.h"
 #include "entities/entity.h"
+#include "entities/composableTemplateManager.h"
 #include "items/itemDatabase.h"
 #include "state/editorConfig.h"
 
@@ -467,4 +468,188 @@ std::shared_ptr<entity> npcGenerator::generateRandomNPC(const GameSettings* sett
     auto it = registry.begin();
     std::advance(it, dice::rollInt<size_t>(0, registry.size() - 1));
     return generateFromTemplate(it->first, settings);
+}
+
+std::shared_ptr<entity> npcGenerator::compose(const std::string& bodyTemplateId, const std::string& outfitTemplateId, const std::string& professionId, const std::string& customName)
+{
+    const BodyTemplate* bt = composableTemplateManager::getBodyTemplate(bodyTemplateId);
+    const OutfitTemplate* ot = composableTemplateManager::getOutfitTemplate(outfitTemplateId);
+    const ProfessionTemplate* pt = composableTemplateManager::getProfessionTemplate(professionId);
+
+    auto npc = std::make_shared<entity>();
+    static uint64_t s_composedCounter = 1;
+    npc->id = std::format("npc_comp_{}", s_composedCounter++);
+
+    if (!customName.empty())
+    {
+        npc->name = customName;
+    }
+    else
+    {
+        npc->name = composableTemplateManager::getRandomName(bt ? bt->genderArchetype : "FEMALE");
+    }
+
+    if (bt)
+    {
+        npc->anatomy.heightMeters = bt->heightCm / 100.0f;
+        npc->anatomy.bodySize = bt->bodyBuild;
+        npc->genderArchetype = stringToGenderArchetype(bt->genderArchetype);
+
+        bodyPart head;
+        head.id = "head_" + bt->species;
+        head.name = bt->species + " Head";
+        head.race = bt->species;
+        head.tags = bt->tags;
+        npc->anatomy.setPart(bodySlot::HEAD, head);
+
+        bodyPart torso;
+        torso.id = "torso_" + bt->species;
+        torso.name = bt->species + " Torso";
+        torso.race = bt->species;
+        torso.tags = bt->tags;
+        npc->anatomy.setPart(bodySlot::TORSO, torso);
+
+        bodyPart breasts;
+        breasts.id = "breasts_" + bt->species;
+        breasts.name = "Breasts";
+        breasts.race = bt->species;
+        breasts.cupSize = bt->breastCupSize;
+        breasts.currentFluidMl = bt->breastFluidMl;
+        breasts.maxFluidMl = bt->breastMaxFluidMl;
+        breasts.isLactating = bt->isLactating;
+        breasts.tags = bt->tags;
+        npc->anatomy.setPart(bodySlot::BREASTS, breasts);
+
+        bodyPart groin;
+        groin.id = "groin_" + bt->species;
+        groin.race = bt->species;
+        groin.currentFluidMl = bt->groinFluidMl;
+        groin.maxFluidMl = bt->groinMaxFluidMl;
+        groin.tags = bt->tags;
+
+        if (bt->groinType == "Penis")
+        {
+            groin.name = "Penis";
+            groin.length = bt->groinLengthCm;
+            groin.diameter = bt->groinDiameterCm;
+            groin.tags.push_back("penis");
+            if (bt->knot) groin.tags.push_back("knot");
+        }
+        else
+        {
+            groin.name = "Vagina";
+            groin.tags.push_back("vagina");
+            groin.orifice.exists = true;
+            groin.orifice.wetnessLevel = bt->groinWetness;
+        }
+        npc->anatomy.setPart(bodySlot::GROIN, groin);
+
+        for (const auto& tag : bt->tags)
+        {
+            npc->personalityTraits.push_back(tag);
+        }
+    }
+
+    npc->stats.setBaseStat("physique", 12.0f);
+    npc->stats.setBaseStat("finesse", 12.0f);
+    npc->stats.setBaseStat("willpower", 12.0f);
+    npc->stats.setBaseStat("arcane", 10.0f);
+    npc->stats.setBaseStat("healthMax", 100.0f);
+    npc->stats.setBaseStat("health", 100.0f);
+    npc->stats.setBaseStat("manaMax", 50.0f);
+    npc->stats.setBaseStat("mana", 50.0f);
+
+    if (ot)
+    {
+        std::vector<std::string> bTags = npc->anatomy.getAllTags();
+        for (const auto& oi : ot->items)
+        {
+            auto itemPtr = itemDatabase::getItem(oi.itemId);
+            if (itemPtr)
+            {
+                npc->inventory.addItem(itemPtr);
+                equipSlot slot = stringToEquipSlot(oi.slot);
+                if (slot == equipSlot::NONE && itemPtr->isEquippable) slot = itemPtr->targetSlot;
+                if (slot != equipSlot::NONE)
+                {
+                    size_t idx = npc->inventory.backpack.size() - 1;
+                    npc->inventory.equipItem(idx, slot, bTags);
+                }
+            }
+        }
+        for (const auto& tag : ot->tags)
+        {
+            npc->personalityTraits.push_back(tag);
+        }
+    }
+
+    if (pt)
+    {
+        float budget = dice::rollFloat(pt->goldBudgetMin, pt->goldBudgetMax);
+        npc->stats.setBaseStat("currency", budget);
+        npc->personalityTraits.push_back(pt->id);
+        npc->personalityTraits.push_back(pt->title);
+
+        for (const auto& mId : pt->combatManeuvers)
+        {
+            npc->unlockPerk(mId);
+        }
+    }
+
+    npc->ensureSexualityStatusEffect();
+    return npc;
+}
+
+std::shared_ptr<entity> npcGenerator::composeRandomClient(const std::string& professionId)
+{
+    const auto& professions = composableTemplateManager::getAllProfessions();
+    if (professions.empty()) return nullptr;
+
+    const ProfessionTemplate* prof = nullptr;
+    if (!professionId.empty())
+    {
+        prof = composableTemplateManager::getProfessionTemplate(professionId);
+    }
+    if (!prof)
+    {
+        auto it = professions.begin();
+        std::advance(it, dice::rollInt<size_t>(0, professions.size() - 1));
+        prof = &it->second;
+    }
+
+    const auto& bodies = composableTemplateManager::getAllBodyTemplates();
+    std::vector<std::string> matchingBodies;
+    for (const auto& [bId, bTpl] : bodies)
+    {
+        bool matches = prof->allowedBodyTags.empty();
+        for (const auto& reqTag : prof->allowedBodyTags)
+        {
+            if (std::find(bTpl.tags.begin(), bTpl.tags.end(), reqTag) != bTpl.tags.end())
+            {
+                matches = true;
+                break;
+            }
+        }
+        if (matches) matchingBodies.push_back(bId);
+    }
+    std::string pickedBody = matchingBodies.empty() ? (bodies.empty() ? "" : bodies.begin()->first) : matchingBodies[dice::rollInt<size_t>(0, matchingBodies.size() - 1)];
+
+    const auto& outfits = composableTemplateManager::getAllOutfitTemplates();
+    std::vector<std::string> matchingOutfits;
+    for (const auto& [oId, oTpl] : outfits)
+    {
+        bool matches = prof->allowedOutfitTags.empty();
+        for (const auto& reqTag : prof->allowedOutfitTags)
+        {
+            if (std::find(oTpl.tags.begin(), oTpl.tags.end(), reqTag) != oTpl.tags.end())
+            {
+                matches = true;
+                break;
+            }
+        }
+        if (matches) matchingOutfits.push_back(oId);
+    }
+    std::string pickedOutfit = matchingOutfits.empty() ? (outfits.empty() ? "" : outfits.begin()->first) : matchingOutfits[dice::rollInt<size_t>(0, matchingOutfits.size() - 1)];
+
+    return compose(pickedBody, pickedOutfit, prof->id);
 }

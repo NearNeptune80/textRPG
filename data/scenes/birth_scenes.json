@@ -1,0 +1,17 @@
+{
+  "scenes": [
+    {
+      "id": "scene_birth_delivery",
+      "speakerName": "CHILDBIRTH",
+      "bodyText": "A sudden, intense spasm ripples through your abdomen as your gestation reaches its full term. The moment of delivery has arrived!\n\nAfter a grueling sequence of contractions and heavy breathing, life enters the world. Your newborn child draws their first breath, crying softly before calming in your embrace.\n\nThe newborn has been placed safely into the estate nursery where they can be sheltered, cared for, and watched over as they develop.",
+      "choices": [
+        {
+          "label": "Embrace your newborn and tend to recovery",
+          "tooltip": "Acknowledge the birth and place the infant into the nursery.",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    }
+  ]
+}
+

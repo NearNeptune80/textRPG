@@ -42,5 +42,7 @@ namespace EngineTests
     bool testCombatNavigationAndGeneralStatusEffects();
     bool testServantManagementHourlyScheduleAndStamina();
     bool testCustomizableTileUpgradeTreesAndSafeStorage();
+    bool testBinaryOffspringAndNurserySystem();
+    bool testComposableNPCTemplatesFluidBottlingAndClientRooms();
 }
 

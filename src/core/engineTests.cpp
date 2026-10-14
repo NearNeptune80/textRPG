@@ -62,6 +62,11 @@
 #include "core/servantManager.h"
 #include "map/roomDatabase.h"
 #include "state/servantState.h"
+#include "entities/offspringManager.h"
+#include "state/nurseryState.h"
+#include "entities/composableTemplateManager.h"
+#include "items/fluidHarvesting.h"
+#include "state/sexState.h"
 
 namespace EngineTests
 {
@@ -6670,6 +6675,175 @@ namespace EngineTests
         return allPassed;
     }
 
+    bool testBinaryOffspringAndNurserySystem()
+    {
+        std::cout << "\n--- Running Test 56: Binary Offspring & Nursery System (Phase 2A) ---\n";
+        bool allPassed = true;
+
+        offspringManager::clear();
+
+        // 1. Reaching 0 gestation days fires giveBirth(), creating an OffspringRecord marked stage = CHILD
+        auto mother = std::make_shared<entity>("mother_1", "Lyra");
+        bodyPart vaginaPart;
+        vaginaPart.id = "vagina_human";
+        vaginaPart.name = "Vagina";
+        vaginaPart.race = "Human";
+        vaginaPart.tags.push_back("vagina");
+        mother->anatomy.setPart(bodySlot::GROIN, vaginaPart);
+
+        bool impOk = mother->gestation.impregnate("father_1", "Garrick", "Dog-morph", "Human", 1);
+        mother->gestation.gestationDaysRemaining = 1;
+
+        bool ready = mother->gestation.processGestation(1);
+        auto births = mother->gestation.giveBirth(mother->id);
+        for (const auto& b : births)
+        {
+            offspringManager::registerBirth(b, "Puppy Child", 1, 1, 100);
+        }
+
+        auto& offspringList = offspringManager::getAllOffspring();
+        bool birthRegistered = impOk && ready && !births.empty() && !offspringList.empty();
+        bool startsAsChild = birthRegistered && (offspringList.front().stage == OffspringGrowthStage::CHILD) && (!offspringList.front().isAdult());
+        logResult("Reaching 0 gestation days fires giveBirth(), creating an OffspringRecord marked stage = CHILD", startsAsChild);
+        allPassed &= startsAsChild;
+
+        // 2. Simulating 29 in-game days keeps stage at CHILD
+        for (int d = 0; d < 29; ++d)
+        {
+            offspringManager::advanceDayAll();
+        }
+        auto* childRec = offspringManager::getOffspring(offspringList.front().id);
+        bool stillChildAt29 = (childRec != nullptr) && (childRec->daysAlive == 29) && (childRec->stage == OffspringGrowthStage::CHILD) && (!childRec->isAdult());
+        logResult("Simulating 29 in-game days keeps stage at CHILD", stillChildAt29);
+        allPassed &= stillChildAt29;
+
+        // 3. Simulating the 30th day triggers automatic transition to ADULT_NPC
+        offspringManager::advanceDayAll();
+        bool adultAt30 = (childRec != nullptr) && (childRec->daysAlive == 30) && (childRec->stage == OffspringGrowthStage::ADULT_NPC) && (childRec->isAdult());
+        logResult("Simulating the 30th day triggers automatic transition to ADULT_NPC", adultAt30);
+        allPassed &= adultAt30;
+
+        // 4. promoteToAdultNPC produces a fully valid entity with matching racial traits and stats capable of entering party combat
+        std::string childId = childRec->id;
+        auto adultNpc = offspringManager::promoteToAdultNPC(childId);
+        bool adultValid = (adultNpc != nullptr);
+        bool statsValid = adultValid && (adultNpc->stats.getBaseStat("health") > 0.0f) && (adultNpc->stats.getBaseStat("physique") > 0.0f);
+        bool traitsValid = adultValid && adultNpc->anatomy.hasPart(bodySlot::HEAD) && adultNpc->anatomy.hasPart(bodySlot::TORSO);
+        bool removedFromNursery = (offspringManager::getOffspring(childId) == nullptr);
+
+        game testGame;
+        testGame.init();
+        if (adultNpc) testGame.addCompanion(adultNpc);
+        bool inParty = (testGame.getCompanions().size() == 1 && testGame.getCompanions().front()->id == childId);
+
+        bool promotionOk = adultValid && statsValid && traitsValid && removedFromNursery && inParty;
+        logResult("promoteToAdultNPC produces a fully valid entity with matching racial traits and stats capable of entering party combat", promotionOk);
+        allPassed &= promotionOk;
+
+        return allPassed;
+    }
+
+    bool testComposableNPCTemplatesFluidBottlingAndClientRooms()
+    {
+        std::cout << "\n--- Running Test 57: Composable NPC Templates, Fluid Bottling & 1-Tile Client Rooms (Phase 2B) ---\n";
+        bool allPassed = true;
+
+        itemDatabase::loadDatabase("data/items.json");
+        bool templatesLoaded = composableTemplateManager::loadAllTemplates("data/templates");
+        (void)templatesLoaded;
+
+        // 1. npcGenerator::compose correctly combines body, outfit, and profession tags into an entity with matching equipment and stats
+        auto compNpc = npcGenerator::compose("body_canine_male_athletic", "outfit_merchant_traveler", "prof_wealthy_patron", "Lord Bark");
+        bool npcCreated = (compNpc != nullptr);
+        bool nameOk = npcCreated && (compNpc->name == "Lord Bark");
+        bool bodyOk = npcCreated && (compNpc->genderArchetype == GenderArchetype::MALE) && (std::abs(compNpc->anatomy.heightMeters - 1.82f) < 0.01f);
+        bool outfitOk = npcCreated && compNpc->inventory.isEquipped(equipSlot::TORSO_OVER) && compNpc->inventory.isEquipped(equipSlot::LEGS_OUTER);
+        bool budgetOk = npcCreated && (compNpc->getStat("currency") >= 80.0f && compNpc->getStat("currency") <= 250.0f);
+        bool composeOk = npcCreated && nameOk && bodyOk && outfitOk && budgetOk;
+        logResult("npcGenerator::compose correctly combines body, outfit, and profession tags into an entity with matching equipment and stats", composeOk);
+        allPassed &= composeOk;
+
+        // 2. Draining 100ml milk from a character with full breasts yields exactly 2x item_milk_bottle and zeroes breast fluid volume
+        auto cowChar = std::make_shared<entity>("cow_1", "Bessie");
+        bodyPart cowBreasts;
+        cowBreasts.id = "breasts_cow";
+        cowBreasts.name = "Breasts";
+        cowBreasts.race = "Cow-morph";
+        cowBreasts.cupSize = 6;
+        cowBreasts.currentFluidMl = 100.0f;
+        cowBreasts.maxFluidMl = 150.0f;
+        cowBreasts.isLactating = true;
+        cowChar->anatomy.setPart(bodySlot::BREASTS, cowBreasts);
+
+        auto harvestResult = fluidHarvesting::drainAndBottle(cowChar.get(), bodySlot::BREASTS, 100.0f);
+        bool bottlesCountOk = (harvestResult.bottlesHarvested == 2);
+        bool itemIsMilk = (harvestResult.itemId == "item_milk_bottle");
+        bool volumeDrainedOk = (std::abs(harvestResult.fluidMlDrained - 100.0f) < 0.01f);
+        bool zeroedBreastFluid = (cowChar->anatomy.getPart(bodySlot::BREASTS)->currentFluidMl == 0.0f);
+        bool itemsInInv = (cowChar->inventory.backpack.size() == 2);
+
+        bool milkHarvestOk = bottlesCountOk && itemIsMilk && volumeDrainedOk && zeroedBreastFluid && itemsInInv;
+        logResult("Draining 100ml milk from a character with full breasts yields exactly 2x item_milk_bottle and zeroes breast fluid volume", milkHarvestOk);
+        allPassed &= milkHarvestOk;
+
+        // 3. Standing on a service_room tile produces the \"Get Client\" button; clicking it instantiates a client and transitions to sexState
+        game testGame;
+        testGame.init();
+        testGame.settings.gameplay.autoSaveOnMapChange = false;
+        testGame.settings.gameplay.autoSaveOnSceneExit = false;
+
+        auto player = std::make_shared<entity>("player_hero", "Hero");
+        player->stats.setBaseStat("currency", 100.0f);
+        testGame.playerEntity = player;
+        testGame.Player = player.get();
+
+        auto testMap = std::make_shared<gameMap>();
+        testGame.map = testMap.get();
+        testGame.gridX = 2;
+        testGame.gridY = 2;
+
+        auto& sTile = testMap->getRuntimeData(2, 2);
+        sTile.customization.isCustomizable = true;
+        sTile.customization.currentRoomId = "room_service_suite_t1";
+        sTile.customization.stationType = "service_room";
+        sTile.customization.roomTags = { "facility", "commercial", "service_room" };
+
+        testGame.changeState(std::make_unique<explorationState>());
+        testGame.refreshActionGrid();
+        bool hasGetClientBtn = false;
+        std::function<void()> clientCallback = nullptr;
+        for (const auto& slot : testGame.activeActionSlots)
+        {
+            if (slot.label == "Get Client")
+            {
+                hasGetClientBtn = true;
+                clientCallback = slot.onClick;
+                break;
+            }
+        }
+
+        if (clientCallback) clientCallback();
+        auto* activeSex = dynamic_cast<sexState*>(testGame.getActiveState());
+        bool inSexState = (activeSex != nullptr);
+        bool clientInstantiated = inSexState && (testGame.getActiveTargetNPC() != nullptr) && activeSex->isClientSession();
+
+        bool serviceRoomActionOk = hasGetClientBtn && inSexState && clientInstantiated;
+        logResult("Standing on a service_room tile produces the \"Get Client\" button; clicking it instantiates a client and transitions to sexState", serviceRoomActionOk);
+        allPassed &= serviceRoomActionOk;
+
+        // 4. Concluding the client scene awards gold within [goldBudgetMin, goldBudgetMax]
+        float preGold = player->getStat("currency");
+        testGame.handleCommand({ CommandType::END_SEX_SCENE, 0, 0, "" });
+        float postGold = player->getStat("currency");
+        float goldEarned = postGold - preGold;
+        bool earnedBudgetOk = (goldEarned >= 50.0f && goldEarned <= 250.0f);
+
+        logResult("Concluding the client scene awards gold within [goldBudgetMin, goldBudgetMax]", earnedBudgetOk);
+        allPassed &= earnedBudgetOk;
+
+        return allPassed;
+    }
+
     bool runAllTests()
     {
         g_passCount = 0;
@@ -6733,6 +6907,8 @@ namespace EngineTests
         bool t53 = testPerceivedGenderAndPermanentSexualityStatus();
         bool t54 = testServantManagementHourlyScheduleAndStamina();
         bool t55 = testCustomizableTileUpgradeTreesAndSafeStorage();
+        bool t56 = testBinaryOffspringAndNurserySystem();
+        bool t57 = testComposableNPCTemplatesFluidBottlingAndClientRooms();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";

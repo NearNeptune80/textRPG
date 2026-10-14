@@ -59,6 +59,7 @@ public:
 	OrificeData* getOrifice(bodySlot slot);
 	const OrificeData* getOrifice(bodySlot slot) const;
 	void transferFluidToOrifice(bodySlot slot, const std::string& fluidType, float amount);
+	float drainFluid(bodySlot slot, float amount);
 	void stretchOrifice(bodySlot slot, float diameter);
 	void processBiologicalRecovery(int minutesPassed);
 

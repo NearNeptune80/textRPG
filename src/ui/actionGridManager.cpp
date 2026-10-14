@@ -31,6 +31,10 @@
 #include "state/transformationState.h"
 #include "state/enchantingState.h"
 #include "state/servantState.h"
+#include "state/nurseryState.h"
+#include "entities/offspringManager.h"
+#include "entities/npcGenerator.h"
+#include "items/fluidHarvesting.h"
 #include "map/roomDatabase.h"
 #include "core/servantManager.h"
 #include "quest/questDatabase.h"
@@ -1792,6 +1796,47 @@ void ActionGridManager::refresh(game* gameContext)
                     }, true, false, "Manage servant schedules, psychology, and work assignments.");
                 }
 
+                bool isNurseryStation = (tileData.customization.stationType == "nursery" ||
+                                         std::find(tileData.customization.roomTags.begin(), tileData.customization.roomTags.end(), "nursery") != tileData.customization.roomTags.end() ||
+                                         !offspringManager::getAllOffspring().empty());
+                if (isNurseryStation)
+                {
+                    addBtn(gameContext, "Visit Nursery", [gameContext]() {
+                        gameContext->changeState(std::make_unique<nurseryState>());
+                    }, true, false, "Inspect developing offspring, rename children, or recruit adult offspring.");
+                }
+
+                bool isMilkingStation = (tileData.customization.stationType == "milking_parlor" ||
+                                         std::find(tileData.customization.roomTags.begin(), tileData.customization.roomTags.end(), "milking") != tileData.customization.roomTags.end());
+                if (isMilkingStation)
+                {
+                    addBtn(gameContext, "Extract Personal Fluids", [gameContext]() {
+                        if (gameContext->getPlayer())
+                        {
+                            auto res = fluidHarvesting::harvestAllFluids(gameContext->getPlayer());
+                            gameContext->refreshActionGrid();
+                        }
+                    }, true, false, "Connect to automated milking apparatus to extract and bottle internal biological fluids.");
+                }
+
+                bool isServiceStation = (tileData.customization.stationType == "service_room" ||
+                                         std::find(tileData.customization.roomTags.begin(), tileData.customization.roomTags.end(), "service_room") != tileData.customization.roomTags.end());
+                if (isServiceStation)
+                {
+                    addBtn(gameContext, "Get Client", [gameContext]() {
+                        auto client = npcGenerator::composeRandomClient();
+                        if (client)
+                        {
+                            gameContext->activeTargetNPC = client;
+                            float budget = client->getStat("currency");
+                            if (budget <= 0.0f) budget = 100.0f;
+                            auto sex = std::make_unique<sexState>(client, SexStance::MISSIONARY, 20.0f);
+                            sex->setClientSession(true, 50.0f, budget);
+                            gameContext->changeState(std::move(sex));
+                        }
+                    }, true, false, "Solicit a visiting commercial client for an intimate service session.");
+                }
+
                 if (tileData.customization.isCustomizable)
                 {
                     if (tileData.customization.currentRoomId.empty())
@@ -1889,6 +1934,55 @@ void ActionGridManager::refresh(game* gameContext)
 
             addBtn(gameContext, "Back", [gameContext, sState]() {
                 if (sState->previousState) gameContext->changeState(std::move(sState->previousState));
+                else gameContext->changeState(std::make_unique<explorationState>());
+            }, true, false, "Return to area exploration.");
+            return;
+        }
+
+        if (auto* nState = dynamic_cast<nurseryState*>(currentState))
+        {
+            auto& records = offspringManager::getAllOffspring();
+            if (records.empty())
+            {
+                addBtn(gameContext, "Back", [gameContext, nState]() {
+                    if (nState->previousState) gameContext->changeState(std::move(nState->previousState));
+                    else gameContext->changeState(std::make_unique<explorationState>());
+                }, true, false, "Return to area exploration.");
+                return;
+            }
+
+            for (const auto& r : records)
+            {
+                bool isSelected = (r.id == nState->selectedOffspringId);
+                std::string label = isSelected ? ("* " + r.name + " *") : r.name;
+                std::string tt = std::format("{} | Age: {}d | {}", r.isAdult() ? "Adult NPC" : "Child", r.daysAlive, r.rolledRace);
+                addBtn(gameContext, label, [nState, rId = r.id, gameContext]() {
+                    nState->selectOffspring(rId, gameContext);
+                }, true, isSelected, tt);
+            }
+
+            auto* curRecord = offspringManager::getOffspring(nState->selectedOffspringId);
+            if (curRecord)
+            {
+                if (curRecord->isAdult())
+                {
+                    addBtn(gameContext, "Recruit Companion", [nState, gameContext]() {
+                        nState->promoteToCompanion(gameContext);
+                    }, true, false, "Recruit this matured adult offspring into your active adventuring party.");
+
+                    addBtn(gameContext, "Assign to Servants", [nState, gameContext]() {
+                        nState->promoteToServant(gameContext);
+                    }, true, false, "Assign this adult offspring to estate servitude and daily labor.");
+                }
+
+                addBtn(gameContext, "Rename Child", [nState, gameContext, curRecord]() {
+                    std::string newName = curRecord->name + " Jr.";
+                    nState->renameSelected(newName, gameContext);
+                }, true, false, "Give this offspring a new name.");
+            }
+
+            addBtn(gameContext, "Back", [gameContext, nState]() {
+                if (nState->previousState) gameContext->changeState(std::move(nState->previousState));
                 else gameContext->changeState(std::make_unique<explorationState>());
             }, true, false, "Return to area exploration.");
             return;

@@ -1,0 +1,124 @@
+{
+  "bodyTemplates": [
+    {
+      "id": "body_canine_male_athletic",
+      "species": "Dog-morph",
+      "genderArchetype": "MALE",
+      "heightCm": 182.0,
+      "bodyBuild": "Toned",
+      "breasts": {
+        "cupSize": 0,
+        "currentFluidMl": 0.0,
+        "maxFluidMl": 0.0
+      },
+      "groin": {
+        "type": "Penis",
+        "lengthCm": 18.0,
+        "diameterCm": 4.2,
+        "knot": true,
+        "currentFluidMl": 15.0,
+        "maxFluidMl": 30.0
+      },
+      "tags": ["canine", "fur", "tail", "athletic", "civilian"]
+    },
+    {
+      "id": "body_feline_female_curvy",
+      "species": "Cat-morph",
+      "genderArchetype": "FEMALE",
+      "heightCm": 165.0,
+      "bodyBuild": "Curvy",
+      "breasts": {
+        "cupSize": 3,
+        "currentFluidMl": 60.0,
+        "maxFluidMl": 120.0
+      },
+      "groin": {
+        "type": "Vagina",
+        "wetness": 2,
+        "currentFluidMl": 20.0,
+        "maxFluidMl": 40.0
+      },
+      "tags": ["feline", "fur", "tail", "curvy", "civilian"]
+    },
+    {
+      "id": "body_human_female_petite",
+      "species": "Human",
+      "genderArchetype": "FEMALE",
+      "heightCm": 158.0,
+      "bodyBuild": "Petite",
+      "breasts": {
+        "cupSize": 2,
+        "currentFluidMl": 0.0,
+        "maxFluidMl": 50.0
+      },
+      "groin": {
+        "type": "Vagina",
+        "wetness": 1,
+        "currentFluidMl": 15.0,
+        "maxFluidMl": 30.0
+      },
+      "tags": ["human", "petite", "civilian"]
+    },
+    {
+      "id": "body_human_male_brawny",
+      "species": "Human",
+      "genderArchetype": "MALE",
+      "heightCm": 188.0,
+      "bodyBuild": "Brawny",
+      "breasts": {
+        "cupSize": 0,
+        "currentFluidMl": 0.0,
+        "maxFluidMl": 0.0
+      },
+      "groin": {
+        "type": "Penis",
+        "lengthCm": 20.0,
+        "diameterCm": 4.5,
+        "knot": false,
+        "currentFluidMl": 20.0,
+        "maxFluidMl": 40.0
+      },
+      "tags": ["human", "brawny", "warrior", "civilian"]
+    },
+    {
+      "id": "body_elf_female_graceful",
+      "species": "Elf",
+      "genderArchetype": "FEMALE",
+      "heightCm": 172.0,
+      "bodyBuild": "Slender",
+      "breasts": {
+        "cupSize": 2,
+        "currentFluidMl": 0.0,
+        "maxFluidMl": 60.0
+      },
+      "groin": {
+        "type": "Vagina",
+        "wetness": 2,
+        "currentFluidMl": 15.0,
+        "maxFluidMl": 30.0
+      },
+      "tags": ["elf", "slender", "noble", "civilian"]
+    },
+    {
+      "id": "body_cow_female_voluptuous",
+      "species": "Cow-morph",
+      "genderArchetype": "FEMALE",
+      "heightCm": 175.0,
+      "bodyBuild": "Voluptuous",
+      "breasts": {
+        "cupSize": 6,
+        "currentFluidMl": 100.0,
+        "maxFluidMl": 250.0,
+        "isLactating": true
+      },
+      "groin": {
+        "type": "Vagina",
+        "wetness": 3,
+        "currentFluidMl": 25.0,
+        "maxFluidMl": 50.0
+      },
+      "tags": ["bovine", "lactation", "voluptuous", "civilian"]
+    }
+  ]
+}
+

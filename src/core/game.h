@@ -192,6 +192,7 @@ public:
     void triggerNextPendingTransformationInterrupt();
 
     int accumulatedServantMinutes = 0;
+    int accumulatedDayMinutes = 0;
 
 private:
     std::unique_ptr<iGameState> activeGameState;

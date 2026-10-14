@@ -1,0 +1,53 @@
+{
+  "state": "NURSERY",
+  "name": "Nursery Management Layout",
+  "rootNode": {
+    "id": "nursery_root_row",
+    "type": "CONTAINER",
+    "direction": "ROW",
+    "sizes": [16.0, 68.0, 16.0],
+    "children": [
+      {
+        "id": "nursery_left_column",
+        "type": "LEAF",
+        "name": "Player Status",
+        "widgets": [
+          "widget_lt_character_card"
+        ]
+      },
+      {
+        "id": "nursery_center_column",
+        "type": "CONTAINER",
+        "direction": "COLUMN",
+        "sizes": [78.0, 22.0],
+        "children": [
+          {
+            "id": "nursery_center_pane",
+            "type": "LEAF",
+            "name": "Nursery Inhabitants",
+            "widgets": [
+              "widget_narrative_story"
+            ]
+          },
+          {
+            "id": "nursery_bottom_actions",
+            "type": "LEAF",
+            "name": "Nursery Actions",
+            "widgets": [
+              "widget_action_commands"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "nursery_right_column",
+        "type": "LEAF",
+        "name": "Estate Overview",
+        "widgets": [
+          "widget_active_effects"
+        ]
+      }
+    ]
+  }
+}
+
