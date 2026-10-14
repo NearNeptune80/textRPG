@@ -1,0 +1,35 @@
+{
+  "version": "1.0",
+  "conversions": [
+    {
+      "id": "harvest_milk",
+      "name": "Milk",
+      "slot": "BREASTS",
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "mlPerUnit": 50.0,
+      "itemId": "item_milk_bottle",
+      "requiresLactating": false
+    },
+    {
+      "id": "harvest_cum",
+      "name": "Cum",
+      "slot": "GROIN",
+      "requiredTags": ["penis"],
+      "forbiddenTags": [],
+      "mlPerUnit": 15.0,
+      "itemId": "item_cum_flask",
+      "requiresLactating": false
+    },
+    {
+      "id": "harvest_girlcum",
+      "name": "Girlcum",
+      "slot": "GROIN",
+      "requiredTags": [],
+      "forbiddenTags": ["penis"],
+      "mlPerUnit": 15.0,
+      "itemId": "item_girlcum_vial",
+      "requiresLactating": false
+    }
+  ]
+}

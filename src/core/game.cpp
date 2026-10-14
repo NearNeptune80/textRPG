@@ -16,6 +16,7 @@
 #include "entities/perkDatabase.h"
 #include "events/gameEvents.h"
 #include "items/itemDatabase.h"
+#include "items/fluidHarvesting.h"
 #include "items/enchantmentAspects.h"
 #include "items/infusionTier.h"
 #include "items/merchantValuation.h"
@@ -187,6 +188,8 @@ void game::init()
         questDatabase::loadDatabase("data/quests");
         NamedCharacterManager::loadFromDirectory("data/characters");
     }
+
+    fluidHarvesting::loadConfigFromFile("data/config/fluid_harvesting.json");
 
     playerEntity = nullptr;
     Player = nullptr;

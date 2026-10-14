@@ -569,10 +569,49 @@ Procedural generation is refactored from rigid monolithic enemy JSONs into three
 
 ### 2. Anatomy Fluid Harvesting & Bottling Engine
 * Converts stored fluid from anatomy sockets (`anatomyComponent::drainFluid`) into concrete items.
-* Conversion Matrix:
+* **Data-Driven Architecture**: The conversion matrix is fully loaded from `data/config/fluid_harvesting.json` with zero C++ hardcoding:
   * `BREASTS` Milk: Every `50.0 ml` -> 1x `item_milk_bottle` (Value: 15¤).
   * `GROIN` Cum: Every `15.0 ml` -> 1x `item_cum_flask` (Value: 25¤).
   * `GROIN` Girlcum: Every `15.0 ml` -> 1x `item_girlcum_vial` (Value: 20¤).
+
+```json
+{
+  "version": "1.0",
+  "conversions": [
+    {
+      "id": "harvest_milk",
+      "name": "Milk",
+      "slot": "BREASTS",
+      "requiredTags": [],
+      "forbiddenTags": [],
+      "mlPerUnit": 50.0,
+      "itemId": "item_milk_bottle",
+      "requiresLactating": false
+    },
+    {
+      "id": "harvest_cum",
+      "name": "Cum",
+      "slot": "GROIN",
+      "requiredTags": ["penis"],
+      "forbiddenTags": [],
+      "mlPerUnit": 15.0,
+      "itemId": "item_cum_flask",
+      "requiresLactating": false
+    },
+    {
+      "id": "harvest_girlcum",
+      "name": "Girlcum",
+      "slot": "GROIN",
+      "requiredTags": [],
+      "forbiddenTags": ["penis"],
+      "mlPerUnit": 15.0,
+      "itemId": "item_girlcum_vial",
+      "requiresLactating": false
+    }
+  ]
+}
+```
+
 * Invoked via:
   1. Milking Parlor station action button (`"Extract Personal Fluids"`).
   2. Hourly servant milking duties.

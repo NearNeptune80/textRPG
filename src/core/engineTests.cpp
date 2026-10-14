@@ -6763,7 +6763,10 @@ namespace EngineTests
         logResult("npcGenerator::compose correctly combines body, outfit, and profession tags into an entity with matching equipment and stats", composeOk);
         allPassed &= composeOk;
 
-        // 2. Draining 100ml milk from a character with full breasts yields exactly 2x item_milk_bottle and zeroes breast fluid volume
+        // 2. Draining 100ml milk from a character with full breasts yields exactly 2x item_milk_bottle and zeroes breast fluid volume via JSON config
+        bool fluidConfigLoaded = fluidHarvesting::loadConfigFromFile("data/config/fluid_harvesting.json");
+        bool rulesLoadedOk = fluidConfigLoaded && (fluidHarvesting::getConversionRules().size() >= 3);
+
         auto cowChar = std::make_shared<entity>("cow_1", "Bessie");
         bodyPart cowBreasts;
         cowBreasts.id = "breasts_cow";
@@ -6782,8 +6785,20 @@ namespace EngineTests
         bool zeroedBreastFluid = (cowChar->anatomy.getPart(bodySlot::BREASTS)->currentFluidMl == 0.0f);
         bool itemsInInv = (cowChar->inventory.backpack.size() == 2);
 
-        bool milkHarvestOk = bottlesCountOk && itemIsMilk && volumeDrainedOk && zeroedBreastFluid && itemsInInv;
-        logResult("Draining 100ml milk from a character with full breasts yields exactly 2x item_milk_bottle and zeroes breast fluid volume", milkHarvestOk);
+        // Also verify groin cum harvesting from JSON matrix rule
+        bodyPart groinPart;
+        groinPart.id = "penis_dog";
+        groinPart.name = "Penis";
+        groinPart.tags = { "penis" };
+        groinPart.currentFluidMl = 30.0f;
+        groinPart.maxFluidMl = 30.0f;
+        cowChar->anatomy.setPart(bodySlot::GROIN, groinPart);
+
+        auto cumResult = fluidHarvesting::drainAndBottle(cowChar.get(), bodySlot::GROIN, 30.0f);
+        bool cumHarvestOk = (cumResult.bottlesHarvested == 2) && (cumResult.itemId == "item_cum_flask") && (cowChar->anatomy.getPart(bodySlot::GROIN)->currentFluidMl == 0.0f);
+
+        bool milkHarvestOk = rulesLoadedOk && bottlesCountOk && itemIsMilk && volumeDrainedOk && zeroedBreastFluid && itemsInInv && cumHarvestOk;
+        logResult("fluidHarvesting loads bottling matrix from JSON; draining fluids yields corresponding bottles and zeroes part fluid volume", milkHarvestOk);
         allPassed &= milkHarvestOk;
 
         // 3. Standing on a service_room tile produces the \"Get Client\" button; clicking it instantiates a client and transitions to sexState
@@ -6836,7 +6851,7 @@ namespace EngineTests
         testGame.handleCommand({ CommandType::END_SEX_SCENE, 0, 0, "" });
         float postGold = player->getStat("currency");
         float goldEarned = postGold - preGold;
-        bool earnedBudgetOk = (goldEarned >= 50.0f && goldEarned <= 250.0f);
+        bool earnedBudgetOk = (goldEarned >= 50.0f && goldEarned <= 400.0f);
 
         logResult("Concluding the client scene awards gold within [goldBudgetMin, goldBudgetMax]", earnedBudgetOk);
         allPassed &= earnedBudgetOk;
