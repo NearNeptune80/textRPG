@@ -14,6 +14,8 @@
 #include "state/shopState.h"
 #include "state/transformationState.h"
 #include "state/enchantingState.h"
+#include "state/servantState.h"
+#include "core/servantManager.h"
 #include "items/enchantmentAspects.h"
 #include "items/infusionTier.h"
 #include "items/infusionEffect.h"
@@ -4024,6 +4026,156 @@ namespace GameplayViews
                                         "Output preview slot. Use the [Craft] command in the action grid below to complete crafting.");
 
         curY += recipeRect.h + (8.0f * uiScale);
+        return (curY - startY);
+    }
+
+    float renderServantView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)
+    {
+        float startY = curY;
+        auto* sState = dynamic_cast<servantState*>(gameContext->getActiveState());
+        if (!sState) return 0.0f;
+
+        auto s = servantManager::getServant(sState->selectedServantId);
+        if (!s)
+        {
+            UIWidget::drawText(renderer, "No servants registered in estate.", rect.x + (16.0f * uiScale), curY + (16.0f * uiScale), Theme::colors.textSecondary, uiScale);
+            return 40.0f * uiScale;
+        }
+
+        // 1. Header Card: Servant Name & Status
+        float cardW = rect.w - (24.0f * uiScale);
+        SDL_FRect headCard = { rect.x + (12.0f * uiScale), curY, cardW, 44.0f * uiScale };
+        UIWidget::drawPanel(renderer, headCard, Theme::colors.bgPanel, Theme::colors.borderNormal);
+
+        std::string titleStr = std::format("Servant: {}", s->name);
+        UIWidget::drawText(renderer, titleStr, headCard.x + (12.0f * uiScale), headCard.y + (12.0f * uiScale), Theme::colors.textGold, uiScale * 1.1f);
+
+        if (s->servant.stats.isExhausted)
+        {
+            float exW = UIWidget::getTextWidth("[ EXHAUSTED - REST REQUIRED ]", uiScale * 0.85f);
+            UIWidget::drawText(renderer, "[ EXHAUSTED - REST REQUIRED ]", headCard.x + headCard.w - exW - (12.0f * uiScale), headCard.y + (14.0f * uiScale), { 240, 80, 80, 255 }, uiScale * 0.85f);
+        }
+        curY += headCard.h + (10.0f * uiScale);
+
+        // 2. Psychology & Stamina Gauges
+        SDL_FRect gaugeCard = { rect.x + (12.0f * uiScale), curY, cardW, 90.0f * uiScale };
+        UIWidget::drawPanel(renderer, gaugeCard, Theme::colors.bgHeader, Theme::colors.borderNormal);
+
+        float barW = (cardW - (48.0f * uiScale)) / 2.0f;
+        float barH = 16.0f * uiScale;
+
+        // Obedience bar (0..100)
+        float b1X = gaugeCard.x + (16.0f * uiScale);
+        float b1Y = gaugeCard.y + (16.0f * uiScale);
+        std::string obedLabel = std::format("Obedience: {:.0f}%", s->servant.stats.obedience);
+        UIWidget::drawText(renderer, obedLabel, b1X, b1Y - (2.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.75f);
+        SDL_FRect b1Bg = { b1X, b1Y + (16.0f * uiScale), barW, barH };
+        UIWidget::drawPanel(renderer, b1Bg, Theme::colors.bgDark, Theme::colors.borderButton);
+        float obedPct = std::clamp(s->servant.stats.obedience / 100.0f, 0.0f, 1.0f);
+        SDL_FRect b1Fill = { b1X + 1, b1Y + (16.0f * uiScale) + 1, (barW - 2) * obedPct, barH - 2 };
+        SDL_SetRenderDrawColor(renderer, 90, 160, 240, 220);
+        SDL_RenderFillRect(renderer, &b1Fill);
+
+        // Morale bar (0..100)
+        float b2X = gaugeCard.x + barW + (32.0f * uiScale);
+        float b2Y = b1Y;
+        std::string morLabel = std::format("Morale: {:.0f}%", s->servant.stats.morale);
+        UIWidget::drawText(renderer, morLabel, b2X, b2Y - (2.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.75f);
+        SDL_FRect b2Bg = { b2X, b2Y + (16.0f * uiScale), barW, barH };
+        UIWidget::drawPanel(renderer, b2Bg, Theme::colors.bgDark, Theme::colors.borderButton);
+        float morPct = std::clamp(s->servant.stats.morale / 100.0f, 0.0f, 1.0f);
+        SDL_FRect b2Fill = { b2X + 1, b2Y + (16.0f * uiScale) + 1, (barW - 2) * morPct, barH - 2 };
+        SDL_SetRenderDrawColor(renderer, 100, 220, 120, 220);
+        SDL_RenderFillRect(renderer, &b2Fill);
+
+        // Affection bar (-100..100)
+        float b3X = b1X;
+        float b3Y = b1Y + (44.0f * uiScale);
+        std::string affLabel = std::format("Affection: {:.0f}", s->servant.stats.affection);
+        UIWidget::drawText(renderer, affLabel, b3X, b3Y - (2.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.75f);
+        SDL_FRect b3Bg = { b3X, b3Y + (16.0f * uiScale), barW, barH };
+        UIWidget::drawPanel(renderer, b3Bg, Theme::colors.bgDark, Theme::colors.borderButton);
+        float affPct = std::clamp((s->servant.stats.affection + 100.0f) / 200.0f, 0.0f, 1.0f);
+        SDL_FRect b3Fill = { b3X + 1, b3Y + (16.0f * uiScale) + 1, (barW - 2) * affPct, barH - 2 };
+        SDL_SetRenderDrawColor(renderer, 230, 120, 180, 220);
+        SDL_RenderFillRect(renderer, &b3Fill);
+
+        // Stamina bar (0..maxStamina)
+        float b4X = b2X;
+        float b4Y = b3Y;
+        std::string stamLabel = std::format("Stamina: {:.0f} / {:.0f}", s->servant.stats.stamina, s->servant.stats.maxStamina);
+        UIWidget::drawText(renderer, stamLabel, b4X, b4Y - (2.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.75f);
+        SDL_FRect b4Bg = { b4X, b4Y + (16.0f * uiScale), barW, barH };
+        UIWidget::drawPanel(renderer, b4Bg, Theme::colors.bgDark, Theme::colors.borderButton);
+        float stamPct = std::clamp(s->servant.stats.stamina / std::max(1.0f, s->servant.stats.maxStamina), 0.0f, 1.0f);
+        SDL_FRect b4Fill = { b4X + 1, b4Y + (16.0f * uiScale) + 1, (barW - 2) * stamPct, barH - 2 };
+        SDL_SetRenderDrawColor(renderer, s->servant.stats.isExhausted ? 240 : 220, s->servant.stats.isExhausted ? 60 : 180, 60, 220);
+        SDL_RenderFillRect(renderer, &b4Fill);
+
+        curY += gaugeCard.h + (12.0f * uiScale);
+
+        // 3. 24-Hour Schedule Visual Grid
+        SDL_FRect schedCard = { rect.x + (12.0f * uiScale), curY, cardW, 200.0f * uiScale };
+        UIWidget::drawPanel(renderer, schedCard, Theme::colors.bgPanel, Theme::colors.borderNormal);
+
+        std::string schedTitle = std::format("24-Hour Timetable (Current Time: {:02d}:00)", gameContext->getTime().hour);
+        UIWidget::drawText(renderer, schedTitle, schedCard.x + (12.0f * uiScale), schedCard.y + (10.0f * uiScale), Theme::colors.textGold, uiScale * 0.9f);
+
+        int cols = 6;
+        float slotW = (schedCard.w - (24.0f * uiScale) - (float(cols - 1) * (6.0f * uiScale))) / float(cols);
+        float slotH = 34.0f * uiScale;
+        float gridStartX = schedCard.x + (12.0f * uiScale);
+        float gridStartY = schedCard.y + (32.0f * uiScale);
+
+        const auto mousePos = gameContext->input.getMousePosition();
+        bool clicked = gameContext->input.isLeftMouseJustClicked();
+
+        for (int h = 0; h < 24; ++h)
+        {
+            int r = h / cols;
+            int c = h % cols;
+            float sX = gridStartX + float(c) * (slotW + (6.0f * uiScale));
+            float sY = gridStartY + float(r) * (slotH + (6.0f * uiScale));
+            SDL_FRect sRect = { sX, sY, slotW, slotH };
+
+            bool isSelected = (h == sState->selectedHour);
+            bool isCurrent = (h == gameContext->getTime().hour);
+            bool isHov = (mousePos.x >= sRect.x && mousePos.x <= sRect.x + sRect.w &&
+                          mousePos.y >= sRect.y && mousePos.y <= sRect.y + sRect.h);
+
+            std::string jobId = s->servant.getJobForHour(h);
+            const auto* jDef = servantManager::getJobDefinition(jobId);
+            std::string jName = jDef ? jDef->name : jobId;
+            if (jobId == "rest" || jobId.empty()) jName = "Rest";
+
+            SDL_Color fillCol = (jobId == "rest" || jobId.empty()) ? Theme::colors.bgDark : Theme::colors.bgHeader;
+            if (isCurrent) fillCol = Theme::colors.bgSlotSelected;
+            SDL_Color bdCol = isSelected ? Theme::colors.borderSelected : (isCurrent ? Theme::colors.textGold : Theme::colors.borderNormal);
+            if (isHov) bdCol = Theme::colors.borderButton;
+
+            UIWidget::drawPanel(renderer, sRect, fillCol, bdCol);
+
+            std::string timeStr = std::format("{:02d}:00", h);
+            UIWidget::drawText(renderer, timeStr, sX + (4.0f * uiScale), sY + (3.0f * uiScale), isCurrent ? Theme::colors.textGold : Theme::colors.textSecondary, uiScale * 0.65f);
+
+            UIWidget::drawText(renderer, jName, sX + (4.0f * uiScale), sY + (16.0f * uiScale), isSelected ? Theme::colors.textGold : Theme::colors.textPrimary, uiScale * 0.65f);
+
+            if (isHov && clicked)
+            {
+                sState->selectedHour = h;
+                gameContext->refreshActionGrid();
+                gameContext->input.consumeMouseClick();
+            }
+        }
+
+        curY += schedCard.h + (10.0f * uiScale);
+
+        if (!sState->statusMessage.empty())
+        {
+            UIWidget::drawText(renderer, sState->statusMessage, rect.x + (16.0f * uiScale), curY, Theme::colors.textSecondary, uiScale * 0.8f);
+            curY += 20.0f * uiScale;
+        }
+
         return (curY - startY);
     }
 }

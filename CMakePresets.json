@@ -1,4 +1,4 @@
-﻿{
+{
     "version": 3,
     "configurePresets": [
         {
@@ -82,6 +82,22 @@
             }
         },
         {
+            "name": "linux-ninja",
+            "displayName": "Linux Ninja (build/)",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build",
+            "installDir": "${sourceDir}/build/install",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            }
+        },
+        {
             "name": "macos-debug",
             "displayName": "macOS Debug",
             "generator": "Ninja",
@@ -101,5 +117,18 @@
                 }
             }
         }
+    ],
+    "buildPresets": [
+        {
+            "name": "linux-debug",
+            "displayName": "Build Linux Debug",
+            "configurePreset": "linux-debug"
+        },
+        {
+            "name": "linux-ninja",
+            "displayName": "Build Linux Ninja (build/)",
+            "configurePreset": "linux-ninja"
+        }
     ]
 }
+

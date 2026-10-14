@@ -66,6 +66,15 @@ struct PersistentAmbushState
 	int ambushChance{ 50 };
 };
 
+struct TileCustomization
+{
+	bool isCustomizable{ false };
+	std::string currentRoomId{ "" };       // Empty string = unbuilt foundation
+	int upgradeTier{ 0 };                  // 0 = unbuilt, 1 = Tier 1, 2 = Tier 2, etc.
+	std::string stationType{ "" };         // e.g. "alchemy", "milking_parlor", "nursery", "service_room"
+	std::vector<std::string> roomTags;
+};
+
 struct TileRuntimeData
 {
 	std::shared_ptr<entity> persistentNPC{ nullptr };
@@ -77,13 +86,14 @@ struct TileRuntimeData
 	std::string iconId = "";
 	int baseDangerLevel{ 0 };
 	bool isStorageSafe{ false };
+	TileCustomization customization;
 
 	std::vector<TemporarySafetyModifier> safetyModifiers;
 
 	[[nodiscard]] bool getIsEffectiveStorageSafe() const
 	{
 		if (isStorageSafe) return true;
-
+		if (!customization.currentRoomId.empty()) return true; // Built rooms are always safe
 		for (const auto& mod : safetyModifiers)
 		{
 			if (mod.dangerDelta < 0) return true;
@@ -101,22 +111,45 @@ struct TileRuntimeData
 		return std::max(0, effective);
 	}
 
-		void addDroppedItem(std::shared_ptr<item> itemPtr, int lifespanMinutes = 120)
+	void addDroppedItem(std::shared_ptr<item> itemPtr, int lifespanMinutes = 120)
 	{
 		if (!itemPtr) return;
 		droppedItems.push_back({ itemPtr, lifespanMinutes });
 	}
 
-		void addDroppedCurrency(float amount, int lifespanMinutes = 120)
+	void addDroppedCurrency(float amount, int lifespanMinutes = 120)
 	{
 		if (amount <= 0.0f) return;
 		droppedCurrency += amount;
 		currencyMinutesRemaining = lifespanMinutes;
 	}
 
-		// Unsafe tiles clear when the player moves, not after a timer.
-	void processItemDecay(int /*minutesPassed*/)
+	void processItemDecay(int minutesPassed)
 	{
+		if (getIsEffectiveStorageSafe()) return;
+		if (minutesPassed <= 0) return;
+
+		for (auto it = droppedItems.begin(); it != droppedItems.end();)
+		{
+			it->minutesRemaining -= minutesPassed;
+			if (it->minutesRemaining <= 0)
+			{
+				it = droppedItems.erase(it);
+			}
+			else
+			{
+				++it;
+			}
+		}
+
+		if (droppedCurrency > 0.0f)
+		{
+			currencyMinutesRemaining -= minutesPassed;
+			if (currencyMinutesRemaining <= 0)
+			{
+				droppedCurrency = 0.0f;
+			}
+		}
 	}
 };
 

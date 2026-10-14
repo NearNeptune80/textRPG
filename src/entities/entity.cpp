@@ -285,6 +285,8 @@ json entity::toJson() const
     }
     j["anatomy"] = anatomyJson;
     j["gestation"] = gestation.toJson();
+    j["isServant"] = isServant;
+    j["servant"] = servant.toJson();
 
     json backpackJson = json::array();
     for (const auto& itemPtr : inventory.backpack)
@@ -370,6 +372,14 @@ void entity::fromJson(const json& j)
     if (j.contains("gestation"))
     {
         gestation.fromJson(j["gestation"]);
+    }
+    if (j.contains("isServant"))
+    {
+        isServant = j["isServant"].get<bool>();
+    }
+    if (j.contains("servant"))
+    {
+        servant.fromJson(j["servant"]);
     }
 
     if (j.contains("stats"))

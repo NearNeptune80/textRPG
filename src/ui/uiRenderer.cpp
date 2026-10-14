@@ -23,6 +23,7 @@
 #include "state/shopState.h"
 #include "state/transformationState.h"
 #include "state/enchantingState.h"
+#include "state/servantState.h"
 
 #include "ui/actionGridManager.h"
 #include "ui/fontManager.h"
@@ -140,6 +141,7 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
     else if (dynamic_cast<encounterResolutionState*>(curState)) stateKey = "ENCOUNTER_RESOLUTION";
     else if (dynamic_cast<eventState*>(curState)) stateKey = "EVENT";
     else if (dynamic_cast<explorationState*>(curState)) stateKey = "EXPLORATION";
+    else if (dynamic_cast<servantState*>(curState)) stateKey = "SERVANT";
 
     auto panels = m_layoutEngine.computeLayout(static_cast<float>(winW), static_cast<float>(winH), uiScale, stateKey);
 
@@ -582,6 +584,10 @@ float uiRenderer::renderCenterPane(SDL_Renderer* renderer, game* gameContext, co
     else if (dynamic_cast<eventState*>(state))
     {
         return GameplayViews::renderSceneView(renderer, gameContext, rect, curY, uiScale);
+    }
+    else if (dynamic_cast<servantState*>(state))
+    {
+        return GameplayViews::renderServantView(renderer, gameContext, rect, curY, uiScale);
     }
     else
     {

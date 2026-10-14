@@ -12,6 +12,7 @@
 #include "quest/quest.h"
 
 class entity;
+class game;
 
 class gameMap
 {
@@ -40,6 +41,10 @@ public:
             data.currencyMinutesRemaining = 120;
         }
     }
+
+    bool upgradeTileRoom(int x, int y, const std::string& targetRoomId, game* g);
+    bool demolishTileRoom(int x, int y, game* g);
+    bool hasTileTag(int x, int y, const std::string& tag) const;
 
     void processTimePassage(int minutesPassed);
     void restockAmbushNPC(PersistentAmbushState& ambush);

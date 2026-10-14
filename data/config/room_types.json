@@ -1,0 +1,114 @@
+{
+  "version": "1.0",
+  "rooms": [
+    {
+      "id": "room_living_quarters_t1",
+      "name": "Basic Living Quarters",
+      "tier": 1,
+      "category": "Residential",
+      "description": "A clean room with basic bedding and safe floor space for personal belongings.",
+      "costGold": 250.0,
+      "isStorageSafe": true,
+      "stationType": "",
+      "tags": ["residential", "shelter"],
+      "availableUpgrades": ["room_living_quarters_t2", "room_milking_parlor_t1", "room_service_suite_t1"]
+    },
+    {
+      "id": "room_workshop_t1",
+      "name": "Basic Workshop",
+      "tier": 1,
+      "category": "Facility",
+      "description": "Sturdy workbenches and tool racks for crafting and equipment maintenance.",
+      "costGold": 300.0,
+      "isStorageSafe": true,
+      "stationType": "workshop",
+      "tags": ["facility", "crafting"],
+      "availableUpgrades": ["room_alchemy_lab_t1"]
+    },
+    {
+      "id": "room_living_quarters_t2",
+      "name": "Luxurious Quarters",
+      "tier": 2,
+      "category": "Residential",
+      "description": "Plush furnishings and velvet drapes. Enhances servant rest recovery by +5 stamina/hour.",
+      "costGold": 600.0,
+      "isStorageSafe": true,
+      "stationType": "",
+      "tags": ["residential", "luxury"],
+      "availableUpgrades": ["room_living_quarters_t3"]
+    },
+    {
+      "id": "room_living_quarters_t3",
+      "name": "Master Sanctuary Suite",
+      "tier": 3,
+      "category": "Residential",
+      "description": "An opulent master suite with ornate chandeliers, a grand hearth, and premium accommodations.",
+      "costGold": 1200.0,
+      "isStorageSafe": true,
+      "stationType": "",
+      "tags": ["residential", "master"],
+      "availableUpgrades": []
+    },
+    {
+      "id": "room_milking_parlor_t1",
+      "name": "Milking Parlor",
+      "tier": 2,
+      "category": "Facility",
+      "description": "Equipped with mechanical suction apparatus and sterile storage containers.",
+      "costGold": 500.0,
+      "isStorageSafe": true,
+      "stationType": "milking_parlor",
+      "tags": ["facility", "milking"],
+      "availableUpgrades": ["room_milking_parlor_t2"]
+    },
+    {
+      "id": "room_milking_parlor_t2",
+      "name": "Automated Milking Facility",
+      "tier": 3,
+      "category": "Facility",
+      "description": "Industrial-grade automated fluid extraction stalls with enhanced yield capacitors.",
+      "costGold": 1000.0,
+      "isStorageSafe": true,
+      "stationType": "milking_parlor",
+      "tags": ["facility", "milking", "automated"],
+      "availableUpgrades": []
+    },
+    {
+      "id": "room_alchemy_lab_t1",
+      "name": "Alchemy Laboratory",
+      "tier": 2,
+      "category": "Facility",
+      "description": "Alchemical distillation alembics, burner crucibles, and reagent shelves.",
+      "costGold": 550.0,
+      "isStorageSafe": true,
+      "stationType": "alchemy",
+      "tags": ["facility", "alchemy"],
+      "availableUpgrades": []
+    },
+    {
+      "id": "room_service_suite_t1",
+      "name": "Private Service Parlor",
+      "tier": 2,
+      "category": "Commercial",
+      "description": "A secluded client lounge outfitted for intimate commercial transactions.",
+      "costGold": 400.0,
+      "isStorageSafe": true,
+      "stationType": "service_room",
+      "tags": ["facility", "commercial", "service_room"],
+      "availableUpgrades": ["room_service_suite_t2"]
+    },
+    {
+      "id": "room_service_suite_t2",
+      "name": "Opulent Service Lounge",
+      "tier": 3,
+      "category": "Commercial",
+      "description": "High-end commercial suite attracting affluent clientele with premium budgets.",
+      "costGold": 800.0,
+      "isStorageSafe": true,
+      "stationType": "service_room",
+      "tags": ["facility", "commercial", "luxury"],
+      "availableUpgrades": []
+    }
+  ]
+}
+

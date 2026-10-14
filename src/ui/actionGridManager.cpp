@@ -30,6 +30,9 @@
 #include "state/shopState.h"
 #include "state/transformationState.h"
 #include "state/enchantingState.h"
+#include "state/servantState.h"
+#include "map/roomDatabase.h"
+#include "core/servantManager.h"
 #include "quest/questDatabase.h"
 #include "items/merchantValuation.h"
 #include "ui/theme.h"
@@ -1781,6 +1784,113 @@ void ActionGridManager::refresh(game* gameContext)
                         gameContext->changeState(std::make_unique<inventoryState>());
                     }, true, false, "Inspect and pick up items lying on the ground.");
                 }
+
+                if (servantManager::getServantCount() > 0)
+                {
+                    addBtn(gameContext, "Servants", [gameContext]() {
+                        gameContext->changeState(std::make_unique<servantState>());
+                    }, true, false, "Manage servant schedules, psychology, and work assignments.");
+                }
+
+                if (tileData.customization.isCustomizable)
+                {
+                    if (tileData.customization.currentRoomId.empty())
+                    {
+                        auto rootRooms = roomDatabase::getRootRooms();
+                        for (const auto& rDef : rootRooms)
+                        {
+                            bool canAfford = (gameContext->getPlayer() && gameContext->getPlayer()->getStat("currency") >= rDef.costGold);
+                            std::string label = std::format("Build {}", rDef.name);
+                            std::string tt = std::format("Construct {} for {:.0f}¤. {}", rDef.name, rDef.costGold, rDef.description);
+                            addBtn(gameContext, label, [gameContext, rId = rDef.id]() {
+                                gameContext->map->upgradeTileRoom(gameContext->gridX, gameContext->gridY, rId, gameContext);
+                                gameContext->refreshActionGrid();
+                            }, canAfford, false, tt);
+                        }
+                    }
+                    else
+                    {
+                        const auto* curDef = roomDatabase::getRoom(tileData.customization.currentRoomId);
+                        auto upgrades = roomDatabase::getAvailableUpgrades(tileData.customization.currentRoomId);
+                        for (const auto& upDef : upgrades)
+                        {
+                            bool canAfford = (gameContext->getPlayer() && gameContext->getPlayer()->getStat("currency") >= upDef.costGold);
+                            std::string label = std::format("Upgrade: {}", upDef.name);
+                            std::string tt = std::format("Upgrade to {} for {:.0f}¤ (Tier {}). {}", upDef.name, upDef.costGold, upDef.tier, upDef.description);
+                            addBtn(gameContext, label, [gameContext, upId = upDef.id]() {
+                                gameContext->map->upgradeTileRoom(gameContext->gridX, gameContext->gridY, upId, gameContext);
+                                gameContext->refreshActionGrid();
+                            }, canAfford, false, tt);
+                        }
+
+                        float refund = curDef ? (curDef->costGold * 0.5f) : 0.0f;
+                        std::string demoLabel = std::format("Demolish (+{:.0f}¤)", refund);
+                        addBtn(gameContext, demoLabel, [gameContext]() {
+                            gameContext->map->demolishTileRoom(gameContext->gridX, gameContext->gridY, gameContext);
+                            gameContext->refreshActionGrid();
+                        }, true, false, "Demolish room and revert to plot foundation. 50% gold refunded; ground storage preserved.");
+                    }
+                }
             }
+            return;
+        }
+
+        if (auto* sState = dynamic_cast<servantState*>(currentState))
+        {
+            auto servants = servantManager::getAllServants();
+            if (servants.empty())
+            {
+                addBtn(gameContext, "Back", [gameContext]() {
+                    gameContext->changeState(std::make_unique<explorationState>());
+                }, true, false, "Return to area exploration.");
+                return;
+            }
+
+            for (const auto& s : servants)
+            {
+                if (!s) continue;
+                bool isSelected = (s->id == sState->selectedServantId);
+                std::string sLabel = isSelected ? ("* " + s->name + " *") : s->name;
+                std::string tt = std::format("Obed: {:.0f} | Morale: {:.0f} | Stam: {:.0f}/100", 
+                                             s->servant.stats.obedience, s->servant.stats.morale, s->servant.stats.stamina);
+                addBtn(gameContext, sLabel, [sState, sId = s->id, gameContext]() {
+                    sState->selectServant(sId, gameContext);
+                }, true, isSelected, tt);
+            }
+
+            auto curServant = servantManager::getServant(sState->selectedServantId);
+            if (curServant)
+            {
+                std::string currentHourJob = curServant->servant.getJobForHour(sState->selectedHour);
+                std::string hourBtnLabel = std::format("Hour {:02d}:00 [{}]", sState->selectedHour, currentHourJob);
+                addBtn(gameContext, hourBtnLabel, [sState, gameContext]() {
+                    sState->selectedHour = (sState->selectedHour + 1) % 24;
+                    gameContext->refreshActionGrid();
+                }, true, false, "Cycle to the next hour slot (00:00 to 23:00).");
+
+                for (const auto& [jId, jDef] : servantManager::getAllJobs())
+                {
+                    bool isCurJob = (currentHourJob == jId);
+                    std::string jBtnLabel = std::format("Set {}", jDef.name);
+                    std::string jTooltip = std::format("Drain: {:.0f}/h | {}", jDef.staminaCostPerHour, jDef.description);
+                    addBtn(gameContext, jBtnLabel, [sState, jId, gameContext]() {
+                        sState->assignJobToSelected(sState->selectedHour, jId, gameContext);
+                    }, true, isCurJob, jTooltip);
+                }
+
+                addBtn(gameContext, "Full Day Rest", [sState, gameContext]() {
+                    sState->setFullDayJob("rest", gameContext);
+                }, true, false, "Set all 24 hours to rest and recuperate stamina.");
+
+                addBtn(gameContext, "Release Servant", [sState, gameContext]() {
+                    sState->releaseServant(gameContext);
+                }, true, false, "Grant this servant their freedom.");
+            }
+
+            addBtn(gameContext, "Back", [gameContext, sState]() {
+                if (sState->previousState) gameContext->changeState(std::move(sState->previousState));
+                else gameContext->changeState(std::make_unique<explorationState>());
+            }, true, false, "Return to area exploration.");
+            return;
         }
     }

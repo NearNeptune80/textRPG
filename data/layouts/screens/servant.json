@@ -1,0 +1,53 @@
+{
+  "state": "SERVANT",
+  "name": "Servant Management Layout",
+  "rootNode": {
+    "id": "servant_root_row",
+    "type": "CONTAINER",
+    "direction": "ROW",
+    "sizes": [16.0, 68.0, 16.0],
+    "children": [
+      {
+        "id": "servant_left_column",
+        "type": "LEAF",
+        "name": "Player Status",
+        "widgets": [
+          "widget_lt_character_card"
+        ]
+      },
+      {
+        "id": "servant_center_column",
+        "type": "CONTAINER",
+        "direction": "COLUMN",
+        "sizes": [78.0, 22.0],
+        "children": [
+          {
+            "id": "servant_center_pane",
+            "type": "LEAF",
+            "name": "Servant Roster & Schedule",
+            "widgets": [
+              "widget_narrative_story"
+            ]
+          },
+          {
+            "id": "servant_bottom_actions",
+            "type": "LEAF",
+            "name": "Management Actions",
+            "widgets": [
+              "widget_action_commands"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "servant_right_column",
+        "type": "LEAF",
+        "name": "Activity & Events",
+        "widgets": [
+          "widget_lt_event_log"
+        ]
+      }
+    ]
+  }
+}
+

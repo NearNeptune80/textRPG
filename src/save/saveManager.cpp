@@ -11,6 +11,7 @@
 
 #include "core/game.h"
 #include "entities/namedCharacter.h"
+#include "core/servantManager.h"
 #include "items/itemDatabase.h"
 #include "items/infusionEffect.h"
 
@@ -201,6 +202,7 @@ json saveManager::buildPayload(game* g, const std::string& customSaveName)
     if (p) j["player"] = p->toJson();
     if (g->map) j["map"] = g->map->saveStateToJson();
     j["namedCharacters"] = NamedCharacterManager::saveStateToJson();
+    j["servants"] = servantManager::saveStateToJson();
     j["settings"] = g->settings.toJson();
 
     json logArray = json::array();
@@ -396,6 +398,11 @@ bool saveManager::loadFromFile(game* g, const std::string& fileName)
             {
                 NamedCharacterManager::syncMapCharacters(g->map);
             }
+        }
+
+        if (j.contains("servants"))
+        {
+            servantManager::loadStateFromJson(j["servants"]);
         }
 
         if (j.contains("settings"))

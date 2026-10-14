@@ -7,10 +7,12 @@
 #include <nlohmann/json.hpp>
 
 #include "common/randomEngine.h"
+#include "core/game.h"
 #include "entities/entity.h"
 #include "entities/npcGenerator.h"
 #include "items/itemDatabase.h"
 #include "map/encounterResolver.h"
+#include "map/roomDatabase.h"
 
 using json = nlohmann::json;
 
@@ -218,6 +220,20 @@ bool gameMap::loadFromFile(const std::string& filePath)
                     tileTags[coordKey] = { val.get<std::string>() };
                 }
             }
+
+            for (const auto& [coordKey, val] : tileTags)
+            {
+                size_t comma = coordKey.find(',');
+                if (comma != std::string::npos)
+                {
+                    int tx = std::stoi(coordKey.substr(0, comma));
+                    int ty = std::stoi(coordKey.substr(comma + 1));
+                    if (std::find(val.begin(), val.end(), "customizable") != val.end())
+                    {
+                        getRuntimeData(tx, ty).customization.isCustomizable = true;
+                    }
+                }
+            }
         }
 
         tagDescriptions.clear();
@@ -281,6 +297,12 @@ const std::vector<std::string>& gameMap::getTileTags(int x, int y) const
     auto it = tileTags.find(key);
     if (it != tileTags.end()) return it->second;
     return emptyTags;
+}
+
+bool gameMap::hasTileTag(int x, int y, const std::string& tag) const
+{
+    const auto& tags = getTileTags(x, y);
+    return std::find(tags.begin(), tags.end(), tag) != tags.end();
 }
 
 std::string gameMap::getTileTitle(int x, int y) const
@@ -578,6 +600,23 @@ nlohmann::json gameMap::saveStateToJson() const
     }
     j["tileCurrency"] = tileCurrencyMap;
 
+    json tileCustomizationsMap = json::object();
+    for (const auto& [key, runtime] : runtimeData)
+    {
+        if (runtime.customization.isCustomizable || !runtime.customization.currentRoomId.empty())
+        {
+            json cJson;
+            cJson["isCustomizable"] = runtime.customization.isCustomizable;
+            cJson["currentRoomId"] = runtime.customization.currentRoomId;
+            cJson["upgradeTier"] = runtime.customization.upgradeTier;
+            cJson["stationType"] = runtime.customization.stationType;
+            cJson["roomTags"] = runtime.customization.roomTags;
+            cJson["isStorageSafe"] = runtime.isStorageSafe;
+            tileCustomizationsMap[std::to_string(key)] = cJson;
+        }
+    }
+    j["tileCustomizations"] = tileCustomizationsMap;
+
     return j;
 }
 
@@ -683,6 +722,24 @@ void gameMap::loadStateFromJson(const json& j)
             }
         }
     }
+
+    if (j.contains("tileCustomizations") && j["tileCustomizations"].is_object())
+    {
+        for (const auto& [keyStr, cJson] : j["tileCustomizations"].items())
+        {
+            uint64_t key = std::stoull(keyStr);
+            auto& tData = runtimeData[key];
+            tData.customization.isCustomizable = cJson.value("isCustomizable", false);
+            tData.customization.currentRoomId = cJson.value("currentRoomId", "");
+            tData.customization.upgradeTier = cJson.value("upgradeTier", 0);
+            tData.customization.stationType = cJson.value("stationType", "");
+            if (cJson.contains("roomTags") && cJson["roomTags"].is_array())
+            {
+                tData.customization.roomTags = cJson["roomTags"].get<std::vector<std::string>>();
+            }
+            tData.isStorageSafe = cJson.value("isStorageSafe", false);
+        }
+    }
 }
 
 std::string gameMap::getMapNameById(const std::string& mapId)
@@ -740,4 +797,79 @@ std::string gameMap::getMapEntranceDescription(const std::string& mapId)
     std::string fallback = "the " + mapId;
     cache[mapId] = fallback;
     return fallback;
+}
+
+bool gameMap::upgradeTileRoom(int x, int y, const std::string& targetRoomId, game* g)
+{
+    auto& tileData = getRuntimeData(x, y);
+    if (!tileData.customization.isCustomizable)
+    {
+        return false;
+    }
+
+    const RoomDefinition* roomDef = roomDatabase::getRoom(targetRoomId);
+    if (!roomDef)
+    {
+        return false;
+    }
+
+    if (tileData.customization.currentRoomId.empty())
+    {
+        if (roomDef->tier != 1)
+        {
+            return false;
+        }
+    }
+    else
+    {
+        const RoomDefinition* curDef = roomDatabase::getRoom(tileData.customization.currentRoomId);
+        if (!curDef) return false;
+
+        auto it = std::find(curDef->availableUpgrades.begin(), curDef->availableUpgrades.end(), targetRoomId);
+        if (it == curDef->availableUpgrades.end())
+        {
+            return false;
+        }
+    }
+
+    if (g && g->getPlayer())
+    {
+        if (g->getPlayer()->getStat("currency") < roomDef->costGold)
+        {
+            return false;
+        }
+        g->getPlayer()->stats.modifyBaseStat("currency", -roomDef->costGold);
+    }
+
+    tileData.customization.currentRoomId = targetRoomId;
+    tileData.customization.upgradeTier = roomDef->tier;
+    tileData.customization.stationType = roomDef->stationType;
+    tileData.customization.roomTags = roomDef->tags;
+    tileData.isStorageSafe = roomDef->isStorageSafe;
+
+    return true;
+}
+
+bool gameMap::demolishTileRoom(int x, int y, game* g)
+{
+    auto& tileData = getRuntimeData(x, y);
+    if (tileData.customization.currentRoomId.empty())
+    {
+        return false;
+    }
+
+    const RoomDefinition* roomDef = roomDatabase::getRoom(tileData.customization.currentRoomId);
+    if (roomDef && g && g->getPlayer())
+    {
+        float refund = roomDef->costGold * 0.5f;
+        g->getPlayer()->stats.modifyBaseStat("currency", refund);
+    }
+
+    tileData.customization.currentRoomId = "";
+    tileData.customization.upgradeTier = 0;
+    tileData.customization.stationType = "";
+    tileData.customization.roomTags.clear();
+    tileData.isStorageSafe = false;
+
+    return true;
 }

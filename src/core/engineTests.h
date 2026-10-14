@@ -40,5 +40,7 @@ namespace EngineTests
     bool testUIAdapterDynamicCatalogAndActionGrid();
     bool testTier2TriageMinorFixesAndIntegrity();
     bool testCombatNavigationAndGeneralStatusEffects();
+    bool testServantManagementHourlyScheduleAndStamina();
+    bool testCustomizableTileUpgradeTreesAndSafeStorage();
 }
 

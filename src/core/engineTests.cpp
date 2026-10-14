@@ -59,6 +59,9 @@
 #include "combat/weaponSkillDatabase.h"
 #include "core/actionSlot.h"
 #include "core/uiCommand.h"
+#include "core/servantManager.h"
+#include "map/roomDatabase.h"
+#include "state/servantState.h"
 
 namespace EngineTests
 {
@@ -6481,6 +6484,192 @@ namespace EngineTests
         return allPassed;
     }
 
+    bool testServantManagementHourlyScheduleAndStamina()
+    {
+        std::cout << "\n--- Running Test 54: Servant Management, Hourly Schedule & Stamina (Phase 1A) ---\n";
+        bool allPassed = true;
+
+        // 1. servantComponent initializes 24 slots defaulted to "rest"
+        servantComponent comp;
+        bool slotsRest = true;
+        for (int h = 0; h < 24; ++h)
+        {
+            if (comp.getJobForHour(h) != "rest")
+            {
+                slotsRest = false;
+                break;
+            }
+        }
+        logResult("servantComponent initializes 24 hourly schedule slots defaulted to 'rest'", slotsRest);
+        allPassed &= slotsRest;
+
+        servantManager::clear();
+        bool jobsLoaded = servantManager::loadJobsFromFile("data/config/servant_jobs.json");
+        logResult("servantManager loads jobs from data/config/servant_jobs.json", jobsLoaded);
+        allPassed &= jobsLoaded;
+
+        // 2. Working maid_cleaning for 4 consecutive hours reduces stamina by exactly 48.0 and increases obedience
+        auto testServant = std::make_shared<entity>("servant_alice", "Alice");
+        testServant->servant.servantId = testServant->id;
+        testServant->servant.stats.stamina = 100.0f;
+        testServant->servant.stats.maxStamina = 100.0f;
+        testServant->servant.stats.obedience = 50.0f;
+        testServant->servant.stats.morale = 75.0f;
+        testServant->servant.stats.affection = 0.0f;
+        testServant->servant.stats.isExhausted = false;
+
+        for (int h = 0; h < 4; ++h)
+        {
+            testServant->servant.setJobForHour(h, "maid_cleaning");
+        }
+        servantManager::registerServant(testServant);
+
+        game testGame;
+        testGame.init();
+        testGame.settings.gameplay.autoSaveOnMapChange = false;
+        testGame.settings.gameplay.autoSaveOnSceneExit = false;
+        auto hero = std::make_shared<entity>("hero_player", "Player");
+        testGame.playerEntity = hero;
+
+        float preStamina = testServant->servant.stats.stamina;
+        float preObed = testServant->servant.stats.obedience;
+
+        for (int h = 0; h < 4; ++h)
+        {
+            servantManager::tickHourlyServants(&testGame, h);
+        }
+
+        float staminaDiff = preStamina - testServant->servant.stats.stamina;
+        bool stamina48Ok = (std::abs(staminaDiff - 48.0f) < 0.01f);
+        bool obedIncreased = (testServant->servant.stats.obedience > preObed);
+        logResult("Working maid_cleaning for 4 consecutive hours reduces stamina by exactly 48.0 and increases obedience", stamina48Ok && obedIncreased);
+        allPassed &= (stamina48Ok && obedIncreased);
+
+        // 3. Allowing a servant to rest for 4 hours recovers 60.0 stamina
+        for (int h = 4; h < 8; ++h)
+        {
+            testServant->servant.setJobForHour(h, "rest");
+        }
+        testServant->servant.stats.stamina = 20.0f;
+        testServant->servant.stats.clamp();
+        for (int h = 4; h < 8; ++h)
+        {
+            servantManager::tickHourlyServants(&testGame, h);
+        }
+        float restRecovered = testServant->servant.stats.stamina - 20.0f;
+        bool rest60Ok = (std::abs(restRecovered - 60.0f) < 0.01f);
+        logResult("Allowing a servant to rest for 4 hours recovers exactly 60.0 stamina", rest60Ok);
+        allPassed &= rest60Ok;
+
+        // 4. Forcing a servant to work at 0.0 stamina triggers isExhausted, inflicts morale and affection drops, and yields exactly 0 gold/items
+        testServant->servant.stats.stamina = 0.0f;
+        testServant->servant.stats.morale = 50.0f;
+        testServant->servant.stats.affection = 10.0f;
+        testServant->servant.stats.obedience = 50.0f;
+        testServant->servant.stats.clamp();
+
+        testServant->servant.setJobForHour(8, "guard_patrol");
+        float preGold = hero->getStat("currency");
+        float preMorale = testServant->servant.stats.morale;
+        float preAffection = testServant->servant.stats.affection;
+
+        servantManager::tickHourlyServants(&testGame, 8);
+
+        bool isExhaustedNow = testServant->servant.stats.isExhausted;
+        bool moraleDropped = (testServant->servant.stats.morale < preMorale);
+        bool affectionDropped = (testServant->servant.stats.affection < preAffection);
+        float postGold = hero->getStat("currency");
+        bool zeroGoldYield = (std::abs(postGold - preGold) < 0.001f);
+
+        bool exhaustionOk = isExhaustedNow && moraleDropped && affectionDropped && zeroGoldYield;
+        logResult("Working at 0.0 stamina triggers isExhausted, inflicts morale/affection penalties, and yields 0 gold", exhaustionOk);
+        allPassed &= exhaustionOk;
+
+        return allPassed;
+    }
+
+    bool testCustomizableTileUpgradeTreesAndSafeStorage()
+    {
+        std::cout << "\n--- Running Test 55: Customizable Tile Upgrade Trees & Safe Storage (Phase 1B) ---\n";
+        bool allPassed = true;
+
+        roomDatabase::clear();
+        bool roomsLoaded = roomDatabase::loadRoomsFromFile("data/config/room_types.json");
+        logResult("roomDatabase loads rooms from data/config/room_types.json", roomsLoaded);
+        allPassed &= roomsLoaded;
+
+        game testGame;
+        testGame.init();
+        testGame.settings.gameplay.autoSaveOnMapChange = false;
+        testGame.settings.gameplay.autoSaveOnSceneExit = false;
+
+        auto hero = std::make_shared<entity>("hero_player", "Player");
+        hero->stats.setBaseStat("currency", 5000.0f);
+        testGame.playerEntity = hero;
+
+        auto testMap = std::make_shared<gameMap>();
+        testGame.map = testMap.get();
+
+        auto& tile = testMap->getRuntimeData(5, 5);
+        tile.customization.isCustomizable = true;
+        tile.customization.currentRoomId = "";
+        tile.isStorageSafe = false;
+
+        // 1. Items dropped on an empty customizable foundation decay normally unless marked safe
+        auto testItem = std::make_shared<item>();
+        testItem->id = "test_bread";
+        testItem->name = "Bread";
+        testItem->count = 1;
+        tile.addDroppedItem(testItem, 120);
+
+        testMap->processTimePassage(60);
+        bool itemStillThereAt60 = !tile.droppedItems.empty() && tile.droppedItems.front().minutesRemaining == 60;
+        testMap->processTimePassage(70);
+        bool itemDecayedAt130 = tile.droppedItems.empty();
+        bool emptyDecayOk = itemStillThereAt60 && itemDecayedAt130;
+        logResult("Items dropped on an empty customizable foundation decay normally when unsafe", emptyDecayOk);
+        allPassed &= emptyDecayOk;
+
+        // 2. Building room_living_quarters_t1 sets isStorageSafe = true; dropped items never decay across 10,000 simulated game minutes
+        float preBuildGold = hero->getStat("currency");
+        bool buildOk = testMap->upgradeTileRoom(5, 5, "room_living_quarters_t1", &testGame);
+        bool isSafeNow = testMap->isStorageSafe(5, 5);
+        bool goldDeducted = (std::abs(hero->getStat("currency") - (preBuildGold - 250.0f)) < 0.01f);
+
+        auto safeItem = std::make_shared<item>();
+        safeItem->id = "persisting_ring";
+        safeItem->name = "Ancient Ring";
+        safeItem->count = 1;
+        tile.addDroppedItem(safeItem, 120);
+
+        testMap->processTimePassage(10000);
+        bool itemPersisted10000 = (!tile.droppedItems.empty() && tile.droppedItems.front().itemPtr->id == "persisting_ring");
+        bool safePersistenceOk = buildOk && isSafeNow && goldDeducted && itemPersisted10000;
+        logResult("Building room_living_quarters_t1 sets isStorageSafe=true; dropped items persist across 10,000 minutes", safePersistenceOk);
+        allPassed &= safePersistenceOk;
+
+        // 3. Branching check: room_living_quarters_t1 permits upgrading to room_milking_parlor_t1 or room_living_quarters_t2, but rejects room_living_quarters_t3 directly
+        bool rejectDirectT3 = !testMap->upgradeTileRoom(5, 5, "room_living_quarters_t3", &testGame);
+        bool allowUpgradeT2 = testMap->upgradeTileRoom(5, 5, "room_living_quarters_t2", &testGame);
+        bool currentIsT2 = (tile.customization.currentRoomId == "room_living_quarters_t2" && tile.customization.upgradeTier == 2);
+        bool branchingOk = rejectDirectT3 && allowUpgradeT2 && currentIsT2;
+        logResult("Branching check: permits availableUpgrades, rejects non-branching upgrades directly", branchingOk);
+        allPassed &= branchingOk;
+
+        // 4. Demolishing a room refunds half cost, resets room ID to empty, and retains all ground-dropped items intact
+        float preDemoGold = hero->getStat("currency");
+        bool demoOk = testMap->demolishTileRoom(5, 5, &testGame);
+        float postDemoGold = hero->getStat("currency");
+        bool refundOk = (std::abs((postDemoGold - preDemoGold) - 300.0f) < 0.01f);
+        bool roomReset = tile.customization.currentRoomId.empty() && tile.customization.upgradeTier == 0;
+        bool itemsPreservedOnFloor = (!tile.droppedItems.empty() && tile.droppedItems.front().itemPtr->id == "persisting_ring");
+        bool demoCleanOk = demoOk && refundOk && roomReset && itemsPreservedOnFloor;
+        logResult("Demolishing a room refunds half cost, resets room ID to empty, and retains all floor storage intact", demoCleanOk);
+        allPassed &= demoCleanOk;
+
+        return allPassed;
+    }
+
     bool runAllTests()
     {
         g_passCount = 0;
@@ -6542,6 +6731,8 @@ namespace EngineTests
         bool t51 = testCombatNavigationAndGeneralStatusEffects();
         bool t52 = testPlaythroughRefinementsAndAnatomyTooltips();
         bool t53 = testPerceivedGenderAndPermanentSexualityStatus();
+        bool t54 = testServantManagementHourlyScheduleAndStamina();
+        bool t55 = testCustomizableTileUpgradeTreesAndSafeStorage();
 
         std::cout << "======================================================================\n";
         std::cout << " Test Summary: " << g_passCount << " Passed, " << g_failCount << " Failed.\n";

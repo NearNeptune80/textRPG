@@ -13,6 +13,7 @@
 #include "state/sexState.h"
 #include "state/inventoryState.h"
 #include "state/transformationState.h"
+#include "core/servantManager.h"
 
 encounterResolutionState::encounterResolutionState(const std::vector<std::shared_ptr<entity>>& defeatedEnemies)
 {
@@ -380,7 +381,8 @@ void encounterResolutionState::handleSubjugateEnemy(game* gameContext)
 
     rec.isSubjugated = true;
     rec.npc->quests.setQuestStage("subjugated", 1);
-    m_resolutionLog = std::format("{} has been subjugated and bound to your will.", rec.npc->name);
+    servantManager::registerServant(rec.npc);
+    m_resolutionLog = std::format("{} has been subjugated and bound to your will as a servant.", rec.npc->name);
     gameContext->refreshActionGrid();
 }
 

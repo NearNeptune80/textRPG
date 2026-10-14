@@ -8,6 +8,7 @@
 #include "common/randomEngine.h"
 #include "core/contentFilterManager.h"
 #include "core/eventBus.h"
+#include "core/servantManager.h"
 #include "core/textParser.h"
 #include "entities/namedCharacter.h"
 #include "entities/npcGenerator.h"
@@ -199,6 +200,13 @@ void game::init()
         if (this->map)
         {
             this->map->processTimePassage(mins);
+        }
+
+        this->accumulatedServantMinutes += mins;
+        while (this->accumulatedServantMinutes >= 60)
+        {
+            this->accumulatedServantMinutes -= 60;
+            servantManager::tickHourlyServants(this, this->gameTime.hour);
         }
 
         NamedCharacterManager::updateAllLocations(this);

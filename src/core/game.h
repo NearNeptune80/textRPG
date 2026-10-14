@@ -191,6 +191,8 @@ public:
     bool hasPendingTransformationInterrupt() const { return !pendingTransformationScenes.empty(); }
     void triggerNextPendingTransformationInterrupt();
 
+    int accumulatedServantMinutes = 0;
+
 private:
     std::unique_ptr<iGameState> activeGameState;
     std::vector<std::pair<gameEvent, callbackID>> eventSubscriptions;

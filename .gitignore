@@ -367,3 +367,6 @@ build/
 cmake-build-*/
 .idea/
 saves/
+compile_commands.json
+build_local/
+.vscode/

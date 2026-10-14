@@ -11,6 +11,7 @@
 #include "entities/anatomyComponent.h"
 #include "entities/gestationComponent.h"
 #include "entities/questComponent.h"
+#include "entities/servantComponent.h"
 #include "entities/statsComponent.h"
 #include "entities/statusEffect.h"
 #include "items/inventory.h"
@@ -31,6 +32,8 @@ public:
     inventoryComponent inventory;
     statsComponent stats;
     gestationComponent gestation;
+    bool isServant = false;
+    servantComponent servant;
 
     std::unordered_map<std::string, int> essences;
     std::vector<StatusEffect> statusEffects;
