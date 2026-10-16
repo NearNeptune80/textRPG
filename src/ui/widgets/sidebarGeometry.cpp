@@ -19,12 +19,14 @@ namespace SidebarGeometry
     {
         if (!gameContext) return 0.0f;
 
-        const float boxSize = getBoxSize(panelRect, uiScale);
-        const float gridStartX = getGridStartX(panelRect, uiScale);
+        const float padX = getPadX(panelRect, uiScale);
+        const float availableW = getAvailableW(panelRect, uiScale);
         const float toolH = getToolbarH(uiScale);
+        const float pad = 5.0f * uiScale;
         const float gap = 4.0f * uiScale;
-        const float toolW = (boxSize - (3.0f * gap)) / 4.0f;
-        const float toolbarY = cardTopY + (18.0f * uiScale) + boxSize + (5.0f * uiScale);
+        const float totalW = availableW - (2.0f * pad);
+        const float toolW = (totalW - (3.0f * gap)) / 4.0f;
+        const float toolbarY = cardTopY + (18.0f * uiScale) + getBoxSize(panelRect, uiScale) + (5.0f * uiScale);
 
         static const std::vector<std::pair<std::string, CommandType>> tools = {
             { "Inv", CommandType::OPEN_INVENTORY },
@@ -39,7 +41,7 @@ namespace SidebarGeometry
 
         for (size_t i = 0; i < tools.size(); ++i)
         {
-            SDL_FRect tRect = { gridStartX + (i * (toolW + gap)), toolbarY, toolW, toolH };
+            SDL_FRect tRect = { padX + pad + (i * (toolW + gap)), toolbarY, toolW, toolH };
             bool isEnabled = !inCharacterCreation || (i == 0);
             bool hov = isEnabled && (mousePos.x >= tRect.x && mousePos.x <= tRect.x + tRect.w &&
                                      mousePos.y >= tRect.y && mousePos.y <= tRect.y + tRect.h);

@@ -58,8 +58,10 @@ namespace RadarWidgets
         float tX = padX + innerPad;
         float tW = availableW - (innerPad * 2.0f);
 
-        UIWidget::drawText(renderer, dateStr, tX, curY + (5.0f * uiScale), Theme::colors.textGold, uiScale * 0.82f);
         float timeTextW = UIWidget::getTextWidth(timeStr, uiScale * 0.80f);
+        float availDateW = std::max(10.0f * uiScale, tW - timeTextW - (10.0f * uiScale));
+        std::string fittedDate = UIWidget::truncateText(dateStr, availDateW, uiScale * 0.82f);
+        UIWidget::drawText(renderer, fittedDate, tX, curY + (5.0f * uiScale), Theme::colors.textGold, uiScale * 0.82f);
         UIWidget::drawText(renderer, timeStr, tX + tW - timeTextW, curY + (5.0f * uiScale), Theme::colors.companion, uiScale * 0.80f);
 
         static const char* days[7] = { "M", "T", "W", "T", "F", "S", "S" };
@@ -106,20 +108,26 @@ namespace RadarWidgets
         gameMap* map = gameContext->map;
         int pX = gameContext->gridX;
         int pY = gameContext->gridY;
+        const float boxSize = SidebarGeometry::getBoxSize(rect, uiScale);
+        const float spaceAboveToolbar = (18.0f * uiScale) + boxSize + (5.0f * uiScale);
+        const float pad = 5.0f * uiScale;
+        SDL_FRect innerRect = {
+            padX + pad,
+            startY + pad,
+            availableW - (2.0f * pad),
+            spaceAboveToolbar - (2.0f * pad)
+        };
+        UIWidget::drawPanel(renderer, innerRect, Theme::colors.bgDark, Theme::colors.borderButton);
 
-        float headerH = 18.0f * uiScale;
-        SDL_FRect headerRect = { padX, curY, availableW, headerH };
-        std::string mapTitle = map ? map->getName() : "Local Area";
-        UIWidget::drawHeader(renderer, headerRect, mapTitle, Theme::colors.bgHeader, Theme::colors.textAccent, uiScale * 0.72f);
-
-        float cardCurY = curY + headerH;
-        float boxSize = SidebarGeometry::getBoxSize(rect, uiScale);
-        float gridStartX = SidebarGeometry::getGridStartX(rect, uiScale);
-
-        SDL_FRect gridBox = { gridStartX - (1.0f * uiScale), cardCurY - (1.0f * uiScale), boxSize + (2.0f * uiScale), boxSize + (2.0f * uiScale) };
-        UIWidget::drawPanel(renderer, gridBox, Theme::colors.bgDark, Theme::colors.borderButton);
-
-        float tileSize = (boxSize - (4 * 2.0f * uiScale)) / 5.0f;
+        float centerX = innerRect.x + (innerRect.w / 2.0f);
+        float centerY = innerRect.y + (innerRect.h / 2.0f);
+        float innerBorderPad = 6.0f * uiScale;
+        float maxDim = std::min(innerRect.w - (2.0f * innerBorderPad), innerRect.h - (2.0f * innerBorderPad));
+        float tileGap = 2.0f * uiScale;
+        float cellSize = std::floor((maxDim - (4.0f * tileGap)) / 5.0f);
+        float totalGridSize = (5.0f * cellSize) + (4.0f * tileGap);
+        float startX = std::floor(centerX - (totalGridSize / 2.0f));
+        float startYGrid = std::floor(centerY - (totalGridSize / 2.0f));
 
         for (int dy = -2; dy <= 2; ++dy)
         {
@@ -128,14 +136,14 @@ namespace RadarWidgets
                 int targetX = pX + dx;
                 int targetY = pY + dy;
 
-                float tileX = gridStartX + ((dx + 2) * (tileSize + (2.0f * uiScale)));
-                float tileY = cardCurY + ((dy + 2) * (tileSize + (2.0f * uiScale)));
+                float tileX = startX + ((dx + 2) * (cellSize + tileGap));
+                float tileY = startYGrid + ((dy + 2) * (cellSize + tileGap));
 
                 SDL_FRect tileRect = {
                     tileX,
                     tileY,
-                    tileSize,
-                    tileSize
+                    cellSize,
+                    cellSize
                 };
                 bool isPlayer = (dx == 0 && dy == 0);
                 bool isAdjacent = (std::abs(dx) + std::abs(dy) == 1);

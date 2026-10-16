@@ -5285,8 +5285,8 @@ namespace EngineTests
         for (const auto& slot : g.getActiveActionSlots())
         {
             if (slot.label.find("Remove") != std::string::npos) hasRemoveBtn = true;
-            if (slot.label == "Pull Down") hasPullDownBtn = true;
-            if (slot.label == "Pull Aside") hasPullAsideBtn = true;
+            if (slot.label == "Pull Down" || slot.label == "Pull Up") hasPullDownBtn = true;
+            if (slot.label == "Pull Aside" || slot.label == "Shift Aside") hasPullAsideBtn = true;
             if (slot.label == "Deselect Item") hasDeselectBtn = true;
         }
 
@@ -7020,7 +7020,7 @@ namespace EngineTests
 
     bool testOverworldSpellCasting()
     {
-        std::cout << "\n--- Test Suite 60: Overworld Spell Casting ---\n";
+        std::cout << "\n--- Test Suite 60: Overworld Spell Casting & Mechanics Validation ---\n";
         bool allPassed = true;
 
         SpellDatabase::loadFromFile("data/spells.json");
@@ -7040,33 +7040,87 @@ namespace EngineTests
         testGame.changeState(std::make_unique<explorationState>());
         testGame.refreshActionGrid();
 
-        // 1. Spells with "canCastInOverworld": false are omitted from the exploration action grid
-        const auto& slots = testGame.getActiveActionSlots();
-        bool cleanseFound = false;
-        bool fireballFound = false;
-        bool dartFound = false;
+        // 1. Spells are completely omitted from the main exploration action grid (moved to Phone Grimoire)
+        const auto& expSlots = testGame.getActiveActionSlots();
+        bool expCleanseFound = false;
+        bool expFireballFound = false;
+        bool expDartFound = false;
 
-        for (const auto& slot : slots)
+        for (const auto& slot : expSlots)
         {
             if (slot.label.find("Purifying Cleanse") != std::string::npos || slot.label.find("Cleanse") != std::string::npos)
             {
-                cleanseFound = true;
+                expCleanseFound = true;
             }
             if (slot.label.find("Fireball") != std::string::npos)
             {
-                fireballFound = true;
+                expFireballFound = true;
             }
             if (slot.label.find("Arcane Dart") != std::string::npos)
             {
-                dartFound = true;
+                expDartFound = true;
             }
         }
 
-        bool spellOmissionOk = cleanseFound && !fireballFound && !dartFound;
-        logResult("Spells with \"canCastInOverworld\": false are omitted from the exploration action grid", spellOmissionOk);
-        allPassed &= spellOmissionOk;
+        bool explorationOmissionOk = !expCleanseFound && !expFireballFound && !expDartFound;
+        logResult("Spells are omitted from the main exploration action grid", explorationOmissionOk);
+        allPassed &= explorationOmissionOk;
 
-        // 2. Casting cleanse in the overworld deducts 20 MP and restores 40 HP without entering combat
+        // 2. Overworld spells appear in Phone App Grimoire while combat-only spells remain omitted
+        testGame.changeState(std::make_unique<phoneAppsState>(PhoneAppMode::SPELLS));
+        testGame.refreshActionGrid();
+
+        const auto& phoneSlots = testGame.getActiveActionSlots();
+        bool phoneCleanseFound = false;
+        bool phoneCleanseEnabled = false;
+        bool phoneFireballFound = false;
+        bool phoneDartFound = false;
+
+        for (const auto& slot : phoneSlots)
+        {
+            if (slot.label.find("Purifying Cleanse") != std::string::npos || slot.label.find("Cleanse") != std::string::npos)
+            {
+                phoneCleanseFound = true;
+                phoneCleanseEnabled = slot.isEnabled;
+            }
+            if (slot.label.find("Fireball") != std::string::npos)
+            {
+                phoneFireballFound = true;
+            }
+            if (slot.label.find("Arcane Dart") != std::string::npos)
+            {
+                phoneDartFound = true;
+            }
+        }
+
+        bool phoneGrimoireOk = phoneCleanseFound && phoneCleanseEnabled && !phoneFireballFound && !phoneDartFound;
+        logResult("Overworld spells appear in Phone App Grimoire while combat-only spells remain omitted", phoneGrimoireOk);
+        allPassed &= phoneGrimoireOk;
+
+        // 3. Target condition gating disables Cleanse when HP is full and no debuffs or soiled garments present
+        hero->stats.setBaseStat("health", 100.0f);
+        testGame.refreshActionGrid();
+
+        bool cleanseGatedWhenFull = false;
+        bool tooltipExplainsTarget = false;
+        for (const auto& slot : testGame.getActiveActionSlots())
+        {
+            if (slot.label.find("Purifying Cleanse") != std::string::npos || slot.label.find("Cleanse") != std::string::npos)
+            {
+                cleanseGatedWhenFull = !slot.isEnabled;
+                if (slot.description.find("Target condition not met") != std::string::npos || slot.description.find("Health is full") != std::string::npos)
+                {
+                    tooltipExplainsTarget = true;
+                }
+            }
+        }
+
+        bool targetConditionGatingOk = cleanseGatedWhenFull && tooltipExplainsTarget;
+        logResult("Target condition gating disables Cleanse when HP is full and no debuffs or soiled garments present", targetConditionGatingOk);
+        allPassed &= targetConditionGatingOk;
+
+        // 4. Casting cleanse in the overworld deducts 20 MP and restores 40 HP without entering combat
+        hero->stats.setBaseStat("health", 40.0f);
         float preMp = hero->getStat("mana");
         float preHp = hero->getStat("health");
         testGame.castOverworldSpell("cleanse");
@@ -7081,8 +7135,9 @@ namespace EngineTests
         logResult("Casting cleanse in the overworld deducts 20 MP and restores 40 HP without entering combat", overworldCastOk);
         allPassed &= overworldCastOk;
 
-        // 3. Insufficient MP disables overworld spell buttons with clear tooltips
+        // 5. Insufficient MP disables overworld spell buttons with clear tooltips
         hero->stats.setBaseStat("mana", 5.0f);
+        hero->stats.setBaseStat("health", 40.0f);
         testGame.refreshActionGrid();
 
         bool cleanseDisabled = false;
@@ -7103,6 +7158,102 @@ namespace EngineTests
         bool insufficientMpGatingOk = cleanseDisabled && tooltipExplainsMp;
         logResult("Insufficient MP disables overworld spell buttons with clear tooltips", insufficientMpGatingOk);
         allPassed &= insufficientMpGatingOk;
+
+        // 6. Duplicate enchantment instances are preserved separately in data and summed in tooltip/description
+        auto testSword = std::make_shared<item>();
+        testSword->id = "test_sword";
+        testSword->name = "Iron Sword";
+        testSword->category = ItemCategory::WEAPON;
+        testSword->targetSlot = equipSlot::WEAPON_MAIN;
+        testSword->isEquippable = true;
+
+        InfusionEffect eff1{ InfusionTargetType::WEAPONRY, EnchantmentFocus::TORSO, AspectProperty::PHYSIQUE_STAT, InfusionTier::GREATER_BOON };
+        InfusionEffect eff2 = eff1;
+        InfusionEffect eff3 = eff1;
+        InfusionEffect eff4 = eff1;
+
+        auto craftedSw = EnchantingEngine::craftInfusedItem(testSword.get(), { eff1, eff2, eff3, eff4 }, "Blessed Blade");
+        bool duplicateInstancesStored = (craftedSw && craftedSw->enchantments.size() == 4 && craftedSw->infusionEffects.size() == 4);
+        bool tooltipSummed = (craftedSw && craftedSw->tooltip.find("+12") != std::string::npos &&
+                              craftedSw->tooltip.find("Physique") != std::string::npos &&
+                              craftedSw->tooltip.find("(4x)") == std::string::npos &&
+                              craftedSw->tooltip.find("(Nx)") == std::string::npos);
+        bool descSummed = (craftedSw && craftedSw->description.find("+12") != std::string::npos &&
+                           craftedSw->description.find("Physique") != std::string::npos &&
+                           craftedSw->description.find("(4x)") == std::string::npos &&
+                           craftedSw->description.find("(Nx)") == std::string::npos);
+
+        bool multiEnchantOk = duplicateInstancesStored && tooltipSummed && descSummed;
+        logResult("Duplicate enchantments preserve distinct instances in vector and sum numerical values (+12 Physique) with no (4x) suffix", multiEnchantOk);
+        allPassed &= multiEnchantOk;
+
+        // 7. Item-specific clothing displacement tags and defaults
+        itemDatabase::loadDatabase("data/items.json");
+        auto trousers = itemDatabase::getItem("item_leather_trousers");
+        auto shirt = itemDatabase::getItem("item_linen_shirt");
+
+        bool trouserDisplacementsOk = false;
+        if (trousers)
+        {
+            auto d = trousers->getAllowedDisplacements();
+            bool hasPullDown = (std::find(d.begin(), d.end(), DisplacementMode::PULL_DOWN) != d.end());
+            bool hasLiftUp = (std::find(d.begin(), d.end(), DisplacementMode::LIFT_UP) != d.end());
+            trouserDisplacementsOk = hasPullDown && !hasLiftUp;
+        }
+
+        bool shirtDisplacementsOk = false;
+        if (shirt)
+        {
+            auto d = shirt->getAllowedDisplacements();
+            bool hasLiftUp = (std::find(d.begin(), d.end(), DisplacementMode::LIFT_UP) != d.end());
+            bool hasPullDown = (std::find(d.begin(), d.end(), DisplacementMode::PULL_DOWN) != d.end());
+            shirtDisplacementsOk = hasLiftUp && !hasPullDown;
+        }
+
+        bool itemDisplacementOk = trouserDisplacementsOk && shirtDisplacementsOk;
+        logResult("Item definitions drive allowed clothing displacements (trousers pull down, shirts lift up)", itemDisplacementOk);
+        allPassed &= itemDisplacementOk;
+
+        // 8. Re-enchanting name deduplication, unique item name preservation, and bullet-free descriptions
+        auto plainDagger = std::make_shared<item>();
+        plainDagger->id = "test_iron_dagger";
+        plainDagger->name = "Iron Dagger";
+        plainDagger->isEquippable = true;
+        plainDagger->targetSlot = equipSlot::WEAPON_MAIN;
+
+        InfusionEffect effStrike{ InfusionTargetType::WEAPONRY, EnchantmentFocus::WEAPON_LETHALITY, AspectProperty::ATTACK_POWER, InfusionTier::BOON };
+        InfusionEffect effCarnage{ InfusionTargetType::WEAPONRY, EnchantmentFocus::WEAPON_LETHALITY, AspectProperty::DAMAGE_PHYSICAL, InfusionTier::GREATER_BOON };
+
+        auto firstEnchant = EnchantingEngine::craftInfusedItem(plainDagger.get(), { effStrike });
+        std::string firstEnchantName = firstEnchant->name;
+
+        // Second enchantment with additional effect
+        auto secondEnchant = EnchantingEngine::craftInfusedItem(firstEnchant.get(), { effStrike, effCarnage });
+        bool doubleEnchantNameOk = (secondEnchant && secondEnchant->name == firstEnchantName);
+        logResult("Enchanting an item twice does not duplicate prefix/suffix strings in its name", doubleEnchantNameOk);
+        allPassed &= doubleEnchantNameOk;
+
+        // Unique item enchanting preservation
+        auto uniqueBlade = std::make_shared<item>();
+        uniqueBlade->id = "unique_excalibur";
+        uniqueBlade->name = "Excalibur";
+        uniqueBlade->isEquippable = true;
+        uniqueBlade->isUnique = true;
+        uniqueBlade->targetSlot = equipSlot::WEAPON_MAIN;
+
+        auto enchantedUnique = EnchantingEngine::craftInfusedItem(uniqueBlade.get(), { effStrike });
+        bool uniqueNamePreserved = (enchantedUnique && enchantedUnique->name == "Excalibur");
+        logResult("Enchanting a unique item preserves its exact original name", uniqueNamePreserved);
+        allPassed &= uniqueNamePreserved;
+
+        // Enchantment description bullet removal
+        bool noBulletsInDesc = (firstEnchant && secondEnchant &&
+                                firstEnchant->description.find("•") == std::string::npos &&
+                                secondEnchant->description.find("•") == std::string::npos &&
+                                firstEnchant->tooltip.find("•") == std::string::npos &&
+                                secondEnchant->tooltip.find("•") == std::string::npos);
+        logResult("Enchantment description and tooltip lines do not contain bullet characters ('•')", noBulletsInDesc);
+        allPassed &= noBulletsInDesc;
 
         return allPassed;
     }

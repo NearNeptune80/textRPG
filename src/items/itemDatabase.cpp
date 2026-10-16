@@ -26,6 +26,18 @@ void from_json(const json& j, item& itemObj)
     itemObj.isEquippable = j.value("isEquippable", false);
     itemObj.isStackable = j.value("isStackable", false);
     itemObj.isKeyItem = j.value("isKeyItem", false);
+    itemObj.isUnique = j.value("isUnique", false);
+    itemObj.isEnchanted = j.value("isEnchanted", false);
+    if (j.contains("rarity"))
+    {
+        std::string rarStr = j["rarity"].get<std::string>();
+        if (rarStr == "UNCOMMON" || rarStr == "uncommon") itemObj.rarity = ItemRarity::UNCOMMON;
+        else if (rarStr == "RARE" || rarStr == "rare") itemObj.rarity = ItemRarity::RARE;
+        else if (rarStr == "EPIC" || rarStr == "epic") itemObj.rarity = ItemRarity::EPIC;
+        else if (rarStr == "LEGENDARY" || rarStr == "legendary") itemObj.rarity = ItemRarity::LEGENDARY;
+        else if (rarStr == "UNIQUE" || rarStr == "unique") itemObj.rarity = ItemRarity::UNIQUE;
+        else itemObj.rarity = ItemRarity::COMMON;
+    }
     itemObj.count = j.value("count", 1);
     itemObj.baseRace = j.value("baseRace", "");
     itemObj.enchantmentGroup = j.value("enchantmentGroup", "");
@@ -109,6 +121,20 @@ void from_json(const json& j, item& itemObj)
                     slots.push_back(stringToBodySlot(sItem.get<std::string>()));
                 }
                 itemObj.supportedDisplacements[mode] = slots;
+            }
+        }
+    }
+
+    if (j.contains("allowedDisplacements") && j["allowedDisplacements"].is_array())
+    {
+        itemObj.allowedDisplacements.clear();
+        for (const auto& dItem : j["allowedDisplacements"])
+        {
+            DisplacementMode mode = stringToDisplacementMode(dItem.get<std::string>());
+            if (mode != DisplacementMode::NONE &&
+                std::find(itemObj.allowedDisplacements.begin(), itemObj.allowedDisplacements.end(), mode) == itemObj.allowedDisplacements.end())
+            {
+                itemObj.allowedDisplacements.push_back(mode);
             }
         }
     }

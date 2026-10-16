@@ -16,11 +16,15 @@ namespace StatusWidgets
 
         float lineH = 18.0f * uiScale;
         float startY = curY;
-        float padX = curX + (10.0f * uiScale);
+        float padX = curX + (6.0f * uiScale);
+        float maxOverviewW = innerW - (12.0f * uiScale);
+        std::string nameStr = UIWidget::truncateText(std::format("Name: {}", p->name), maxOverviewW, uiScale);
+        std::string titleStr = UIWidget::truncateText(std::format("Title: {}", p->anatomy.getRacialTitle()), maxOverviewW, uiScale);
+        std::string genderStr = UIWidget::truncateText(std::format("Gender: {}", genderArchetypeToString(p->anatomy.getGenderArchetype())), maxOverviewW, uiScale);
 
-        UIWidget::drawText(renderer, std::format("Name: {}", p->name), padX, curY, Theme::colors.textPrimary, uiScale); curY += lineH;
-        UIWidget::drawText(renderer, std::format("Title: {}", p->anatomy.getRacialTitle()), padX, curY, Theme::colors.textAccent, uiScale); curY += lineH;
-        UIWidget::drawText(renderer, std::format("Gender: {}", genderArchetypeToString(p->anatomy.getGenderArchetype())), padX, curY, Theme::colors.textSecondary, uiScale); curY += (lineH + 4.0f * uiScale);
+        UIWidget::drawText(renderer, nameStr, padX, curY, Theme::colors.textPrimary, uiScale); curY += lineH;
+        UIWidget::drawText(renderer, titleStr, padX, curY, Theme::colors.textAccent, uiScale); curY += lineH;
+        UIWidget::drawText(renderer, genderStr, padX, curY, Theme::colors.textSecondary, uiScale); curY += (lineH + 4.0f * uiScale);
 
         return (curY - startY);
     }
@@ -31,8 +35,8 @@ namespace StatusWidgets
         if (!p) return 0.0f;
 
         float startY = curY;
-        float padX = curX + (10.0f * uiScale);
-        float barW = innerW - (20.0f * uiScale);
+        float padX = curX + (6.0f * uiScale);
+        float barW = innerW - (12.0f * uiScale);
         float barH = 18.0f * uiScale;
 
         float hp = p->getStat("health");
@@ -53,7 +57,7 @@ namespace StatusWidgets
         if (!p) return 0.0f;
 
         float startY = curY;
-        float padX = curX + (10.0f * uiScale);
+        float padX = curX + (6.0f * uiScale);
         float lineH = 18.0f * uiScale;
 
         UIWidget::drawText(renderer, "ATTRIBUTES", padX, curY, Theme::colors.textGold, uiScale); curY += (lineH + 2.0f * uiScale);
@@ -71,7 +75,7 @@ namespace StatusWidgets
         if (!p) return 0.0f;
 
         float startY = curY;
-        float padX = curX + (10.0f * uiScale);
+        float padX = curX + (6.0f * uiScale);
         float lineH = 18.0f * uiScale;
         const std::string& unitPref = gameContext->settings.gameplay.unitPreference;
 
@@ -114,18 +118,21 @@ namespace StatusWidgets
     float renderWidgetTarget(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
     {
         float startY = curY;
-        float padX = curX + (10.0f * uiScale);
+        float padX = curX + (6.0f * uiScale);
         float lineH = 16.0f * uiScale;
 
         UIWidget::drawText(renderer, "PROXIMITY TARGET", padX, curY, Theme::colors.textGold, uiScale); curY += (18.0f * uiScale);
 
         if (entity* npc = gameContext->getActiveTargetNPC())
         {
-            UIWidget::drawText(renderer, std::format("Name: {}", npc->name), padX, curY, Theme::colors.textPrimary, uiScale); curY += lineH;
-            UIWidget::drawText(renderer, std::format("Level: {} | {}", npc->stats.level, npc->anatomy.getDominantRace()), padX, curY, Theme::colors.textSecondary, uiScale); curY += lineH;
+            float maxTargetW = innerW - (12.0f * uiScale);
+            std::string tName = UIWidget::truncateText(std::format("Name: {}", npc->name), maxTargetW, uiScale);
+            std::string tLvl = UIWidget::truncateText(std::format("Level: {} | {}", npc->stats.level, npc->anatomy.getDominantRace()), maxTargetW, uiScale);
+            UIWidget::drawText(renderer, tName, padX, curY, Theme::colors.textPrimary, uiScale); curY += lineH;
+            UIWidget::drawText(renderer, tLvl, padX, curY, Theme::colors.textSecondary, uiScale); curY += lineH;
 
             float hp = npc->getStat("health");
-            UIWidget::drawProgressBar(renderer, { padX, curY, innerW - (20.0f * uiScale), 16.0f * uiScale }, hp, 100.0f, Theme::colors.enemy, Theme::colors.bgDark, std::format("HP: {:.0f}", hp), uiScale);
+            UIWidget::drawProgressBar(renderer, { padX, curY, innerW - (12.0f * uiScale), 16.0f * uiScale }, hp, 100.0f, Theme::colors.enemy, Theme::colors.bgDark, std::format("HP: {:.0f}", hp), uiScale);
             curY += (20.0f * uiScale);
 
             float aff = npc->affection;

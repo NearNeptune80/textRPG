@@ -228,11 +228,13 @@ std::string displacementModeToString(DisplacementMode mode)
 
 DisplacementMode stringToDisplacementMode(std::string_view str)
 {
-    if (str == "UNBUTTON")   return DisplacementMode::UNBUTTON;
-    if (str == "PULL_ASIDE") return DisplacementMode::PULL_ASIDE;
-    if (str == "LIFT_UP")    return DisplacementMode::LIFT_UP;
-    if (str == "PULL_DOWN")  return DisplacementMode::PULL_DOWN;
-    if (str == "OPEN")       return DisplacementMode::OPEN;
+    if (str == "UNBUTTON" || str == "unbutton")     return DisplacementMode::UNBUTTON;
+    if (str == "PULL_ASIDE" || str == "pull_aside" ||
+        str == "SHIFT_ASIDE" || str == "shift_aside") return DisplacementMode::PULL_ASIDE;
+    if (str == "LIFT_UP" || str == "lift_up" ||
+        str == "PULL_UP" || str == "pull_up")       return DisplacementMode::LIFT_UP;
+    if (str == "PULL_DOWN" || str == "pull_down")   return DisplacementMode::PULL_DOWN;
+    if (str == "OPEN" || str == "open")             return DisplacementMode::OPEN;
     return DisplacementMode::NONE;
 }
 

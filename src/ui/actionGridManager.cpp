@@ -58,6 +58,23 @@ namespace
 
     inline void addBtn(game* g, std::string_view label, std::function<void()> onClick, bool enabled = true, bool selected = false, std::string_view description = "")
     {
+        if (!label.empty() && !label.starts_with("["))
+        {
+            for (auto& existing : g->activeActionSlots)
+            {
+                if (existing.label == label)
+                {
+                    if (!existing.isEnabled && enabled)
+                    {
+                        existing.isEnabled = true;
+                        existing.isSelected = selected;
+                        existing.onClick = std::move(onClick);
+                        existing.description = std::string(description);
+                    }
+                    return;
+                }
+            }
+        }
         ActionSlot btn;
         btn.label = std::string(label);
         btn.description = std::string(description);
@@ -445,64 +462,45 @@ void ActionGridManager::refresh(game* gameContext)
                     sex->handleClothingAction(gameContext, side, selSlot, DisplacementMode::NONE, true);
                 }, true, false, std::format("Fully remove and strip {} {} from their body.", targetDesc, eqItem->name));
 
-                bool canPullDown = (selSlot == equipSlot::LEGS_OUTER ||
-                                    selSlot == equipSlot::GROIN_OVER ||
-                                    selSlot == equipSlot::HIPS_WEAR || selSlot == equipSlot::ASS_WEAR ||
-                                    selSlot == equipSlot::STOMACH_WEAR ||
-                                    eqItem->supportedDisplacements.contains(DisplacementMode::PULL_DOWN));
-                if (canPullDown)
-                {
-                    bool isDown = (currentDisp == DisplacementMode::PULL_DOWN);
-                    addBtn(gameContext, isDown ? "Pulled Down [*]" : "Pull Down", [gameContext, sex, side, selSlot]() {
-                        sex->handleClothingAction(gameContext, side, selSlot, DisplacementMode::PULL_DOWN, false);
-                    }, !isDown, isDown, std::format("Pull {} {} down to expose the groin and hips.", targetDesc, eqItem->name));
-                }
+                auto allowedModes = eqItem->getAllowedDisplacements();
 
-                bool canPullAside = (selSlot == equipSlot::GROIN_OVER ||
-                                     selSlot == equipSlot::CHEST_WEAR || selSlot == equipSlot::NIPPLES_WEAR ||
-                                     selSlot == equipSlot::LEGS_OUTER || selSlot == equipSlot::PENIS_WEAR ||
-                                     selSlot == equipSlot::VAGINA_WEAR ||
-                                     eqItem->supportedDisplacements.contains(DisplacementMode::PULL_ASIDE));
-                if (canPullAside)
+                for (DisplacementMode mode : allowedModes)
                 {
-                    bool isAside = (currentDisp == DisplacementMode::PULL_ASIDE);
-                    addBtn(gameContext, isAside ? "Pulled Aside [*]" : "Pull Aside", [gameContext, sex, side, selSlot]() {
-                        sex->handleClothingAction(gameContext, side, selSlot, DisplacementMode::PULL_ASIDE, false);
-                    }, !isAside, isAside, std::format("Slide {} {} aside to grant intimate access.", targetDesc, eqItem->name));
-                }
-
-                bool canLiftUp = (selSlot == equipSlot::TORSO_OVER || selSlot == equipSlot::TORSO_UNDER ||
-                                  selSlot == equipSlot::CHEST_WEAR || selSlot == equipSlot::NIPPLES_WEAR ||
-                                  selSlot == equipSlot::STOMACH_WEAR || selSlot == equipSlot::LEGS_OUTER ||
-                                  eqItem->supportedDisplacements.contains(DisplacementMode::LIFT_UP));
-                if (canLiftUp)
-                {
-                    bool isLifted = (currentDisp == DisplacementMode::LIFT_UP);
-                    addBtn(gameContext, isLifted ? "Lifted Up [*]" : "Lift Up", [gameContext, sex, side, selSlot]() {
-                        sex->handleClothingAction(gameContext, side, selSlot, DisplacementMode::LIFT_UP, false);
-                    }, !isLifted, isLifted, std::format("Lift {} {} up to expose chest and torso.", targetDesc, eqItem->name));
-                }
-
-                bool canUnbutton = (selSlot == equipSlot::TORSO_OVER || selSlot == equipSlot::TORSO_UNDER ||
-                                    selSlot == equipSlot::LEGS_OUTER ||
-                                    eqItem->supportedDisplacements.contains(DisplacementMode::UNBUTTON));
-                if (canUnbutton)
-                {
-                    bool isUnbuttoned = (currentDisp == DisplacementMode::UNBUTTON);
-                    addBtn(gameContext, isUnbuttoned ? "Unbuttoned [*]" : "Unbutton", [gameContext, sex, side, selSlot]() {
-                        sex->handleClothingAction(gameContext, side, selSlot, DisplacementMode::UNBUTTON, false);
-                    }, !isUnbuttoned, isUnbuttoned, std::format("Unfasten the buttons on {} {}.", targetDesc, eqItem->name));
-                }
-
-                bool canOpen = (selSlot == equipSlot::TORSO_OVER || selSlot == equipSlot::TORSO_UNDER ||
-                                selSlot == equipSlot::MOUTHWEAR ||
-                                eqItem->supportedDisplacements.contains(DisplacementMode::OPEN));
-                if (canOpen)
-                {
-                    bool isOpen = (currentDisp == DisplacementMode::OPEN);
-                    addBtn(gameContext, isOpen ? "Opened [*]" : "Open / Part", [gameContext, sex, side, selSlot]() {
-                        sex->handleClothingAction(gameContext, side, selSlot, DisplacementMode::OPEN, false);
-                    }, !isOpen, isOpen, std::format("Open and spread {} {}.", targetDesc, eqItem->name));
+                    if (mode == DisplacementMode::PULL_DOWN)
+                    {
+                        bool isDown = (currentDisp == DisplacementMode::PULL_DOWN);
+                        addBtn(gameContext, isDown ? "Pulled Down [*]" : "Pull Down", [gameContext, sex, side, selSlot]() {
+                            sex->handleClothingAction(gameContext, side, selSlot, DisplacementMode::PULL_DOWN, false);
+                        }, !isDown, isDown, std::format("Pull {} {} down to expose the lower body.", targetDesc, eqItem->name));
+                    }
+                    else if (mode == DisplacementMode::PULL_ASIDE)
+                    {
+                        bool isAside = (currentDisp == DisplacementMode::PULL_ASIDE);
+                        addBtn(gameContext, isAside ? "Shifted Aside [*]" : "Shift Aside", [gameContext, sex, side, selSlot]() {
+                            sex->handleClothingAction(gameContext, side, selSlot, DisplacementMode::PULL_ASIDE, false);
+                        }, !isAside, isAside, std::format("Slide {} {} aside to grant intimate access.", targetDesc, eqItem->name));
+                    }
+                    else if (mode == DisplacementMode::LIFT_UP)
+                    {
+                        bool isLifted = (currentDisp == DisplacementMode::LIFT_UP);
+                        addBtn(gameContext, isLifted ? "Pulled Up [*]" : "Pull Up", [gameContext, sex, side, selSlot]() {
+                            sex->handleClothingAction(gameContext, side, selSlot, DisplacementMode::LIFT_UP, false);
+                        }, !isLifted, isLifted, std::format("Pull {} {} up to expose chest and torso.", targetDesc, eqItem->name));
+                    }
+                    else if (mode == DisplacementMode::UNBUTTON)
+                    {
+                        bool isUnbuttoned = (currentDisp == DisplacementMode::UNBUTTON);
+                        addBtn(gameContext, isUnbuttoned ? "Unbuttoned [*]" : "Unbutton", [gameContext, sex, side, selSlot]() {
+                            sex->handleClothingAction(gameContext, side, selSlot, DisplacementMode::UNBUTTON, false);
+                        }, !isUnbuttoned, isUnbuttoned, std::format("Unfasten the buttons on {} {}.", targetDesc, eqItem->name));
+                    }
+                    else if (mode == DisplacementMode::OPEN)
+                    {
+                        bool isOpen = (currentDisp == DisplacementMode::OPEN);
+                        addBtn(gameContext, isOpen ? "Opened [*]" : "Open / Part", [gameContext, sex, side, selSlot]() {
+                            sex->handleClothingAction(gameContext, side, selSlot, DisplacementMode::OPEN, false);
+                        }, !isOpen, isOpen, std::format("Open and spread {} {}.", targetDesc, eqItem->name));
+                    }
                 }
 
                 if (currentDisp != DisplacementMode::NONE)
@@ -637,11 +635,18 @@ void ActionGridManager::refresh(game* gameContext)
                     }, targetHasClothes, false, targetUndressTip);
                 }
 
-                if (!sex->isConsensual() || sex->getPlayerDominance() < 25.0f)
+                if (!sex->isSolo() && (!sex->isConsensual() || sex->getPlayerDominance() < 0.0f))
                 {
+                    std::string struggleReason;
+                    bool canStruggle = sex->canParticipantStruggle(0, &struggleReason);
+                    std::string struggleTip = "Attempt to break free from your partner's hold and seize control.";
+                    if (!canStruggle && !struggleReason.empty())
+                    {
+                        struggleTip += std::format("\n[Inaccessible: {}]", struggleReason);
+                    }
                     addBtn(gameContext, "Struggle", [gameContext, sex]() {
                         sex->handleStruggle(gameContext);
-                    }, true, false, "Attempt to break free from your partner's hold and seize control.");
+                    }, canStruggle, false, struggleTip);
                 }
 
                 addBtn(gameContext, sex->isSolo() ? "Finish & Rest" : "End Encounter", [gameContext, sex]() {
@@ -655,6 +660,19 @@ void ActionGridManager::refresh(game* gameContext)
             for (size_t i = 0; i < actions.size(); ++i)
             {
                 if (actions[i].category != activeCat) continue;
+
+                // Hide submissive actions when player is in dominant role
+                if (playerP && playerP->getRole() == SexRole::DOMINANT)
+                {
+                    if (actions[i].type == SexActionType::PLEAD_SUGGEST ||
+                        actions[i].type == SexActionType::ENDURE ||
+                        actions[i].type == SexActionType::BEG_CLIMAX ||
+                        actions[i].type == SexActionType::STRUGGLE ||
+                        actions[i].id.find("sub_") == 0)
+                    {
+                        continue;
+                    }
+                }
 
                 if (actions[i].id == "generic_cmd_strip" || actions[i].id == "generic_undress_mutual" ||
                     actions[i].id == "partner_strip" || actions[i].id == "self_strip" || actions[i].id == "sub_strip_offer")
@@ -861,11 +879,93 @@ void ActionGridManager::refresh(game* gameContext)
                 gameContext->refreshActionGrid();
             }, true, false, "Clear horns, wings, and tails to revert to baseline.");
         }
-        else if (phoneApp->getAppMode() == PhoneAppMode::FETISHES)
+        else if (phoneApp->getAppMode() == PhoneAppMode::SPELLS)
         {
-            addBtn(gameContext, "Options Menu", [gameContext]() {
-                gameContext->changeState(std::make_unique<optionsState>(OptionsScreenMode::CONTENT_OPTIONS, std::make_unique<phoneAppsState>(PhoneAppMode::FETISHES)));
-            }, true, false, "Open complete content and demographic preference settings.");
+            auto allSpells = SpellDatabase::getAllSpells();
+            std::vector<SpellDefinition> castableSpells;
+            for (const auto& [sId, spDef] : allSpells)
+            {
+                if (spDef.canCastInOverworld)
+                {
+                    castableSpells.push_back(spDef);
+                }
+            }
+            std::sort(castableSpells.begin(), castableSpells.end(), [](const SpellDefinition& a, const SpellDefinition& b) {
+                if (a.requiredLevel != b.requiredLevel) return a.requiredLevel < b.requiredLevel;
+                return a.id < b.id;
+            });
+
+            entity* player = gameContext->getPlayer();
+            float curPlayerMp = player ? player->getStat("mana") : 0.0f;
+            float curPlayerHp = player ? player->getStat("health") : 0.0f;
+            float maxPlayerHp = player ? std::max(1.0f, player->getStat("max_health")) : 100.0f;
+            int playerLvl = player ? player->stats.level : 1;
+
+            for (const auto& sp : castableSpells)
+            {
+                if (!sp.unlocked && playerLvl < sp.requiredLevel) continue;
+
+                bool canAfford = (curPlayerMp >= sp.mpCost);
+                bool targetConditionMet = true;
+                std::string conditionReason;
+
+                if (sp.overworldEffect.type == "HEAL_AND_PURGE")
+                {
+                    bool hpMissing = (curPlayerHp < maxPlayerHp);
+                    bool hasDebuffs = false;
+                    if (player)
+                    {
+                        for (const auto& s : player->statusEffects)
+                        {
+                            if (s.isDebuff) { hasDebuffs = true; break; }
+                        }
+                    }
+                    bool hasDirty = false;
+                    if (player)
+                    {
+                        for (const auto& eq : player->inventory.equipped)
+                        {
+                            if (eq && eq->soiling.isDirty) { hasDirty = true; break; }
+                        }
+                        if (!hasDirty)
+                        {
+                            for (const auto& bk : player->inventory.backpack)
+                            {
+                                if (bk && bk->soiling.isDirty) { hasDirty = true; break; }
+                            }
+                        }
+                    }
+
+                    if (!hpMissing && !hasDebuffs && !hasDirty)
+                    {
+                        targetConditionMet = false;
+                        conditionReason = "Health is full, no debuffs, and no garments are soiled";
+                    }
+                }
+
+                bool canCast = canAfford && targetConditionMet;
+                std::string label = std::format("Cast {}", sp.name);
+                std::string tt = sp.description;
+
+                if (!canAfford)
+                {
+                    tt += std::format("\n[Insufficient MP: Requires {:.0f} MP, have {:.0f}]", sp.mpCost, curPlayerMp);
+                }
+                else if (!targetConditionMet)
+                {
+                    tt += std::format("\n[Target condition not met: {}]", conditionReason);
+                }
+                else
+                {
+                    tt += std::format("\nCost: {:.0f} MP.", sp.mpCost);
+                }
+
+                addBtn(gameContext, label, [gameContext, spellId = sp.id, sName = sp.name, phoneApp]() {
+                    gameContext->castOverworldSpell(spellId);
+                    phoneApp->setFeedbackText(std::format("Channeled and cast {}!", sName));
+                    gameContext->refreshActionGrid();
+                }, canCast, false, tt);
+            }
         }
         else if (phoneApp->getAppMode() == PhoneAppMode::PERKS)
         {
@@ -894,7 +994,6 @@ void ActionGridManager::refresh(game* gameContext)
             for (int i = 0; i < 10; ++i)
             {
                 std::string move = (p && !p->preparedCombatSlots[i].empty()) ? p->preparedCombatSlots[i] : "Empty";
-                if (move.size() > 10) move = move.substr(0, 9) + "..";
                 std::string btnLabel = std::format("{}: {}", i + 1, move);
                 bool isSelected = (curSel == i);
                 std::string tooltip = (p && !p->preparedCombatSlots[i].empty())
@@ -1810,13 +1909,31 @@ void ActionGridManager::refresh(game* gameContext)
                                          std::find(tileData.customization.roomTags.begin(), tileData.customization.roomTags.end(), "milking") != tileData.customization.roomTags.end());
                 if (isMilkingStation)
                 {
+                    float totalFluids = 0.0f;
+                    if (gameContext->getPlayer())
+                    {
+                        for (const auto& optPart : gameContext->getPlayer()->anatomy.getAllParts())
+                        {
+                            if (optPart.has_value())
+                            {
+                                totalFluids += optPart->currentFluidMl;
+                            }
+                        }
+                    }
+                    bool canExtract = (totalFluids >= 5.0f);
+                    std::string milkTip = "Connect to automated milking apparatus to extract and bottle internal biological fluids.";
+                    if (!canExtract)
+                    {
+                        milkTip += "\n[Inaccessible: No extractable bodily fluids available in reserves.]";
+                    }
+
                     addBtn(gameContext, "Extract Personal Fluids", [gameContext]() {
                         if (gameContext->getPlayer())
                         {
                             auto res = fluidHarvesting::harvestAllFluids(gameContext->getPlayer());
                             gameContext->refreshActionGrid();
                         }
-                    }, true, false, "Connect to automated milking apparatus to extract and bottle internal biological fluids.");
+                    }, canExtract, false, milkTip);
                 }
 
                 bool isServiceStation = (tileData.customization.stationType == "service_room" ||
@@ -1854,60 +1971,48 @@ void ActionGridManager::refresh(game* gameContext)
 
                 if (isWashStation)
                 {
+                    bool hasSoiledGarments = false;
+                    if (gameContext->getPlayer())
+                    {
+                        for (const auto& eq : gameContext->getPlayer()->inventory.equipped)
+                        {
+                            if (eq && eq->soiling.isDirty) { hasSoiledGarments = true; break; }
+                        }
+                        if (!hasSoiledGarments)
+                        {
+                            for (const auto& bk : gameContext->getPlayer()->inventory.backpack)
+                            {
+                                if (bk && bk->soiling.isDirty) { hasSoiledGarments = true; break; }
+                            }
+                        }
+                    }
+
+                    std::string washTip = "Wash and scrub all equipped and carried garments, removing dirt, cum, and fluid stains.";
+                    if (!hasSoiledGarments)
+                    {
+                        washTip += "\n[Inaccessible: All garments are completely clean.]";
+                    }
+
                     addBtn(gameContext, "Wash Garments", [gameContext]() {
                         gameContext->washGarments();
-                    }, true, false, "Wash and scrub all equipped and carried garments, removing dirt, cum, and fluid stains.");
-                }
-
-                // Overworld Utility Spells
-                auto allSpells = SpellDatabase::getAllSpells();
-                std::vector<SpellDefinition> castableSpells;
-                for (const auto& [sId, spDef] : allSpells)
-                {
-                    if (spDef.canCastInOverworld)
-                    {
-                        castableSpells.push_back(spDef);
-                    }
-                }
-                std::sort(castableSpells.begin(), castableSpells.end(), [](const SpellDefinition& a, const SpellDefinition& b) {
-                    if (a.requiredLevel != b.requiredLevel) return a.requiredLevel < b.requiredLevel;
-                    return a.id < b.id;
-                });
-
-                float curPlayerMp = gameContext->getPlayer() ? gameContext->getPlayer()->getStat("mana") : 0.0f;
-                int playerLvl = gameContext->getPlayer() ? gameContext->getPlayer()->stats.level : 1;
-
-                for (const auto& sp : castableSpells)
-                {
-                    if (!sp.unlocked && playerLvl < sp.requiredLevel) continue;
-
-                    bool canAfford = (curPlayerMp >= sp.mpCost);
-                    std::string label = std::format("Cast {}", sp.name);
-                    std::string tt;
-                    if (!canAfford)
-                    {
-                        tt = std::format("{}\n[Insufficient MP: Requires {:.0f} MP, have {:.0f}]", sp.description, sp.mpCost, curPlayerMp);
-                    }
-                    else
-                    {
-                        tt = std::format("{}\nCost: {:.0f} MP. {}", sp.description, sp.mpCost, sp.overworldEffect.type);
-                    }
-
-                    addBtn(gameContext, label, [gameContext, spellId = sp.id]() {
-                        gameContext->castOverworldSpell(spellId);
-                    }, canAfford, false, tt);
+                    }, hasSoiledGarments, false, washTip);
                 }
 
                 if (tileData.customization.isCustomizable)
                 {
+                    float playerGold = gameContext->getPlayer() ? gameContext->getPlayer()->getStat("currency") : 0.0f;
                     if (tileData.customization.currentRoomId.empty())
                     {
                         auto rootRooms = roomDatabase::getRootRooms();
                         for (const auto& rDef : rootRooms)
                         {
-                            bool canAfford = (gameContext->getPlayer() && gameContext->getPlayer()->getStat("currency") >= rDef.costGold);
+                            bool canAfford = (playerGold >= rDef.costGold);
                             std::string label = std::format("Build {}", rDef.name);
                             std::string tt = std::format("Construct {} for {:.0f}¤. {}", rDef.name, rDef.costGold, rDef.description);
+                            if (!canAfford)
+                            {
+                                tt += std::format("\n[Inaccessible: Insufficient gold (Requires {:.0f}¤, have {:.0f}¤)]", rDef.costGold, playerGold);
+                            }
                             addBtn(gameContext, label, [gameContext, rId = rDef.id]() {
                                 gameContext->map->upgradeTileRoom(gameContext->gridX, gameContext->gridY, rId, gameContext);
                                 gameContext->refreshActionGrid();
@@ -1920,9 +2025,13 @@ void ActionGridManager::refresh(game* gameContext)
                         auto upgrades = roomDatabase::getAvailableUpgrades(tileData.customization.currentRoomId);
                         for (const auto& upDef : upgrades)
                         {
-                            bool canAfford = (gameContext->getPlayer() && gameContext->getPlayer()->getStat("currency") >= upDef.costGold);
+                            bool canAfford = (playerGold >= upDef.costGold);
                             std::string label = std::format("Upgrade: {}", upDef.name);
                             std::string tt = std::format("Upgrade to {} for {:.0f}¤ (Tier {}). {}", upDef.name, upDef.costGold, upDef.tier, upDef.description);
+                            if (!canAfford)
+                            {
+                                tt += std::format("\n[Inaccessible: Insufficient gold (Requires {:.0f}¤, have {:.0f}¤)]", upDef.costGold, playerGold);
+                            }
                             addBtn(gameContext, label, [gameContext, upId = upDef.id]() {
                                 gameContext->map->upgradeTileRoom(gameContext->gridX, gameContext->gridY, upId, gameContext);
                                 gameContext->refreshActionGrid();

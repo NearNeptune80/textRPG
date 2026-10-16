@@ -23,10 +23,10 @@ int InfusionEffect::calculateCost() const
     return cost;
 }
 
-std::vector<std::string> InfusionEffect::getEffectDescriptions(const entity* target) const
+std::vector<std::string> InfusionEffect::getEffectDescriptions(const entity* target, int bonusOverride, bool hasOverride) const
 {
     std::vector<std::string> desc;
-    int bonus = getTierStatBonus(tier);
+    int bonus = hasOverride ? bonusOverride : getTierStatBonus(tier);
     std::string sign = bonus >= 0 ? std::format("+{}", bonus) : std::format("{}", bonus);
 
     if (propertySupportsLimits(property, nullptr))

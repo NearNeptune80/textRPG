@@ -235,6 +235,8 @@ void uiRenderer::render(SDL_Renderer* renderer, game* gameContext)
                     curY += EntityListWidgets::renderWidgetItemsPresent(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
                 else if (wId == "widget_lt_event_log")
                     curY += EntityListWidgets::renderWidgetEventLog(renderer, gameContext, p.rect.x, curY, p.rect.w, uiScale);
+                else if (wId == "widget_lt_quest_tracker" || wId == "QUEST_TRACKER")
+                    curY += EntityListWidgets::renderWidgetQuestTracker(renderer, gameContext, p.rect, curY, uiScale);
                 else if (wId == "widget_lt_enchanting_screen" || wId == "widget_enchanting_altar")
                     curY += GameplayViews::renderEnchantingView(renderer, gameContext, p.rect, curY, uiScale);
                 else if (wId == "widget_body_mutations_tree" || wId == "widget_transformation_suite")

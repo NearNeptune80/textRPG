@@ -39,6 +39,7 @@ nlohmann::json questComponent::toJson() const
     nlohmann::json j;
     j["activeQuests"] = activeQuests;
     j["trackedQuestId"] = trackedQuestId;
+    j["pinnedQuests"] = pinnedQuests;
     return j;
 }
 
@@ -55,5 +56,16 @@ void questComponent::fromJson(const nlohmann::json& j)
             activeQuests = j.get<std::unordered_map<std::string, int>>();
         }
         trackedQuestId = j.value("trackedQuestId", "");
+        pinnedQuests.clear();
+        if (j.contains("pinnedQuests") && j["pinnedQuests"].is_array())
+        {
+            for (const auto& item : j["pinnedQuests"])
+            {
+                if (item.is_string())
+                {
+                    pinnedQuests.insert(item.get<std::string>());
+                }
+            }
+        }
     }
 }

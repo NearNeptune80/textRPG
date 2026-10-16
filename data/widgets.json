@@ -87,6 +87,13 @@
       "recommendedAnchor": "SIDEBAR"
     },
     {
+      "id": "widget_lt_quest_tracker",
+      "name": "Quest Tracker",
+      "category": "Sidebar",
+      "description": "Interactive quest tracker displaying pinned and active quests, objectives, and details.",
+      "recommendedAnchor": "SIDEBAR"
+    },
+    {
       "id": "widget_lt_time_bar",
       "name": "Time & Calendar Bar",
       "category": "Header",

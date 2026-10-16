@@ -47,7 +47,8 @@
         "widgets": [
           "widget_lt_characters_present",
           "widget_lt_items_present",
-          "widget_lt_event_log"
+          "widget_lt_event_log",
+          "widget_lt_quest_tracker"
         ]
       }
     ]

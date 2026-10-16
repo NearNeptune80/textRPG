@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -122,6 +123,9 @@ struct item
     bool isEquippable = false;
     bool isStackable = false;
     bool isKeyItem = false;
+    bool isUnique = false;
+    bool isEnchanted = false;
+    ItemRarity rarity = ItemRarity::COMMON;
     int count = 1;
 
     equipSlot targetSlot = equipSlot::NONE;
@@ -149,9 +153,18 @@ struct item
     std::vector<InfusionEffect> infusionEffects;
     std::vector<StatModifier> statModifiers;
 
+    bool isUniqueItem() const
+    {
+        if (isUnique) return true;
+        if (hasTag("unique") || hasTag("Unique")) return true;
+        if (isKeyItem || category == ItemCategory::KEY_ITEM) return true;
+        if (rarity == ItemRarity::UNIQUE) return true;
+        return false;
+    }
+
     bool hasInfusions() const
     {
-        return !infusionEffects.empty() || !enchantments.empty();
+        return isEnchanted || !infusionEffects.empty() || !enchantments.empty();
     }
 
     int getEnchantmentLimit() const
@@ -168,6 +181,84 @@ struct item
     std::vector<std::string> forbiddenTags;
 
     std::unordered_map<DisplacementMode, std::vector<bodySlot>> supportedDisplacements;
+    std::vector<DisplacementMode> allowedDisplacements;
+
+    bool hasTag(std::string_view tag) const
+    {
+        for (const auto& t : requiredTags) { if (t == tag) return true; }
+        for (const auto& t : forbiddenTags) { if (t == tag) return true; }
+        return false;
+    }
+
+    std::vector<DisplacementMode> getAllowedDisplacements() const
+    {
+        if (!allowedDisplacements.empty())
+        {
+            return allowedDisplacements;
+        }
+
+        if (!supportedDisplacements.empty())
+        {
+            std::vector<DisplacementMode> modes;
+            for (const auto& [mode, slots] : supportedDisplacements)
+            {
+                if (mode != DisplacementMode::NONE && std::find(modes.begin(), modes.end(), mode) == modes.end())
+                {
+                    modes.push_back(mode);
+                }
+            }
+            if (!modes.empty()) return modes;
+        }
+
+        // Sensible fallbacks based on slot and tags
+        bool isSkirtOrDress = hasTag("skirt") || hasTag("dress") ||
+                              id.find("skirt") != std::string::npos || id.find("dress") != std::string::npos ||
+                              name.find("Skirt") != std::string::npos || name.find("Dress") != std::string::npos ||
+                              name.find("skirt") != std::string::npos || name.find("dress") != std::string::npos;
+        if (isSkirtOrDress)
+        {
+            return { DisplacementMode::LIFT_UP, DisplacementMode::PULL_ASIDE };
+        }
+
+        if (targetSlot == equipSlot::LEGS_OUTER || targetSlot == equipSlot::HIPS_WEAR || targetSlot == equipSlot::CALVES)
+        {
+            return { DisplacementMode::PULL_DOWN, DisplacementMode::UNBUTTON };
+        }
+
+        if (targetSlot == equipSlot::TORSO_OVER || targetSlot == equipSlot::TORSO_UNDER)
+        {
+            return { DisplacementMode::LIFT_UP, DisplacementMode::UNBUTTON, DisplacementMode::OPEN };
+        }
+
+        if (targetSlot == equipSlot::GROIN_OVER || targetSlot == equipSlot::PENIS_WEAR ||
+            targetSlot == equipSlot::VAGINA_WEAR || targetSlot == equipSlot::ASS_WEAR)
+        {
+            return { DisplacementMode::PULL_ASIDE, DisplacementMode::PULL_DOWN };
+        }
+
+        if (targetSlot == equipSlot::CHEST_WEAR || targetSlot == equipSlot::NIPPLES_WEAR)
+        {
+            return { DisplacementMode::PULL_ASIDE, DisplacementMode::LIFT_UP, DisplacementMode::UNBUTTON };
+        }
+
+        if (targetSlot == equipSlot::MOUTHWEAR)
+        {
+            return { DisplacementMode::OPEN, DisplacementMode::PULL_DOWN };
+        }
+
+        if (isEquippable)
+        {
+            return { DisplacementMode::PULL_DOWN, DisplacementMode::PULL_ASIDE };
+        }
+
+        return {};
+    }
+
+    bool isDisplacementAllowed(DisplacementMode mode) const
+    {
+        auto allowed = getAllowedDisplacements();
+        return std::find(allowed.begin(), allowed.end(), mode) != allowed.end();
+    }
 };
 
 inline ItemCategory determineItemCategory(const item& it)

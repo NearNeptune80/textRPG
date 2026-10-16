@@ -20,10 +20,11 @@ EnchantmentRegistry& EnchantmentRegistry::getInstance()
 
 static ItemRarity stringToRarity(const std::string& str)
 {
-    if (str == "UNCOMMON") return ItemRarity::UNCOMMON;
-    if (str == "RARE")     return ItemRarity::RARE;
-    if (str == "EPIC")     return ItemRarity::EPIC;
-    if (str == "LEGENDARY")return ItemRarity::LEGENDARY;
+    if (str == "UNCOMMON" || str == "uncommon") return ItemRarity::UNCOMMON;
+    if (str == "RARE" || str == "rare")         return ItemRarity::RARE;
+    if (str == "EPIC" || str == "epic")         return ItemRarity::EPIC;
+    if (str == "LEGENDARY" || str == "legendary") return ItemRarity::LEGENDARY;
+    if (str == "UNIQUE" || str == "unique")     return ItemRarity::UNIQUE;
     return ItemRarity::COMMON;
 }
 

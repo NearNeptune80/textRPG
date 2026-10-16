@@ -23,6 +23,7 @@ namespace UIWidget
 
     float getTextWidth(std::string_view text, float scale = 1.0f);
     float getLineHeight(float scale = 1.0f);
+    std::string truncateText(std::string_view text, float maxWidth, float scale = 1.0f);
 
     SDL_Texture* getItemTexture(SDL_Renderer* renderer, const std::string& imagePath);
     void clearTextureCache();

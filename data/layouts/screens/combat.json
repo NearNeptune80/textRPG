@@ -46,7 +46,8 @@
         "name": "Entities & Activity Sidebar",
         "widgets": [
           "widget_lt_npc_card",
-          "widget_lt_event_log"
+          "widget_lt_event_log",
+          "widget_lt_quest_tracker"
         ]
       }
     ]

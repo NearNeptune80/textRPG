@@ -22,6 +22,8 @@
 #include "ui/uiWidget.h"
 #include "ui/tooltipManager.h"
 #include "ui/widgets/characterCardWidget.h"
+#include "ui/widgets/paperdollWidgets.h"
+#include "quest/questDatabase.h"
 
 namespace EntityListWidgets
 {
@@ -126,8 +128,8 @@ namespace EntityListWidgets
         npc->ensureSexualityStatusEffect();
 
         float startY = curY;
-        float padX = curX + (5.0f * uiScale);
-        float availableW = innerW - (10.0f * uiScale);
+        float padX = curX + (6.0f * uiScale);
+        float availableW = innerW - (12.0f * uiScale);
 
         auto mousePos = gameContext->input.getMousePosition();
         bool clicked = gameContext->input.isLeftMouseJustClicked();
@@ -158,6 +160,7 @@ namespace EntityListWidgets
         bool isHostile = !isSex && (gameContext->activeTargetMode == TargetMode::COMBAT_ENEMY || dynamic_cast<CombatState*>(gameContext->getActiveState()) != nullptr);
         SDL_Color headerCol = isSex ? Theme::colors.textGold : (isHostile ? Theme::colors.enemy : Theme::colors.textGold);
         std::string headerTitle = isSex ? std::format("PARTNER: {}", npc->name) : (isHostile ? std::format("OPPONENT: {}", npc->name) : std::format("TARGET: {}", npc->name));
+        headerTitle = UIWidget::truncateText(headerTitle, availableW - (16.0f * uiScale), uiScale * 0.74f);
 
         SDL_FRect headerRect = { padX, curY, availableW, headerH };
         UIWidget::drawHeader(renderer, headerRect, headerTitle, Theme::colors.bgHeader, headerCol, uiScale * 0.74f);
@@ -228,9 +231,10 @@ namespace EntityListWidgets
 
         float barH = 10.0f * uiScale;
         float barGap = 4.0f * uiScale;
-        float labelW = 40.0f * uiScale;
+        float widestLabelW = std::max(UIWidget::getTextWidth("Stamina", uiScale * 0.65f), 46.0f * uiScale);
+        float labelW = widestLabelW + (8.0f * uiScale);
         float valW = 44.0f * uiScale;
-        float progressW = s2ContentW - labelW - valW - (4.0f * uiScale);
+        float progressW = std::max(10.0f * uiScale, s2ContentW - labelW - valW - (4.0f * uiScale));
 
         float curHp = npc->getStat("health");
         float maxHp = npc->getStat("max_health");
@@ -475,8 +479,8 @@ namespace EntityListWidgets
         }
 
         float startY = curY;
-        float padX = curX + (5.0f * uiScale);
-        float availableW = innerW - (10.0f * uiScale);
+        float padX = curX + (6.0f * uiScale);
+        float availableW = innerW - (12.0f * uiScale);
         float innerPad = 5.0f * uiScale;
         float innerX = padX + innerPad;
         float cW = availableW - (innerPad * 2.0f);
@@ -492,55 +496,17 @@ namespace EntityListWidgets
         SDL_FRect card1Rect = { padX, curY, availableW, card1H };
         UIWidget::drawPanel(renderer, card1Rect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
-        std::string locName = "Unknown Area";
-        if (m && !m->getName().empty())
-        {
-            locName = m->getName();
-        }
-
-        std::string safeTag = "[ Safe ]";
-        SDL_Color safeCol = Theme::colors.companion;
-
-        int danger = 0;
-        bool hasAmbush = false;
-        if (m)
-        {
-            TileRuntimeData& rData = m->getRuntimeData(pX, pY);
-            danger = rData.getEffectiveDangerLevel();
-            hasAmbush = (!rData.ambushState.isDefeated && !rData.ambushState.isPermanentlyRemoved &&
-                         (rData.ambushState.npc != nullptr || !rData.ambushState.templateId.empty() || !rData.ambushState.templatePool.empty()));
-        }
-
-        if (danger >= 2)
-        {
-            safeTag = "[ Dangerous ]";
-            safeCol = Theme::colors.enemy;
-        }
-        else if (danger == 1 || hasAmbush)
-        {
-            safeTag = "[ Risky ]";
-            safeCol = Theme::colors.textGold;
-        }
-        else
-        {
-            safeTag = "[ Safe ]";
-            safeCol = Theme::colors.companion;
-        }
-
         std::string subText = m ? m->getTileTitle(pX, pY) : "Sanctuary interior";
+        if (subText.empty()) subText = "Sanctuary interior";
 
-        UIWidget::drawText(renderer, locName, innerX, curY + (5.0f * uiScale), Theme::colors.textGold, uiScale * 0.78f);
-        float safeW = UIWidget::getTextWidth(safeTag, uiScale * 0.68f);
-        UIWidget::drawText(renderer, safeTag, innerX + cW - safeW, curY + (5.0f * uiScale), safeCol, uiScale * 0.68f);
+        // Display ONLY the current tile/sub-room title, avoiding duplication with middle pane header
+        UIWidget::drawText(renderer, "CURRENT TILE", innerX, curY + (5.0f * uiScale), Theme::colors.textGold, uiScale * 0.74f);
 
-        UIWidget::drawText(renderer, subText, innerX, curY + (22.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.66f);
+        std::string fittedSubText = UIWidget::truncateText(subText, cW, uiScale * 0.74f);
+        UIWidget::drawText(renderer, fittedSubText, innerX, curY + (22.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.74f);
 
-        std::string tooltipDetail = std::format("Coordinates ({}, {}). Safety: {}", pX, pY, safeTag);
-        if (!subText.empty())
-        {
-            tooltipDetail = std::format("{} - {}", subText, tooltipDetail);
-        }
-        TooltipManager::setHoverTooltip(card1Rect, mousePos, locName, tooltipDetail, safeTag);
+        std::string tooltipDetail = std::format("Coordinates ({}, {})", pX, pY);
+        TooltipManager::setHoverTooltip(card1Rect, mousePos, subText, tooltipDetail, "Current Tile");
 
         curY += card1H + (8.0f * uiScale);
 
@@ -663,8 +629,8 @@ namespace EntityListWidgets
         if (isInteractingWithNPC(gameContext) && ground.empty()) return 0.0f;
 
         float startY = curY;
-        float padX = curX + (5.0f * uiScale);
-        float availableW = innerW - (10.0f * uiScale);
+        float padX = curX + (6.0f * uiScale);
+        float availableW = innerW - (12.0f * uiScale);
         float innerPad = 5.0f * uiScale;
         float innerX = padX + innerPad;
         float cW = availableW - (innerPad * 2.0f);
@@ -733,8 +699,8 @@ namespace EntityListWidgets
         }
 
         float startY = curY;
-        float padX = curX + (5.0f * uiScale);
-        float availableW = innerW - (10.0f * uiScale);
+        float padX = curX + (6.0f * uiScale);
+        float availableW = innerW - (12.0f * uiScale);
         float innerPad = 5.0f * uiScale;
         float innerX = padX + innerPad;
         float cW = availableW - (innerPad * 2.0f);
@@ -818,33 +784,58 @@ namespace EntityListWidgets
         }
         else
         {
+            SDL_Rect prevClip;
+            bool hadClip = SDL_RenderClipEnabled(renderer);
+            if (hadClip)
+            {
+                SDL_GetRenderClipRect(renderer, &prevClip);
+            }
+
+            SDL_Rect logClip = {
+                static_cast<int>(padX + 2.0f * uiScale),
+                static_cast<int>(curY + 20.0f * uiScale),
+                static_cast<int>(availableW - 4.0f * uiScale),
+                static_cast<int>(card4H - 22.0f * uiScale)
+            };
+            if (hadClip)
+            {
+                SDL_GetRectIntersection(&logClip, &prevClip, &logClip);
+            }
+            SDL_SetRenderClipRect(renderer, &logClip);
+
             for (int r = 0; r < maxVisible; ++r)
             {
                 int entryIdx = (totalLogs - 1) - (s_eventLogScrollOffset + r);
                 if (entryIdx < 0 || entryIdx >= totalLogs) break;
 
                 const auto& entry = allLogs[entryIdx];
+                float tagW = UIWidget::getTextWidth(entry.tag, uiScale * 0.65f);
+                float maxTextW = cW - tagW - (6.0f * uiScale);
+                float textH = UIWidget::getTextWrappedHeight(entry.text, maxTextW, uiScale * 0.65f);
+                float rowH = std::max(14.0f * uiScale, textH + (2.0f * uiScale));
+
+                if (logCurY + rowH > curY + card4H - (4.0f * uiScale))
+                {
+                    break;
+                }
+
                 SDL_Color tagColor = { entry.color.r, entry.color.g, entry.color.b, entry.color.a };
                 UIWidget::drawText(renderer, entry.tag, innerX, logCurY, tagColor, uiScale * 0.65f);
-                float tagW = UIWidget::getTextWidth(entry.tag, uiScale * 0.65f);
+                UIWidget::drawTextWrapped(renderer, entry.text, innerX + tagW + (4.0f * uiScale), logCurY, maxTextW, Theme::colors.textPrimary, uiScale * 0.65f);
 
-                float maxTextW = cW - tagW - (6.0f * uiScale);
-                std::string displayText = entry.text;
-                while (!displayText.empty() && UIWidget::getTextWidth(displayText, uiScale * 0.65f) > maxTextW)
-                {
-                    displayText.pop_back();
-                }
-                if (displayText.size() < entry.text.size() && displayText.size() > 3)
-                {
-                    displayText.replace(displayText.size() - 2, 2, "..");
-                }
-
-                UIWidget::drawText(renderer, displayText, innerX + tagW + (4.0f * uiScale), logCurY, Theme::colors.textPrimary, uiScale * 0.65f);
-
-                SDL_FRect rowRect = { innerX, logCurY, cW, 16.0f * uiScale };
+                SDL_FRect rowRect = { innerX, logCurY, cW, rowH };
                 TooltipManager::setHoverTooltip(rowRect, mousePos, entry.tag + (!entry.timeStr.empty() ? (" (" + entry.timeStr + ")") : ""), entry.text, "Event Log");
 
-                logCurY += (18.0f * uiScale);
+                logCurY += rowH + (2.0f * uiScale);
+            }
+
+            if (hadClip)
+            {
+                SDL_SetRenderClipRect(renderer, &prevClip);
+            }
+            else
+            {
+                SDL_SetRenderClipRect(renderer, nullptr);
             }
 
             if (totalLogs > maxVisible)
@@ -916,5 +907,260 @@ namespace EntityListWidgets
 
         curY += card4H + (8.0f * uiScale);
         return (curY - startY);
+    }
+
+    static bool s_questTrackerPinnedOnly = false;
+    static std::string s_expandedTrackerQuestId = "";
+
+    float renderWidgetQuestTracker(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& panelRect, float curY, float uiScale)
+    {
+        if (!gameContext || !gameContext->getPlayer()) return 0.0f;
+
+        bool inCombatOrSex = (dynamic_cast<CombatState*>(gameContext->getActiveState()) != nullptr) ||
+                             (dynamic_cast<sexState*>(gameContext->getActiveState()) != nullptr);
+        if (inCombatOrSex)
+        {
+            return PaperdollWidgets::renderWidgetPaperdoll(renderer, gameContext, panelRect, curY, uiScale, gameContext->getActiveTargetNPC());
+        }
+
+        entity* player = gameContext->getPlayer();
+        float startY = curY;
+        float padX = panelRect.x + (6.0f * uiScale);
+        float availableW = panelRect.w - (12.0f * uiScale);
+        const float bottomMargin = 6.0f * uiScale;
+        float totalH = std::max(110.0f * uiScale, (panelRect.y + panelRect.h) - curY - bottomMargin);
+
+        SDL_FRect boxRect = { padX, curY, availableW, totalH };
+        UIWidget::drawPanel(renderer, boxRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+
+        auto mousePos = gameContext->input.getMousePosition();
+        bool clicked = gameContext->input.isLeftMouseJustClicked();
+
+        float innerPad = 5.0f * uiScale;
+        float innerX = padX + innerPad;
+        float cW = availableW - (innerPad * 2.0f);
+
+        float headerH = 22.0f * uiScale;
+        SDL_FRect headerRect = { padX, curY, availableW, headerH };
+        UIWidget::drawPanel(renderer, headerRect, Theme::colors.bgHeader, Theme::colors.borderNormal);
+
+        if (!s_expandedTrackerQuestId.empty())
+        {
+            if (!player->quests.hasQuest(s_expandedTrackerQuestId) || player->quests.isCompleted(s_expandedTrackerQuestId))
+            {
+                s_expandedTrackerQuestId = "";
+            }
+        }
+
+        if (s_expandedTrackerQuestId.empty())
+        {
+            // State 1: Compact List View
+            std::string headerTitle = "QUEST TRACKER";
+            UIWidget::drawText(renderer, headerTitle, innerX, curY + (4.0f * uiScale), Theme::colors.textGold, uiScale * 0.74f);
+
+            std::string modeText = s_questTrackerPinnedOnly ? "[ Pinned ]" : "[ Auto ]";
+            SDL_Color modeCol = s_questTrackerPinnedOnly ? Theme::colors.textGold : Theme::colors.companion;
+            float modeW = UIWidget::getTextWidth(modeText, uiScale * 0.68f);
+            float modeX = padX + availableW - modeW - (6.0f * uiScale);
+            SDL_FRect modeRect = { modeX - (3.0f * uiScale), curY + (3.0f * uiScale), modeW + (6.0f * uiScale), 16.0f * uiScale };
+            bool modeHov = (mousePos.x >= modeRect.x && mousePos.x <= modeRect.x + modeRect.w &&
+                            mousePos.y >= modeRect.y && mousePos.y <= modeRect.y + modeRect.h);
+            if (modeHov)
+            {
+                UIWidget::drawPanel(renderer, modeRect, Theme::colors.bgSlotOccupied, modeCol);
+                if (clicked)
+                {
+                    s_questTrackerPinnedOnly = !s_questTrackerPinnedOnly;
+                    gameContext->input.consumeMouseClick();
+                }
+            }
+            UIWidget::drawText(renderer, modeText, modeX, curY + (4.0f * uiScale), modeCol, uiScale * 0.68f);
+            TooltipManager::setHoverTooltip(modeRect, mousePos,
+                s_questTrackerPinnedOnly ? "Filter: Pinned Quests Only" : "Filter: Auto Tracking",
+                s_questTrackerPinnedOnly ? "Showing only explicitly pinned quests. Click to switch to Auto mode."
+                                         : "Populates active quests (pinned first, then active). Click to show Pinned only.",
+                "Quest Tracker Mode");
+
+            float contentY = curY + headerH + (5.0f * uiScale);
+            float availableListH = (curY + totalH) - contentY - (4.0f * uiScale);
+
+            std::vector<const QuestDefinition*> pinnedQuests;
+            std::vector<const QuestDefinition*> unpinnedQuests;
+
+            for (const auto& [qId, stage] : player->quests.activeQuests)
+            {
+                if (player->quests.isCompleted(qId)) continue;
+                const QuestDefinition* q = questDatabase::getQuest(qId);
+                if (!q) continue;
+
+                if (player->quests.isQuestPinned(qId))
+                {
+                    pinnedQuests.push_back(q);
+                }
+                else
+                {
+                    unpinnedQuests.push_back(q);
+                }
+            }
+
+            std::vector<const QuestDefinition*> displayQuests;
+            if (s_questTrackerPinnedOnly)
+            {
+                displayQuests = pinnedQuests;
+            }
+            else
+            {
+                for (const auto* q : pinnedQuests)
+                {
+                    if (displayQuests.size() >= 4) break;
+                    displayQuests.push_back(q);
+                }
+                for (const auto* q : unpinnedQuests)
+                {
+                    if (displayQuests.size() >= 4) break;
+                    displayQuests.push_back(q);
+                }
+            }
+
+            if (displayQuests.empty())
+            {
+                std::string emptyMsg = s_questTrackerPinnedOnly
+                    ? "No pinned quests.\nPin quests from [Auto] mode\nor the Smartphone Quests app."
+                    : "No active quests in journal.";
+                UIWidget::drawTextWrapped(renderer, emptyMsg, innerX, contentY + (8.0f * uiScale), cW, Theme::colors.textMuted, uiScale * 0.70f);
+            }
+            else
+            {
+                int qCount = static_cast<int>(displayQuests.size());
+                float cardSpacing = 4.0f * uiScale;
+                float totalSpacing = (qCount - 1) * cardSpacing;
+                float cardH = std::clamp(std::floor((availableListH - totalSpacing) / qCount), 28.0f * uiScale, 36.0f * uiScale);
+
+                for (int i = 0; i < qCount; ++i)
+                {
+                    const QuestDefinition* q = displayQuests[i];
+                    int stage = player->quests.getQuestStage(q->id);
+                    bool isPinned = player->quests.isQuestPinned(q->id);
+
+                    SDL_FRect cardRect = { innerX, contentY + i * (cardH + cardSpacing), cW, cardH };
+                    bool cardHov = (mousePos.x >= cardRect.x && mousePos.x <= cardRect.x + cardRect.w &&
+                                    mousePos.y >= cardRect.y && mousePos.y <= cardRect.y + cardRect.h);
+
+                    SDL_Color cardBg = cardHov ? Theme::colors.bgSlotOccupied : Theme::colors.bgDark;
+                    SDL_Color cardBorder = cardHov ? Theme::colors.borderSelected : Theme::colors.borderButton;
+                    UIWidget::drawPanel(renderer, cardRect, cardBg, cardBorder);
+
+                    std::string line1 = isPinned ? std::format("★ {}", q->name) : q->name;
+                    line1 = UIWidget::truncateText(line1, cW - (10.0f * uiScale), uiScale * 0.72f);
+                    UIWidget::drawText(renderer, line1, cardRect.x + (5.0f * uiScale), cardRect.y + (3.0f * uiScale), isPinned ? Theme::colors.textGold : Theme::colors.textPrimary, uiScale * 0.72f);
+
+                    std::string line2 = "Active";
+                    auto stIt = q->stages.find(stage);
+                    if (stIt != q->stages.end() && !stIt->second.empty())
+                    {
+                        line2 = stIt->second;
+                    }
+                    line2 = UIWidget::truncateText(line2, cW - (10.0f * uiScale), uiScale * 0.64f);
+                    UIWidget::drawText(renderer, line2, cardRect.x + (5.0f * uiScale), cardRect.y + (17.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.64f);
+
+                    TooltipManager::setHoverTooltip(cardRect, mousePos, q->name,
+                        std::format("Stage: {}\nClick to view full quest details.", line2),
+                        isPinned ? "Pinned Quest" : "Active Quest", "[ Click to Expand ]");
+
+                    if (cardHov && clicked)
+                    {
+                        s_expandedTrackerQuestId = q->id;
+                        gameContext->input.consumeMouseClick();
+                    }
+                }
+            }
+        }
+        else
+        {
+            // State 2: Expanded Single-Quest View
+            const QuestDefinition* q = questDatabase::getQuest(s_expandedTrackerQuestId);
+            if (!q)
+            {
+                s_expandedTrackerQuestId = "";
+            }
+            else
+            {
+                int stage = player->quests.getQuestStage(q->id);
+                bool isPinned = player->quests.isQuestPinned(q->id);
+
+                std::string backStr = "[< Back]";
+                float backW = UIWidget::getTextWidth(backStr, uiScale * 0.70f);
+                SDL_FRect backRect = { innerX, curY + (3.0f * uiScale), backW + (6.0f * uiScale), 16.0f * uiScale };
+                bool backHov = (mousePos.x >= backRect.x && mousePos.x <= backRect.x + backRect.w &&
+                                mousePos.y >= backRect.y && mousePos.y <= backRect.y + backRect.h);
+                if (backHov)
+                {
+                    UIWidget::drawPanel(renderer, backRect, Theme::colors.bgSlotOccupied, Theme::colors.textGold);
+                    if (clicked)
+                    {
+                        s_expandedTrackerQuestId = "";
+                        gameContext->input.consumeMouseClick();
+                    }
+                }
+                UIWidget::drawText(renderer, backStr, innerX + (3.0f * uiScale), curY + (4.0f * uiScale), backHov ? Theme::colors.textGold : Theme::colors.textPrimary, uiScale * 0.70f);
+
+                float backReserved = backRect.w + (8.0f * uiScale);
+                UIWidget::drawText(renderer, "DETAILS", innerX + backReserved, curY + (4.0f * uiScale), Theme::colors.textGold, uiScale * 0.70f);
+
+                std::string pinStr = isPinned ? "[ ★ Pinned ]" : "[ ☆ Pin ]";
+                SDL_Color pinCol = isPinned ? Theme::colors.textGold : Theme::colors.textSecondary;
+                float pinW = UIWidget::getTextWidth(pinStr, uiScale * 0.68f);
+                float pinX = padX + availableW - pinW - (6.0f * uiScale);
+                SDL_FRect pinRect = { pinX - (3.0f * uiScale), curY + (3.0f * uiScale), pinW + (6.0f * uiScale), 16.0f * uiScale };
+                bool pinHov = (mousePos.x >= pinRect.x && mousePos.x <= pinRect.x + pinRect.w &&
+                               mousePos.y >= pinRect.y && mousePos.y <= pinRect.y + pinRect.h);
+                if (pinHov)
+                {
+                    UIWidget::drawPanel(renderer, pinRect, Theme::colors.bgSlotOccupied, pinCol);
+                    if (clicked)
+                    {
+                        player->quests.togglePinQuest(q->id);
+                        gameContext->input.consumeMouseClick();
+                    }
+                }
+                UIWidget::drawText(renderer, pinStr, pinX, curY + (4.0f * uiScale), pinCol, uiScale * 0.68f);
+
+                float detailY = curY + headerH + (6.0f * uiScale);
+
+                std::string titleStr = UIWidget::truncateText(q->name, cW, uiScale * 0.82f);
+                UIWidget::drawText(renderer, titleStr, innerX, detailY, Theme::colors.textGold, uiScale * 0.82f);
+                detailY += (18.0f * uiScale);
+
+                std::string stageName = "Objective:";
+                auto stIt = q->stages.find(stage);
+                if (stIt != q->stages.end() && !stIt->second.empty())
+                {
+                    stageName = std::format("► {}", stIt->second);
+                }
+                float stH = UIWidget::drawTextWrapped(renderer, stageName, innerX, detailY, cW, Theme::colors.companion, uiScale * 0.72f);
+                detailY += stH + (6.0f * uiScale);
+
+                if (!q->description.empty())
+                {
+                    float descH = UIWidget::drawTextWrapped(renderer, q->description, innerX, detailY, cW, Theme::colors.textPrimary, uiScale * 0.68f);
+                    detailY += descH + (6.0f * uiScale);
+                }
+
+                if (!q->rewardsDescription.empty())
+                {
+                    std::string rew = "Reward: " + q->rewardsDescription;
+                    UIWidget::drawTextWrapped(renderer, rew, innerX, detailY, cW, Theme::colors.currency, uiScale * 0.68f);
+                }
+            }
+        }
+
+        curY += totalH + (6.0f * uiScale);
+        return (curY - startY);
+    }
+
+    float renderWidgetQuestTracker(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale)
+    {
+        SDL_FRect dummy = { curX, curY, innerW, 0.0f };
+        return renderWidgetQuestTracker(renderer, gameContext, dummy, curY, uiScale);
     }
 }

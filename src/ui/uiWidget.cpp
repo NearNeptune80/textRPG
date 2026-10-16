@@ -2,13 +2,32 @@
 #include "ui/fontManager.h"
 
 #include <algorithm>
+#include <cmath>
 #include <sstream>
 #include <string_view>
 #include <unordered_map>
+#include <vector>
 #include <SDL3_image/SDL_image.h>
 
 namespace UIWidget
 {
+    std::string truncateText(std::string_view text, float maxWidth, float scale)
+    {
+        if (maxWidth <= 0.0f || text.empty()) return "";
+        if (getTextWidth(text, scale) <= maxWidth) return std::string(text);
+
+        std::string result(text);
+        while (!result.empty() && getTextWidth(result + "...", scale) > maxWidth)
+        {
+            result.pop_back();
+        }
+        if (!result.empty())
+        {
+            result += "...";
+        }
+        return result;
+    }
+
     void drawPanel(SDL_Renderer* renderer, const SDL_FRect& rect, SDL_Color bgColor, SDL_Color borderColor)
     {
         if (!renderer) return;
@@ -30,7 +49,12 @@ namespace UIWidget
         SDL_SetRenderDrawColor(renderer, Theme::colors.borderNormal.r, Theme::colors.borderNormal.g, Theme::colors.borderNormal.b, Theme::colors.borderNormal.a);
         SDL_RenderRect(renderer, &rect);
 
-        drawText(renderer, title, rect.x + (8.0f * scale), rect.y + ((rect.h - (10.0f * scale)) / 2.0f), textColor, scale);
+        float leftPad = 12.0f * scale;
+        float maxTitleW = std::max(10.0f * scale, rect.w - (leftPad + (8.0f * scale)));
+        std::string fittedTitle = truncateText(title, maxTitleW, scale);
+        float lineH = getLineHeight(scale);
+        float textY = rect.y + ((rect.h - lineH) / 2.0f);
+        drawText(renderer, fittedTitle, rect.x + leftPad, textY, textColor, scale);
     }
 
     void drawCenteredHeaderCard(SDL_Renderer* renderer, float centerX, float curY, float cardW, float cardH, std::string_view title, SDL_Color textColor, float scale)
@@ -44,9 +68,12 @@ namespace UIWidget
         SDL_SetRenderDrawColor(renderer, Theme::colors.borderMuted.r, Theme::colors.borderMuted.g, Theme::colors.borderMuted.b, Theme::colors.borderMuted.a);
         SDL_RenderRect(renderer, &cardRect);
 
-        float textW = title.size() * (8.5f * scale);
+        float fontScale = scale * 1.1f;
+        float maxTitleW = std::max(10.0f * scale, cardW - (16.0f * scale));
+        std::string fittedTitle = truncateText(title, maxTitleW, fontScale);
+        float textW = getTextWidth(fittedTitle, fontScale);
         float textX = centerX - (textW / 2.0f);
-        drawText(renderer, title, textX, curY + ((cardH - (14.0f * scale)) / 2.0f), textColor, scale * 1.1f);
+        drawText(renderer, fittedTitle, textX, curY + ((cardH - (14.0f * scale)) / 2.0f), textColor, fontScale);
     }
 
     void drawProgressBar(SDL_Renderer* renderer, const SDL_FRect& rect, float currentValue, float maxValue, SDL_Color fillColor, SDL_Color bgColor, std::string_view label, float scale)
@@ -88,9 +115,10 @@ namespace UIWidget
         if (!label.empty())
         {
             float labelW = getTextWidth(label, scale);
-            float labelH = 13.0f * scale;
+            float textH = getLineHeight(scale);
             float textX = rect.x + std::max(2.0f * scale, (rect.w - labelW) / 2.0f);
-            float textY = rect.y + std::max(1.0f * scale, (rect.h - labelH) / 2.0f);
+            float textY = rect.y + ((rect.h - textH) / 2.0f) - (1.5f * scale);
+            textY = std::clamp(textY, rect.y + (1.0f * scale), rect.y + rect.h - textH - (1.0f * scale));
             drawText(renderer, label, textX, textY, textCol, scale);
         }
         return isEnabled && isHovered;
@@ -110,9 +138,10 @@ namespace UIWidget
         if (!label.empty())
         {
             float labelW = getTextWidth(label, scale);
-            float labelH = 13.0f * scale;
+            float textH = getLineHeight(scale);
             float textX = rect.x + std::max(2.0f * scale, (rect.w - labelW) / 2.0f);
-            float textY = rect.y + std::max(1.0f * scale, (rect.h - labelH) / 2.0f);
+            float textY = rect.y + ((rect.h - textH) / 2.0f) - (1.5f * scale);
+            textY = std::clamp(textY, rect.y + (1.0f * scale), rect.y + rect.h - textH - (1.0f * scale));
             drawText(renderer, label, textX, textY, textColor, scale);
         }
         return true;
@@ -159,62 +188,100 @@ namespace UIWidget
         SDL_SetRenderDrawColor(renderer, border.r, border.g, border.b, border.a);
         SDL_RenderRect(renderer, &rect);
 
+        SDL_Rect prevClip;
+        bool hadClip = SDL_RenderClipEnabled(renderer);
+        if (hadClip)
+        {
+            SDL_GetRenderClipRect(renderer, &prevClip);
+        }
+
+        SDL_Rect btnClip = {
+            static_cast<int>(rect.x + 1.0f),
+            static_cast<int>(rect.y + 1.0f),
+            static_cast<int>(std::max(0.0f, rect.w - 2.0f)),
+            static_cast<int>(std::max(0.0f, rect.h - 2.0f))
+        };
+        if (hadClip)
+        {
+            SDL_GetRectIntersection(&btnClip, &prevClip, &btnClip);
+        }
+        SDL_SetRenderClipRect(renderer, &btnClip);
+
+        float hkScale = scale * 0.65f;
+        float hotkeyW = hotkey.empty() ? 0.0f : getTextWidth(hotkey, hkScale);
+
         if (!hotkey.empty())
         {
-            float hkScale = scale * 0.65f;
-            float hotkeyW = getTextWidth(hotkey, hkScale);
             SDL_Color hkCol = isEnabled ? (isSelected ? Theme::colors.textGold : Theme::colors.textSecondary) : Theme::colors.textDisabled;
-            drawText(renderer, hotkey, rect.x + rect.w - hotkeyW - (6.0f * scale), rect.y + (3.0f * scale), hkCol, hkScale);
+            drawText(renderer, hotkey, rect.x + rect.w - hotkeyW - (5.0f * scale), rect.y + (3.0f * scale), hkCol, hkScale);
         }
 
         if (!label.empty())
         {
+            float maxLabelW = std::max(10.0f * scale, rect.w - (12.0f * scale));
             float labelScale = scale * 0.85f;
-            float labelW = getTextWidth(label, labelScale);
-            float labelX = rect.x + std::max(6.0f * scale, (rect.w - labelW) / 2.0f);
-            float labelY = rect.y + ((rect.h - (12.0f * scale)) / 2.0f);
+            float smallLabelScale = scale * 0.70f;
 
-            if (!isEnabled)
+            float activeScale = labelScale;
+            std::string displayLabel(label);
+
+            if (getTextWidth(displayLabel, activeScale) > maxLabelW)
             {
-                drawText(renderer, label, labelX, labelY, Theme::colors.textMuted, labelScale);
+                activeScale = smallLabelScale;
+                if (getTextWidth(displayLabel, activeScale) > maxLabelW)
+                {
+                    displayLabel = truncateText(displayLabel, maxLabelW, activeScale);
+                }
+            }
+
+            SDL_Color textCol = isEnabled ? (isSelected ? Theme::colors.textGold : (isHovered ? Theme::colors.textGold : Theme::colors.textPrimary)) : Theme::colors.textMuted;
+            if (isEnabled)
+            {
+                if (label == "Reset") textCol = Theme::colors.enemy;
+                else if (label == "Quests" || label == "Encyclopedia") textCol = Theme::colors.textGold;
+                else if (label == "Masturbate") textCol = Theme::colors.lust;
+            }
+
+            float labelW = getTextWidth(displayLabel, activeScale);
+            float labelX = rect.x + std::max(4.0f * scale, (rect.w - labelW) / 2.0f);
+
+            float textHeight = getLineHeight(activeScale);
+            float textY = rect.y + ((rect.h - textHeight) / 2.0f);
+            if (!hotkey.empty())
+            {
+                textY += (1.5f * scale);
+            }
+            float labelY = std::clamp(textY, rect.y + (2.0f * scale), rect.y + rect.h - textHeight - (2.0f * scale));
+
+            if (isEnabled && displayLabel.find(": OFF") != std::string::npos)
+            {
+                size_t colonPos = displayLabel.find(':');
+                std::string prefix = displayLabel.substr(0, colonPos + 2);
+                drawText(renderer, prefix, labelX, labelY, textCol, activeScale);
+                float prefixW = getTextWidth(prefix, activeScale);
+                drawText(renderer, "OFF", labelX + prefixW, labelY, Theme::colors.enemy, activeScale);
+            }
+            else if (isEnabled && displayLabel.find(": ON") != std::string::npos)
+            {
+                size_t colonPos = displayLabel.find(':');
+                std::string prefix = displayLabel.substr(0, colonPos + 2);
+                drawText(renderer, prefix, labelX, labelY, textCol, activeScale);
+                float prefixW = getTextWidth(prefix, activeScale);
+                drawText(renderer, "ON", labelX + prefixW, labelY, Theme::colors.companion, activeScale);
             }
             else
             {
-                SDL_Color textCol = isSelected ? Theme::colors.textGold : (isHovered ? Theme::colors.textGold : Theme::colors.textPrimary);
-
-                if (label == "Reset")
-                {
-                    drawText(renderer, label, labelX, labelY, Theme::colors.enemy, labelScale);
-                }
-                else if (label == "Quests" || label == "Encyclopedia")
-                {
-                    drawText(renderer, label, labelX, labelY, Theme::colors.textGold, labelScale);
-                }
-                else if (label == "Masturbate")
-                {
-                    drawText(renderer, label, labelX, labelY, Theme::colors.lust, labelScale);
-                }
-                else if (label.find(": OFF") != std::string_view::npos)
-                {
-                    size_t colonPos = label.find(':');
-                    std::string_view prefix = label.substr(0, colonPos + 2);
-                    drawText(renderer, prefix, labelX, labelY, textCol, labelScale);
-                    float prefixW = getTextWidth(prefix, labelScale);
-                    drawText(renderer, "OFF", labelX + prefixW, labelY, Theme::colors.enemy, labelScale);
-                }
-                else if (label.find(": ON") != std::string_view::npos)
-                {
-                    size_t colonPos = label.find(':');
-                    std::string_view prefix = label.substr(0, colonPos + 2);
-                    drawText(renderer, prefix, labelX, labelY, textCol, labelScale);
-                    float prefixW = getTextWidth(prefix, labelScale);
-                    drawText(renderer, "ON", labelX + prefixW, labelY, Theme::colors.companion, labelScale);
-                }
-                else
-                {
-                    drawText(renderer, label, labelX, labelY, textCol, labelScale);
-                }
+                drawText(renderer, displayLabel, labelX, labelY, textCol, activeScale);
             }
+        }
+
+        if (hadClip)
+        {
+            SDL_SetRenderClipRect(renderer, &prevClip);
+        }
+        else
+        {
+            SDL_SetRenderClipRect(renderer, nullptr);
         }
 
         return isEnabled && isHovered;

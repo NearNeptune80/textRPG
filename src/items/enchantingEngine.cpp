@@ -70,6 +70,22 @@ namespace EnchantingEngine
 
     std::string composeItemName(const item* baseItem, const std::vector<InfusionEffect>& effects)
     {
+        if (baseItem)
+        {
+            // Rule 2 (Unique Items): If an item is marked as unique, NEVER change its name when enchanting it
+            if (baseItem->isUniqueItem())
+            {
+                return baseItem->name;
+            }
+
+            // Rule 1 (Second+ Enchantment): If an item ALREADY has any enchantments applied
+            // (or has already had its name modified by a prior enchantment), do NOT modify the item's name again
+            if (baseItem->isEnchanted || !baseItem->enchantments.empty())
+            {
+                return baseItem->name;
+            }
+        }
+
         if (effects.empty())
         {
             return baseItem ? baseItem->name : "Infused Item";
@@ -118,6 +134,64 @@ namespace EnchantingEngine
         return std::format("{} {}", baseName, suffix);
     }
 
+    struct GroupedInfusionEffect
+    {
+        InfusionEffect primaryEff;
+        int totalBonus = 0;
+        int count = 0;
+    };
+
+    static std::vector<std::string> formatAggregatedEnchantmentLines(const item* baseItem, const std::vector<InfusionEffect>& effects)
+    {
+        std::vector<GroupedInfusionEffect> groups;
+
+        for (const auto& eff : effects)
+        {
+            bool found = false;
+            for (auto& g : groups)
+            {
+                bool match = (g.primaryEff.targetType == eff.targetType &&
+                              g.primaryEff.focus == eff.focus &&
+                              g.primaryEff.property == eff.property &&
+                              g.primaryEff.limitThreshold == eff.limitThreshold);
+                if (propertySupportsLimits(eff.property, nullptr) && eff.targetType == InfusionTargetType::APPAREL)
+                {
+                    if (g.primaryEff.tier != eff.tier) match = false;
+                }
+                if (match)
+                {
+                    g.totalBonus += getTierStatBonus(eff.tier);
+                    g.count++;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+            {
+                groups.push_back({ eff, getTierStatBonus(eff.tier), 1 });
+            }
+        }
+
+        std::vector<std::string> lines;
+        for (const auto& g : groups)
+        {
+            auto dList = g.primaryEff.getEffectDescriptions(nullptr, g.totalBonus, true);
+            std::string sText = dList.empty() ? getPropertyDisplayName(g.primaryEff.property, baseItem) : dList.front();
+            if (baseItem && baseItem->isRacialReagent())
+            {
+                std::string raceDisp = getPropertyDisplayName(g.primaryEff.property, baseItem);
+                if (raceDisp != getPropertyDefinition(g.primaryEff.property).displayName)
+                {
+                    int bonus = g.totalBonus;
+                    std::string sign = bonus >= 0 ? std::format("+{}", bonus) : std::format("{}", bonus);
+                    sText = std::format("{} {}", sign, raceDisp);
+                }
+            }
+            lines.push_back(sText);
+        }
+        return lines;
+    }
+
     std::string composeItemDescription(const item* baseItem, const std::vector<InfusionEffect>& effects)
     {
         std::string desc = "";
@@ -142,21 +216,10 @@ namespace EnchantingEngine
         if (!effects.empty())
         {
             desc += "\n\nEnchantments:";
-            for (const auto& eff : effects)
+            auto lines = formatAggregatedEnchantmentLines(baseItem, effects);
+            for (const auto& line : lines)
             {
-                auto dList = eff.getEffectDescriptions();
-                std::string sText = dList.empty() ? getPropertyDisplayName(eff.property, baseItem) : dList.front();
-                if (baseItem && baseItem->isRacialReagent())
-                {
-                    std::string raceDisp = getPropertyDisplayName(eff.property, baseItem);
-                    if (raceDisp != getPropertyDefinition(eff.property).displayName)
-                    {
-                        int bonus = getTierStatBonus(eff.tier);
-                        std::string sign = bonus >= 0 ? std::format("+{}", bonus) : std::format("{}", bonus);
-                        sText = std::format("{} {}", sign, raceDisp);
-                    }
-                }
-                desc += "\n• " + sText;
+                desc += "\n" + line;
             }
         }
         return desc;
@@ -191,21 +254,10 @@ namespace EnchantingEngine
         if (!effects.empty())
         {
             tip += "\nEnchantments:";
-            for (const auto& eff : effects)
+            auto lines = formatAggregatedEnchantmentLines(baseItem, effects);
+            for (const auto& line : lines)
             {
-                auto dList = eff.getEffectDescriptions();
-                std::string sText = dList.empty() ? getPropertyDisplayName(eff.property, baseItem) : dList.front();
-                if (baseItem && baseItem->isRacialReagent())
-                {
-                    std::string raceDisp = getPropertyDisplayName(eff.property, baseItem);
-                    if (raceDisp != getPropertyDefinition(eff.property).displayName)
-                    {
-                        int bonus = getTierStatBonus(eff.tier);
-                        std::string sign = bonus >= 0 ? std::format("+{}", bonus) : std::format("{}", bonus);
-                        sText = std::format("{} {}", sign, raceDisp);
-                    }
-                }
-                tip += "\n• " + sText;
+                tip += "\n" + line;
             }
         }
         return tip;
@@ -253,6 +305,18 @@ namespace EnchantingEngine
 
         if (crafted->isEquippable)
         {
+            if (baseItem && baseItem->isEnchanted)
+            {
+                const item* tmpl = itemDatabase::getItemTemplate(baseItem->id);
+                if (tmpl)
+                {
+                    crafted->statModifiers = tmpl->statModifiers;
+                }
+                else
+                {
+                    crafted->statModifiers.clear();
+                }
+            }
             for (const auto& eff : effects)
             {
                 int bonus = getTierStatBonus(eff.tier);
@@ -324,12 +388,43 @@ namespace EnchantingEngine
         }
 
         crafted->infusionEffects = effects;
+        crafted->enchantments.clear();
+        if (baseItem)
+        {
+            size_t baseInfusionCount = baseItem->infusionEffects.size();
+            if (baseItem->enchantments.size() > baseInfusionCount)
+            {
+                size_t innateCount = baseItem->enchantments.size() - baseInfusionCount;
+                for (size_t i = 0; i < innateCount; ++i)
+                {
+                    crafted->enchantments.push_back(baseItem->enchantments[i]);
+                }
+            }
+        }
+        for (const auto& eff : effects)
+        {
+            enchantment ench;
+            ench.id = getPropertyDefinition(eff.property).id;
+            ench.name = getPropertyDisplayName(eff.property, baseItem);
+            ench.essenceCost = eff.calculateCost();
+            crafted->enchantments.push_back(ench);
+        }
         crafted->name = !customName.empty() ? customName : composeItemName(baseItem, effects);
+        crafted->isEnchanted = true;
         crafted->description = composeItemDescription(baseItem, effects);
         crafted->tooltip = composeItemTooltip(baseItem, effects);
         crafted->briefDescription = crafted->tooltip;
         crafted->count = 1;
-        crafted->baseValue += calculateInfusionCost(baseItem, effects) * 8;
+        if (baseItem && baseItem->isEnchanted)
+        {
+            const item* tmpl = itemDatabase::getItemTemplate(baseItem->id);
+            int baseVal = tmpl ? tmpl->baseValue : baseItem->baseValue;
+            crafted->baseValue = baseVal + calculateInfusionCost(baseItem, effects) * 8;
+        }
+        else
+        {
+            crafted->baseValue += calculateInfusionCost(baseItem, effects) * 8;
+        }
 
         return crafted;
     }

@@ -389,6 +389,7 @@ namespace CharacterCardWidget
 
         SDL_FRect headerRect = { padX, curY, availableW, headerH };
         std::string compHeader = std::format("COMPANION: {}", companion->name);
+        compHeader = UIWidget::truncateText(compHeader, availableW - (16.0f * uiScale), uiScale * 0.68f);
         UIWidget::drawHeader(renderer, headerRect, compHeader, Theme::colors.bgHeader, Theme::colors.companion, uiScale * 0.68f);
         curY += headerH + (3.0f * uiScale);
 
@@ -405,6 +406,7 @@ namespace CharacterCardWidget
         UIWidget::drawText(renderer, initials, avatarRect.x + ((avatarSize - initW) / 2.0f), avatarRect.y + (2.0f * uiScale), Theme::colors.companion, uiScale * 0.68f);
 
         std::string lvlStr = std::format("Lvl {} • {}", companion->stats.level, companion->anatomy.getRacialTitle());
+        lvlStr = UIWidget::truncateText(lvlStr, cW - avatarSize - (10.0f * uiScale), uiScale * 0.66f);
         UIWidget::drawText(renderer, lvlStr, cX + avatarSize + (4.0f * uiScale), curY + (2.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.66f);
 
         entity* playerEnt = gameContext ? gameContext->getPlayer() : nullptr;
@@ -524,50 +526,47 @@ namespace CharacterCardWidget
         player->ensureSexualityStatusEffect();
 
         float startY = curY;
-        float padX = curX + (5.0f * uiScale);
-        float availableW = innerW - (10.0f * uiScale);
+        float padX = curX + (6.0f * uiScale);
+        float availableW = innerW - (12.0f * uiScale);
 
         bool inPrologue = (dynamic_cast<characterCreationState*>(gameContext->getActiveState()) != nullptr);
         auto mousePos = gameContext->input.getMousePosition();
 
-        float innerPad = 4.0f * uiScale;
-        float subW = availableW - (innerPad * 2.0f);
-        float s2Pad = 5.0f * uiScale;
-        float s2ContentW = subW - (s2Pad * 2.0f);
+        float sContentPad = 5.0f * uiScale;
+        float sContentX = padX + sContentPad;
+        float sContentW = availableW - (sContentPad * 2.0f);
+        float s1ContentX = sContentX;
+        float s1ContentW = sContentW;
+        float s2ContentX = sContentX;
+        float s2ContentW = sContentW;
 
         const float chipSize = 25.0f * uiScale;
         const float chipGap = 4.0f * uiScale;
-        int chipsPerRow = std::max(1, static_cast<int>(std::floor((s2ContentW + chipGap) / (chipSize + chipGap))));
+        int chipsPerRow = std::max(1, static_cast<int>(std::floor((sContentW + chipGap) / (chipSize + chipGap))));
 
         const auto& effects = player->statusEffects;
         int numEffectRows = effects.empty() ? 0 : static_cast<int>(std::ceil(effects.size() / static_cast<float>(chipsPerRow)));
         float statusSectionH = (numEffectRows == 0) ? 0.0f : ((numEffectRows * chipSize) + ((numEffectRows - 1) * chipGap) + (6.0f * uiScale));
 
-        float sub1H = 58.0f * uiScale;
-        float vitalsTopH = 80.0f * uiScale;;
-        float sub2H = vitalsTopH + statusSectionH + (4.0f * uiScale);
-        float headerH = 20.0f * uiScale;
-        float outerH = headerH + (3.0f * uiScale) + sub1H + (5.0f * uiScale) + sub2H + (5.0f * uiScale);
+        float barH = 10.0f * uiScale;
+        float barGap = 4.0f * uiScale;
+        float widestLabelW = std::max(UIWidget::getTextWidth("Stamina", uiScale * 0.65f), 46.0f * uiScale);
+        float labelW = widestLabelW + (8.0f * uiScale);
+        float valW = 44.0f * uiScale;
+        float progressW = std::max(10.0f * uiScale, sContentW - labelW - valW - (4.0f * uiScale));
 
-        SDL_FRect outerRect = { padX, curY, availableW, outerH };
-        UIWidget::drawPanel(renderer, outerRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
+        float topSectionH = 58.0f * uiScale;
+        float dividerY = curY + topSectionH;
+        float vitalsH = (7.0f * uiScale) + (16.0f * uiScale) + (4.0f * barH) + (3.0f * barGap) + (6.0f * uiScale) + statusSectionH + (4.0f * uiScale);
+        float cardH = topSectionH + vitalsH;
 
-        SDL_FRect headerRect = { padX, curY, availableW, headerH };
-        UIWidget::drawHeader(renderer, headerRect, "PLAYER CHARACTER", Theme::colors.bgHeader, Theme::colors.textGold, uiScale * 0.76f);
-        curY += headerH + (3.0f * uiScale);
+        SDL_FRect playerCardRect = { padX, curY, availableW, cardH };
+        UIWidget::drawPanel(renderer, playerCardRect, Theme::colors.bgDark, Theme::colors.borderButton);
 
-        float sub1X = padX + innerPad;
-        float sub1Y = curY;
-        SDL_FRect sub1Rect = { sub1X, sub1Y, subW, sub1H };
-        UIWidget::drawPanel(renderer, sub1Rect, Theme::colors.bgDark, Theme::colors.borderButton);
-
-        float s1Pad = 5.0f * uiScale;
-        float s1ContentX = sub1X + s1Pad;
-        float s1ContentW = subW - (s1Pad * 2.0f);
-        float s1Y = sub1Y + (4.0f * uiScale);
+        float s1Y = curY + (4.0f * uiScale);
 
         float avatarSize = 30.0f * uiScale;
-        SDL_FRect avatarRect = { s1ContentX, s1Y, avatarSize, avatarSize };
+        SDL_FRect avatarRect = { sContentX, s1Y, avatarSize, avatarSize };
         UIWidget::drawPanel(renderer, avatarRect, Theme::colors.bgHeader, Theme::colors.borderButton);
 
         std::string initials = "AV";
@@ -586,46 +585,41 @@ namespace CharacterCardWidget
         TooltipManager::setHoverTooltip(avatarRect, mousePos, createAnatomyTooltip(player, player));
 
         std::string dispName = player->name.empty() ? "Hero" : player->name;
-        UIWidget::drawText(renderer, dispName, s1ContentX + avatarSize + (6.0f * uiScale), s1Y + (1.0f * uiScale), Theme::colors.textGold, uiScale * 0.84f);
+        dispName = UIWidget::truncateText(dispName, sContentW - avatarSize - (10.0f * uiScale), uiScale * 0.84f);
+        UIWidget::drawText(renderer, dispName, sContentX + avatarSize + (6.0f * uiScale), s1Y + (1.0f * uiScale), Theme::colors.textGold, uiScale * 0.84f);
         std::string lvlStr = std::format("Lvl {} • {}", player->stats.level, player->anatomy.getRacialTitle());
-        UIWidget::drawText(renderer, lvlStr, s1ContentX + avatarSize + (6.0f * uiScale), s1Y + (15.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.70f);
-
-        float goldVal = player->getStat("currency");
-        std::string goldText = std::format("Gold: {:.0f} ¤", goldVal);
-        UIWidget::drawText(renderer, goldText, s1ContentX, s1Y + avatarSize + (4.0f * uiScale), Theme::colors.currency, uiScale * 0.72f);
-        TooltipManager::setHoverTooltip({ s1ContentX, s1Y + avatarSize + (2.0f * uiScale), 70.0f * uiScale, 16.0f * uiScale },
-                                        mousePos, "Gold (Currency)",
-                                        "Universal coins used to trade with merchants, purchase equipment, and pay for town services.",
-                                        std::format("{:.0f} ¤ Available", goldVal));
+        lvlStr = UIWidget::truncateText(lvlStr, sContentW - avatarSize - (10.0f * uiScale), uiScale * 0.70f);
+        UIWidget::drawText(renderer, lvlStr, sContentX + avatarSize + (6.0f * uiScale), s1Y + (15.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.70f);
 
         float essenceVal = player->getStat("arcaneEssence");
         if (essenceVal <= 0.0f) essenceVal = player->getStat("essence");
         std::string essenceText = std::format("Essence: {:.0f}", essenceVal);
         float essW = UIWidget::getTextWidth(essenceText, uiScale * 0.72f);
-        UIWidget::drawText(renderer, essenceText, s1ContentX + s1ContentW - essW, s1Y + avatarSize + (4.0f * uiScale), Theme::colors.arcane, uiScale * 0.72f);
-        TooltipManager::setHoverTooltip({ s1ContentX + s1ContentW - essW - (4.0f * uiScale), s1Y + avatarSize + (2.0f * uiScale), essW + (8.0f * uiScale), 16.0f * uiScale },
+
+        float goldVal = player->getStat("currency");
+        std::string goldText = std::format("Gold: {:.0f} ¤", goldVal);
+        float availGoldW = std::max(10.0f * uiScale, sContentW - essW - (10.0f * uiScale));
+        goldText = UIWidget::truncateText(goldText, availGoldW, uiScale * 0.72f);
+        UIWidget::drawText(renderer, goldText, sContentX, s1Y + avatarSize + (4.0f * uiScale), Theme::colors.currency, uiScale * 0.72f);
+        TooltipManager::setHoverTooltip({ sContentX, s1Y + avatarSize + (2.0f * uiScale), 70.0f * uiScale, 16.0f * uiScale },
+                                        mousePos, "Gold (Currency)",
+                                        "Universal coins used to trade with merchants, purchase equipment, and pay for town services.",
+                                        std::format("{:.0f} ¤ Available", goldVal));
+
+        UIWidget::drawText(renderer, essenceText, sContentX + sContentW - essW, s1Y + avatarSize + (4.0f * uiScale), Theme::colors.arcane, uiScale * 0.72f);
+        TooltipManager::setHoverTooltip({ sContentX + sContentW - essW - (4.0f * uiScale), s1Y + avatarSize + (2.0f * uiScale), essW + (8.0f * uiScale), 16.0f * uiScale },
                                         mousePos, "Arcane Essence",
                                         "Purified demonic essence harvested from transformations and rituals, used to unlock body mutations.",
                                         std::format("{:.0f} Essence Available", essenceVal));
 
-        curY += sub1H + (5.0f * uiScale);
+        // Draw clean 1px horizontal divider line separating top identity section from vitals section
+        SDL_SetRenderDrawColor(renderer, Theme::colors.borderButtonDisabled.r, Theme::colors.borderButtonDisabled.g, Theme::colors.borderButtonDisabled.b, 220);
+        SDL_RenderLine(renderer, padX + (1.0f * uiScale), dividerY, padX + availableW - (1.0f * uiScale), dividerY);
 
-        float sub2X = padX + innerPad;
-        float sub2Y = curY;
-        SDL_FRect sub2Rect = { sub2X, sub2Y, subW, sub2H };
-        UIWidget::drawPanel(renderer, sub2Rect, Theme::colors.bgDark, Theme::colors.borderButton);
+        float s2Y = dividerY + (7.0f * uiScale);
 
-        float s2ContentX = sub2X + s2Pad;
-        float s2Y = sub2Y + (4.0f * uiScale);
-
-        UIWidget::drawText(renderer, "VITALS & STATUS", s2ContentX, s2Y, Theme::colors.textGold, uiScale * 0.72f);
+        UIWidget::drawText(renderer, "VITALS & STATUS", sContentX, s2Y, Theme::colors.textGold, uiScale * 0.72f);
         s2Y += (16.0f * uiScale);
-
-        float barH = 10.0f * uiScale;
-        float barGap = 4.0f * uiScale;
-        float labelW = 40.0f * uiScale;
-        float valW = 44.0f * uiScale;
-        float progressW = s2ContentW - labelW - valW - (4.0f * uiScale);
 
         float curHp = player->getStat("health");
         float maxHp = player->getStat("max_health");
@@ -710,8 +704,7 @@ namespace CharacterCardWidget
             renderStatusEffectsGrid(renderer, effects, s2ContentX, s2Y, s2ContentW, chipSize, chipGap, chipsPerRow, uiScale, mousePos);
         }
 
-        curY += sub2H + (5.0f * uiScale);
-        curY += (6.0f * uiScale);
+        curY += cardH + (8.0f * uiScale);
 
         const auto& companions = gameContext->getCompanions();
         for (const auto& comp : companions)

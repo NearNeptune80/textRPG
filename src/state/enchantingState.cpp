@@ -276,16 +276,12 @@ void enchantingState::stageCurrentEffect(game* gameContext)
         return;
     }
     InfusionEffect eff = getCurrentPreviewEffect();
-    for (const auto& exist : stagedEffects)
-    {
-        if (exist == eff)
-        {
-            statusMessage = "Effect is already staged.";
-            return;
-        }
-    }
     stagedEffects.push_back(eff);
     statusMessage = "Effect staged in infusion recipe.";
+    if (gameContext)
+    {
+        gameContext->refreshActionGrid();
+    }
 }
 
 void enchantingState::removeStagedEffect(size_t index)

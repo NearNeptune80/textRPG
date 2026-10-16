@@ -475,8 +475,10 @@ namespace PaperdollWidgets
         float iX = padX + innerPad;
         float iY = curY + innerPad;
 
-        UIWidget::drawText(renderer, title, iX, iY, titleCol, uiScale * 0.85f);
-        UIWidget::drawText(renderer, metaLine, iX, iY + (18.0f * uiScale), metaCol, uiScale * 0.74f);
+        std::string fittedTitle = UIWidget::truncateText(title, textContentW, uiScale * 0.85f);
+        std::string fittedMeta = UIWidget::truncateText(metaLine, textContentW, uiScale * 0.74f);
+        UIWidget::drawText(renderer, fittedTitle, iX, iY, titleCol, uiScale * 0.85f);
+        UIWidget::drawText(renderer, fittedMeta, iX, iY + (18.0f * uiScale), metaCol, uiScale * 0.74f);
         UIWidget::drawTextWrapped(renderer, effectiveDesc, iX, iY + (36.0f * uiScale), textContentW, descCol, uiScale * 0.74f);
 
         UIWidget::drawPanel(renderer, imageBoxRect, Theme::colors.bgDark, Theme::colors.borderButton);

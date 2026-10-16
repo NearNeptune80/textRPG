@@ -38,6 +38,11 @@
           "BREASTS"
         ]
       },
+      "allowedDisplacements": [
+        "PULL_UP",
+        "UNBUTTON",
+        "OPEN"
+      ],
       "category": "CLOTHING"
     },
     {
@@ -69,6 +74,10 @@
           "ASS"
         ]
       },
+      "allowedDisplacements": [
+        "PULL_DOWN",
+        "UNBUTTON"
+      ],
       "category": "CLOTHING"
     },
     {

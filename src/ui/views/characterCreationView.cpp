@@ -199,8 +199,10 @@ namespace CharacterCreationView
             std::string shapeRating = EditorConfig::calculateBodyShape(cc->muscleDefinition, cc->bodySize);
             SDL_FRect shapeRect = { padX, curY, availableW, 38.0f * uiScale };
             UIWidget::drawPanel(renderer, shapeRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
-            UIWidget::drawText(renderer, "Composite Human Physique Rating:", padX + (12.0f * uiScale), curY + (10.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.82f);
             float ratingW = UIWidget::getTextWidth(shapeRating, uiScale * 0.88f);
+            float availRatingLabelW = std::max(10.0f * uiScale, availableW - ratingW - (36.0f * uiScale));
+            std::string ratingLabel = UIWidget::truncateText("Composite Human Physique Rating:", availRatingLabelW, uiScale * 0.82f);
+            UIWidget::drawText(renderer, ratingLabel, padX + (12.0f * uiScale), curY + (10.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.82f);
             UIWidget::drawText(renderer, shapeRating, padX + availableW - ratingW - (14.0f * uiScale), curY + (10.0f * uiScale), Theme::colors.textGold, uiScale * 0.88f);
             curY += (48.0f * uiScale);
         }
@@ -582,11 +584,11 @@ namespace CharacterCreationView
                 if (!traitList.empty()) traitList += ", ";
                 traitList += tr;
             }
-            if (traitList.empty()) traitList = "None";
-
-            UIWidget::drawText(renderer, "• Personality Traits: " + traitList, textPadX, pY, Theme::colors.companion, uiScale * 0.80f);
+            std::string traitStr = UIWidget::truncateText("• Personality Traits: " + traitList, textAvailableW, uiScale * 0.80f);
+            UIWidget::drawText(renderer, traitStr, textPadX, pY, Theme::colors.companion, uiScale * 0.80f);
             pY += (18.0f * uiScale);
-            UIWidget::drawText(renderer, "• Starting Attire: " + cc->getDecencyStatus(), textPadX, pY, Theme::colors.textSecondary, uiScale * 0.80f);
+            std::string attireStr = UIWidget::truncateText("• Starting Attire: " + cc->getDecencyStatus(), textAvailableW, uiScale * 0.80f);
+            UIWidget::drawText(renderer, attireStr, textPadX, pY, Theme::colors.textSecondary, uiScale * 0.80f);
 
             curY += contentH + (14.0f * uiScale);
         }

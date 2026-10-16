@@ -16,4 +16,6 @@ namespace EntityListWidgets
     float renderWidgetCharactersPresent(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale);
     float renderWidgetItemsPresent(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale);
     float renderWidgetEventLog(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale);
+    float renderWidgetQuestTracker(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& panelRect, float curY, float uiScale);
+    float renderWidgetQuestTracker(SDL_Renderer* renderer, game* gameContext, float curX, float curY, float innerW, float uiScale);
 }

@@ -26,7 +26,7 @@ struct InfusionEffect
     int limitThreshold = -1;
 
     int calculateCost() const;
-    std::vector<std::string> getEffectDescriptions(const entity* target = nullptr) const;
+    std::vector<std::string> getEffectDescriptions(const entity* target = nullptr, int bonusOverride = 0, bool hasOverride = false) const;
     std::string applyToEntity(entity* user, entity* target);
 
     nlohmann::json toJson() const;

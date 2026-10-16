@@ -10,7 +10,8 @@ enum class ItemRarity
     UNCOMMON,
     RARE,
     EPIC,
-    LEGENDARY
+    LEGENDARY,
+    UNIQUE
 };
 
 inline int getRarityEssenceWeight(ItemRarity rarity)
@@ -22,6 +23,7 @@ inline int getRarityEssenceWeight(ItemRarity rarity)
         case ItemRarity::RARE:      return 4;
         case ItemRarity::EPIC:      return 8;
         case ItemRarity::LEGENDARY: return 12;
+        case ItemRarity::UNIQUE:    return 16;
         default:                    return 1;
     }
 }

@@ -8,12 +8,12 @@ namespace SidebarGeometry
 {
     inline float getPadX(const SDL_FRect& panelRect, float uiScale)
     {
-        return panelRect.x + (5.0f * uiScale);
+        return panelRect.x + (6.0f * uiScale);
     }
 
     inline float getAvailableW(const SDL_FRect& panelRect, float uiScale)
     {
-        return panelRect.w - (10.0f * uiScale);
+        return panelRect.w - (12.0f * uiScale);
     }
 
     inline float getBoxSize(const SDL_FRect& panelRect, float uiScale)

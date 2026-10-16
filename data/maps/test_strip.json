@@ -1,0 +1,285 @@
+{
+  "id": "test_strip",
+  "name": "Outdoor Biome & Weather Proving Strip",
+  "entranceDescription": "the Outdoor Biome & Weather Proving Strip",
+  "width": 10,
+  "height": 3,
+  "tiles": [
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [3, 1, 1, 1, 1, 1, 1, 1, 3, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  ],
+  "dangerLevels": [
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 1, 1, 1, 2, 2, 0, 1, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  ],
+  "warps": [
+    {
+      "x": 0,
+      "y": 1,
+      "targetMap": "test_hub",
+      "targetX": 5,
+      "targetY": 1,
+      "label": "Return to Proving Grounds",
+      "entranceDescription": "the Validation Proving Grounds Concourse"
+    },
+    {
+      "x": 8,
+      "y": 1,
+      "targetMap": "test_facility",
+      "targetX": 1,
+      "targetY": 1,
+      "label": "Enter Test Facility",
+      "entranceDescription": "the Test Facility Research Lab"
+    }
+  ],
+  "tileEncounters": {
+    "1,1": {
+      "pool": [
+        "tpl_feral_wolf",
+        "tpl_shadow_panther"
+      ],
+      "ambushChance": 40
+    },
+    "2,1": {
+      "pool": [
+        "tpl_corrupted_scout",
+        "tpl_corrupted_vanguard"
+      ],
+      "ambushChance": 40
+    },
+    "3,1": {
+      "pool": [
+        "tpl_bandit_scout",
+        "tpl_cutpurse"
+      ],
+      "ambushChance": 35
+    },
+    "4,1": {
+      "pool": [
+        "tpl_bandit_kaelen",
+        "tpl_orc_marauder"
+      ],
+      "ambushChance": 45
+    },
+    "5,1": {
+      "pool": [
+        "tpl_corrupted_fiend",
+        "tpl_test_beast"
+      ],
+      "ambushChance": 45
+    },
+    "7,1": {
+      "pool": [
+        "tpl_alley_bandit",
+        "tpl_rogue_mage"
+      ],
+      "ambushChance": 30
+    }
+  },
+  "triggers": [
+    {
+      "id": "trig_strip_wash",
+      "mapId": "test_strip",
+      "x": 6,
+      "y": 1,
+      "label": "Wash Garments in Stream",
+      "tooltip": "Cleanse and scrub all fluid stains and soiling from worn and carried clothing.",
+      "description": "A clear, rushing stream flowing over smooth river pebbles.",
+      "sceneId": "scene_wash_station",
+      "conditions": []
+    },
+    {
+      "id": "trig_strip_teleport",
+      "mapId": "test_strip",
+      "x": 8,
+      "y": 1,
+      "label": "Airlock Teleport Sigil",
+      "tooltip": "Step onto the transit rune to instantly return to Test Hub (1, 1).",
+      "description": "An enchanted copper rune pad pulsing with teleportation magic.",
+      "sceneId": "scene_teleport_chamber",
+      "conditions": []
+    }
+  ],
+  "defaultDescriptions": [
+    "A continuous outdoor proving strip engineered with diverse environmental biomes, weather gradients, and encounter pools.",
+    "The atmosphere and soil transition distinctly beneath your feet as you advance along the biome sectors."
+  ],
+  "tileDescriptions": {
+    "0,1": [
+      "The western terminus threshold leading back into the Validation Proving Grounds central district.",
+      "A sturdy stone archway marks the boundary between the proving concourse and the outdoor strip."
+    ],
+    "1,1": [
+      "Towering pine trees and thick ferns blanket this section in cool, dappled forest shadow.",
+      "Twigs snap underfoot amidst pine needles and mossy roots."
+    ],
+    "2,1": [
+      "Fallen marble pillars and cracked flagstones evoke the crumbling corridors of the Sunken Ruins.",
+      "Damp stone masonry covered in creeping ivy and ancient glyphs."
+    ],
+    "3,1": [
+      "Reinforced wooden palisades and iron brazier tripods simulate a frontier outpost garrison perimeter.",
+      "Compact gravel pathways and watchtower scaffolding frame the mock outpost boundary."
+    ],
+    "4,1": [
+      "Dark volcanic pumice and smoldering soot drifts form a barren ashland tract beneath a smoky haze.",
+      "Jagged obsidian crags and heat fissures rise from the arid basalt ground."
+    ],
+    "5,1": [
+      "Rough subterranean limestone walls curve overhead, dripping with cool mineral runoff.",
+      "Damp stalagmites and dark rock alcoves form an authentic cavern environment."
+    ],
+    "6,1": [
+      "A fast-flowing river sluice cuts through the testing lane with clean, pristine water.",
+      "Stone washing steps descend directly into the crystal-clear running stream."
+    ],
+    "7,1": [
+      "A cozy timber cottage mockup with rustic furnishings and cedar shingles.",
+      "Polished floorboards and wooden window frames model an interior residential homestead."
+    ],
+    "8,1": [
+      "The eastern terminus apron before the reinforced airlock of the Validation Research Facility.",
+      "Brass hydraulic pipes and gleaming steel bulkheads seal the research laboratory entrance."
+    ]
+  },
+  "tileTags": {
+    "0,1": ["walkway", "gate"],
+    "1,1": ["forest", "woods", "grove"],
+    "2,1": ["ruins", "dungeon", "crypt"],
+    "3,1": ["outpost", "barracks", "fort"],
+    "4,1": ["ashlands", "crags"],
+    "5,1": ["cave", "cavern"],
+    "6,1": ["water", "wash", "river", "lake"],
+    "7,1": ["house", "cottage"],
+    "8,1": ["walkway", "facility"]
+  },
+  "tagDescriptions": {
+    "forest": [
+      "Dense simulated woodland featuring towering pines and thick undergrowth.",
+      "Earthy mulch and fallen leaves cushion your steps beneath canopy boughs."
+    ],
+    "woods": [
+      "Gnarled oak and birch trees growing wild in the botanical simulation tract.",
+      "Sunlight filters in dappled patterns through thick foliage."
+    ],
+    "grove": [
+      "A quiet secluded clearing enclosed by tall sylvan growth.",
+      "Soft moss carpets the ground in this wooded sanctuary."
+    ],
+    "ruins": [
+      "Ancient weather-worn masonry and cracked subterranean tiles.",
+      "Shadowy flagstones strewn with rubble from fallen arches."
+    ],
+    "dungeon": [
+      "Heavy iron-bound masonry and barred holding cells forming a test labyrinth.",
+      "Chiseled dungeon blocks chilled by damp air."
+    ],
+    "crypt": [
+      "Cold stone sarcophagi and forgotten burial niches lined with dust.",
+      "Silent tomb corridors echoing with your footsteps."
+    ],
+    "outpost": [
+      "Fortified timber bastions, earthen ramparts, and defensive perimeter works.",
+      "A militarized settlement frontier designed for garrison drills."
+    ],
+    "barracks": [
+      "Bunk frames, weapon racks, and drilling yards within the outpost stockade.",
+      "Sturdy barracks halls built for regimented frontier troops."
+    ],
+    "fort": [
+      "Reinforced battlements providing tactical vantage points across open terrain.",
+      "Stonework bastions with arrow slits and reinforced palisades."
+    ],
+    "ashlands": [
+      "Volcanic ash plains strewn with blackened basalt and jagged pumice crags.",
+      "Pungent sulfur winds whip fine grey ash across the desolate terrain."
+    ],
+    "crags": [
+      "Steep rocky ridges and razor-sharp obsidian outcroppings.",
+      "Treacherous rocky fissures jutting through the volcanic dust."
+    ],
+    "cave": [
+      "Rough-hewn subterranean rock walls dripping with mineral moisture.",
+      "Cold stalactites hang from the low vaulted limestone ceiling."
+    ],
+    "cavern": [
+      "An expansive underground chamber opening into deep rocky hollows.",
+      "Shadows stretch across jagged boulders in the cavern gloom."
+    ],
+    "water": [
+      "Pure fresh water flowing through cut stone channels, perfect for drinking and washing.",
+      "Clear water rippling over clean river stones."
+    ],
+    "wash": [
+      "A dedicated cleansing station fitted with stone scrub-boards and fresh water.",
+      "Abundant water suited for scouring soil and stains from garments."
+    ],
+    "river": [
+      "A briskly coursing stream of cool upland runoff.",
+      "Rushing currents carving smooth channels through stone embankments."
+    ],
+    "lake": [
+      "A calm reflective pool bordered by reeds and smooth pebbles.",
+      "Still, clear waters reflecting the atmospheric dome overhead."
+    ],
+    "house": [
+      "Warm cedar floorboards and plastered walls representing domestic living spaces.",
+      "Quaint home furnishings creating a comfortable domestic interior."
+    ],
+    "cottage": [
+      "A rustic single-room homestead with a stone hearth and cozy wood trim.",
+      "Simple rural architecture built for domestic simulation."
+    ],
+    "walkway": [
+      "A dedicated pedestrian footpath flanked by guide markers.",
+      "Smooth paved flagstones marking a clear transit route."
+    ],
+    "gate": [
+      "An arched checkpoint portal connecting neighboring districts.",
+      "A tall gate threshold marking district boundaries."
+    ],
+    "facility": [
+      "Industrial laboratory masonry reinforced with brass conduit runs.",
+      "High-tech containment architecture housing experimental systems."
+    ]
+  },
+  "defaultTileTitle": "Biome Proving Lane",
+  "tileTitles": {
+    "0,1": "Gateway to Test Hub",
+    "1,1": "Sylvan Forest Tract",
+    "2,1": "Sunken Ruins Corridor",
+    "3,1": "Frontier Outpost Perimeter",
+    "4,1": "Volcanic Ashlands Trail",
+    "5,1": "Subterranean Cavern",
+    "6,1": "River Sluice Crossing",
+    "7,1": "Homestead Mockup",
+    "8,1": "Research Airlock"
+  },
+  "tagTitles": {
+    "forest": "Sylvan Forest",
+    "woods": "Deep Woods",
+    "grove": "Sacred Grove",
+    "ruins": "Sunken Ruins",
+    "dungeon": "Dungeon Depths",
+    "crypt": "Ancient Crypt",
+    "outpost": "Garrison Outpost",
+    "barracks": "Barracks Yard",
+    "fort": "Fortified Stockade",
+    "ashlands": "Volcanic Ashlands",
+    "crags": "Jagged Crags",
+    "cave": "Cavern Hollow",
+    "cavern": "Deep Cavern",
+    "water": "Fresh Waters",
+    "wash": "Washing Station",
+    "river": "River Sluice",
+    "lake": "Reflective Lake",
+    "house": "Homestead Dwelling",
+    "cottage": "Rustic Cottage",
+    "walkway": "Transit Way",
+    "gate": "District Gate",
+    "facility": "Research Facility"
+  }
+}
+

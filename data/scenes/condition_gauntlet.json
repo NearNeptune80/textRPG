@@ -248,6 +248,36 @@
           "nextSceneId": "scene_status_effects_lab"
         },
         {
+          "label": "9. Universal Affection & Corruption Lab",
+          "tooltip": "Verify MIN_AFFECTION, MAX_AFFECTION, MIN_CORRUPTION, MAX_CORRUPTION and stat modification effects.",
+          "nextSceneId": "scene_gauntlet_affection_corruption"
+        },
+        {
+          "label": "10. Servant Management & Captive Schedule Lab",
+          "tooltip": "Test 24h hourly scheduling, stamina/exhaustion, and enemy subjugation.",
+          "nextSceneId": "scene_gauntlet_servants"
+        },
+        {
+          "label": "11. Binary Offspring & Nursery System Lab",
+          "tooltip": "Test gestation, IS_PREGNANT, INDUCE_BIRTH, and 30-day binary maturity.",
+          "nextSceneId": "scene_gauntlet_nursery"
+        },
+        {
+          "label": "12. Weather & Item Fluid Soiling Lab",
+          "tooltip": "Test ItemFluidSoiling stains, charisma penalty, and garment washing.",
+          "nextSceneId": "scene_gauntlet_soiling"
+        },
+        {
+          "label": "13. Composable NPC & Commercial Service Lab",
+          "tooltip": "Test 3-pool NPC composition (bodies x outfits x professions) and client room payouts.",
+          "nextSceneId": "scene_gauntlet_clients"
+        },
+        {
+          "label": "14. Collect Proving Grounds Construction Grant (+5,000 Gold)",
+          "tooltip": "Receive 5,000 gold to fund building Tier 1->2/3 rooms and teardown tests.",
+          "nextSceneId": "scene_construction_stipend"
+        },
+        {
           "label": "Close Terminal",
           "tooltip": "Exit the testing terminal.",
           "nextSceneId": "EXIT"
@@ -1129,6 +1159,17 @@
           ]
         },
         {
+          "label": "Test Condition: Check if NPC Target has Toxic Venom",
+          "tooltip": "Unlocked only when 'fx_toxic_venom' is active on target NPC.",
+          "nextSceneId": "scene_status_target_verified",
+          "requirements": [
+            {
+              "type": "TARGET_HAS_STATUS_EFFECT",
+              "target": "fx_toxic_venom"
+            }
+          ]
+        },
+        {
           "label": "Cleanse All Status Effects",
           "tooltip": "Removes all status effects from player and restores baseline state.",
           "nextSceneId": "scene_status_effects_lab",
@@ -1156,6 +1197,360 @@
           "label": "Back to Status Effects Lab",
           "tooltip": "Return to the status effects testing panel.",
           "nextSceneId": "scene_status_effects_lab"
+        }
+      ]
+    },
+    {
+      "id": "scene_status_target_verified",
+      "speakerName": "Status Effects Testing Altar",
+      "bodyText": "[SUCCESS] TARGET_HAS_STATUS_EFFECT condition check evaluated to TRUE!\n\nThe engine successfully verified that 'Toxic Venom' (fx_toxic_venom) is currently active on the active NPC target entity.",
+      "choices": [
+        {
+          "label": "Back to Status Effects Lab",
+          "tooltip": "Return to the status effects testing panel.",
+          "nextSceneId": "scene_status_effects_lab"
+        }
+      ]
+    },
+    {
+      "id": "scene_gauntlet_affection_corruption",
+      "speakerName": "Affection & Corruption Matrix",
+      "bodyText": "=== UNIVERSAL AFFECTION & CORRUPTION SYSTEM (PHASE 3A) ===\n\nAll entities track affection (-100.0 to +100.0) and corruption (0.0 to 100.0).\nBoth meters serialize into JSON saves and gate dialogue options and events via MIN_AFFECTION, MAX_AFFECTION, MIN_CORRUPTION, and MAX_CORRUPTION.\n\nSelect a probe or modify stats:",
+      "choices": [
+        {
+          "label": "Probe: MIN_AFFECTION (Check Player Affection >= -100.0)",
+          "tooltip": "Verifies player affection meets minimum boundary.",
+          "nextSceneId": "scene_gauntlet_success",
+          "requirements": [
+            {
+              "type": "MIN_AFFECTION",
+              "target": "player",
+              "floatValue": -100.0
+            }
+          ]
+        },
+        {
+          "label": "Probe: MAX_AFFECTION (Check Player Affection <= 100.0)",
+          "tooltip": "Verifies player affection does not exceed upper boundary.",
+          "nextSceneId": "scene_gauntlet_success",
+          "requirements": [
+            {
+              "type": "MAX_AFFECTION",
+              "target": "player",
+              "floatValue": 100.0
+            }
+          ]
+        },
+        {
+          "label": "Probe: MIN_CORRUPTION (Check Player Corruption >= 0.0)",
+          "tooltip": "Verifies player corruption meets non-negative baseline.",
+          "nextSceneId": "scene_gauntlet_success",
+          "requirements": [
+            {
+              "type": "MIN_CORRUPTION",
+              "target": "player",
+              "floatValue": 0.0
+            }
+          ]
+        },
+        {
+          "label": "Probe: MAX_CORRUPTION (Check Player Corruption <= 100.0)",
+          "tooltip": "Verifies player corruption does not exceed maximum cap.",
+          "nextSceneId": "scene_gauntlet_success",
+          "requirements": [
+            {
+              "type": "MAX_CORRUPTION",
+              "target": "player",
+              "floatValue": 100.0
+            }
+          ]
+        },
+        {
+          "label": "Effect: Raise Target Affection (+25 Affection)",
+          "tooltip": "Increases Valida's affection score by 25.",
+          "nextSceneId": "scene_gauntlet_affection_corruption",
+          "results": [
+            {
+              "action": "MODIFY_AFFECTION",
+              "target": "valida",
+              "amount": 25
+            }
+          ]
+        },
+        {
+          "label": "Effect: Lower Target Affection (-25 Affection)",
+          "tooltip": "Decreases Valida's affection score by 25.",
+          "nextSceneId": "scene_gauntlet_affection_corruption",
+          "results": [
+            {
+              "action": "MODIFY_AFFECTION",
+              "target": "valida",
+              "amount": -25
+            }
+          ]
+        },
+        {
+          "label": "Effect: Raise Player Corruption (+20 Corruption)",
+          "tooltip": "Increases player corruption by 20.",
+          "nextSceneId": "scene_gauntlet_affection_corruption",
+          "results": [
+            {
+              "action": "MODIFY_CORRUPTION",
+              "target": "player",
+              "amount": 20
+            }
+          ]
+        },
+        {
+          "label": "Effect: Lower Player Corruption (-20 Corruption)",
+          "tooltip": "Decreases player corruption by 20.",
+          "nextSceneId": "scene_gauntlet_affection_corruption",
+          "results": [
+            {
+              "action": "MODIFY_CORRUPTION",
+              "target": "player",
+              "amount": -20
+            }
+          ]
+        },
+        {
+          "label": "Gated Choice: High Affection Dialogue (Requires Target Affection >= 25.0)",
+          "tooltip": "Unlocked only when target affection is at least 25.0.",
+          "nextSceneId": "scene_affection_high_success",
+          "requirements": [
+            {
+              "type": "MIN_AFFECTION",
+              "target": "valida",
+              "floatValue": 25.0
+            }
+          ]
+        },
+        {
+          "label": "Gated Choice: High Corruption Dialogue (Requires Player Corruption >= 20.0)",
+          "tooltip": "Unlocked only when player corruption is at least 20.0.",
+          "nextSceneId": "scene_corruption_high_success",
+          "requirements": [
+            {
+              "type": "MIN_CORRUPTION",
+              "target": "player",
+              "floatValue": 20.0
+            }
+          ]
+        },
+        {
+          "label": "Back to Main Hub",
+          "nextSceneId": "scene_condition_gauntlet"
+        }
+      ]
+    },
+    {
+      "id": "scene_affection_high_success",
+      "speakerName": "Valida",
+      "bodyText": "Valida smiles warmly at you, her eyes softening with unmistakable affection.\n\n'It is wonderful to see you again! Your dedication to these proving grounds means more to me than words can say.'\n\n[SUCCESS] MIN_AFFECTION threshold evaluated to TRUE!",
+      "choices": [
+        {
+          "label": "Return to Affection & Corruption Lab",
+          "nextSceneId": "scene_gauntlet_affection_corruption"
+        }
+      ]
+    },
+    {
+      "id": "scene_corruption_high_success",
+      "speakerName": "Affection & Corruption Matrix",
+      "bodyText": "A shadowy, dark miasma shimmers beneath your skin. Corrupted abyssal impulses ripple through your thoughts.\n\n[SUCCESS] MIN_CORRUPTION threshold evaluated to TRUE!",
+      "choices": [
+        {
+          "label": "Return to Affection & Corruption Lab",
+          "nextSceneId": "scene_gauntlet_affection_corruption"
+        }
+      ]
+    },
+    {
+      "id": "scene_gauntlet_servants",
+      "speakerName": "Servant Management Terminal",
+      "bodyText": "=== SERVANT & CAPTIVE MANAGEMENT LAB (PHASE 1A) ===\n\nServants feature 24 hourly schedule slots defaulting to 'rest'.\nWorking jobs ('maid_cleaning', 'farm_hand', 'guard_patrol', 'cook_assistant') consumes stamina and increases obedience.\nReaching 0.0 stamina triggers exhaustion, inflicts morale/affection penalties, and zeroes gold yields.\nResting recovers +15 stamina/hour (enhanced by +5 in luxurious quarters).\n\nSelect an action:",
+      "choices": [
+        {
+          "label": "Spar with Automaton to Subjugate Captive",
+          "tooltip": "Enter combat; after victory, select 'Subjugate' in the encounter resolution view to recruit a servant.",
+          "nextSceneId": "scene_sparring_challenge"
+        },
+        {
+          "label": "Collect Construction Grant (+5,000 Gold)",
+          "tooltip": "Receive 5,000 gold to fund room construction and servant accommodations.",
+          "nextSceneId": "scene_construction_stipend"
+        },
+        {
+          "label": "Back to Main Hub",
+          "nextSceneId": "scene_condition_gauntlet"
+        }
+      ]
+    },
+    {
+      "id": "scene_gauntlet_nursery",
+      "speakerName": "Nursery & Offspring Matrix",
+      "bodyText": "=== BINARY OFFSPRING & NURSERY LAB (PHASE 2A) ===\n\nOffspring feature a binary lifecycle:\n- Stage 1: CHILD (0 to 29 days in nursery)\n- Stage 2: ADULT_NPC (30+ days, eligible for party combat recruitment)\nOffspring inherit parent racial traits and stats.\n\nSelect an action:",
+      "choices": [
+        {
+          "label": "Impregnate Player (Human Father, Litter Size 2, 10 Gestation Days)",
+          "tooltip": "Induce pregnancy with gestation tracking.",
+          "nextSceneId": "scene_gauntlet_nursery",
+          "results": [
+            {
+              "action": "IMPREGNATE",
+              "target": "player",
+              "secondaryTarget": "Valida",
+              "stringVal": "Human",
+              "amount": 2
+            }
+          ]
+        },
+        {
+          "label": "Probe: IS_PREGNANT (Verify Gestation Active)",
+          "tooltip": "Verifies gestation component isPregnant flag.",
+          "nextSceneId": "scene_gauntlet_success",
+          "requirements": [
+            {
+              "type": "IS_PREGNANT"
+            }
+          ]
+        },
+        {
+          "label": "Induce Immediate Childbirth & Register in Nursery",
+          "tooltip": "Triggers immediate delivery and creates OffspringRecord in nursery.",
+          "nextSceneId": "scene_birth_delivery",
+          "results": [
+            {
+              "action": "INDUCE_BIRTH",
+              "target": "player"
+            }
+          ]
+        },
+        {
+          "label": "Back to Main Hub",
+          "nextSceneId": "scene_condition_gauntlet"
+        }
+      ]
+    },
+    {
+      "id": "scene_gauntlet_soiling",
+      "speakerName": "Weather & Soiling Terminal",
+      "bodyText": "=== WEATHER & ITEM FLUID SOILING LAB (PHASE 3B) ===\n\nEquipment items track ItemFluidSoiling (cum, milk, girlcum stains and isDirty flag).\nClimax events in intimate encounters stain equipped garments.\nWearing soiled items applies a charisma social penalty.\nWashing at a water tile or casting overworld Cleanse purges all stains.\n\nSelect an action:",
+      "choices": [
+        {
+          "label": "Fill Breasts with Milk (+300 ml)",
+          "tooltip": "Fills breast glands to capacity for harvesting trials.",
+          "nextSceneId": "scene_gauntlet_soiling",
+          "results": [
+            {
+              "action": "FILL_FLUID",
+              "target": "milk",
+              "amount": 300,
+              "secondaryTarget": "BREASTS"
+            }
+          ]
+        },
+        {
+          "label": "Fill Penis with Cum (+40 ml)",
+          "tooltip": "Fills seminal vesicles for fluid emission trials.",
+          "nextSceneId": "scene_gauntlet_soiling",
+          "results": [
+            {
+              "action": "FILL_FLUID",
+              "target": "cum",
+              "amount": 40,
+              "secondaryTarget": "PENIS"
+            }
+          ]
+        },
+        {
+          "label": "Visit Wash Station (Test Hub 3,2 or Strip 6,1)",
+          "tooltip": "Stand on water tile to activate 'Wash Garments' on exploration action grid.",
+          "nextSceneId": "scene_wash_station"
+        },
+        {
+          "label": "Back to Main Hub",
+          "nextSceneId": "scene_condition_gauntlet"
+        }
+      ]
+    },
+    {
+      "id": "scene_gauntlet_clients",
+      "speakerName": "Commercial Service Matrix",
+      "bodyText": "=== COMPOSABLE NPC & 1-TILE CLIENT ROOM LAB (PHASE 2B) ===\n\nComposable NPC Generator synthesizes characters from 3 orthogonal pools:\n1. Body Templates (6 species/build archetypes)\n2. Outfit Templates (4 tailored clothing ensembles)\n3. Professions (4 commercial client classes with gold budgets and fetish desires)\n\nStanding on a service room tile displays the 'Get Client' button on the action grid.",
+      "choices": [
+        {
+          "label": "Review 3-Pool Composable Catalog",
+          "tooltip": "Bodies: Canine, Feline, Human Petite/Brawny, Elf, Bovine. Outfits: Merchant, Formal, Evening, Warrior. Professions: Patron, Merchant, Connoisseur, Bounty Hunter.",
+          "nextSceneId": "scene_gauntlet_clients"
+        },
+        {
+          "label": "Back to Main Hub",
+          "nextSceneId": "scene_condition_gauntlet"
+        }
+      ]
+    },
+    {
+      "id": "scene_construction_stipend",
+      "speakerName": "Proving Grounds Treasury",
+      "bodyText": "A heavy leather coffer containing 5,000 gold has been disbursed to your inventory.\n\nYou may use these funds to test building Tier 1 rooms, branching upgrades (Living Quarters -> Milking Parlor / Service Suite / Nursery), and verifying 50% refund teardowns on customizable tiles (1,4), (2,4), and (3,4).",
+      "choices": [
+        {
+          "label": "Return to Master Console",
+          "nextSceneId": "scene_condition_gauntlet",
+          "results": [
+            {
+              "action": "MODIFY_STAT",
+              "target": "currency",
+              "amount": 5000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scene_wash_station",
+      "speakerName": "Ablution Wash Station",
+      "bodyText": "=== ABLUTION & GARMENT CLEANSING STATION ===\n\nFresh mountain water ripples through cut stone sluices.\n\nStanding on this water tile activates the 'Wash Garments' button on your exploration action grid, which scrubs all equipped and backpack garments clean of dirt, cum, milk, and fluid stains.\n\nYou may also cast the overworld spell 'Purifying Cleanse' outside of combat to cleanse garments anywhere.",
+      "choices": [
+        {
+          "label": "Step Away",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "scene_milking_station",
+      "speakerName": "Milking Extraction Apparatus",
+      "bodyText": "=== AUTOMATED MILKING PARLOR ===\n\nSterile mechanical suction cups and glass collection vessels stand ready.\n\nWhen standing on an upgraded milking parlor tile (or room with 'milking' tag), the 'Extract Personal Fluids' action appears on your exploration grid. It draws bodily fluids (breast milk, cum, girlcum) and converts them into standardized bottled items loaded from data/config/fluid_harvesting.json.",
+      "choices": [
+        {
+          "label": "Fill Breasts with Milk (+250 ml)",
+          "tooltip": "Fill breasts before extraction.",
+          "nextSceneId": "scene_milking_station",
+          "results": [
+            {
+              "action": "FILL_FLUID",
+              "target": "milk",
+              "amount": 250,
+              "secondaryTarget": "BREASTS"
+            }
+          ]
+        },
+        {
+          "label": "Step Away",
+          "nextSceneId": "EXIT"
+        }
+      ]
+    },
+    {
+      "id": "scene_service_suite",
+      "speakerName": "Private Service Suite",
+      "bodyText": "=== COMMERCIAL SERVICE SUITE ===\n\nPlush velvet divans and discreet silk partitions create an intimate environment for visiting clients.\n\nWhen standing on this commercial service tile, the 'Get Client' button appears on your exploration action grid. Clicking it dynamically composes a visiting client NPC from the 3-pool generator and begins an intimate CYOA session. Successfully concluding the encounter awards the client's gold budget.",
+      "choices": [
+        {
+          "label": "Step Away",
+          "nextSceneId": "EXIT"
         }
       ]
     }

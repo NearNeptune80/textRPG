@@ -69,6 +69,17 @@
         "FOG": 15
       }
     },
+    "test_strip": {
+      "isOutdoor": true,
+      "weights": {
+        "CLEAR": 25,
+        "CLOUDY": 20,
+        "RAIN": 20,
+        "STORM": 15,
+        "FOG": 10,
+        "SNOW": 10
+      }
+    },
     "house_01": {
       "isOutdoor": false,
       "weights": {

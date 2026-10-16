@@ -23,6 +23,7 @@
 #include "items/infusionEffect.h"
 #include "items/enchantingEngine.h"
 #include "quest/questDatabase.h"
+#include "combat/spellDatabase.h"
 #include "items/itemDatabase.h"
 #include "items/merchantValuation.h"
 #include "ui/views/transformationView.h"
@@ -991,11 +992,11 @@ namespace GameplayViews
                         {
                             objSnippet = "• Giver: " + q.giver + " | Location: " + q.location;
                         }
-                        if (objSnippet.size() > 64) objSnippet = objSnippet.substr(0, 61) + "...";
-                        UIWidget::drawText(renderer, objSnippet, cardX + (12.0f * uiScale), cardY + (32.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.80f);
-
                         std::string expHint = isExpanded ? "▲ Click to collapse" : "▼ Click for details";
                         float expW = UIWidget::getTextWidth(expHint, uiScale * 0.72f);
+                        float availObjW = std::max(10.0f * uiScale, cardW - expW - (34.0f * uiScale));
+                        objSnippet = UIWidget::truncateText(objSnippet, availObjW, uiScale * 0.80f);
+                        UIWidget::drawText(renderer, objSnippet, cardX + (12.0f * uiScale), cardY + (32.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.80f);
                         UIWidget::drawText(renderer, expHint, cardX + cardW - expW - (12.0f * uiScale), cardY + (34.0f * uiScale), Theme::colors.textMuted, uiScale * 0.72f);
 
                         if (isExpanded)
@@ -1228,15 +1229,82 @@ namespace GameplayViews
                         UIWidget::drawText(renderer, std::format("School: {}", school), padX + innerW - (210.0f * uiScale), curY + (7.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.75f);
                         UIWidget::drawTextWrapped(renderer, desc, padX + (10.0f * uiScale), curY + (24.0f * uiScale), innerW - (130.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.78f);
 
+                        std::string sId = sp.value("id", "");
+                        const auto* spDef = SpellDatabase::getSpell(sId);
+                        bool isOverworldSpell = spDef && spDef->canCastInOverworld;
+
+                        bool canAfford = (p && curMp >= mp);
+                        bool targetConditionMet = true;
+                        std::string targetReason;
+
+                        if (isOverworldSpell && spDef->overworldEffect.type == "HEAL_AND_PURGE")
+                        {
+                            float curHp = p ? p->getStat("health") : 0.0f;
+                            float maxHp = p ? std::max(1.0f, p->getStat("max_health")) : 100.0f;
+                            bool hpMissing = (curHp < maxHp);
+                            bool hasDebuffs = false;
+                            if (p)
+                            {
+                                for (const auto& s : p->statusEffects)
+                                {
+                                    if (s.isDebuff) { hasDebuffs = true; break; }
+                                }
+                            }
+                            bool hasDirty = false;
+                            if (p)
+                            {
+                                for (const auto& eq : p->inventory.equipped)
+                                {
+                                    if (eq && eq->soiling.isDirty) { hasDirty = true; break; }
+                                }
+                                if (!hasDirty)
+                                {
+                                    for (const auto& bk : p->inventory.backpack)
+                                    {
+                                        if (bk && bk->soiling.isDirty) { hasDirty = true; break; }
+                                    }
+                                }
+                            }
+                            if (!hpMissing && !hasDebuffs && !hasDirty)
+                            {
+                                targetConditionMet = false;
+                                targetReason = "Health is full, no debuffs, and no garments are soiled";
+                            }
+                        }
+
+                        bool canCast = canAfford && targetConditionMet;
                         SDL_FRect castBtnRect = { padX + innerW - (105.0f * uiScale), curY + (10.0f * uiScale), 95.0f * uiScale, 30.0f * uiScale };
-                        bool canCast = (p && curMp >= mp);
                         bool castHov = (mousePos.x >= castBtnRect.x && mousePos.x <= castBtnRect.x + castBtnRect.w &&
                                         mousePos.y >= castBtnRect.y && mousePos.y <= castBtnRect.y + castBtnRect.h);
+
+                        std::string castTip = desc;
+                        if (!canAfford)
+                        {
+                            castTip += std::format("\n[Insufficient MP: Requires {} MP, have {:.0f}]", mp, curMp);
+                        }
+                        else if (!targetConditionMet)
+                        {
+                            castTip += std::format("\n[Target condition not met: {}]", targetReason);
+                        }
+                        else
+                        {
+                            castTip += std::format("\nCost: {} MP.", mp);
+                        }
+                        TooltipManager::setHoverTooltip(castBtnRect, mousePos, std::format("Cast {}", sName), castTip, "Arcane Grimoire");
+
                         if (castHov && clicked && canCast)
                         {
-                            gameContext->handleCommand({ CommandType::CAST_SPELL, static_cast<int>(mp), static_cast<int>(heal), sName });
-                            app->setFeedbackText(std::format("Channeled {}! (-{} MP)", sName, mp));
+                            if (isOverworldSpell)
+                            {
+                                gameContext->castOverworldSpell(sId);
+                            }
+                            else
+                            {
+                                gameContext->handleCommand({ CommandType::CAST_SPELL, static_cast<int>(mp), static_cast<int>(heal), sName });
+                            }
+                            app->setFeedbackText(std::format("Channeled and cast {}!", sName));
                             gameContext->input.consumeMouseClick();
+                            gameContext->refreshActionGrid();
                         }
                         UIWidget::drawButton(renderer, castBtnRect, "Cast Spell", castHov, canCast, false, uiScale * 0.75f);
                     }
@@ -2871,6 +2939,7 @@ namespace GameplayViews
             std::string sideTitle = (side == 0)
                 ? "PLAYER INVENTORY"
                 : (ent ? std::format("NPC: {}'S INVENTORY", ent->name) : "FLOOR / GROUND STORAGE");
+            sideTitle = UIWidget::truncateText(sideTitle, sideW - (16.0f * uiScale), uiScale * 0.76f);
 
             UIWidget::drawHeader(renderer, hRect, sideTitle, Theme::colors.bgHeader, Theme::colors.textGold, uiScale * 0.76f);
             sY += headerH + (4.0f * uiScale);
@@ -3169,17 +3238,20 @@ namespace GameplayViews
     float renderExplorationView(SDL_Renderer* renderer, game* gameContext, const SDL_FRect& rect, float curY, float uiScale)
     {
         float startY = curY;
-        float padX = rect.x + (14.0f * uiScale);
-        float innerW = rect.w - (28.0f * uiScale);
+        const float centerMargin = 6.0f * uiScale;
+        float padX = rect.x + centerMargin;
+        float innerW = rect.w - (2.0f * centerMargin);
 
         if (gameContext->isPhoneMenuOpen)
         {
             float headerH = 26.0f * uiScale;
-            SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
+            SDL_FRect headerRect = { padX, curY, innerW, headerH };
             UIWidget::drawHeader(renderer, headerRect, "ARCANE COMMUNICATOR & ENCYCLOPEDIA", Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
-            curY += headerH + (12.0f * uiScale);
+            curY += headerH + (10.0f * uiScale);
 
-            SDL_FRect cardRect = { padX, curY, innerW, 140.0f * uiScale };
+            const float bottomMargin = 6.0f * uiScale;
+            float cardH = std::max(60.0f * uiScale, (rect.y + rect.h) - curY - bottomMargin);
+            SDL_FRect cardRect = { padX, curY, innerW, cardH };
             UIWidget::drawPanel(renderer, cardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
             float pY = curY + (10.0f * uiScale);
@@ -3194,7 +3266,7 @@ namespace GameplayViews
             float h2 = UIWidget::drawTextWrapped(renderer, p2, pX, pY, pW, Theme::colors.textPrimary, uiScale * 0.82f);
             pY += h2 + (12.0f * uiScale);
 
-            curY += cardRect.h + (12.0f * uiScale);
+            curY += cardRect.h;
             return (curY - startY);
         }
 
@@ -3202,16 +3274,84 @@ namespace GameplayViews
         int pX = gameContext->gridX;
         int pY = gameContext->gridY;
 
-        std::string locTitle = "Unknown Area";
-        if (m && !m->getName().empty())
+        std::string rawLocTitle = (m && !m->getName().empty()) ? m->getName() : "Unknown Area";
+        std::string locTitle = rawLocTitle;
+
+        bool isSafe = gameContext->isCurrentTileStorageSafe();
+        if (m)
         {
-            locTitle = m->getName();
+            isSafe = isSafe || (const_cast<gameMap*>(m)->getRuntimeData(pX, pY).getEffectiveDangerLevel() == 0);
+        }
+        std::string badgeText = isSafe ? "[Safe]" : "[Danger]";
+        SDL_Color badgeCol = isSafe ? Theme::colors.stamina : Theme::colors.enemy;
+        float badgeScale = uiScale * 0.72f;
+        float badgeW = UIWidget::getTextWidth(badgeText, badgeScale) + (10.0f * uiScale);
+        float badgeH = 16.0f * uiScale;
+
+        // Inset header box to match narrative card below (padX, innerW) with compact 28px height
+        float headerH = 28.0f * uiScale;
+        SDL_FRect headerRect = { padX, curY, innerW, headerH };
+
+        // 7px inner left padding for title and 7px inner right padding for badge matching top/bottom padding
+        float innerLeftPad = 7.0f * uiScale;
+        float innerRightPad = 7.0f * uiScale;
+        float badgeTotalReserved = badgeW + innerRightPad + (8.0f * uiScale);
+        float maxTitleW = std::max(10.0f * uiScale, headerRect.w - innerLeftPad - badgeTotalReserved);
+        float titleScale = uiScale * 0.88f;
+        std::string fittedTitle = UIWidget::truncateText(locTitle, maxTitleW, titleScale);
+
+        UIWidget::drawPanel(renderer, headerRect, Theme::colors.bgHeader, Theme::colors.borderNormal);
+
+        float titleLineH = UIWidget::getLineHeight(titleScale);
+        float titleY = headerRect.y + ((headerRect.h - titleLineH) / 2.0f);
+
+        SDL_Rect prevClip;
+        bool hadClip = SDL_RenderClipEnabled(renderer);
+        if (hadClip)
+        {
+            SDL_GetRenderClipRect(renderer, &prevClip);
         }
 
-        float headerH = 26.0f * uiScale;
-        SDL_FRect headerRect = { rect.x, curY, rect.w, headerH };
-        UIWidget::drawHeader(renderer, headerRect, locTitle, Theme::colors.bgHeader, Theme::colors.textGold, uiScale);
-        curY += headerH + (12.0f * uiScale);
+        SDL_Rect titleClip = {
+            static_cast<int>(headerRect.x + innerLeftPad),
+            static_cast<int>(headerRect.y),
+            static_cast<int>(std::max(0.0f, maxTitleW)),
+            static_cast<int>(headerRect.h)
+        };
+        if (hadClip)
+        {
+            SDL_GetRectIntersection(&titleClip, &prevClip, &titleClip);
+        }
+        SDL_SetRenderClipRect(renderer, &titleClip);
+
+        UIWidget::drawText(renderer, fittedTitle, headerRect.x + innerLeftPad, titleY, Theme::colors.textGold, titleScale);
+
+        if (hadClip)
+        {
+            SDL_SetRenderClipRect(renderer, &prevClip);
+        }
+        else
+        {
+            SDL_SetRenderClipRect(renderer, nullptr);
+        }
+
+        // Render [Safe] / [Danger] badge on the right side of headerRect, perfectly vertically centered
+        float badgeX = headerRect.x + headerRect.w - badgeW - innerRightPad;
+        float badgeY = headerRect.y + ((headerRect.h - badgeH) / 2.0f);
+        SDL_FRect badgeRect = { badgeX, badgeY, badgeW, badgeH };
+        SDL_Color badgeBg = isSafe ? SDL_Color{ 20, 50, 20, 220 } : SDL_Color{ 50, 20, 20, 220 };
+        UIWidget::drawPanel(renderer, badgeRect, badgeBg, badgeCol);
+        float badgeTextLineH = UIWidget::getLineHeight(badgeScale);
+        float badgeTextY = badgeY + ((badgeH - badgeTextLineH) / 2.0f);
+        UIWidget::drawText(renderer, badgeText, badgeX + (5.0f * uiScale), badgeTextY, badgeCol, badgeScale);
+
+        TooltipManager::setHoverTooltip(badgeRect, gameContext->input.getMousePosition(),
+            isSafe ? "Safe Zone" : "Danger Zone",
+            isSafe ? "Exploration safe zone. Combat encounters disabled and floor storage preserved."
+                   : "Hostile wilderness or dungeon area. Hostile encounters possible and floor storage decays.",
+            "Area Status");
+
+        curY += headerH + (10.0f * uiScale);
 
         std::string p1 = m ? m->getTileDescription(pX, pY) : "You look around your surroundings.";
 
@@ -3288,12 +3428,32 @@ namespace GameplayViews
             }
         }
 
-        SDL_FRect cardRect = { padX, curY, innerW, 120.0f * uiScale };
+        const float bottomMargin = 6.0f * uiScale;
+        float cardH = std::max(60.0f * uiScale, (rect.y + rect.h) - curY - bottomMargin);
+        SDL_FRect cardRect = { padX, curY, innerW, cardH };
         UIWidget::drawPanel(renderer, cardRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
 
-        float textY = curY + (12.0f * uiScale);
-        float textX = padX + (14.0f * uiScale);
-        float textW = innerW - (28.0f * uiScale);
+        hadClip = SDL_RenderClipEnabled(renderer);
+        if (hadClip)
+        {
+            SDL_GetRenderClipRect(renderer, &prevClip);
+        }
+
+        SDL_Rect textClip = {
+            static_cast<int>(cardRect.x + (2.0f * uiScale)),
+            static_cast<int>(cardRect.y + (2.0f * uiScale)),
+            static_cast<int>(cardRect.w - (4.0f * uiScale)),
+            static_cast<int>(cardRect.h - (4.0f * uiScale))
+        };
+        if (hadClip)
+        {
+            SDL_GetRectIntersection(&textClip, &prevClip, &textClip);
+        }
+        SDL_SetRenderClipRect(renderer, &textClip);
+
+        float textY = curY + (10.0f * uiScale);
+        float textX = padX + (10.0f * uiScale);
+        float textW = innerW - (20.0f * uiScale);
 
         float h1 = UIWidget::drawTextWrapped(renderer, p1, textX, textY, textW, Theme::colors.textPrimary, uiScale * 0.84f);
         textY += h1 + (10.0f * uiScale);
@@ -3307,9 +3467,16 @@ namespace GameplayViews
             textY += hp + (8.0f * uiScale);
         }
 
-        cardRect.h = (textY - curY) + (4.0f * uiScale);
-        curY += cardRect.h + (12.0f * uiScale);
+        if (hadClip)
+        {
+            SDL_SetRenderClipRect(renderer, &prevClip);
+        }
+        else
+        {
+            SDL_SetRenderClipRect(renderer, nullptr);
+        }
 
+        curY = std::max(curY + cardRect.h, textY + (10.0f * uiScale));
         return (curY - startY);
     }
 
@@ -3381,6 +3548,7 @@ namespace GameplayViews
             std::string sideTitle = (side == 0)
                 ? std::format("YOUR INVENTORY (SELL)")
                 : (ent ? std::format("{}'S STOCK (BUY)", ent->name) : "MERCHANT WARES (BUY)");
+            sideTitle = UIWidget::truncateText(sideTitle, sideW - (16.0f * uiScale), uiScale * 0.76f);
 
             UIWidget::drawHeader(renderer, hRect, sideTitle, Theme::colors.bgHeader, Theme::colors.textGold, uiScale * 0.76f);
             sY += sideHeaderH + (4.0f * uiScale);
@@ -3832,6 +4000,8 @@ namespace GameplayViews
         if (addHov && clicked && ench && canAddEffect)
         {
             ench->stageCurrentEffect(gameContext);
+            gameContext->input.consumeMouseClick();
+            gameContext->refreshActionGrid();
         }
         curY += addBarRect.h + (12.0f * uiScale);
 
@@ -3841,6 +4011,8 @@ namespace GameplayViews
         UIWidget::drawPanel(renderer, recipeRect, Theme::colors.bgDark, Theme::colors.borderButton);
 
         float col1X = padX + (10.0f * uiScale);
+        float midX = padX + (195.0f * uiScale);
+        float midW = availableW - (335.0f * uiScale);
         UIWidget::drawText(renderer, "Input Item", col1X, curY + (6.0f * uiScale), Theme::colors.textAccent, uiScale * 0.80f);
 
         SDL_FRect inSlotRect = { col1X, curY + (22.0f * uiScale), 48.0f * uiScale, 48.0f * uiScale };
@@ -3879,13 +4051,12 @@ namespace GameplayViews
 
         float inTextX = col1X + (54.0f * uiScale);
         std::string fullItemName = baseItem ? baseItem->name : "Blank Tonic Base";
-        if (fullItemName.length() > 18)
-        {
-            fullItemName = fullItemName.substr(0, 16) + "..";
-        }
+        float maxItemNameW = std::max(10.0f * uiScale, (midX - (10.0f * uiScale)) - inTextX);
+        fullItemName = UIWidget::truncateText(fullItemName, maxItemNameW, uiScale * 0.76f);
         UIWidget::drawText(renderer, fullItemName, inTextX, curY + (24.0f * uiScale), Theme::colors.textGold, uiScale * 0.76f);
 
         std::string subCatStr = baseItem ? std::format("{} (x{})", itemCategoryToString(determineItemCategory(*baseItem)), baseItem->count) : "Pure Alchemy";
+        subCatStr = UIWidget::truncateText(subCatStr, maxItemNameW, uiScale * 0.68f);
         UIWidget::drawText(renderer, subCatStr, inTextX, curY + (40.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.68f);
 
         float statusBadgeY = curY + recipeH - (30.0f * uiScale);
@@ -3914,9 +4085,6 @@ namespace GameplayViews
                                             baseItem ? ("Category: " + itemCategoryToString(determineItemCategory(*baseItem))) : "");
         }
 
-        float midX = padX + (195.0f * uiScale);
-        float midW = availableW - (335.0f * uiScale);
-
         int totalCost = ench ? ench->getTotalCost(gameContext) : 0;
         size_t effCount = ench ? ench->stagedEffects.size() : 0;
         float curEssence = gameContext->Player ? gameContext->Player->getStat("arcaneEssence") : 0.0f;
@@ -3930,7 +4098,8 @@ namespace GameplayViews
         SDL_FRect nameInputRect = { midX, curY + (22.0f * uiScale), midW, 22.0f * uiScale };
         UIWidget::drawPanel(renderer, nameInputRect, Theme::colors.bgSlot, Theme::colors.borderNormal);
         std::string dispName = ench && !ench->customOutputName.empty() ? ench->customOutputName : (ench ? EnchantingEngine::composeItemName(baseItem.get(), ench->stagedEffects) : "Infused Item");
-        UIWidget::drawText(renderer, std::format("Result: {}", dispName), nameInputRect.x + (6.0f * uiScale), nameInputRect.y + (3.0f * uiScale), Theme::colors.textGold, uiScale * 0.80f);
+        std::string resStr = UIWidget::truncateText(std::format("Result: {}", dispName), nameInputRect.w - (12.0f * uiScale), uiScale * 0.80f);
+        UIWidget::drawText(renderer, resStr, nameInputRect.x + (6.0f * uiScale), nameInputRect.y + (3.0f * uiScale), Theme::colors.textGold, uiScale * 0.80f);
 
         float effY = curY + (48.0f * uiScale);
         if (ench && !ench->stagedEffects.empty())
@@ -3950,7 +4119,8 @@ namespace GameplayViews
                         sText = std::format("{} {}", sign, raceDisp);
                     }
                 }
-                if (sText.length() > 44) sText = sText.substr(0, 42) + "..";
+                float maxSTextW = std::max(10.0f * uiScale, midW - (30.0f * uiScale));
+                sText = UIWidget::truncateText(sText, maxSTextW, uiScale * 0.76f);
 
                 bool isInherent = false;
                 if (baseItem)
@@ -4050,12 +4220,15 @@ namespace GameplayViews
         UIWidget::drawPanel(renderer, headCard, Theme::colors.bgPanel, Theme::colors.borderNormal);
 
         std::string titleStr = std::format("Servant: {}", s->name);
+        float exW = s->servant.stats.isExhausted ? (UIWidget::getTextWidth("[ EXHAUSTED - REST REQUIRED ]", uiScale * 0.85f) + (10.0f * uiScale)) : 0.0f;
+        float maxServTitleW = std::max(10.0f * uiScale, headCard.w - (24.0f * uiScale) - exW);
+        titleStr = UIWidget::truncateText(titleStr, maxServTitleW, uiScale * 1.1f);
         UIWidget::drawText(renderer, titleStr, headCard.x + (12.0f * uiScale), headCard.y + (12.0f * uiScale), Theme::colors.textGold, uiScale * 1.1f);
 
         if (s->servant.stats.isExhausted)
         {
-            float exW = UIWidget::getTextWidth("[ EXHAUSTED - REST REQUIRED ]", uiScale * 0.85f);
-            UIWidget::drawText(renderer, "[ EXHAUSTED - REST REQUIRED ]", headCard.x + headCard.w - exW - (12.0f * uiScale), headCard.y + (14.0f * uiScale), { 240, 80, 80, 255 }, uiScale * 0.85f);
+            float exTextW = UIWidget::getTextWidth("[ EXHAUSTED - REST REQUIRED ]", uiScale * 0.85f);
+            UIWidget::drawText(renderer, "[ EXHAUSTED - REST REQUIRED ]", headCard.x + headCard.w - exTextW - (12.0f * uiScale), headCard.y + (14.0f * uiScale), { 240, 80, 80, 255 }, uiScale * 0.85f);
         }
         curY += headCard.h + (10.0f * uiScale);
 
@@ -4223,20 +4396,23 @@ namespace GameplayViews
             std::string stageBadge = rec.isAdult() ? "[ ADULT NPC - READY FOR PROMOTION ]" : "[ CHILD ]";
             SDL_Color stageCol = rec.isAdult() ? SDL_Color{ 100, 240, 140, 255 } : Theme::colors.textSecondary;
 
-            UIWidget::drawText(renderer, rec.name, itemRect.x + (12.0f * uiScale), itemRect.y + (10.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.95f);
-
             float sbW = UIWidget::getTextWidth(stageBadge, uiScale * 0.75f);
+            float maxOffspringNameW = std::max(10.0f * uiScale, itemRect.w - (24.0f * uiScale) - sbW - (10.0f * uiScale));
+            std::string fittedName = UIWidget::truncateText(rec.name, maxOffspringNameW, uiScale * 0.95f);
+            UIWidget::drawText(renderer, fittedName, itemRect.x + (12.0f * uiScale), itemRect.y + (10.0f * uiScale), Theme::colors.textPrimary, uiScale * 0.95f);
             UIWidget::drawText(renderer, stageBadge, itemRect.x + itemRect.w - sbW - (12.0f * uiScale), itemRect.y + (12.0f * uiScale), stageCol, uiScale * 0.75f);
 
             // Subtitle: Age and threshold
             std::string ageStr = std::format("Age: {} days (Adulthood at: {} days) | Heritage: {}", 
                                              rec.daysAlive, offspringManager::ADULTHOOD_DAYS_THRESHOLD, rec.rolledRace);
+            ageStr = UIWidget::truncateText(ageStr, itemRect.w - (24.0f * uiScale), uiScale * 0.75f);
             UIWidget::drawText(renderer, ageStr, itemRect.x + (12.0f * uiScale), itemRect.y + (30.0f * uiScale), Theme::colors.textGold, uiScale * 0.75f);
 
             // Lineage
             std::string lineStr = std::format("Mother: {} ({}) | Father: {} ({})", 
                                               rec.motherId.empty() ? "Player" : rec.motherId, rec.motherRace,
                                               rec.fatherName.empty() ? "Unknown" : rec.fatherName, rec.fatherRace);
+            lineStr = UIWidget::truncateText(lineStr, itemRect.w - (24.0f * uiScale), uiScale * 0.70f);
             UIWidget::drawText(renderer, lineStr, itemRect.x + (12.0f * uiScale), itemRect.y + (48.0f * uiScale), Theme::colors.textSecondary, uiScale * 0.70f);
 
             if (isHov && clicked)
